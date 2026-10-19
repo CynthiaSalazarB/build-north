@@ -67,6 +67,18 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** a narrower product, so the broader philosophy lives on the vision slide.
   Adds a metric: self-generated questions at level 5.
 
+### 2026-10-19 · At level 5 the learner asks, and the AI only gives facts
+- **Decision:** the top level hands the questioning over to the learner. They ask a fact desk agent
+  anything while building the map; it answers facts and never the structure. The testers' pre-test and
+  post-test run in this mode, and the metric is the questions asked, how many test the concept
+  (compare, contrast, a breaking case, what it needs), and the score.
+- **Instead of:** level 5 as "build the map alone", with the metric "says the four questions unprompted".
+- **Why:** the point is for people to start asking questions to work something out, here to get a
+  concept clear. If the app does all the asking, they only practice answering, and the four questions
+  just get memorized.
+- **Pattern / trade-off:** gradual release of responsibility ("I do, we do, you do"; Pearson and
+  Gallagher). One more agent and about a day of work, and the fact desk must never leak the structure.
+
 ---
 
 ## Open

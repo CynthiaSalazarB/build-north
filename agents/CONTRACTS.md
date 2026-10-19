@@ -51,7 +51,7 @@ API accepts an `x-dev-user: <name>` header instead.
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | `POST` | `/sessions` | `{ concept, material? }` | `Turn` (asks for confidence) |
-| `POST` | `/sessions/:id/turns` | one of `{ confidence }`, `{ text }`, `{ action: "help" }`, `{ action: "continue" }` | `Turn` |
+| `POST` | `/sessions/:id/turns` | one of `{ confidence }`, `{ text }`, `{ question }`, `{ mentefacto }`, `{ action: "help" }`, `{ action: "continue" }` | `Turn` |
 | `GET` | `/sessions/:id` | | latest `Turn` (resume after the app reloads) |
 | `GET` | `/me/mastery` | | `Mastery` |
 | `DELETE` | `/me/data` | | `204`, deletes sessions, logs and mastery (the delete button) |
@@ -69,12 +69,13 @@ type Turn = {
   move: MoveId | null;
   level: Level | null;
   messages: {
-    agent: "questioner" | "evaluator" | "hint_giver" | "example_builder" | "coach" | "app";
-    kind: "question" | "feedback" | "hint" | "example" | "named_move" | "summary";
+    agent: "questioner" | "evaluator" | "hint_giver" | "example_builder" | "coach" | "fact_desk" | "app";
+    kind: "question" | "feedback" | "hint" | "example" | "named_move" | "summary" | "fact" | "redirect";
     text: string;
     hintStep?: HintStep;
   }[];
-  expects: "confidence" | "text" | "continue" | "none";   // decides which input the screen shows
+  expects: "confidence" | "text" | "continue" | "map" | "none";   // decides which input the screen shows
+  // "map" = level 5: a chat box for the learner's questions + the editable map + a Submit button
   scaffold: { given: string[]; blanks: number } | null;     // level 3 only: the half-built part
   mentefacto: Mentefacto;                                   // what the learner has built so far
   progress: { movesDone: number; movesTotal: number; hintsUsed: number };
@@ -126,12 +127,16 @@ Example, session 1, the learner just answered "A law?" for the bigger group:
     { "move": "exclusion", "from": 2, "to": 3 },
     { "move": "infraordinate", "from": 2, "to": 3 }
   ],
-  "selfGeneratedQuestions": 0,
+  "questions": { "asked": 0, "testing": 0 },
   "coach": { "message": "You found the bigger group and a real exclusion. 'What it needs' is next.", "nextFocus": "isoordinate" }
 }
 ```
 
 `calibrationGap = predictedConfidence − actualPercent`. Positive means overconfident.
+
+`questions` counts what the learner asked the fact desk (level 5 and the testers' pre-test and
+post-test). `testing` is how many of those test the concept (compare, contrast, breaking case, what
+it needs) instead of asking a plain fact. In session 1 both are 0: the app does the asking.
 
 ### `Mastery`
 
@@ -175,8 +180,8 @@ In: `AgentContext`
 ```
 
 At level 3, `scaffold` is filled (`{ "given": ["free elections", "rights"], "blanks": 1 }`). Levels
-4 and 5 use fixed text from code ("Now find the exclusion.", "Build the mentefacto for inflation."),
-no model call.
+4 and 5 use fixed text from code ("Now find the exclusion.", "Build the mentefacto for inflation.
+Ask me any facts you need."), no model call.
 
 ### Evaluator: judges one answer against the mentefacto rules
 
@@ -189,8 +194,7 @@ In: `AgentContext & { answer: string }`
   "accepted": [],
   "issue": "not_a_class",
   "reason": "A law is a rule, not a class that contains monarchy and dictatorship.",
-  "feedback": "Not quite. A law is a rule, and democracy isn't a rule.",
-  "learnerQuestions": []
+  "feedback": "Not quite. A law is a rule, and democracy isn't a rule."
 }
 ```
 
@@ -199,8 +203,6 @@ In: `AgentContext & { answer: string }`
 - `issue`: `too_broad | not_a_class | same_level | is_a_subtype | is_a_characteristic | off_topic | none`.
   Code uses it to pick the next hint; the hint giver uses it to aim the hint.
 - `reason` is for logs and for us. `feedback` is shown, and must never contain the answer.
-- `learnerQuestions`: questions the learner asked on their own in this answer (the self-generated
-  questions metric).
 
 ### Evaluator, whole map: scores a mentefacto built alone
 
@@ -212,9 +214,33 @@ Used at level 5 and for the testers' pre-test and post-test. In: `{ concept, mat
     { "move": "exclusion", "quality": 2, "feedback": "'One product getting more expensive' is an excellent exclusion." },
     { "move": "isoordinate", "quality": 2, "feedback": "..." },
     { "move": "infraordinate", "quality": 2, "feedback": "..." }
-  ],
-  "learnerQuestions": [] }
+  ] }
 ```
+
+### Fact desk: level 5 only, answers the learner's questions with facts, never the structure
+
+In: `{ concept, material, mentefacto, question }`
+
+```json
+{ "kind": "fact",
+  "answer": "Not by itself: that's one product. It counts as inflation when the overall price level goes up.",
+  "questionType": "breaking_case" }
+```
+
+When the question asks for the structure ("what's the bigger group of inflation?"), it doesn't answer;
+it hands the decision back with a question that points to a move:
+
+```json
+{ "kind": "structure",
+  "answer": "That part is yours to decide. What other things happen to money in an economy?",
+  "questionType": "asks_for_structure" }
+```
+
+- `questionType`: `fact | compare | contrast | breaking_case | what_it_needs | asks_for_structure | other`.
+  Everything except `fact`, `asks_for_structure` and `other` counts as `testing` in the result.
+- Facts in one or two sentences, from the learner's material when it has the answer.
+- Never names a part of the map or says which box something belongs in. A leak here gives the answer
+  away, so this prompt gets the most test cases.
 
 ### Hint giver: words the hint step code chose
 
@@ -268,7 +294,8 @@ Challenger and Steelman belong to Check the AI.
 | Level for a move | read from mastery; new learners start at 1. Watching the worked example moves every move to level 2 |
 | After an answer | evaluator. `correct` → accept, name the move, next move. `partial` / `incorrect` → next hint step |
 | Hint ladder | nudge → hint → partial → reveal. At levels 4 and 5, hints only when the learner taps Help |
-| Level 5 | no per-move checks; whole-map evaluator at the end |
+| Level 5 | **the learner asks.** They send any number of `{ question }` to the fact desk while filling the map, then submit `{ mentefacto }`. No per-move checks; whole-map evaluator at the end. Help gives a hint and caps that move at 1 point |
+| Testers' pre-test and post-test | run in level 5 mode, so both measure the same thing: questions asked, how many test the concept, and the score |
 | Points per move | evaluator `quality`, capped at 1 if any hint was used, 0 if revealed. Max 8 |
 | Mastery | done with ≤ 1 hint → level up one (max 5). 0 hints → `unassistedSuccesses + 1`. Never down in this version |
 | Calibration | `actualPercent = round(score / 8 × 100)`; `gap = predicted − actualPercent` |
@@ -281,7 +308,7 @@ Challenger and Steelman belong to Check the AI.
 |---|---|---|
 | `mastery` | user, move, level, unassistedSuccesses, updatedAt | one row per user per move; read every turn |
 | `session` | user, concept, material, predictedConfidence, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result, createdAt | the orchestrator's state |
-| `agent_log` | session, agent, input, output, ms, at | append-only; debugging and the testers' numbers |
+| `agent_log` | session, agent, input, output, ms, at | append-only; debugging and the testers' numbers (fact desk rows are the questions metric) |
 
 `DELETE /me/data` removes all three for the user.
 
@@ -292,7 +319,7 @@ Challenger and Steelman belong to Check the AI.
 - Model from `AGENT_MODEL` (default `claude-opus-5-5`). Effort `low` for questioner and hint giver,
   `medium` for the evaluators. Measure seconds per turn on Oct 20 before changing anything.
 - A learner's answer costs two calls in a row (evaluator, then hint giver or questioner). That's the
-  latency to watch.
+  latency to watch. At level 5 each question is one fact desk call (effort `low`).
 - Schemas: every object `additionalProperties: false` (Zod does this). No `min`/`max`/`minLength`:
   the SDK strips them and checks them locally. The first call with a new schema is slower (it gets
   compiled, then cached 24 h), so warm up every agent before the demo.
