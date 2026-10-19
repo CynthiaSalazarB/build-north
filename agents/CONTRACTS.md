@@ -23,7 +23,7 @@ deterministic and explainable. Claude writes the questions, judges the answers a
 type MoveId = "supraordinate" | "exclusion" | "isoordinate" | "infraordinate";
 //             bigger group      what it isn't  what it needs   its types
 
-type Level = 1 | 2 | 3 | 4 | 5;   // watch, guided, complete, named only, alone
+type Level = 1 | 2 | 3 | 4 | 5;   // watch, guided, complete, named only, alone (the learner asks the fact desk)
 type HintStep = "nudge" | "hint" | "partial" | "reveal";
 type Verdict = "correct" | "partial" | "incorrect";
 
@@ -46,11 +46,12 @@ order of the democracy example in the brief).
 ## 1. API and the `Turn`
 
 Every call needs the Clerk token as `Authorization: Bearer <token>`. Until Clerk lands (Oct 21) the
-API accepts an `x-dev-user: <name>` header instead.
+API accepts an `x-dev-user: <name>` header instead; the API rejects that header when
+`NODE_ENV=production`.
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| `POST` | `/sessions` | `{ concept, material? }` | `Turn` (asks for confidence) |
+| `POST` | `/sessions` | `{ concept, material?, mode? }` | `Turn` (asks for confidence) |
 | `POST` | `/sessions/:id/turns` | one of `{ confidence }`, `{ text }`, `{ question }`, `{ mentefacto }`, `{ action: "help" }`, `{ action: "continue" }` | `Turn` |
 | `GET` | `/sessions/:id` | | latest `Turn` (resume after the app reloads) |
 | `GET` | `/me/mastery` | | `Mastery` |
@@ -59,6 +60,10 @@ API accepts an `x-dev-user: <name>` header instead.
 
 `material` is the learner's own notes. Over 8,000 characters the API answers `413` with a message
 asking for a shorter excerpt; it never trims silently.
+
+`mode` is `"learn"` (default) or `"test"`. A test session runs every move at level 5 and never
+changes mastery. The testers' pre-test and post-test use it, so a new learner can be measured
+before the ladder starts.
 
 ### `Turn`: the one object the app renders
 
@@ -231,7 +236,7 @@ When the question asks for the structure ("what's the bigger group of inflation?
 it hands the decision back with a question that points to a move:
 
 ```json
-{ "kind": "structure",
+{ "kind": "redirect",
   "answer": "That part is yours to decide. What other things happen to money in an economy?",
   "questionType": "asks_for_structure" }
 ```
@@ -296,6 +301,7 @@ Challenger and Steelman belong to Check the AI.
 | Hint ladder | nudge → hint → partial → reveal. At levels 4 and 5, hints only when the learner taps Help |
 | Level 5 | **the learner asks.** They send any number of `{ question }` to the fact desk while filling the map, then submit `{ mentefacto }`. No per-move checks; whole-map evaluator at the end. Help gives a hint and caps that move at 1 point |
 | Testers' pre-test and post-test | run in level 5 mode, so both measure the same thing: questions asked, how many test the concept, and the score |
+| Test sessions (`mode: "test"`) | every move at level 5 whatever the mastery says; the result is computed as usual; mastery is never updated |
 | Points per move | evaluator `quality`, capped at 1 if any hint was used, 0 if revealed. Max 8 |
 | Mastery | done with ≤ 1 hint → level up one (max 5). 0 hints → `unassistedSuccesses + 1`. Never down in this version |
 | Calibration | `actualPercent = round(score / 8 × 100)`; `gap = predicted − actualPercent` |
@@ -307,7 +313,7 @@ Challenger and Steelman belong to Check the AI.
 | Table | Fields | Notes |
 |---|---|---|
 | `mastery` | user, move, level, unassistedSuccesses, updatedAt | one row per user per move; read every turn |
-| `session` | user, concept, material, predictedConfidence, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result, createdAt | the orchestrator's state |
+| `session` | user, concept, material, mode, predictedConfidence, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result, createdAt | the orchestrator's state |
 | `agent_log` | session, agent, input, output, ms, at | append-only; debugging and the testers' numbers (fact desk rows are the questions metric) |
 
 `DELETE /me/data` removes all three for the user.
@@ -318,6 +324,9 @@ Challenger and Steelman belong to Check the AI.
 
 - Model from `AGENT_MODEL` (default `claude-opus-5-5`). Effort `low` for questioner and hint giver,
   `medium` for the evaluators. Measure seconds per turn on Oct 20 before changing anything.
+- Budget: the $100 credits expire Oct 21. The testers (Oct 23) and demo day (Oct 29) run on whatever
+  replaces them (#19, #20). If the replacement cap is small, `AGENT_MODEL` drops to `claude-sonnet-5-5`;
+  measure the cost of one full session before the testers.
 - A learner's answer costs two calls in a row (evaluator, then hint giver or questioner). That's the
   latency to watch. At level 5 each question is one fact desk call (effort `low`).
 - Schemas: every object `additionalProperties: false` (Zod does this). No `min`/`max`/`minLength`:
@@ -337,3 +346,7 @@ Challenger and Steelman belong to Check the AI.
 4. **Worked example:** generate "planet" once and ship it as a fixture, with no live call in the demo?
 5. **Before Clerk:** is the `x-dev-user` header fine until Oct 21?
 6. **Latency:** how many seconds per turn is acceptable on a phone? Pick the number before measuring.
+7. **Test mode:** `mode: "test"` on `POST /sessions` (every move at level 5, mastery unchanged) for the
+   testers' pre-test and post-test. Any objection to a flag instead of a separate endpoint?
+8. **Fact desk redirect:** the structure answer is `kind: "redirect"` in both the agent output and the
+   `Turn` message, so the app renders one thing. Agreed?

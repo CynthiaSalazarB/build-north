@@ -3,7 +3,8 @@
 A mobile app that teaches people to question, anchored in concepts. The learner builds a concept's
 map (a *mentefacto conceptual*) without AI while a set of Claude agents asks questions, gives hints
 that fade over time, and shows the **calibration gap**: how sure the learner felt vs. how well they
-actually did.
+actually did. At the top level the roles flip: the learner asks, and a fact desk agent answers with
+facts only, never the structure.
 
 Built for **Build North** (Georgian AI Lab + TapNet), October 2026.
 
@@ -31,8 +32,8 @@ Per-folder run instructions live in each folder's README.
 
 ## How we work
 
-- Tasks live in GitHub Issues + the project board (To do, Doing, Done). One owner per issue, a day
-  or less, and a "done when" line.
+- Tasks live in GitHub Issues + the project board (Todo, In Progress, Done). One owner per issue, 1 to
+  3 hours, a "done when" line and a "depends on" line. Each issue sits in the milestone of its day.
 - Short branches (`jonathan/session-screen`), a pull request, one teammate reviews, merge the same day.
 - Secrets never go in git. `.env.example` lists every variable; the Claude key exists only on the API.
 - Decisions with a real trade-off go in [`DECISIONS.md`](DECISIONS.md).
