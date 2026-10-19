@@ -1,0 +1,9 @@
+{
+  "name": "build-north",
+  "private": true,
+  "workspaces": [
+    "app",
+    "api",
+    "agents"
+  ]
+}
