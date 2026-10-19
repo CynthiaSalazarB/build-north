@@ -79,6 +79,17 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** gradual release of responsibility ("I do, we do, you do"; Pearson and
   Gallagher). One more agent and about a day of work, and the fact desk must never leak the structure.
 
+### 2026-10-19 · Test sessions are a flag, not a separate flow
+- **Decision:** `POST /sessions` takes `mode: "test"`. A test session runs every move at level 5 and
+  never updates mastery. The testers' pre-test and post-test use it.
+- **Instead of:** a separate test endpoint, or measuring testers through normal sessions.
+- **Why:** a new learner starts at level 1, and the pre-test has to measure them alone, before the
+  ladder. Without it the numbers slide has no pre-test. The demo doesn't need it: the demo profile is
+  pre-seeded at level 4 to 5, so the orchestrator reaches level 5 on its own.
+- **Pattern / trade-off:** one code path with a flag (feature flag on the request). Less to build and
+  one result shape; in exchange the orchestrator has to check the flag everywhere mastery is read or
+  written, and a forgotten check leaks test runs into the ladder.
+
 ---
 
 ## Open

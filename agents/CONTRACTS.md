@@ -346,7 +346,5 @@ Challenger and Steelman belong to Check the AI.
 4. **Worked example:** generate "planet" once and ship it as a fixture, with no live call in the demo?
 5. **Before Clerk:** is the `x-dev-user` header fine until Oct 21?
 6. **Latency:** how many seconds per turn is acceptable on a phone? Pick the number before measuring.
-7. **Test mode:** `mode: "test"` on `POST /sessions` (every move at level 5, mastery unchanged) for the
-   testers' pre-test and post-test. Any objection to a flag instead of a separate endpoint?
-8. **Fact desk redirect:** the structure answer is `kind: "redirect"` in both the agent output and the
+7. **Fact desk redirect:** the structure answer is `kind: "redirect"` in both the agent output and the
    `Turn` message, so the app renders one thing. Agreed?
