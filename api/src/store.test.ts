@@ -1,7 +1,8 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
+import { Session as SessionSchema } from "@build-north/agents";
 import { Surreal } from "surrealdb";
-import { advanceStub } from "./advance-stub.ts";
+import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { createStore, defineSchema } from "./store.ts";
 
 // Needs a real SurrealDB and a root user, for example a local container:
@@ -28,12 +29,15 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     assert.equal(await store.getSession("jonathan", session.id), null);
     assert.equal(await store.getSession("leo", "doesnotexist0000000"), null);
 
-    const next = await advanceStub({ session, mastery: await store.getMastery("leo") }, { action: "start" });
+    const next = await advanceStub({ session, mastery: await store.getMastery("leo") }, { action: "start" }, callAgentStub);
     await store.saveSession(next.session);
     const saved = await store.getSession("leo", session.id);
     assert.equal(saved?.turn, 1);
     assert.deepEqual(saved?.lastTurn, next.turn);
     assert.equal(saved?.createdAt, session.createdAt);
+    // what comes back from the database still fits Cynthia's Session schema, so `advance` can trust it
+    assert.doesNotThrow(() => SessionSchema.parse(session));
+    assert.doesNotThrow(() => SessionSchema.parse(saved));
   });
 
   await t.test("mastery starts at level 1 and saves all four moves", async () => {

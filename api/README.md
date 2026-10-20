@@ -39,8 +39,10 @@ Until Clerk lands (#23), the session routes take the caller's name from an `x-de
 With `NODE_ENV=production` the API refuses that header (CONTRACTS.md section 1), and every
 session route answers `401`.
 
-The first `Turn` comes from a stand-in for `advance` ([`src/advance-stub.ts`](src/advance-stub.ts))
-that only knows `{ action: "start" }`. #28 replaces it with the orchestrator from `agents/`.
+The API's types and request schemas come from `@build-north/agents` (`agents/src/contracts.ts`), so
+a change to the contract shows up here as a type error. The first `Turn` comes from a stand-in for
+`advance` ([`src/advance-stub.ts`](src/advance-stub.ts)) with the same `Advance` type, which only
+knows `{ action: "start" }`. #28 replaces it with the orchestrator from `agents/`.
 
 ## SurrealDB
 

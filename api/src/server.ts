@@ -1,4 +1,4 @@
-import { advanceStub } from "./advance-stub.ts";
+import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { createApp } from "./app.ts";
 import { connectSurreal, surrealCheck, surrealConfigFromEnv } from "./db.ts";
 import { createStore, defineSchema } from "./store.ts";
@@ -16,6 +16,7 @@ createApp({
   checkDb: db ? surrealCheck(db) : null,
   store: db ? createStore(db) : null,
   advance: advanceStub,
+  callAgent: callAgentStub,
   allowDevUser,
 }).listen(port, (error) => {
   if (error) throw error;
