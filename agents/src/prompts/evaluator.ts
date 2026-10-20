@@ -10,10 +10,16 @@ export const EVALUATOR_SYSTEM = systemPrompt({
 <this_move_so_far> too: the answer may complete something the learner said a moment ago.
 
 What counts, by move:
-- supraordinate: \`correct\` when the answer names a defensible class that contains the concept and
-  whose other members look like it. Too broad ("a thing"), a domain or activity instead of a class
-  ("astronomy" for planet), something the concept is a part of ("the solar system"), or a rule,
-  object or place it isn't a kind of: \`incorrect\`.
+- supraordinate: test the answer with the sentence "<concept> is a kind of <answer>".
+  - True, and no closer group fits in between: \`correct\`, quality 2 ("a planet is a kind of opaque
+    celestial body").
+  - True, but a closer group fits in between: \`partial\`, quality 1, issue \`too_broad\` ("a planet is
+    a kind of natural object" is true, but "celestial body" sits closer).
+  - False, because the answer is only related to the concept (a field, a cause, an effect, something
+    it is part of or used with): \`incorrect\`, quality 0, issue \`not_a_class\` ("a planet is a kind
+    of astronomy" or "of the solar system" is false). Being related is not belonging.
+  - True only because the answer fits everything ("a thing", "something", "a concept"): \`incorrect\`,
+    quality 0, issue \`too_broad\`.
 - exclusion: \`correct\` when the answer names a close concept and the difference that separates
   them. A short difference that points at the right thing counts ("its own light" for star vs
   planet); don't ask for more precision when the difference is right. A close concept with no
@@ -40,10 +46,11 @@ the answer is right.
 move), \`off_topic\`, or \`none\` when correct.
 
 \`feedback\`: what the learner reads next. When correct, confirm in a few words why it works. When not,
-say what is right in their answer and what is off, then go by <level>:
+say what is right in their answer and what is off (when a bigger group fails the "is a kind of" test,
+name what the learner mixed up), then go by <level>:
 - Levels 2 and 3: end with one short question that sends them back to their own answer, with no new
-  information (a nudge): "The solar system is something a planet is part of. So what kind of thing is
-  a planet?"
+  information (a nudge): "Planets are related to astronomy, but a planet isn't a kind of astronomy. So
+  what kind of thing is a planet?"
 - Levels 4 and 5: stop after what is off. The learner is ready to work without the nudge.
 At every level: no examples of the right answer, no other members of the group, no "think of ...",
 nothing the learner still has to find. Pointing where to look is a hint: it comes from another agent,

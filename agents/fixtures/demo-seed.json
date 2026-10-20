@@ -1,0 +1,149 @@
+{
+  "user": "demo",
+  "mastery": {
+    "moves": [
+      {
+        "move": "supraordinate",
+        "level": 5,
+        "unassistedSuccesses": 2
+      },
+      {
+        "move": "exclusion",
+        "level": 5,
+        "unassistedSuccesses": 3
+      },
+      {
+        "move": "isoordinate",
+        "level": 5,
+        "unassistedSuccesses": 1
+      },
+      {
+        "move": "infraordinate",
+        "level": 5,
+        "unassistedSuccesses": 2
+      }
+    ]
+  },
+  "session": {
+    "id": "ses_demo_inflation",
+    "user": "demo",
+    "concept": "inflation",
+    "material": null,
+    "mode": "learn",
+    "turn": 2,
+    "lastTurn": {
+      "sessionId": "ses_demo_inflation",
+      "turn": 2,
+      "phase": "move",
+      "move": null,
+      "level": 5,
+      "messages": [
+        {
+          "agent": "app",
+          "kind": "question",
+          "text": "Build the mentefacto for inflation. Ask me any facts you need."
+        }
+      ],
+      "expects": "map",
+      "scaffold": null,
+      "mentefacto": {
+        "concept": "inflation",
+        "supraordinate": null,
+        "exclusion": [],
+        "isoordinate": [],
+        "infraordinate": []
+      },
+      "example": null,
+      "progress": {
+        "movesDone": 0,
+        "movesTotal": 4,
+        "hintsUsed": 0
+      },
+      "result": null,
+      "error": null
+    },
+    "predictedScore": 7,
+    "firstAttempt": null,
+    "phase": "move",
+    "move": null,
+    "hintStep": null,
+    "hintsPerMove": {
+      "supraordinate": 0,
+      "exclusion": 0,
+      "isoordinate": 0,
+      "infraordinate": 0
+    },
+    "mentefacto": {
+      "concept": "inflation",
+      "supraordinate": null,
+      "exclusion": [],
+      "isoordinate": [],
+      "infraordinate": []
+    },
+    "recent": [],
+    "retries": 0,
+    "lastIssue": "none",
+    "nextQuestion": null,
+    "questions": {
+      "asked": 0,
+      "testing": 0
+    },
+    "moveLog": [],
+    "result": null,
+    "createdAt": "2026-10-24T18:00:00.000Z"
+  },
+  "script": {
+    "questions": [
+      "Is it when one thing gets more expensive, or everything?",
+      "If gas goes up, is that inflation?",
+      "Does it have to last a long time to count?",
+      "What is the bigger group that inflation belongs to?"
+    ],
+    "map": {
+      "concept": "inflation",
+      "supraordinate": {
+        "value": "money",
+        "note": null
+      },
+      "exclusion": [
+        {
+          "value": "one product getting more expensive",
+          "note": "inflation is a rise across many goods, not one"
+        }
+      ],
+      "isoordinate": [
+        {
+          "value": "prices rise across many goods and services",
+          "note": null
+        },
+        {
+          "value": "it keeps going over time",
+          "note": null
+        },
+        {
+          "value": "the same money buys less",
+          "note": null
+        }
+      ],
+      "infraordinate": [
+        {
+          "value": "demand-pull inflation",
+          "note": null
+        },
+        {
+          "value": "cost-push inflation",
+          "note": null
+        }
+      ]
+    },
+    "expected": {
+      "score": 6,
+      "calibrationGap": 1,
+      "hintsUsed": 0,
+      "questions": {
+        "asked": 4,
+        "testing": 3
+      }
+    }
+  }
+}

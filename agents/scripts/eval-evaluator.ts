@@ -69,6 +69,28 @@ exclusionCases.forEach((c, i) => {
   console.log(`    accepted: ${JSON.stringify(o.accepted)}`);
 });
 
+// The "is a kind of" test (extra checks): related is not belonging, and a true but far group is too broad.
+const kindOfBase = {
+  ...input(""),
+  concept: "inflation",
+  mentefacto: { ...input("").mentefacto, concept: "inflation" },
+  recent: [{ from: "app" as const, text: "Inflation is one example of a bigger group. What group?" }],
+};
+const kindOfCases = [
+  { answer: "money", want: "incorrect", quality: 0, mentionsKindOf: true },
+  { answer: "an economic change", want: "partial", quality: 1, mentionsKindOf: false },
+];
+const kindRuns = await Promise.all(kindOfCases.map((c) => runAgent(AGENTS.evaluator, { ...kindOfBase, answer: c.answer })));
+let kindRight = 0;
+console.log("\nThe 'is a kind of' test, inflation (extra checks)\n");
+kindOfCases.forEach((c, i) => {
+  const { output: o, ms } = kindRuns[i]!;
+  const ok = o.verdict === c.want && o.quality === c.quality && (!c.mentionsKindOf || /kind of/i.test(o.feedback));
+  if (ok) kindRight++;
+  console.log(`${ok ? "✔" : "✘"} "${c.answer}" → ${o.verdict} (quality ${o.quality}, ${o.issue}, ${ms} ms), want ${c.want}/${c.quality}`);
+  console.log(`    feedback: ${o.feedback}`);
+});
+
 // Feedback by level: at levels 2 and 3 a wrong answer's feedback ends with a nudge (a question); at 4 it
 // stops after what is off. At no level does it name the answer or another member of the group.
 const LEAK = /government|monarch|dictator|regime|oligarch|republic/i;
@@ -86,6 +108,6 @@ for (const c of feedbackChecks) {
 }
 
 console.log(
-  `\n${right}/6 right (need 5) · exclusion ${exRight}/3 · feedback ${feedbackRight}/${feedbackChecks.length} · ${dollars([...runs, ...exRuns, level4])}`,
+  `\n${right}/6 right (need 5) · exclusion ${exRight}/3 · kind of ${kindRight}/2 · feedback ${feedbackRight}/${feedbackChecks.length} · ${dollars([...runs, ...exRuns, ...kindRuns, level4])}`,
 );
 process.exitCode = right >= 5 ? 0 : 1;
