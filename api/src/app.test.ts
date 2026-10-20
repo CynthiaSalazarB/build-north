@@ -2,10 +2,53 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import { test, type TestContext } from "node:test";
+import { MOVE_ORDER, Session as SessionSchema, Turn as TurnSchema, type Session } from "@build-north/agents";
+import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { createApp, type AppOptions } from "./app.ts";
+import { initialSession, type Store } from "./store.ts";
 
 const WEB = "http://localhost:8081";
-const noDb: AppOptions = { corsOrigins: [WEB], checkDb: null };
+const noDb: AppOptions = {
+  corsOrigins: [WEB],
+  checkDb: null,
+  store: null,
+  advance: advanceStub,
+  callAgent: callAgentStub,
+  allowDevUser: true,
+};
+
+// The Store contract kept in memory, so the routes can be tested without a database.
+function memoryStore(): Store {
+  const sessions = new Map<string, Session>();
+  return {
+    async createSession(user, input) {
+      const session: Session = { ...initialSession(user, input), id: `s${sessions.size + 1}`, createdAt: new Date().toISOString() };
+      sessions.set(session.id, session);
+      return structuredClone(session);
+    },
+    async getSession(user, id) {
+      const session = sessions.get(id);
+      return session?.user === user ? structuredClone(session) : null;
+    },
+    async saveSession(session) {
+      sessions.set(session.id, structuredClone(session));
+    },
+    async getMastery() {
+      return { moves: MOVE_ORDER.map((move) => ({ move, level: 1 as const, unassistedSuccesses: 0 })) };
+    },
+    async saveMastery() {},
+    async logAgentCall() {},
+    async deleteUserData() {},
+  };
+}
+
+const withStore = (): AppOptions => ({ ...noDb, store: memoryStore() });
+const post = (url: string, body: unknown, user: string | null = "leo") =>
+  fetch(`${url}/sessions`, {
+    method: "POST",
+    headers: { "content-type": "application/json", ...(user ? { "x-dev-user": user } : {}) },
+    body: typeof body === "string" ? body : JSON.stringify(body),
+  });
 
 async function start(t: TestContext, options: AppOptions): Promise<string> {
   const server = createApp(options).listen(0);
@@ -49,4 +92,55 @@ test("GET /health/db keeps a failure's cause out of the response", async (t) => 
   const res = await fetch(`${await start(t, { ...noDb, checkDb: failing })}/health/db`);
   assert.equal(res.status, 503);
   assert.doesNotMatch(await res.text(), /authentication failed/);
+});
+
+test("POST /sessions starts a session and GET /sessions/:id gives back its Turn", async (t) => {
+  const url = await start(t, withStore());
+  const res = await post(url, { concept: "democracy" });
+  assert.equal(res.status, 201);
+  const turn = await res.json();
+  assert.equal(turn.turn, 1);
+  assert.equal(turn.phase, "predict");
+  assert.equal(turn.expects, "prediction");
+  assert.match(turn.messages[0].text, /map of democracy in 4 parts/);
+
+  const again = await fetch(`${url}/sessions/${turn.sessionId}`, { headers: { "x-dev-user": "leo" } });
+  assert.equal(again.status, 200);
+  assert.deepEqual(await again.json(), turn);
+});
+
+test("a session is invisible to every other user", async (t) => {
+  const url = await start(t, withStore());
+  const { sessionId } = await (await post(url, { concept: "inflation" })).json();
+  const res = await fetch(`${url}/sessions/${sessionId}`, { headers: { "x-dev-user": "jonathan" } });
+  assert.equal(res.status, 404);
+});
+
+test("without a dev user, or in production, the session routes answer 401", async (t) => {
+  assert.equal((await post(await start(t, withStore()), { concept: "democracy" }, null)).status, 401);
+  const production = await start(t, { ...withStore(), allowDevUser: false });
+  assert.equal((await post(production, { concept: "democracy" })).status, 401);
+});
+
+test("POST /sessions checks its body", async (t) => {
+  const url = await start(t, withStore());
+  assert.equal((await post(url, {})).status, 400);
+  assert.equal((await post(url, { concept: "democracy", mode: "exam" })).status, 400);
+  assert.equal((await post(url, { concept: "democracy", material: "x".repeat(8_001) })).status, 413);
+  const broken = await post(url, "{ not json");
+  assert.equal(broken.status, 400);
+  assert.equal(typeof (await broken.json()).error, "string");
+});
+
+test("unknown routes answer 404 in JSON", async (t) => {
+  const res = await fetch(`${await start(t, noDb)}/nope`);
+  assert.equal(res.status, 404);
+  assert.deepEqual(await res.json(), { error: "Not found" });
+});
+
+test("a new session and its first Turn match the schemas in @build-north/agents", async (t) => {
+  const fresh = { ...initialSession("leo", { concept: "democracy", material: null, mode: "learn" }), id: "s1", createdAt: new Date().toISOString() };
+  assert.doesNotThrow(() => SessionSchema.parse(fresh));
+  const turn = await (await post(await start(t, withStore()), { concept: "democracy" })).json();
+  assert.doesNotThrow(() => TurnSchema.parse(turn));
 });

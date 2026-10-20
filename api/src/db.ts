@@ -21,6 +21,11 @@ const PING = new RecordId("ping", "api");
 // A turn's budget is 8 s (CONTRACTS.md §5): a database that can't answer in 5 s fails the request instead.
 const QUERY_TIMEOUT_MS = 5_000;
 
+// Bounds one request's database work, including any wait for the connection.
+export function queryTimeout(): AbortSignal {
+  return AbortSignal.timeout(QUERY_TIMEOUT_MS);
+}
+
 function isAuthLevel(level: string): level is AuthLevel {
   return (AUTH_LEVELS as readonly string[]).includes(level);
 }
@@ -42,7 +47,7 @@ export function surrealConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Surr
 // Connects now and never gives up: after a drop the SDK reconnects forever (at most 5 s apart), so a
 // database blip can't leave the API without a connection until the next deploy. Queries wait for the
 // connection, bounded by their own timeout.
-function connect({ url, namespace, database, username, password, authLevel }: SurrealConfig): Surreal {
+export function connectSurreal({ url, namespace, database, username, password, authLevel }: SurrealConfig): Surreal {
   // The level the user was created at: the signin has to name the same namespace and database.
   const authentication =
     authLevel === "root" ? { username, password }
@@ -59,10 +64,9 @@ function connect({ url, namespace, database, username, password, authLevel }: Su
 }
 
 // Writes and reads one fixed record, so calling it over and over never grows the database.
-export function surrealCheck(config: SurrealConfig): () => Promise<DbCheck> {
-  const db = connect(config);
+export function surrealCheck(db: Surreal): () => Promise<DbCheck> {
   return async () => {
-    const signal = AbortSignal.timeout(QUERY_TIMEOUT_MS);
+    const signal = queryTimeout();
     const started = performance.now();
     await db.upsert(PING).content({ at: new Date() }).signal(signal);
     const written = performance.now();
