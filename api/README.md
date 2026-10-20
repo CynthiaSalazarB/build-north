@@ -69,6 +69,9 @@ Render dashboard → **New → Web Service**:
 | Start command | `node api/src/server.ts` |
 | Health check path | `/health` (under Advanced) |
 | Instance type | Free while building (it sleeps after 15 min idle and takes about a minute to wake). Starter from Oct 22, per `DECISIONS.md` |
-| Environment | `CORS_ORIGIN` and the `SURREAL_*` values from `.env`. Add `NODE_ENV=production` when Clerk lands (#23); before that it would turn off `x-dev-user` on the public URL |
+| Environment | `CORS_ORIGIN`, the `SURREAL_*` values from `.env`, and `NODE_ENV=development` until Clerk lands (#23) |
 
-The Node version comes from [`../.node-version`](../.node-version). Render sets `PORT` itself.
+The Node version comes from [`../.node-version`](../.node-version). Render sets `PORT` itself, and
+also sets `NODE_ENV=production` unless the service sets its own. That would refuse `x-dev-user` on the
+public URL before Clerk exists, so the service sets `NODE_ENV=development` for now. Delete that
+variable when Clerk lands (#23).
