@@ -1,7 +1,8 @@
-# Agent contracts · draft v0.1
+# Agent contracts · v0.1
 
-For the Oct 19 kickoff. Everything here is a proposal: react to it, then it becomes Zod schemas in
-`agents/` and this file becomes the reference.
+Locked at the Oct 19 kickoff ([section 6](#6-kickoff-decisions-oct-19) lists what was decided). This
+file is the reference; the Zod schemas in `agents/` follow it. A change goes through a pull request
+and, if it has a real trade-off, a line in `DECISIONS.md`.
 
 Three layers, three pairs of people:
 
@@ -41,6 +42,18 @@ type Mentefacto = {
 Moves run in this order in a session: supraordinate, exclusion, isoordinate, infraordinate (the
 order of the democracy example in the brief).
 
+Code and JSON use the ids above. The screen shows plain labels, and the method's name appears only
+after the learner finds the move ("That's called the supraordinate class"):
+
+```ts
+const MOVE_LABEL: Record<MoveId, string> = {
+  supraordinate: "Bigger group",
+  exclusion: "What it isn't",
+  isoordinate: "What it needs",
+  infraordinate: "Its types",
+};
+```
+
 ---
 
 ## 1. API and the `Turn`
@@ -57,6 +70,11 @@ API accepts an `x-dev-user: <name>` header instead; the API rejects that header 
 | `GET` | `/me/mastery` | | `Mastery` |
 | `DELETE` | `/me/data` | | `204`, deletes sessions, logs and mastery (the delete button) |
 | `GET` | `/health` | | `{ ok: true }` |
+
+One endpoint moves a session forward: `/turns`. The app sends the body the last `Turn`'s `expects`
+asks for: `confidence` → `{ confidence }`, `text` → `{ text }`, `continue` → `{ action: "continue" }`,
+`map` → `{ question }` while the learner asks and `{ mentefacto }` to submit. `{ action: "help" }`
+can be sent at any point.
 
 `material` is the learner's own notes. Over 8,000 characters the API answers `413` with a message
 asking for a shorter excerpt; it never trims silently.
@@ -259,9 +277,14 @@ In: `AgentContext & { step: HintStep; lastAnswer: string; issue: string }`
 
 `revealed` is filled only at `reveal`: the `Item` that goes into the mentefacto, with 0 points.
 
-### Example builder: the level 1 worked example, thinking out loud
+A hint can be a counterexample when the answer is incomplete: "North Korea holds elections. Is it a
+democracy? What's missing?" That is the hint giver's job; Check yourself has no Challenger agent.
 
-In: `{ exampleConcept: "planet", moves: MoveId[] }` (code picks a simpler concept from a different subject)
+### Example builder: the level 1 worked example, thinking out loud (a fixture, no live call)
+
+Not a Claude call in this version. The planet example is written once and ships as
+`agents/fixtures/worked-example.json` (#15), the same for every learner: instant, free, and it can't
+fail on demo day. The shape below is the fixture's shape.
 
 ```json
 { "exampleConcept": "planet",
@@ -287,7 +310,8 @@ The coach never computes or states a number it wasn't given. Naming a move after
 
 ### Not in this version
 
-Challenger and Steelman belong to Check the AI.
+Challenger and Steelman belong to Check the AI. In Check yourself, a counterexample is a hint (see
+Hint giver).
 
 ---
 
@@ -323,7 +347,10 @@ Challenger and Steelman belong to Check the AI.
 ## 5. Notes for the API
 
 - Model from `AGENT_MODEL` (default `claude-opus-5-5`). Effort `low` for questioner and hint giver,
-  `medium` for the evaluators. Measure seconds per turn on Oct 20 before changing anything.
+  `medium` for the evaluators.
+- Latency budget: **median under 4 s per turn, never over 8 s**, measured at the walking skeleton
+  (Oct 21, #7 and #10). The app shows a thinking indicator whenever a call is pending. If it's slower:
+  lower the effort first, then move the Questioner and Hint giver to `claude-sonnet-5-5`.
 - Budget: the $100 credits expire Oct 21. The testers (Oct 23) and demo day (Oct 29) run on whatever
   replaces them (#19, #20). If the replacement cap is small, `AGENT_MODEL` drops to `claude-sonnet-5-5`;
   measure the cost of one full session before the testers.
@@ -337,14 +364,14 @@ Challenger and Steelman belong to Check the AI.
 
 ---
 
-## 6. Questions for the kickoff
+## 6. Kickoff decisions (Oct 19)
 
-1. **Move ids:** keep the method's names in code (`supraordinate`…) and plain names on screen ("bigger group")?
-2. **One answer endpoint** (`/turns` with four body shapes) or one endpoint per action?
-3. **Challenger in Check yourself:** the brief's democracy example uses it ("North Korea holds
-   elections"). Proposal: a counterexample is something the hint giver can use, not a sixth agent.
-4. **Worked example:** generate "planet" once and ship it as a fixture, with no live call in the demo?
-5. **Before Clerk:** is the `x-dev-user` header fine until Oct 21?
-6. **Latency:** how many seconds per turn is acceptable on a phone? Pick the number before measuring.
-7. **Fact desk redirect:** the structure answer is `kind: "redirect"` in both the agent output and the
-   `Turn` message, so the app renders one thing. Agreed?
+| # | Question | Decision | Why |
+|---|---|---|---|
+| 1 | Move names | The method's ids in code; plain labels on screen (`MOVE_LABEL`, section 0) | Plain question first, the move's name after |
+| 2 | One endpoint or one per action | One: `/turns`, driven by `expects` (section 1) | The orchestrator decides the next step anyway: one handler in the API, one call in the app |
+| 3 | Challenger in Check yourself | No sixth agent: a counterexample is a hint from the hint giver | One less prompt; the Challenger stays in Check the AI |
+| 4 | Worked example | A fixture (`agents/fixtures/worked-example.json`), no live call | Same for everyone; instant, free, can't fail on demo day |
+| 5 | `x-dev-user` before Clerk | Yes, until Oct 21; rejected when `NODE_ENV=production` | Front end and back end can test without waiting for Clerk |
+| 6 | Latency | Median under 4 s per turn, never over 8 s; a thinking indicator always shows (section 5) | The number is set before measuring, so the Oct 21 measurement has a pass line |
+| 7 | Fact desk structure answer | `kind: "redirect"` in both the agent output and the `Turn` | One name end to end, nothing to translate |

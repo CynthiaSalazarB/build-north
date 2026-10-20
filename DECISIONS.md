@@ -90,6 +90,24 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   one result shape; in exchange the orchestrator has to check the flag everywhere mastery is read or
   written, and a forgotten check leaks test runs into the ladder.
 
+### 2026-10-19 · One endpoint moves a session forward
+- **Decision:** `POST /sessions/:id/turns` takes every learner action (confidence, answer, question,
+  map, help, continue). The last `Turn`'s `expects` tells the app which body to send.
+- **Instead of:** one endpoint per action (`/answer`, `/hint`, `/question`, `/submit`).
+- **Why:** the orchestrator decides the next step anyway, so the state advances in one place. One
+  handler in the API, one call in the app.
+- **Pattern / trade-off:** a single command endpoint over a state machine. The request body is a union
+  (a Zod discriminated union validates it), and the API logs are less readable by URL alone.
+
+### 2026-10-19 · A counterexample is a hint, not a Challenger agent
+- **Decision:** in Check yourself, the hint giver can push back with a counterexample ("North Korea
+  holds elections. Is it a democracy?"). The Challenger agent stays in Check the AI.
+- **Instead of:** a sixth agent for Check yourself.
+- **Why:** pushing back on an incomplete answer is the same job as a hint. One less prompt to write
+  and test in a week.
+- **Pattern / trade-off:** fewer, broader workers in orchestrator-workers. The hint giver's prompt
+  carries more cases, and its test script has to cover counterexamples too.
+
 ---
 
 ## Open
