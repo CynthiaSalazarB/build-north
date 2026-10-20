@@ -1,4 +1,4 @@
-import { MOVE_ORDER, type Level, type Mastery, type MoveId, type Session } from "@build-north/agents";
+import { MOVE_ORDER, Mastery, Session, type MoveId } from "@build-north/agents";
 import { RecordId, type Surreal } from "surrealdb";
 import { queryTimeout } from "./db.ts";
 
@@ -81,19 +81,22 @@ export function createStore(db: Surreal): Store {
   }
   const sessionId = (id: string) => new RecordId("session", id);
 
+  // Rows go through the agents schemas on the way out, so a database that drifted from the contract
+  // fails here instead of somewhere downstream.
   return {
     async createSession(user, input) {
-      return one<Session>("CREATE ONLY session CONTENT $content RETURN *, record::id(id) AS id", {
+      const session = await one("CREATE ONLY session CONTENT $content RETURN *, record::id(id) AS id", {
         content: initialSession(user, input),
       });
+      return Session.parse(session);
     },
 
     async getSession(user, id) {
-      const session = await one<Session | null>("SELECT *, record::id(id) AS id FROM ONLY $id WHERE user = $user", {
+      const session = await one("SELECT *, record::id(id) AS id FROM ONLY $id WHERE user = $user", {
         id: sessionId(id),
         user,
       });
-      return session ?? null;
+      return session ? Session.parse(session) : null;
     },
 
     async saveSession({ id, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result }) {
@@ -107,16 +110,16 @@ export function createStore(db: Surreal): Store {
     },
 
     async getMastery(user) {
-      const rows = await one<{ move: MoveId; level: Level; unassistedSuccesses: number }[]>(
+      const rows = await one<{ move: string; level: number; unassistedSuccesses: number }[]>(
         "SELECT move, level, unassistedSuccesses FROM mastery WHERE user = $user",
         { user },
       );
-      return {
+      return Mastery.parse({
         moves: MOVE_ORDER.map((move) => {
           const row = rows.find((r) => r.move === move);
           return { move, level: row?.level ?? 1, unassistedSuccesses: row?.unassistedSuccesses ?? 0 };
         }),
-      };
+      });
     },
 
     async saveMastery(user, { moves }) {
