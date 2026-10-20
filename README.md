@@ -42,3 +42,6 @@ Per-folder run instructions live in each folder's README.
 - Decisions with a real trade-off go in [`DECISIONS.md`](DECISIONS.md), and changes to
   [`agents/CONTRACTS.md`](agents/CONTRACTS.md) change what everyone builds: both arrive through a pull
   request, and the merge is the acceptance.
+- Claude Code picks up the skills in [`.claude/skills/`](.claude/skills/) when you open the repo:
+  Expo and React Native (UI, data fetching, performance, EAS deploys and CI), mobile design, motion,
+  and web interface guidelines for the web build. Each keeps its own license.

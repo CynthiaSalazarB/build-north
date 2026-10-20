@@ -22,3 +22,8 @@ build/
 Thumbs.db
 .vscode/
 .idea/
+
+# Claude Code skills kept local (personal paths or no known license)
+.claude/skills/tactile/
+.claude/skills/design-polish/
+.claude/skills/diagnosing-bugs/
