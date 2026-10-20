@@ -25,7 +25,7 @@ The contracts between the three are in [`agents/CONTRACTS.md`](agents/CONTRACTS.
 
 ```bash
 cp .env.example .env    # fill in the values (ask in Discord)
-npm install             # installs all three workspaces
+npm install             # installs all three workspaces; needs Node 24 (.node-version)
 ```
 
 Per-folder run instructions live in each folder's README.

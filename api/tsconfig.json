@@ -1,0 +1,17 @@
+{
+  // Type check only. Node 24 runs the .ts files directly (type stripping), so nothing is emitted
+  // and only erasable syntax is allowed: no enums, namespaces or constructor parameter properties.
+  "compilerOptions": {
+    "target": "esnext",
+    "module": "nodenext",
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "erasableSyntaxOnly": true,
+    "verbatimModuleSyntax": true,
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "skipLibCheck": true,
+    "types": ["node"]
+  },
+  "include": ["src"]
+}
