@@ -1,6 +1,6 @@
 import type { Advance, CallAgent, Turn } from "@build-north/agents";
 
-// ponytail: answers only { action: "start" }, with the prediction question from CONTRACTS.md
+// Temporary: answers only { action: "start" }, with the prediction question from CONTRACTS.md
 // section 1, so POST /sessions returns a real Turn before the orchestrator exists. It has the exact
 // `Advance` type from @build-north/agents, so #28 swaps in Cynthia's `advance` (#3) with one import.
 export const advanceStub: Advance = async ({ session, mastery }, input) => {
@@ -31,7 +31,7 @@ export const advanceStub: Advance = async ({ session, mastery }, input) => {
   return { session: { ...session, turn: turn.turn, phase: turn.phase, lastTurn: turn }, mastery, turn };
 };
 
-// ponytail: the start Turn needs no agent, so this only fails loudly. #10 replaces it with the real
+// Temporary: the start Turn needs no agent, so this only fails loudly. #10 replaces it with the real
 // callAgent (Claude call, schema check, agent_log row).
 export const callAgentStub: CallAgent = async (agent) => {
   throw new Error(`callAgent isn't wired yet (#10); something asked for the ${agent}`);
