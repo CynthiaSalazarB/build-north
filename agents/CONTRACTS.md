@@ -194,9 +194,11 @@ it needs) instead of asking a plain fact. In session 1 both are 0: the app does 
 
 Every prompt, and every line the app shows, is in English in this version.
 
-Each agent is one `client.messages.parse()` call with `output_config.format: zodOutputFormat(schema)`,
-so the output is valid JSON or the call fails. The API never shows the learner anything an agent
-didn't return.
+Each agent is one `client.messages.create()` call with `output_config.format: zodOutputFormat(schema)`,
+and the API checks the reply against the same schema, so the output is valid JSON or the call fails.
+The system prompt and the user message come from the agent's entry in `AGENTS` (`agents/src/agents.ts`):
+`system`, and `render` writing the user message from the input (below). The API never shows the
+learner anything an agent didn't return.
 
 Every agent receives the same context, plus its own fields:
 
@@ -397,7 +399,8 @@ The API loads the session and mastery, calls `advance`, saves what comes back, a
 sees a resend.
 The API never decides the flow; the orchestrator never stores anything. In test mode `advance` returns
 the mastery unchanged. If `callAgent` throws, `advance` returns the session unchanged and a `Turn`
-with `error` set.
+with `error` set. What `callAgent` throws carries `code` and `retryable`, the two fields of
+`Turn.error`, so `advance` can copy them.
 
 ---
 
@@ -407,7 +410,7 @@ with `error` set.
 |---|---|---|
 | `mastery` | user, move, level, unassistedSuccesses, updatedAt | one row per user per move; read every turn |
 | `session` | id, user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, recent, retries, lastIssue, nextQuestion, questions, moveLog, result, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat; `hintsPerMove` starts with all four moves at 0, `retries` at 0, `lastIssue` at `"none"`, `nextQuestion` at null |
-| `agent_log` | session, agent, input, output, ms, at | append-only; debugging and the testers' numbers (fact desk rows are the questions metric) |
+| `agent_log` | session, agent, input, output, ms, usd, at | append-only; debugging, the testers' numbers (fact desk rows are the questions metric) and what a session costs |
 
 `DELETE /me/data` removes all three for the user.
 
