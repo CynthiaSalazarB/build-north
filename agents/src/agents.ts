@@ -5,6 +5,7 @@
 import type { z } from "zod";
 import type { AgentName } from "./contracts.ts";
 import { evaluator } from "./prompts/evaluator.ts";
+import { hintGiver } from "./prompts/hint-giver.ts";
 import { questioner } from "./prompts/questioner.ts";
 
 export type Effort = "low" | "medium" | "high";
@@ -20,4 +21,4 @@ export type AgentDefinition<I = any, O = any> = {
   render(input: I): string;
 };
 
-export const AGENTS = { questioner, evaluator } satisfies Partial<Record<AgentName, AgentDefinition>>;
+export const AGENTS = { questioner, evaluator, hint_giver: hintGiver } satisfies Partial<Record<AgentName, AgentDefinition>>;
