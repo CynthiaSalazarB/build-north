@@ -80,7 +80,7 @@ can be sent at any point.
 asks on the same scale as the score: "You'll build the map of democracy in 4 parts, 2 points each.
 How many of the 8 points do you think you'll get?"
 
-`material` is the learner's own notes. Over 8,000 characters the API answers `413` with a message
+`material` is text the learner pastes (notes, a passage); no files, photos or links in this version. Over 8,000 characters the API answers `413` with a message
 asking for a shorter excerpt; it never trims silently.
 
 `mode` is `"learn"` (default) or `"test"`. A test session runs every move at level 5 and never
@@ -181,6 +181,8 @@ it needs) instead of asking a plain fact. In session 1 both are 0: the app does 
 
 ## 2. Agents
 
+Every prompt, and every line the app shows, is in English in this version.
+
 Each agent is one `client.messages.parse()` call with `output_config.format: zodOutputFormat(schema)`,
 so the output is valid JSON or the call fails. The API never shows the learner anything an agent
 didn't return.
@@ -226,7 +228,9 @@ In: `AgentContext & { answer: string }`
 }
 ```
 
-- `quality`: 0 to 2 for this move, before any hint penalty.
+- `quality`: 0 to 2 for this move, before any hint penalty. Any defensible answer passes, not one
+  right answer: for democracy, "form of government" and "political system" both do. 2 = defensible
+  and the closest class; 1 = defensible but too broad or incomplete; 0 = not defensible.
 - `accepted`: the `Item`s to write into the mentefacto (empty when not accepted).
 - `issue`: `too_broad | not_a_class | same_level | is_a_subtype | is_a_characteristic | off_topic | none`.
   Code uses it to pick the next hint; the hint giver uses it to aim the hint.
@@ -234,7 +238,8 @@ In: `AgentContext & { answer: string }`
 
 ### Evaluator, whole map: scores a mentefacto built alone
 
-Used at level 5 and for the testers' pre-test and post-test. In: `{ concept, material, mentefacto }`
+Used at level 5 and for the testers' pre-test and post-test. Same grading rule as the evaluator: any
+defensible answer passes. In: `{ concept, material, mentefacto }`
 
 ```json
 { "rubric": [
@@ -385,9 +390,9 @@ with `error` set.
 - Latency budget: **median under 4 s per turn, never over 8 s**, measured at the walking skeleton
   (Oct 21, #7 and #10). The app shows a thinking indicator whenever a call is pending. If it's slower:
   lower the effort first, then move the Questioner and Hint giver to `claude-sonnet-5-5`.
-- Budget: the $100 credits expire Oct 21. The testers (Oct 23) and demo day (Oct 29) run on whatever
-  replaces them (#19, #20). If the replacement cap is small, `AGENT_MODEL` drops to `claude-sonnet-5-5`;
-  measure the cost of one full session before the testers.
+- Budget: the $100 credits expire Oct 21. Unless the organizers extend them (#19), the account gets
+  $30 with auto-reload off (#20). Measure the cost of one full session (#10); if 20 tester sessions
+  plus the demo don't fit in $30, `AGENT_MODEL` drops to `claude-sonnet-5-5`.
 - A learner's answer costs two calls in a row (evaluator, then hint giver or questioner). That's the
   latency to watch. At level 5 each question is one fact desk call (effort `low`).
 - Schemas: every object `additionalProperties: false` (Zod does this). No `min`/`max`/`minLength`:
@@ -412,3 +417,8 @@ with `error` set.
 | 8 | Prediction scale | 0 to 8 points (`{ prediction }`), after one line explaining the task | Same scale as the score, so the calibration gap compares like with like |
 | 9 | Showing the worked example | `Turn.example` holds the planet map while it fills in | `mentefacto` stays the learner's own concept |
 | 10 | Orchestrator and API | `advance(state, input, callAgent)` (section 3) | Rules stay in `agents/`, storage and Claude calls stay in the API |
+| 11 | Sign-in | Clerk email code only, no Google or Apple | No OAuth setup, same on phone and web, testers and judges get in fast |
+| 12 | Learner material | Pasted text only, up to 8,000 characters | No upload or parsing code |
+| 13 | Language | English only this week | One set of prompts to test; Spanish goes on the roadmap |
+| 14 | Layout | Phone first; the web build shows the same layout, centered | One layout to build and polish |
+| 15 | Grading | Any defensible answer passes (2 = closest class, 1 = defensible but too broad or incomplete) | Concepts have fuzzy edges; one right answer would mark good thinking wrong |

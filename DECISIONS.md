@@ -145,3 +145,32 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Web build (the judges' URL):** a Render Static Site in the same workspace, so one dashboard and
   one owner for deploys. Plan B is EAS Hosting, only if Render charges for it or causes trouble: the
   files are the same, so moving takes about 30 minutes plus a `CORS_ORIGIN` update.
+
+### 2026-10-19 · Any defensible answer passes
+- **Decision:** the evaluators accept any defensible answer, not one right answer. 2 = defensible and
+  the closest class; 1 = defensible but too broad or incomplete; 0 = not defensible.
+- **Instead of:** matching the learner's answer against a single expected answer.
+- **Why:** real concepts have fuzzy edges ("form of government" and "political system" both work for
+  democracy). One right answer would mark good thinking wrong and make the scores unfair.
+- **Pattern / trade-off:** rubric grading over answer matching (prototype theory: concepts have
+  graded membership). More judgment in the model, so the human double-check (#33, #49) matters more.
+  Asking the learner to justify the choice ("why that group?") is left for later.
+
+### 2026-10-19 · Tester concepts and order
+- **Decision:** the pre-test and post-test use "ecosystem" (biology) and "contract" (law); training
+  uses "metaphor" (language) and "habit" (psychology). Half the testers take ecosystem first and
+  contract last, the other half the reverse.
+- **Instead of:** the same pre-test concept for everyone, or reusing democracy and inflation.
+- **Why:** a concept that happens to be harder could fake progress or hide it; swapping the order
+  cancels that out. None of the four appears in the prompts' test cases, so tuning can't inflate them.
+- **Pattern / trade-off:** counterbalancing. With 5 testers the halves are 3 and 2, so it reduces the
+  bias, it doesn't remove it; the slide still calls this a pilot.
+
+### 2026-10-19 · Build-week scope cuts
+- **Decision:** sign-in by Clerk email code only; learner material is pasted text only (up to 8,000
+  characters); English only; phone-first layout, with the web build showing the same layout centered.
+- **Instead of:** Google or Apple sign-in, file and photo uploads, Spanish, a separate desktop layout.
+- **Why:** each of these is work that doesn't change the demo. Cutting them keeps the six days on the
+  Check yourself loop.
+- **Pattern / trade-off:** scope cut to a walking skeleton plus one complete loop. Each cut is a later
+  roadmap item, and none needs a rewrite to add back.
