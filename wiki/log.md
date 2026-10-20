@@ -7,3 +7,4 @@
 | 2026-10-19 | share | - | Wiki added to the repo for the team; connection details left out |
 | 2026-10-19 | update | context/hosting-setup | NODE_ENV removed from Render until Clerk (#23), so x-dev-user works |
 | 2026-10-20 | update | context/hosting-setup | Render deploys leo/surreal-store; NODE_ENV=development until Clerk (#23) |
+| 2026-10-20 | update | context/hosting-setup | API locked until Clerk (#60): prod database, DEV_KEY, rate limit; Cynthia invited |
