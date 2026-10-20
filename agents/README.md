@@ -6,7 +6,7 @@ The thinking engine, as plain TypeScript with no server code. Package name: `@bu
   [`src/contracts.ts`](src/contracts.ts). [`CONTRACTS.md`](CONTRACTS.md) is the reference; the schemas
   follow it.
 - **Fixtures**: [`fixtures/session-1.json`](fixtures/session-1.json) is the democracy session from the
-  brief as 8 steps, each with the input the app sends and the `Turn` that comes back.
+  brief as 9 steps, each with the input the app sends and the `Turn` that comes back.
   [`fixtures/worked-example.json`](fixtures/worked-example.json) is the planet worked example (level 1),
   shipped as a file, not a Claude call.
   [`fixtures/demo-seed.json`](fixtures/demo-seed.json) is the demo profile (#32): the demo user at level 5

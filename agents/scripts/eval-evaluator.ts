@@ -91,5 +91,23 @@ kindOfCases.forEach((c, i) => {
   console.log(`    feedback: ${o.feedback}`);
 });
 
-console.log(`\n${right}/6 right (need 5) · exclusion ${exRight}/3 · kind of ${kindRight}/2 · ${dollars([...runs, ...exRuns, ...kindRuns])}`);
+// Feedback by level: at levels 2 and 3 a wrong answer's feedback ends with a nudge (a question); at 4 it
+// stops after what is off. At no level does it name the answer or another member of the group.
+const LEAK = /government|monarch|dictator|regime|oligarch|republic/i;
+const level4 = await runAgent(AGENTS.evaluator, { ...input("a law"), level: 4 });
+const feedbackChecks = [
+  ...CASES.flatMap((c, i) => (c.passes ? [] : [{ label: `"${c.answer}" at level 2`, feedback: runs[i]!.output.feedback, nudge: true }])),
+  { label: '"a law" at level 4', feedback: level4.output.feedback, nudge: false },
+];
+let feedbackRight = 0;
+console.log("\nFeedback by level (a nudge at 2 and 3, none at 4, never a leak)\n");
+for (const c of feedbackChecks) {
+  const ok = c.feedback.trim().endsWith("?") === c.nudge && !LEAK.test(c.feedback);
+  if (ok) feedbackRight++;
+  console.log(`${ok ? "✔" : "✘"} ${c.label}: ${c.feedback}`);
+}
+
+console.log(
+  `\n${right}/6 right (need 5) · exclusion ${exRight}/3 · kind of ${kindRight}/2 · feedback ${feedbackRight}/${feedbackChecks.length} · ${dollars([...runs, ...exRuns, ...kindRuns, level4])}`,
+);
 process.exitCode = right >= 5 ? 0 : 1;

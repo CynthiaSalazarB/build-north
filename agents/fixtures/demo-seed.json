@@ -81,6 +81,9 @@
       "infraordinate": []
     },
     "recent": [],
+    "retries": 0,
+    "lastIssue": "none",
+    "nextQuestion": null,
     "questions": {
       "asked": 0,
       "testing": 0

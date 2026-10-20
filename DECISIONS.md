@@ -218,3 +218,20 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** the closest genus (genus proximum) and the "is a kind of" relation. A sharper
   rule for the evaluator and a clearer lesson for the learner (related vs. belonging). The demo now shows
   6/8 with "money", the real score.
+
+### 2026-10-20 · A wrong answer gets a free nudge that fades; hints only come from Help
+- **Decision:** after a wrong or incomplete answer, the Evaluator's feedback says what is off. At levels
+  2 and 3 it ends with a nudge: a question that sends the learner back to their own answer, with no new
+  information. At levels 4 and 5 there is no nudge. Hints (where to look, part of the answer, the
+  answer) only come when the learner taps Help, and every Help counts. Points depend on attempts: right
+  on the first try keeps the Evaluator's quality (up to 2), after a retry or a Help the move is capped
+  at 1, and a revealed move scores 0. A level goes up when the move took at most one retry or Help.
+- **Instead of:** (A) every wrong answer triggering a hint on its own, counted as help used; or (B) a
+  free nudge at every level, with points that ignore retries.
+- **Why:** it matches the questions fading (the help the app gives), learners think more by
+  themselves, and the scores stay consistent. And because the nudge already helps a little, a wrong
+  answer no longer needs the Evaluator and the Hint giver one after the other, which cuts the latency.
+- **Pattern / trade-off:** the assistance dilemma (Koedinger & Aleven, 2007): too little help
+  frustrates, too much makes learning shallow. Explanatory feedback with help that fades sits in
+  between. "Hints used" now means how many times the learner asked; retries are counted on their own,
+  so getting it after a nudge still scores 1, not 2, and session 1 still scores 5/8.

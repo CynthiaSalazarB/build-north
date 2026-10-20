@@ -231,7 +231,7 @@
     }
   },
   {
-    "note": "A wrong answer: the evaluator's feedback, then the first step of the hint ladder.",
+    "note": "A wrong answer: only the evaluator's feedback, no hint giver. At levels 2 and 3 the feedback ends with a nudge, and it's free. The next move's question is asked at the same time.",
     "input": {
       "turn": 4,
       "text": "A law?"
@@ -246,13 +246,46 @@
         {
           "agent": "evaluator",
           "kind": "feedback",
-          "text": "Not quite. A law is a rule, and democracy isn't a rule."
-        },
+          "text": "Not quite: a law is one rule, and democracy isn't a rule. So what kind of thing is it?"
+        }
+      ],
+      "expects": "text",
+      "scaffold": null,
+      "mentefacto": {
+        "concept": "democracy",
+        "supraordinate": null,
+        "exclusion": [],
+        "isoordinate": [],
+        "infraordinate": []
+      },
+      "example": null,
+      "progress": {
+        "movesDone": 0,
+        "movesTotal": 4,
+        "hintsUsed": 0
+      },
+      "result": null,
+      "error": null
+    }
+  },
+  {
+    "note": "The learner taps Help. The ladder goes on from the feedback's nudge to 'hint'. Every Help counts.",
+    "input": {
+      "turn": 5,
+      "action": "help"
+    },
+    "turn": {
+      "sessionId": "ses_demo_democracy",
+      "turn": 6,
+      "phase": "move",
+      "move": "supraordinate",
+      "level": 2,
+      "messages": [
         {
           "agent": "hint_giver",
           "kind": "hint",
           "text": "Think of monarchy and dictatorship. What are all three examples of?",
-          "hintStep": "nudge"
+          "hintStep": "hint"
         }
       ],
       "expects": "text",
@@ -275,14 +308,14 @@
     }
   },
   {
-    "note": "Found with one hint: the move is named, and the next one starts.",
+    "note": "Found after a retry and a Help: 1 point. The move is named, and the next one starts with the question already asked, so this turn is one call.",
     "input": {
-      "turn": 5,
+      "turn": 6,
       "text": "Forms of government."
     },
     "turn": {
       "sessionId": "ses_demo_democracy",
-      "turn": 6,
+      "turn": 7,
       "phase": "move",
       "move": "exclusion",
       "level": 2,
@@ -326,28 +359,23 @@
     }
   },
   {
-    "note": "Turns 7 and 8 are skipped: the exclusion (dictatorship, who holds the power) was found with no hints. A partial answer gets a counterexample as its hint (decision 3).",
+    "note": "Turns 8 to 10 are skipped: the exclusion (dictatorship, who holds the power) was found with no help, and 'Elections.' got feedback with a nudge. Help gives a counterexample as the hint (decision 3).",
     "input": {
-      "turn": 8,
-      "text": "Elections."
+      "turn": 10,
+      "action": "help"
     },
     "turn": {
       "sessionId": "ses_demo_democracy",
-      "turn": 9,
+      "turn": 11,
       "phase": "move",
       "move": "isoordinate",
       "level": 2,
       "messages": [
         {
-          "agent": "evaluator",
-          "kind": "feedback",
-          "text": "Elections are part of it, but not enough on their own."
-        },
-        {
           "agent": "hint_giver",
           "kind": "hint",
           "text": "North Korea holds elections. Is it a democracy? What's missing?",
-          "hintStep": "nudge"
+          "hintStep": "hint"
         }
       ],
       "expects": "text",
@@ -378,14 +406,14 @@
     }
   },
   {
-    "note": "Turns 10 to 12 are skipped: 'what it needs' took a second hint, the types took one. The last move is named, then the result: predicted 7, scored 5, gap +2.",
+    "note": "Turns 12 and 13 are skipped: 'Direct?' got feedback with a nudge. The last move is named, then the result: predicted 7, scored 5, gap +2, 2 Helps.",
     "input": {
-      "turn": 12,
+      "turn": 13,
       "text": "Direct and representative."
     },
     "turn": {
       "sessionId": "ses_demo_democracy",
-      "turn": 13,
+      "turn": 14,
       "phase": "result",
       "move": null,
       "level": null,
@@ -449,14 +477,14 @@
       "progress": {
         "movesDone": 4,
         "movesTotal": 4,
-        "hintsUsed": 4
+        "hintsUsed": 2
       },
       "result": {
         "predictedScore": 7,
         "score": 5,
         "maxScore": 8,
         "calibrationGap": 2,
-        "hintsUsed": 4,
+        "hintsUsed": 2,
         "rubric": [
           {
             "move": "supraordinate",
@@ -476,11 +504,6 @@
           }
         ],
         "masteryChanges": [
-          {
-            "move": "supraordinate",
-            "from": 2,
-            "to": 3
-          },
           {
             "move": "exclusion",
             "from": 2,
