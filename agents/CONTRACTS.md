@@ -123,13 +123,13 @@ Example, session 1, the learner just answered "A law?" for the bigger group:
 ```json
 {
   "sessionId": "ses_8f2k",
-  "turn": 6,
+  "turn": 5,
   "phase": "move",
   "move": "supraordinate",
   "level": 2,
   "messages": [
     { "agent": "evaluator", "kind": "feedback", "text": "Not quite. A law is a rule, and democracy isn't a rule." },
-    { "agent": "hint_giver", "kind": "hint", "hintStep": "hint",
+    { "agent": "hint_giver", "kind": "hint", "hintStep": "nudge",
       "text": "Think of monarchy and dictatorship. What are all three examples of?" }
   ],
   "expects": "text",

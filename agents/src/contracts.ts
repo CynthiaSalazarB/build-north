@@ -1,0 +1,318 @@
+// The Zod version of agents/CONTRACTS.md. The markdown is the reference; this file follows it.
+// Objects are strict so a typo in a fixture or a response fails loudly instead of being dropped.
+import { z } from "zod";
+
+// ---------- 0. Shared vocabulary ----------
+
+export const MoveId = z.enum(["supraordinate", "exclusion", "isoordinate", "infraordinate"]);
+export type MoveId = z.infer<typeof MoveId>;
+
+/** The order moves run in during a session. */
+export const MOVE_ORDER: readonly MoveId[] = ["supraordinate", "exclusion", "isoordinate", "infraordinate"];
+
+/** What the screen shows. The method's name appears only after the learner finds the move. */
+export const MOVE_LABEL: Record<MoveId, string> = {
+  supraordinate: "Bigger group",
+  exclusion: "What it isn't",
+  isoordinate: "What it needs",
+  infraordinate: "Its types",
+};
+
+/** 1 watch, 2 guided, 3 complete, 4 named only, 5 alone (the learner asks the fact desk). */
+export const Level = z.union([z.literal(1), z.literal(2), z.literal(3), z.literal(4), z.literal(5)]);
+export type Level = z.infer<typeof Level>;
+
+export const HintStep = z.enum(["nudge", "hint", "partial", "reveal"]);
+export type HintStep = z.infer<typeof HintStep>;
+
+export const Verdict = z.enum(["correct", "partial", "incorrect"]);
+export type Verdict = z.infer<typeof Verdict>;
+
+/** 0 to 2 points for one move. */
+export const Quality = z.union([z.literal(0), z.literal(1), z.literal(2)]);
+export type Quality = z.infer<typeof Quality>;
+
+/** `note` is the difference, for exclusions. */
+export const Item = z.strictObject({ value: z.string(), note: z.string().nullable() });
+export type Item = z.infer<typeof Item>;
+
+export const Mentefacto = z.strictObject({
+  concept: z.string(),
+  supraordinate: Item.nullable(),
+  exclusion: z.array(Item),
+  isoordinate: z.array(Item),
+  infraordinate: z.array(Item),
+});
+export type Mentefacto = z.infer<typeof Mentefacto>;
+
+// ---------- 1. API and the Turn ----------
+
+export const SessionMode = z.enum(["learn", "test"]);
+export type SessionMode = z.infer<typeof SessionMode>;
+
+/** POST /sessions. `material` is pasted text, up to 8,000 characters (the API answers 413 above it). */
+export const CreateSessionBody = z.strictObject({
+  concept: z.string().min(1),
+  material: z.string().max(8000).optional(),
+  mode: SessionMode.optional(),
+});
+export type CreateSessionBody = z.infer<typeof CreateSessionBody>;
+
+/** POST /sessions/:id/turns. `turn` is the number of the Turn being answered (decision 18). */
+const answering = { turn: z.number().int() };
+export const TurnBody = z.union([
+  z.strictObject({ ...answering, prediction: z.number().int().min(0).max(8) }),
+  z.strictObject({ ...answering, text: z.string().min(1) }),
+  z.strictObject({ ...answering, question: z.string().min(1) }),
+  z.strictObject({ ...answering, mentefacto: Mentefacto }),
+  z.strictObject({ ...answering, action: z.enum(["help", "continue"]) }),
+]);
+export type TurnBody = z.infer<typeof TurnBody>;
+
+export const Phase = z.enum(["predict", "attempt", "example", "move", "result"]);
+export type Phase = z.infer<typeof Phase>;
+
+export const Expects = z.enum(["prediction", "text", "continue", "map", "none"]);
+export type Expects = z.infer<typeof Expects>;
+
+export const MessageAgent = z.enum([
+  "questioner",
+  "evaluator",
+  "hint_giver",
+  "example_builder",
+  "coach",
+  "fact_desk",
+  "app",
+]);
+export const MessageKind = z.enum([
+  "question",
+  "feedback",
+  "hint",
+  "example",
+  "named_move",
+  "summary",
+  "fact",
+  "redirect",
+]);
+
+export const Message = z.strictObject({
+  agent: MessageAgent,
+  kind: MessageKind,
+  text: z.string(),
+  hintStep: HintStep.optional(),
+});
+export type Message = z.infer<typeof Message>;
+
+export const Result = z.strictObject({
+  predictedScore: z.number().int().min(0).max(8),
+  score: z.number().int().min(0).max(8),
+  maxScore: z.literal(8),
+  /** predictedScore − score, in points. Positive means overconfident. */
+  calibrationGap: z.number().int(),
+  hintsUsed: z.number().int().min(0),
+  rubric: z.array(z.strictObject({ move: MoveId, points: Quality })),
+  masteryChanges: z.array(z.strictObject({ move: MoveId, from: Level, to: Level })),
+  /** What the learner asked the fact desk; `testing` = questions that test the concept. */
+  questions: z.strictObject({ asked: z.number().int().min(0), testing: z.number().int().min(0) }),
+  coach: z.strictObject({ message: z.string(), nextFocus: MoveId.nullable() }),
+});
+export type Result = z.infer<typeof Result>;
+
+export const Turn = z.strictObject({
+  sessionId: z.string(),
+  turn: z.number().int().min(1),
+  phase: Phase,
+  move: MoveId.nullable(),
+  level: Level.nullable(),
+  messages: z.array(Message),
+  expects: Expects,
+  /** Level 3 only: the half-built part. */
+  scaffold: z.strictObject({ given: z.array(z.string()), blanks: z.number().int().min(1) }).nullable(),
+  /** What the learner has built so far. */
+  mentefacto: Mentefacto,
+  /** Phase "example" only: the worked example's map (planet). */
+  example: Mentefacto.nullable(),
+  progress: z.strictObject({
+    movesDone: z.number().int().min(0),
+    movesTotal: z.number().int().min(1),
+    hintsUsed: z.number().int().min(0),
+  }),
+  result: Result.nullable(),
+  error: z.strictObject({ code: z.enum(["agent_failed", "rate_limited"]), retryable: z.boolean() }).nullable(),
+});
+export type Turn = z.infer<typeof Turn>;
+
+export const Mastery = z.strictObject({
+  moves: z.array(
+    z.strictObject({ move: MoveId, level: Level, unassistedSuccesses: z.number().int().min(0) }),
+  ),
+});
+export type Mastery = z.infer<typeof Mastery>;
+
+// ---------- 2. Agents: inputs and outputs ----------
+// Output schemas go to Claude through `zodOutputFormat`, so they stay plain: strings, enums,
+// literals, arrays and nullables.
+
+export const AgentContext = z.strictObject({
+  concept: z.string(),
+  material: z.string().nullable(),
+  move: MoveId,
+  level: Level,
+  mentefacto: Mentefacto,
+  /** This move's exchanges only. */
+  recent: z.array(z.strictObject({ from: z.enum(["app", "learner"]), text: z.string() })),
+});
+export type AgentContext = z.infer<typeof AgentContext>;
+
+export const QuestionerInput = AgentContext;
+export const QuestionerOutput = z.strictObject({
+  question: z.string(),
+  scaffold: z.strictObject({ given: z.array(z.string()), blanks: z.number().int() }).nullable(),
+});
+export type QuestionerOutput = z.infer<typeof QuestionerOutput>;
+
+export const EvaluatorIssue = z.enum([
+  "too_broad",
+  "not_a_class",
+  "same_level",
+  "is_a_subtype",
+  "is_a_characteristic",
+  "off_topic",
+  "none",
+]);
+export type EvaluatorIssue = z.infer<typeof EvaluatorIssue>;
+
+export const EvaluatorInput = AgentContext.extend({ answer: z.string() });
+export type EvaluatorInput = z.infer<typeof EvaluatorInput>;
+export const EvaluatorOutput = z.strictObject({
+  verdict: Verdict,
+  /** Any defensible answer passes: 2 closest class, 1 too broad or incomplete, 0 not defensible. */
+  quality: Quality,
+  accepted: z.array(Item),
+  issue: EvaluatorIssue,
+  /** For logs and the team. */
+  reason: z.string(),
+  /** Shown to the learner; never contains the answer. */
+  feedback: z.string(),
+});
+export type EvaluatorOutput = z.infer<typeof EvaluatorOutput>;
+
+export const WholeMapEvaluatorInput = z.strictObject({
+  concept: z.string(),
+  material: z.string().nullable(),
+  mentefacto: Mentefacto,
+});
+export type WholeMapEvaluatorInput = z.infer<typeof WholeMapEvaluatorInput>;
+export const WholeMapEvaluatorOutput = z.strictObject({
+  rubric: z.array(z.strictObject({ move: MoveId, quality: Quality, feedback: z.string() })),
+});
+export type WholeMapEvaluatorOutput = z.infer<typeof WholeMapEvaluatorOutput>;
+
+export const QuestionType = z.enum([
+  "fact",
+  "compare",
+  "contrast",
+  "breaking_case",
+  "what_it_needs",
+  "asks_for_structure",
+  "other",
+]);
+export type QuestionType = z.infer<typeof QuestionType>;
+
+/** The question types that count as `testing` in the result. */
+export const TESTING_QUESTION_TYPES: readonly QuestionType[] = [
+  "compare",
+  "contrast",
+  "breaking_case",
+  "what_it_needs",
+];
+
+export const FactDeskInput = z.strictObject({
+  concept: z.string(),
+  material: z.string().nullable(),
+  mentefacto: Mentefacto,
+  question: z.string(),
+});
+export type FactDeskInput = z.infer<typeof FactDeskInput>;
+export const FactDeskOutput = z.strictObject({
+  kind: z.enum(["fact", "redirect"]),
+  answer: z.string(),
+  questionType: QuestionType,
+});
+export type FactDeskOutput = z.infer<typeof FactDeskOutput>;
+
+/** Decision 17: the only text a redirect may say. */
+export const FACT_DESK_REDIRECT = "That part is yours to decide. If you're stuck, tap Help (it costs a point).";
+
+export const HintGiverInput = AgentContext.extend({
+  step: HintStep,
+  lastAnswer: z.string(),
+  issue: EvaluatorIssue,
+});
+export type HintGiverInput = z.infer<typeof HintGiverInput>;
+export const HintGiverOutput = z.strictObject({
+  step: HintStep,
+  text: z.string(),
+  /** Only at `reveal`: the Item that goes into the mentefacto, with 0 points. */
+  revealed: Item.nullable(),
+});
+export type HintGiverOutput = z.infer<typeof HintGiverOutput>;
+
+/** Not a Claude call in this version: the shape of fixtures/worked-example.json (decision 4). */
+export const WorkedExample = z.strictObject({
+  exampleConcept: z.string(),
+  steps: z.array(z.strictObject({ move: MoveId, thinkAloud: z.string(), item: Item })),
+});
+export type WorkedExample = z.infer<typeof WorkedExample>;
+
+export const CoachInput = z.strictObject({ concept: z.string(), mentefacto: Mentefacto, result: Result });
+export type CoachInput = z.infer<typeof CoachInput>;
+export const CoachOutput = z.strictObject({ message: z.string(), nextFocus: MoveId.nullable() });
+export type CoachOutput = z.infer<typeof CoachOutput>;
+
+// ---------- 3. The seam between the orchestrator and the API ----------
+
+export const AgentName = z.enum(["questioner", "evaluator", "evaluator_full", "hint_giver", "fact_desk", "coach"]);
+export type AgentName = z.infer<typeof AgentName>;
+
+/** Written by the API (#10): prompt + schema to Claude, validated, logged to agent_log. */
+export type CallAgent = (agent: AgentName, input: unknown) => Promise<unknown>;
+
+/** What `advance` receives: a /turns body without `turn` (the API checks repeats first), or the start. */
+export type TurnInput =
+  | { action: "start" }
+  | { prediction: number }
+  | { text: string }
+  | { question: string }
+  | { mentefacto: Mentefacto }
+  | { action: "help" | "continue" };
+
+// ---------- 4. State in SurrealDB ----------
+// The fields in section 4. The orchestrator (#3) may add fields through a PR to CONTRACTS.md.
+
+export const Session = z.strictObject({
+  id: z.string(),
+  user: z.string(),
+  concept: z.string(),
+  material: z.string().nullable(),
+  mode: SessionMode,
+  turn: z.number().int().min(0),
+  lastTurn: Turn.nullable(),
+  predictedScore: z.number().int().min(0).max(8).nullable(),
+  firstAttempt: z.string().nullable(),
+  phase: Phase,
+  move: MoveId.nullable(),
+  hintStep: HintStep.nullable(),
+  hintsPerMove: z.record(MoveId, z.number().int().min(0)),
+  mentefacto: Mentefacto,
+  result: Result.nullable(),
+  createdAt: z.string(),
+});
+export type Session = z.infer<typeof Session>;
+
+/** Written by Cynthia (#3). Never touches the database or the network except through callAgent. */
+export type Advance = (
+  state: { session: Session; mastery: Mastery },
+  input: TurnInput,
+  callAgent: CallAgent,
+) => Promise<{ session: Session; mastery: Mastery; turn: Turn }>;
