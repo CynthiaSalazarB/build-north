@@ -2,14 +2,21 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import { test, type TestContext } from "node:test";
-import { advanceStub } from "./advance-stub.ts";
+import { MOVE_ORDER, Session as SessionSchema, Turn as TurnSchema, type Session } from "@build-north/agents";
+import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { createApp, type AppOptions } from "./app.ts";
-import { MOVES, type Session } from "./contract.ts";
 import { initialSession, type Store } from "./store.ts";
 
 const WEB = "http://localhost:8081";
 const KEY = "test-dev-key";
-const noDb: AppOptions = { corsOrigins: [WEB], checkDb: null, store: null, advance: advanceStub, devKey: KEY };
+const noDb: AppOptions = {
+  corsOrigins: [WEB],
+  checkDb: null,
+  store: null,
+  advance: advanceStub,
+  callAgent: callAgentStub,
+  devKey: KEY,
+};
 const as = (user: string, key = KEY) => ({ "x-dev-user": user, "x-dev-key": key });
 
 // The Store contract kept in memory, so the routes can be tested without a database.
@@ -29,7 +36,7 @@ function memoryStore(): Store {
       sessions.set(session.id, structuredClone(session));
     },
     async getMastery() {
-      return { moves: MOVES.map((move) => ({ move, level: 1 as const, unassistedSuccesses: 0 })) };
+      return { moves: MOVE_ORDER.map((move) => ({ move, level: 1 as const, unassistedSuccesses: 0 })) };
     },
     async saveMastery() {},
     async logAgentCall() {},
@@ -144,4 +151,11 @@ test("unknown routes answer 404 in JSON", async (t) => {
   const res = await fetch(`${await start(t, noDb)}/nope`);
   assert.equal(res.status, 404);
   assert.deepEqual(await res.json(), { error: "Not found" });
+});
+
+test("a new session and its first Turn match the schemas in @build-north/agents", async (t) => {
+  const fresh = { ...initialSession("leo", { concept: "democracy", material: null, mode: "learn" }), id: "s1", createdAt: new Date().toISOString() };
+  assert.doesNotThrow(() => SessionSchema.parse(fresh));
+  const turn = await (await post(await start(t, withStore()), { concept: "democracy" })).json();
+  assert.doesNotThrow(() => TurnSchema.parse(turn));
 });

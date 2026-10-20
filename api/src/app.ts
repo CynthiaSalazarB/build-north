@@ -1,17 +1,18 @@
+import { CreateSessionBody, type Advance, type CallAgent } from "@build-north/agents";
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import { createHash, timingSafeEqual } from "node:crypto";
-import type { Advance } from "./advance-stub.ts";
-import type { Mode, NewSession } from "./contract.ts";
 import type { DbCheck } from "./db.ts";
-import type { Store } from "./store.ts";
+import type { NewSession, Store } from "./store.ts";
 
 export type AppOptions = {
   corsOrigins: string[];
   checkDb: (() => Promise<DbCheck>) | null;
   store: Store | null;
+  // CONTRACTS.md section 3: the orchestrator and the only way it reaches Claude
   advance: Advance;
+  callAgent: CallAgent;
   // CONTRACTS.md section 1: until Clerk lands (#23), x-dev-user names the caller, and it only counts
   // with x-dev-key matching this key. null turns dev users off (production, or no DEV_KEY set).
   devKey: string | null;
@@ -20,7 +21,6 @@ export type AppOptions = {
 };
 
 const MAX_CONCEPT = 100;
-const MAX_MATERIAL = 8_000;
 const DEV_USER = /^[A-Za-z0-9._@-]{1,64}$/;
 const SESSION_ID = /^[a-z0-9]{1,40}$/; // the ids SurrealDB generates
 
@@ -30,23 +30,24 @@ const sameKey = (sent: string, expected: string) => timingSafeEqual(digest(sent)
 
 type Parsed<T> = { ok: true; value: T } | { ok: false; status: number; error: string };
 
+// The body schema is Cynthia's (@build-north/agents). The API adds what the schema leaves to it: 413
+// for notes over 8,000 characters, a cap on the concept's length, and trimming.
 function parseNewSession(body: unknown): Parsed<NewSession> {
-  const { concept, material, mode } = (body ?? {}) as Record<string, unknown>;
-  if (typeof concept !== "string" || !concept.trim() || concept.length > MAX_CONCEPT) {
+  const parsed = CreateSessionBody.safeParse(body);
+  if (!parsed.success) {
+    const tooLong = parsed.error.issues.some((issue) => issue.path[0] === "material" && issue.code === "too_big");
+    if (tooLong) return { ok: false, status: 413, error: "Your notes are over 8,000 characters. Paste a shorter excerpt." };
+    const why = parsed.error.issues.map((issue) => `${issue.path.join(".") || "body"}: ${issue.message}`).join("; ");
+    return { ok: false, status: 400, error: why };
+  }
+  const { concept, material, mode = "learn" } = parsed.data;
+  if (!concept.trim() || concept.trim().length > MAX_CONCEPT) {
     return { ok: false, status: 400, error: `concept must be text, 1 to ${MAX_CONCEPT} characters` };
   }
-  if (material != null && typeof material !== "string") return { ok: false, status: 400, error: "material must be text" };
-  if (typeof material === "string" && material.length > MAX_MATERIAL) {
-    return { ok: false, status: 413, error: "Your notes are over 8,000 characters. Paste a shorter excerpt." };
-  }
-  if (mode != null && mode !== "learn" && mode !== "test") return { ok: false, status: 400, error: 'mode must be "learn" or "test"' };
-  return {
-    ok: true,
-    value: { concept: concept.trim(), material: material?.trim() ? material : null, mode: (mode ?? "learn") as Mode },
-  };
+  return { ok: true, value: { concept: concept.trim(), material: material?.trim() ? material : null, mode } };
 }
 
-export function createApp({ corsOrigins, checkDb, store, advance, devKey, requestsPerMinute = 60 }: AppOptions) {
+export function createApp({ corsOrigins, checkDb, store, advance, callAgent, devKey, requestsPerMinute = 60 }: AppOptions) {
   const app = express();
   app.disable("x-powered-by");
   // Render puts one proxy in front of the app; trusting it makes req.ip the caller's address.
@@ -110,7 +111,7 @@ export function createApp({ corsOrigins, checkDb, store, advance, devKey, reques
     }
     // CONTRACTS.md section 3: load, advance, save what comes back, return the Turn
     const session = await who.store.createSession(who.user, parsed.value);
-    const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, { action: "start" });
+    const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, { action: "start" }, callAgent);
     await who.store.saveSession(next.session);
     await who.store.saveMastery(who.user, next.mastery);
     res.status(201).json(next.turn);

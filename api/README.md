@@ -42,8 +42,10 @@ key; it never goes in the repo or in the deployed web build.
 
 Every route except `/health` allows 60 requests a minute from one IP, then answers `429`.
 
-The first `Turn` comes from a stand-in for `advance` ([`src/advance-stub.ts`](src/advance-stub.ts))
-that only knows `{ action: "start" }`. #28 replaces it with the orchestrator from `agents/`.
+The API's types and request schemas come from `@build-north/agents` (`agents/src/contracts.ts`), so
+a change to the contract shows up here as a type error. The first `Turn` comes from a stand-in for
+`advance` ([`src/advance-stub.ts`](src/advance-stub.ts)) with the same `Advance` type, which only
+knows `{ action: "start" }`. #28 replaces it with the orchestrator from `agents/`.
 
 ## SurrealDB
 

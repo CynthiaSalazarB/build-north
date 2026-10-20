@@ -1,6 +1,8 @@
+import { MOVE_ORDER, type Level, type Mastery, type MoveId, type Session } from "@build-north/agents";
 import { RecordId, type Surreal } from "surrealdb";
-import { MOVES, type Level, type Mastery, type MoveId, type NewSession, type Session } from "./contract.ts";
 import { queryTimeout } from "./db.ts";
+
+export type NewSession = Pick<Session, "concept" | "material" | "mode">;
 
 // All of the API's database code (CONTRACTS.md section 4). The orchestrator never comes here: the
 // API loads a session and mastery, calls `advance`, and saves what it returns.
@@ -50,7 +52,8 @@ export async function defineSchema(db: Surreal): Promise<void> {
   await db.query(SCHEMA).signal(queryTimeout()).collect();
 }
 
-// A new session before the orchestrator's first step; `advance` fills in the rest.
+// A new session before the orchestrator's first step, already valid against the Session schema in
+// @build-north/agents: it starts in the predict phase with no hints on any move.
 export function initialSession(user: string, { concept, material, mode }: NewSession): Omit<Session, "id" | "createdAt"> {
   return {
     user,
@@ -61,10 +64,10 @@ export function initialSession(user: string, { concept, material, mode }: NewSes
     lastTurn: null,
     predictedScore: null,
     firstAttempt: null,
-    phase: null,
+    phase: "predict",
     move: null,
     hintStep: null,
-    hintsPerMove: {},
+    hintsPerMove: Object.fromEntries(MOVE_ORDER.map((move) => [move, 0])) as Record<MoveId, number>,
     mentefacto: { concept, supraordinate: null, exclusion: [], isoordinate: [], infraordinate: [] },
     result: null,
   };
@@ -109,7 +112,7 @@ export function createStore(db: Surreal): Store {
         { user },
       );
       return {
-        moves: MOVES.map((move) => {
+        moves: MOVE_ORDER.map((move) => {
           const row = rows.find((r) => r.move === move);
           return { move, level: row?.level ?? 1, unassistedSuccesses: row?.unassistedSuccesses ?? 0 };
         }),

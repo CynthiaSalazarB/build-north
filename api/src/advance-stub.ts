@@ -1,15 +1,12 @@
-import type { Mastery, Session, Turn } from "./contract.ts";
-
-// The API's side of the seam in CONTRACTS.md section 3: state in, new state and a Turn out.
-export type Advance = (
-  state: { session: Session; mastery: Mastery },
-  input: { action: "start" },
-) => Promise<{ session: Session; mastery: Mastery; turn: Turn }>;
+import type { Advance, CallAgent, Turn } from "@build-north/agents";
 
 // ponytail: answers only { action: "start" }, with the prediction question from CONTRACTS.md
-// section 1, so POST /sessions returns a real Turn before the orchestrator exists. #28 replaces it
-// with `advance` from @build-north/agents (#3) and passes callAgent (#10).
-export const advanceStub: Advance = async ({ session, mastery }) => {
+// section 1, so POST /sessions returns a real Turn before the orchestrator exists. It has the exact
+// `Advance` type from @build-north/agents, so #28 swaps in Cynthia's `advance` (#3) with one import.
+export const advanceStub: Advance = async ({ session, mastery }, input) => {
+  if (!("action" in input) || input.action !== "start") {
+    throw new Error('The stand-in advance only handles { action: "start" } until the orchestrator lands (#28)');
+  }
   const turn: Turn = {
     sessionId: session.id,
     turn: session.turn + 1,
@@ -32,4 +29,10 @@ export const advanceStub: Advance = async ({ session, mastery }) => {
     error: null,
   };
   return { session: { ...session, turn: turn.turn, phase: turn.phase, lastTurn: turn }, mastery, turn };
+};
+
+// ponytail: the start Turn needs no agent, so this only fails loudly. #10 replaces it with the real
+// callAgent (Claude call, schema check, agent_log row).
+export const callAgentStub: CallAgent = async (agent) => {
+  throw new Error(`callAgent isn't wired yet (#10); something asked for the ${agent}`);
 };
