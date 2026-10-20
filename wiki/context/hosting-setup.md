@@ -31,6 +31,7 @@ Status on Oct 19, 11:14 PM: everything is live and the #8 test passed. Render re
   `leo/api-skeleton` until #54 merges, then `main`. No auto-deploy until Cynthia installs Render's
   GitHub app on the repo.
 - Build `npm ci --workspace api`, start `node api/src/server.ts`, health check `/health`.
-- Env: `NODE_ENV`, `CORS_ORIGIN`, `SURREAL_URL`, `SURREAL_NAMESPACE`, `SURREAL_DATABASE`,
-  `SURREAL_USER`, `SURREAL_AUTH_LEVEL`, `SURREAL_PASS`.
+- Env: `CORS_ORIGIN`, `SURREAL_URL`, `SURREAL_NAMESPACE`, `SURREAL_DATABASE`, `SURREAL_USER`,
+  `SURREAL_AUTH_LEVEL`, `SURREAL_PASS`. No `NODE_ENV` until Clerk lands (#23): with
+  `NODE_ENV=production` the API refuses the `x-dev-user` header the app uses until then.
 - Starter ($7/month) from Oct 22, per `DECISIONS.md`.
