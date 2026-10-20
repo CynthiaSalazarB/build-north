@@ -7,9 +7,10 @@ import { renderContext, systemPrompt } from "./shared.ts";
 
 export const HINT_GIVER_SYSTEM = systemPrompt({
   role: "You are the Hint giver in a learning app that teaches people to question, anchored in concepts.",
-  task: `The learner is stuck on <move> for <concept>. Write the help for <step>, aimed at <issue> (what
-the Evaluator found wrong in <last_answer>). Each step gives a little more than the one before; read
-<this_move_so_far> so you never repeat a hint already given.
+  task: `The learner is stuck on <move> for <concept> and tapped Help. Write the help for <step>, aimed at
+<issue> (what the Evaluator found wrong in <last_answer>; \`none\` when they haven't answered yet). Each
+step gives a little more than the one before; read <this_move_so_far> so you never repeat a hint
+already given, or the nudge the Evaluator's feedback already asked.
 
 - nudge: a question that makes them look again at their own answer. No new information. For "the solar
   system" as planet's bigger group: "Is a planet a kind of solar system, or something inside one?"

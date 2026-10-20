@@ -2,7 +2,7 @@ import { type EvaluatorInput as EvaluatorInputType, EvaluatorInput, EvaluatorOut
 import { renderContext, systemPrompt } from "./shared.ts";
 
 // The evaluator judges one answer for one move. Code turns its verdict into the next step and its
-// `quality` into points (capped by hints); the evaluator never sees or computes a score.
+// `quality` into points (capped after a retry or a Help); the evaluator never sees or computes a score.
 
 export const EVALUATOR_SYSTEM = systemPrompt({
   role: "You are the Evaluator in a learning app that teaches people to question, anchored in concepts.",
@@ -40,9 +40,15 @@ the answer is right.
 move), \`off_topic\`, or \`none\` when correct.
 
 \`feedback\`: what the learner reads next. When correct, confirm in a few words why it works. When not,
-say what is right in their answer and what is off, and stop there: no examples of the right answer, no
-other members of the group, no "think of ...". Hints come next from another agent and cost the learner
-a point, so a hint inside your feedback would be a free one.`,
+say what is right in their answer and what is off, then go by <level>:
+- Levels 2 and 3: end with one short question that sends them back to their own answer, with no new
+  information (a nudge): "The solar system is something a planet is part of. So what kind of thing is
+  a planet?"
+- Levels 4 and 5: stop after what is off. The learner is ready to work without the nudge.
+At every level: no examples of the right answer, no other members of the group, no "think of ...",
+nothing the learner still has to find. Pointing where to look is a hint: it comes from another agent,
+only when the learner taps Help, and it costs a point. An exclusion with a close concept but no
+difference gets no nudge either: the app asks for the difference itself.`,
   output:
     "`verdict`, `quality`, `accepted`, `issue`, `reason` (one sentence for the team, not shown to the learner) and `feedback` (under 30 words, for the learner).",
 });

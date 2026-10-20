@@ -42,6 +42,9 @@ function newSession(concept: string, mode: "learn" | "test" = "learn"): Session 
     hintsPerMove: { supraordinate: 0, exclusion: 0, isoordinate: 0, infraordinate: 0 },
     mentefacto: empty(concept),
     recent: [],
+    retries: 0,
+    lastIssue: "none",
+    nextQuestion: null,
     questions: { asked: 0, testing: 0 },
     moveLog: [],
     result: null,
@@ -59,7 +62,9 @@ function masteryAt(levels: Partial<Record<MoveId, 1 | 2 | 3 | 4 | 5>> | 1 | 2 | 
   };
 }
 
-/** A fake callAgent that answers from a script, in order, and fails loudly on any other call. */
+/** A fake callAgent that answers from a script, in order (an Error in the script is thrown), and fails
+ * loudly on any other call. Calls are recorded in the order they start, so two calls made at once
+ * appear in the order advance starts them. */
 function scripted(script: [AgentName, unknown][]) {
   const calls: AgentName[] = [];
   const call: CallAgent = async (agent) => {
@@ -67,6 +72,7 @@ function scripted(script: [AgentName, unknown][]) {
     calls.push(agent);
     if (!next) throw new Error(`unexpected call ${calls.length}: ${agent}`);
     if (next[0] !== agent) throw new Error(`call ${calls.length}: expected ${next[0]}, got ${agent}`);
+    if (next[1] instanceof Error) throw next[1];
     return next[1];
   };
   return { call, calls, finished: () => calls.length === script.length };
@@ -100,21 +106,18 @@ const hintOutput = (step: string, text: string) => ({ step, text, revealed: null
 describe("session 1 from the brief (democracy)", async () => {
   const { call, calls, finished } = scripted([
     ["questioner", { question: "Democracy is one example of a bigger group. What group?", scaffold: null }],
-    ["evaluator", evaluation("incorrect", 0, [], "Not quite. A law is a rule, and democracy isn't a rule.", "not_a_class")],
-    ["hint_giver", hintOutput("nudge", "Think of monarchy and dictatorship. What are all three examples of?")],
-    ["evaluator", evaluation("correct", 2, [item("form of government")], "Yes: monarchy, dictatorship and democracy are all forms of government.")],
+    ["evaluator", evaluation("incorrect", 0, [], "Not quite: a law is one rule, and democracy isn't a rule. So what kind of thing is it?", "not_a_class")],
     ["questioner", { question: "What looks close to democracy but isn't one?", scaffold: null }],
+    ["hint_giver", hintOutput("hint", "Think of monarchy and dictatorship. What are all three examples of?")],
+    ["evaluator", evaluation("correct", 2, [item("form of government")], "Yes: monarchy, dictatorship and democracy are all forms of government.")],
     ["evaluator", evaluation("partial", 1, [item("dictatorship")], "Dictatorship is close, and it isn't a democracy.")],
-    ["evaluator", evaluation("correct", 2, [item("dictatorship", "who holds the power")], "Yes: in a dictatorship one person or group holds the power.")],
     ["questioner", { question: "What does a country need to count as a democracy?", scaffold: null }],
-    ["evaluator", evaluation("partial", 1, [], "Elections are part of it, but not enough on their own.")],
-    ["hint_giver", hintOutput("nudge", "North Korea holds elections. Is it a democracy? What's missing?")],
-    ["evaluator", evaluation("partial", 1, [item("free elections")], "Free elections, yes. What else does it need?")],
-    ["hint_giver", hintOutput("hint", "Think about what people need to be able to say and choose, before and after they vote.")],
-    ["evaluator", evaluation("correct", 2, [item("rights"), item("more than one party")], "Yes: free elections, rights and more than one party.")],
+    ["evaluator", evaluation("correct", 2, [item("dictatorship", "who holds the power")], "Yes: in a dictatorship one person or group holds the power.")],
+    ["evaluator", evaluation("partial", 1, [], "Elections are part of it, but not enough on their own. What else does a country need?")],
     ["questioner", { question: "What kinds of democracy are there?", scaffold: null }],
-    ["evaluator", evaluation("partial", 1, [item("direct democracy")], "Direct democracy is one type.")],
-    ["hint_giver", hintOutput("nudge", "In a big country, can everyone vote on every law? How else could it work?")],
+    ["hint_giver", hintOutput("hint", "North Korea holds elections. Is it a democracy? What's missing?")],
+    ["evaluator", evaluation("correct", 2, [item("free elections"), item("rights"), item("more than one party")], "Yes: free elections, rights and more than one party.")],
+    ["evaluator", evaluation("partial", 1, [item("direct democracy")], "Direct democracy is one type, where people vote on laws themselves. Is that the only way it can work?")],
     ["evaluator", evaluation("correct", 2, [item("direct democracy"), item("representative democracy")], "Yes: direct and representative democracy.")],
     ["coach", { message: "You found the bigger group and a real exclusion. 'What it needs' is next.", nextFocus: "isoordinate" }],
   ]);
@@ -125,23 +128,23 @@ describe("session 1 from the brief (democracy)", async () => {
     { text: "When people vote." },
     { action: "continue" },
     { text: "A law?" },
+    { action: "help" },
     { text: "Forms of government." },
     { text: "Dictatorship." },
     { text: "Who holds the power." },
     { text: "Elections." },
-    { text: "Free elections." },
-    { text: "Rights, and more than one party." },
+    { action: "help" },
+    { text: "Free elections, rights, other parties." },
     { text: "Direct?" },
     { text: "Direct and representative." },
   ];
   const { turns, session, mastery } = await play(newSession("democracy"), masteryAt(1), inputs, call);
 
-  it("calls the same agents in the same order", () => {
+  it("calls the same agents in the same order, the next question alongside each move's first evaluation", () => {
     expect(finished()).toBe(true);
     expect(calls).toEqual([
-      "questioner", "evaluator", "hint_giver", "evaluator", "questioner", "evaluator", "evaluator", "questioner",
-      "evaluator", "hint_giver", "evaluator", "hint_giver", "evaluator", "questioner", "evaluator", "hint_giver",
-      "evaluator", "coach",
+      "questioner", "evaluator", "questioner", "hint_giver", "evaluator", "evaluator", "questioner", "evaluator",
+      "evaluator", "questioner", "hint_giver", "evaluator", "evaluator", "evaluator", "coach",
     ]);
   });
 
@@ -150,8 +153,15 @@ describe("session 1 from the brief (democracy)", async () => {
     expect(result.predictedScore).toBe(7);
     expect(result.score).toBe(5);
     expect(result.calibrationGap).toBe(2);
-    expect(result.hintsUsed).toBe(4);
+    expect(result.hintsUsed).toBe(2);
     expect(result.rubric.map((r) => r.points)).toEqual([1, 2, 1, 1]);
+  });
+
+  it("a wrong answer gets the evaluator's feedback only; the Help after it goes on from the nudge to 'hint'", () => {
+    expect(turns[4]!.messages.map((m) => m.kind)).toEqual(["feedback"]);
+    expect(turns[4]!.progress.hintsUsed).toBe(0);
+    expect(turns[5]!.messages[0]!.hintStep).toBe("hint");
+    expect(turns[5]!.progress.hintsUsed).toBe(1);
   });
 
   it("produces the Turns in fixtures/session-1.json", () => {
@@ -161,13 +171,14 @@ describe("session 1 from the brief (democracy)", async () => {
     }
   });
 
-  it("updates mastery: up a level with 1 hint or fewer, unassisted only with none", () => {
+  it("updates mastery: up a level with at most one retry or Help, unassisted only with neither", () => {
     expect(mastery.moves).toEqual([
-      { move: "supraordinate", level: 3, unassistedSuccesses: 0 },
+      { move: "supraordinate", level: 2, unassistedSuccesses: 0 },
       { move: "exclusion", level: 3, unassistedSuccesses: 1 },
       { move: "isoordinate", level: 2, unassistedSuccesses: 0 },
       { move: "infraordinate", level: 3, unassistedSuccesses: 0 },
     ]);
+    expect(session.moveLog.map(({ hints, retries }) => [hints, retries])).toEqual([[1, 1], [0, 0], [1, 1], [0, 1]]);
     expect(session.phase).toBe("result");
   });
 });
@@ -233,8 +244,39 @@ describe("mixed levels (decision 16)", () => {
     expect(turns[2]!.messages[0]!.text).toBe("Now find the supraordinate class of democracy.");
     expect(turns[2]!.level).toBe(4);
     expect(turns[3]!.messages.map((m) => m.kind)).toEqual(["feedback"]);
-    expect(turns[4]!.messages[0]!.kind).toBe("hint");
+    // No free nudge at level 4, so the first Help is the nudge. The next move is level 4 too: no question to ask ahead.
+    expect(turns[4]!.messages[0]!.hintStep).toBe("nudge");
     expect(calls).toEqual(["evaluator", "hint_giver"]);
+  });
+});
+
+describe("the next move's question, asked ahead", () => {
+  it("a failed question asked ahead is asked again when the move starts", async () => {
+    const { call, calls } = scripted([
+      ["questioner", { question: "What group?", scaffold: null }],
+      ["evaluator", evaluation("correct", 2, [item("form of government")], "Yes.")],
+      ["questioner", new Error("overloaded")],
+      ["questioner", { question: "What isn't it?", scaffold: null }],
+    ]);
+    const { turns } = await play(newSession("democracy"), masteryAt(2), [
+      { action: "start" }, { prediction: 5 }, { text: "Rule by the people." }, { text: "A form of government." },
+    ], call);
+    expect(turns.at(-1)!.messages.at(-1)!.text).toBe("What isn't it?");
+    expect(calls).toEqual(["questioner", "evaluator", "questioner", "questioner"]);
+  });
+
+  it("a failed evaluator leaves the session as it was, even when the question ahead arrived", async () => {
+    const before = await play(newSession("democracy"), masteryAt(2), [
+      { action: "start" }, { prediction: 5 }, { text: "Rule by the people." },
+    ], scripted([["questioner", { question: "What group?", scaffold: null }]]).call);
+    const { call } = scripted([
+      ["evaluator", Object.assign(new Error("overloaded"), { status: 529 })],
+      ["questioner", { question: "What isn't it?", scaffold: null }],
+    ]);
+    const out = await advance({ session: before.session, mastery: before.mastery }, { text: "A law." }, call);
+    expect(out.turn.error).toEqual({ code: "agent_failed", retryable: true });
+    expect(out.session).toEqual(before.session);
+    expect(out.session.nextQuestion).toBeNull();
   });
 });
 
@@ -255,19 +297,39 @@ describe("failures and limits", () => {
     const { call } = scripted([
       ["questioner", { question: "What group?", scaffold: null }],
       ["hint_giver", hintOutput("nudge", "a")],
+      ["questioner", { question: "What isn't it?", scaffold: null }],
       ["hint_giver", hintOutput("hint", "b")],
       ["hint_giver", hintOutput("partial", "c")],
       ["hint_giver", reveal],
-      ["questioner", { question: "What isn't it?", scaffold: null }],
     ]);
-    const { turns } = await play(newSession("democracy"), masteryAt(2), [
+    const { turns, session } = await play(newSession("democracy"), masteryAt(2), [
       { action: "start" }, { prediction: 3 }, { text: "?" },
       { action: "help" }, { action: "help" }, { action: "help" }, { action: "help" },
     ], call);
     const revealTurn = turns.at(-1)!;
     expect(revealTurn.mentefacto.supraordinate).toEqual(item("form of government"));
     expect(revealTurn.move).toBe("exclusion");
+    expect(revealTurn.messages.at(-1)!.text).toBe("What isn't it?");
     expect(revealTurn.progress).toEqual({ movesDone: 1, movesTotal: 4, hintsUsed: 4 });
+    expect(session.moveLog[0]!.points).toBe(0);
+  });
+
+  it("at level 2 a wrong answer's nudge is the first step, so three Helps reveal", async () => {
+    const reveal = { step: "reveal", text: "It's a form of government.", revealed: item("form of government") };
+    const { call } = scripted([
+      ["questioner", { question: "What group?", scaffold: null }],
+      ["evaluator", evaluation("incorrect", 0, [], "A law is one rule. So what kind of thing is it?", "not_a_class")],
+      ["questioner", { question: "What isn't it?", scaffold: null }],
+      ["hint_giver", hintOutput("hint", "b")],
+      ["hint_giver", hintOutput("partial", "c")],
+      ["hint_giver", reveal],
+    ]);
+    const { turns } = await play(newSession("democracy"), masteryAt(2), [
+      { action: "start" }, { prediction: 3 }, { text: "?" }, { text: "A law." },
+      { action: "help" }, { action: "help" }, { action: "help" },
+    ], call);
+    expect(turns.slice(-3).map((t) => t.messages[0]!.hintStep)).toEqual(["hint", "partial", "reveal"]);
+    expect(turns.at(-1)!.move).toBe("exclusion");
   });
 
   it("a coach failure still ends the session, with fixed text built from the numbers", async () => {
@@ -294,17 +356,25 @@ describe("failures and limits", () => {
 });
 
 describe("rules", () => {
-  it("points: quality, capped at 1 with hints, 0 when revealed", () => {
-    expect(rules.pointsFor(2, 0)).toBe(2);
-    expect(rules.pointsFor(2, 1)).toBe(1);
-    expect(rules.pointsFor(1, 2)).toBe(1);
-    expect(rules.pointsFor(2, 4)).toBe(0);
+  it("points: quality on the first try, capped at 1 after a retry or a Help, 0 when revealed", () => {
+    expect(rules.pointsFor(2, 0, 0)).toBe(2);
+    expect(rules.pointsFor(2, 0, 1)).toBe(1);
+    expect(rules.pointsFor(2, 1, 0)).toBe(1);
+    expect(rules.pointsFor(1, 2, 3)).toBe(1);
+    expect(rules.pointsFor(2, 4, 0)).toBe(0);
   });
 
-  it("levels: up one with 1 hint or fewer, never past 5", () => {
+  it("levels: up one with at most one retry or Help, never past 5", () => {
     expect(rules.levelAfter(2, 1)).toBe(3);
     expect(rules.levelAfter(2, 2)).toBe(2);
     expect(rules.levelAfter(5, 0)).toBe(5);
+  });
+
+  it("the ladder goes on from the furthest step shown; the feedback nudges at levels 2 and 3 only", () => {
+    expect(rules.hintStepAfter(null)).toBe("nudge");
+    expect(rules.hintStepAfter("nudge")).toBe("hint");
+    expect(rules.hintStepAfter("reveal")).toBe("reveal");
+    expect([2, 3, 4, 5].map((l) => rules.feedbackNudges(l as 2 | 3 | 4 | 5))).toEqual([true, true, false, false]);
   });
 
   it("the worked example module and the app's fixture are the same object", () => {

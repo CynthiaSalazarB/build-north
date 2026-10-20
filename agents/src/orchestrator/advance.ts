@@ -11,6 +11,7 @@ import {
   FACT_DESK_REDIRECT,
   FactDeskOutput,
   HintGiverOutput,
+  type HintStep,
   type Item,
   type Level,
   type Mastery,
@@ -32,6 +33,8 @@ import { WORKED_EXAMPLE } from "../worked-example.ts";
 import {
   calibrationGap,
   effectiveLevel,
+  feedbackNudges,
+  hintStepAfter,
   hintStepFor,
   isWholeMap,
   levelAfter,
@@ -144,13 +147,17 @@ async function startMove(s: Session, m: Mastery, move: MoveId, lead: Message[], 
   s.move = move;
   s.hintStep = null;
   s.recent = [];
+  s.retries = 0;
+  s.lastIssue = "none";
   const level = effectiveLevel(levelOf(m, move));
+  const ahead = s.nextQuestion?.move === move && s.nextQuestion.level === level ? s.nextQuestion : null;
+  s.nextQuestion = null;
   let question: Message;
   let scaffold: Turn["scaffold"] = null;
   if (level >= 4) {
     question = say("app", "question", text.namedOnly(move, s.concept));
   } else {
-    const q = QuestionerOutput.parse(await call("questioner", context(s, move, level)));
+    const q = ahead ?? QuestionerOutput.parse(await call("questioner", context(s, move, level)));
     question = say("questioner", "question", q.question);
     if (level === 3) scaffold = q.scaffold;
   }
@@ -158,61 +165,76 @@ async function startMove(s: Session, m: Mastery, move: MoveId, lead: Message[], 
   return { messages: [...lead, question], expects: "text", level, scaffold };
 }
 
+/** Asks the next move's question while the evaluator or the hint giver works on this one, so the turn
+ * that ends a move waits for one Claude call instead of two in a row. Asked once per move, from the map
+ * as it is before this answer. If it fails, startMove asks as before. */
+async function askNextQuestionAhead(s: Session, m: Mastery, move: MoveId, call: CallAgent): Promise<void> {
+  const next = nextMove(move);
+  if (!next || s.nextQuestion?.move === next) return;
+  const level = effectiveLevel(levelOf(m, next));
+  if (level >= 4) return;
+  const input = structuredClone({ ...context(s, next, level), recent: [] });
+  try {
+    const q = QuestionerOutput.parse(await call("questioner", input));
+    s.nextQuestion = { move: next, level, ...q };
+  } catch {
+    // Nothing to undo: startMove calls the questioner itself.
+  }
+}
+
 async function answer(s: Session, m: Mastery, move: MoveId, learnerText: string, call: CallAgent): Promise<Step> {
   const level = effectiveLevel(levelOf(m, move));
-  const ev = EvaluatorOutput.parse(await call("evaluator", { ...context(s, move, level), answer: learnerText }));
+  const [output] = await Promise.all([
+    call("evaluator", { ...context(s, move, level), answer: learnerText }),
+    askNextQuestionAhead(s, m, move, call),
+  ]);
+  const ev = EvaluatorOutput.parse(output);
   merge(s.mentefacto, move, ev.accepted);
   s.recent.push({ from: "learner", text: learnerText }, { from: "app", text: ev.feedback });
+  s.lastIssue = ev.issue;
   const feedback = say("evaluator", "feedback", ev.feedback);
 
   if (ev.verdict === "correct") {
     return finishMove(s, m, move, ev.quality, [feedback, say("app", "named_move", text.named(move, false))], call);
   }
-  // An exclusion without its difference gets one follow-up question, not a hint.
+  // An exclusion without its difference gets one follow-up question: not a retry, not a hint.
   const undifferentiated = move === "exclusion" && ev.verdict === "partial" ? ev.accepted.find((i) => i.note === null) : undefined;
   if (undifferentiated) {
     const followUp = say("app", "question", text.exclusionDifference(s.concept, undifferentiated.value));
     s.recent.push({ from: "app", text: followUp.text });
     return { messages: [feedback, followUp], expects: "text", level };
   }
-  // At levels 4 and 5 hints only come when the learner taps Help.
-  if (level >= 4) return { messages: [feedback], expects: "text", level };
-  return giveHint(s, m, move, level, learnerText, ev.issue, [feedback], call);
+  // No hint giver here: the learner tries again, and the move is capped at 1 point. At levels 2 and 3
+  // the feedback ends with a nudge, the ladder's first step, so a Help goes on from "hint".
+  s.retries += 1;
+  if (feedbackNudges(level) && s.hintStep === null) s.hintStep = "nudge";
+  return { messages: [feedback], expects: "text", level };
 }
 
+/** Hints only come from Help, and every Help counts. */
 async function help(s: Session, m: Mastery, move: MoveId, call: CallAgent): Promise<Step> {
   const level = effectiveLevel(levelOf(m, move));
   const lastAnswer = [...s.recent].reverse().find((e) => e.from === "learner")?.text ?? "";
-  return giveHint(s, m, move, level, lastAnswer, "none", [], call);
-}
-
-async function giveHint(
-  s: Session,
-  m: Mastery,
-  move: MoveId,
-  level: Level,
-  lastAnswer: string,
-  issue: EvaluatorIssue,
-  lead: Message[],
-  call: CallAgent,
-): Promise<Step> {
-  const { message, revealed } = await hint(s, move, level, lastAnswer, issue, call);
+  const [{ message, revealed }] = await Promise.all([
+    hint(s, move, level, hintStepAfter(s.hintStep), lastAnswer, s.lastIssue, call),
+    askNextQuestionAhead(s, m, move, call),
+  ]);
   if (revealed) {
-    return finishMove(s, m, move, 0, [...lead, message, say("app", "named_move", text.named(move, true))], call);
+    return finishMove(s, m, move, 0, [message, say("app", "named_move", text.named(move, true))], call);
   }
-  return { messages: [...lead, message], expects: "text", level };
+  return { messages: [message], expects: "text", level };
 }
 
-/** One hint giver call: the next step of the ladder for `move`. */
+/** One hint giver call for `step` of the ladder on `move`. */
 async function hint(
   s: Session,
   move: MoveId,
   level: Level,
+  step: HintStep,
   lastAnswer: string,
   issue: EvaluatorIssue,
   call: CallAgent,
 ): Promise<{ message: Message; revealed: boolean }> {
-  const step = hintStepFor(s.hintsPerMove[move]);
   const h = HintGiverOutput.parse(await call("hint_giver", { ...context(s, move, level), step, lastAnswer, issue }));
   s.hintsPerMove[move] += 1;
   s.hintStep = step;
@@ -245,7 +267,7 @@ async function wholeMapHelp(s: Session, call: CallAgent): Promise<Step> {
   const move = MOVE_ORDER.find((mv) => s.hintsPerMove[mv] < REVEALED);
   if (!move) return { messages: [say("app", "feedback", text.noMoreHelp)], expects: "map", level: 5 };
   s.recent = [];
-  const { message } = await hint(s, move, 5, "", "none", call);
+  const { message } = await hint(s, move, 5, hintStepFor(s.hintsPerMove[move]), "", "none", call);
   return { messages: [message], expects: "map", level: 5 };
 }
 
@@ -266,19 +288,21 @@ async function submitMap(s: Session, m: Mastery, map: Mentefacto, call: CallAgen
 
 // ---------- Ending ----------
 
-/** Points, mastery and the move log for one finished move. Mastery never changes in a test session. */
+/** Points, mastery and the move log for one finished move. Mastery never changes in a test session.
+ * `s.retries` belongs to the move being finished; on the whole map it stays 0 (no per-move answers). */
 function record(s: Session, m: Mastery, move: MoveId, quality: Quality, done: boolean): void {
   const hints = s.hintsPerMove[move];
+  const retries = s.retries;
   const from = levelOf(m, move);
-  const to = s.mode === "test" || !done ? from : levelAfter(from, hints);
+  const to = s.mode === "test" || !done ? from : levelAfter(from, hints + retries);
   if (s.mode !== "test") {
     const row = m.moves.find((r) => r.move === move);
     if (row) {
       row.level = to;
-      if (done && hints === 0) row.unassistedSuccesses += 1;
+      if (done && hints + retries === 0) row.unassistedSuccesses += 1;
     }
   }
-  s.moveLog.push({ move, points: pointsFor(quality, hints), hints, from, to });
+  s.moveLog.push({ move, points: pointsFor(quality, hints, retries), hints, retries, from, to });
 }
 
 async function finishSession(s: Session, lead: Message[], call: CallAgent): Promise<Step> {

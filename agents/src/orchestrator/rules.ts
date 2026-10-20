@@ -11,15 +11,28 @@ export function hintStepFor(hintsUsed: number): HintStep {
   return HINT_LADDER[Math.min(hintsUsed, HINT_LADDER.length - 1)]!;
 }
 
-/** The evaluator's quality, capped at 1 if any hint was used, 0 if the move was revealed. */
-export function pointsFor(quality: Quality, hints: number): Quality {
-  if (hints >= REVEALED) return 0;
-  return hints > 0 ? (Math.min(quality, 1) as Quality) : quality;
+/** The step after the furthest one this move has shown (null: nothing shown yet). */
+export function hintStepAfter(shown: HintStep | null): HintStep {
+  return shown === null ? HINT_LADDER[0]! : hintStepFor(HINT_LADDER.indexOf(shown) + 1);
 }
 
-/** Done with 1 hint or fewer: up one level, max 5. Never down in this version. */
-export function levelAfter(level: Level, hints: number): Level {
-  return hints <= 1 ? (Math.min(level + 1, 5) as Level) : level;
+/** Levels 2 and 3 get a nudge in the evaluator's feedback for free; at 4 and 5 the feedback only says
+ * what is off (the help fades). */
+export function feedbackNudges(level: Level): boolean {
+  return level <= 3;
+}
+
+/** The evaluator's quality: in full on the first try with no Help, capped at 1 after a retry or a Help,
+ * 0 if the move was revealed. */
+export function pointsFor(quality: Quality, hints: number, retries = 0): Quality {
+  if (hints >= REVEALED) return 0;
+  return hints + retries > 0 ? (Math.min(quality, 1) as Quality) : quality;
+}
+
+/** Done with at most one retry or Help (`assists`, the two added): up one level, max 5. Never down in
+ * this version. */
+export function levelAfter(level: Level, assists: number): Level {
+  return assists <= 1 ? (Math.min(level + 1, 5) as Level) : level;
 }
 
 /** Positive means overconfident. */

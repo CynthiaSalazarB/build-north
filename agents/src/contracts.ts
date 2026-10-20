@@ -306,17 +306,33 @@ export const Session = z.strictObject({
   firstAttempt: z.string().nullable(),
   phase: Phase,
   move: MoveId.nullable(),
+  /** The furthest step of the ladder this move has shown; the evaluator's nudge counts as the first. */
   hintStep: HintStep.nullable(),
-  /** All four moves, starting at 0: a Zod record keyed by an enum requires every key. */
+  /** Helps per move. All four moves, starting at 0: a Zod record keyed by an enum requires every key. */
   hintsPerMove: z.record(MoveId, z.number().int().min(0)),
   mentefacto: Mentefacto,
   /** This move's exchanges, passed to the agents as AgentContext.recent; empty when a move starts. */
   recent: z.array(z.strictObject({ from: z.enum(["app", "learner"]), text: z.string() })),
+  /** This move's answers that weren't right yet (the exclusion's follow-up doesn't count); 0 when a move starts. */
+  retries: z.number().int().min(0),
+  /** The evaluator's issue with this move's last answer, so a Help aims at it; "none" when a move starts. */
+  lastIssue: EvaluatorIssue,
+  /** The next move's question, asked while the evaluator judged an answer (both calls at once). */
+  nextQuestion: z
+    .strictObject({ move: MoveId, level: Level, question: z.string(), scaffold: QuestionerOutput.shape.scaffold })
+    .nullable(),
   /** Fact desk questions so far (level 5 and test sessions). */
   questions: z.strictObject({ asked: z.number().int().min(0), testing: z.number().int().min(0) }),
-  /** One entry per finished move: its points, hints, and the level before and after. */
+  /** One entry per finished move: its points, Helps, retries, and the level before and after. */
   moveLog: z.array(
-    z.strictObject({ move: MoveId, points: Quality, hints: z.number().int().min(0), from: Level, to: Level }),
+    z.strictObject({
+      move: MoveId,
+      points: Quality,
+      hints: z.number().int().min(0),
+      retries: z.number().int().min(0),
+      from: Level,
+      to: Level,
+    }),
   ),
   result: Result.nullable(),
   createdAt: z.string(),
