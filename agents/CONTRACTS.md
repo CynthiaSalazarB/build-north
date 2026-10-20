@@ -64,17 +64,21 @@ API accepts an `x-dev-user: <name>` header instead; the API rejects that header 
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
-| `POST` | `/sessions` | `{ concept, material?, mode? }` | `Turn` (asks for confidence) |
-| `POST` | `/sessions/:id/turns` | one of `{ confidence }`, `{ text }`, `{ question }`, `{ mentefacto }`, `{ action: "help" }`, `{ action: "continue" }` | `Turn` |
+| `POST` | `/sessions` | `{ concept, material?, mode? }` | `Turn` (asks for the prediction) |
+| `POST` | `/sessions/:id/turns` | one of `{ prediction }`, `{ text }`, `{ question }`, `{ mentefacto }`, `{ action: "help" }`, `{ action: "continue" }` | `Turn` |
 | `GET` | `/sessions/:id` | | latest `Turn` (resume after the app reloads) |
 | `GET` | `/me/mastery` | | `Mastery` |
 | `DELETE` | `/me/data` | | `204`, deletes sessions, logs and mastery (the delete button) |
 | `GET` | `/health` | | `{ ok: true }` |
 
 One endpoint moves a session forward: `/turns`. The app sends the body the last `Turn`'s `expects`
-asks for: `confidence` → `{ confidence }`, `text` → `{ text }`, `continue` → `{ action: "continue" }`,
+asks for: `prediction` → `{ prediction }`, `text` → `{ text }`, `continue` → `{ action: "continue" }`,
 `map` → `{ question }` while the learner asks and `{ mentefacto }` to submit. `{ action: "help" }`
 can be sent at any point.
+
+`prediction` is a whole number from 0 to 8. Before it, the app explains the task in one line and
+asks on the same scale as the score: "You'll build the map of democracy in 4 parts, 2 points each.
+How many of the 8 points do you think you'll get?"
 
 `material` is the learner's own notes. Over 8,000 characters the API answers `413` with a message
 asking for a shorter excerpt; it never trims silently.
@@ -97,10 +101,11 @@ type Turn = {
     text: string;
     hintStep?: HintStep;
   }[];
-  expects: "confidence" | "text" | "continue" | "map" | "none";   // decides which input the screen shows
+  expects: "prediction" | "text" | "continue" | "map" | "none";   // decides which input the screen shows
   // "map" = level 5: a chat box for the learner's questions + the editable map + a Submit button
   scaffold: { given: string[]; blanks: number } | null;     // level 3 only: the half-built part
   mentefacto: Mentefacto;                                   // what the learner has built so far
+  example: Mentefacto | null;   // phase "example" only: the worked example's map (planet) as it fills in
   progress: { movesDone: number; movesTotal: number; hintsUsed: number };
   result: Result | null;                                    // only when phase = "result"
   error: { code: "agent_failed" | "rate_limited"; retryable: boolean } | null;
@@ -123,6 +128,7 @@ Example, session 1, the learner just answered "A law?" for the bigger group:
   "expects": "text",
   "scaffold": null,
   "mentefacto": { "concept": "democracy", "supraordinate": null, "exclusion": [], "isoordinate": [], "infraordinate": [] },
+  "example": null,
   "progress": { "movesDone": 0, "movesTotal": 4, "hintsUsed": 1 },
   "result": null,
   "error": null
@@ -133,11 +139,10 @@ Example, session 1, the learner just answered "A law?" for the bigger group:
 
 ```json
 {
-  "predictedConfidence": 80,
+  "predictedScore": 7,
   "score": 5,
   "maxScore": 8,
-  "actualPercent": 63,
-  "calibrationGap": 17,
+  "calibrationGap": 2,
   "hintsUsed": 4,
   "rubric": [
     { "move": "supraordinate", "points": 1 },
@@ -155,7 +160,7 @@ Example, session 1, the learner just answered "A law?" for the bigger group:
 }
 ```
 
-`calibrationGap = predictedConfidence − actualPercent`. Positive means overconfident.
+`calibrationGap = predictedScore − score`, in points. Positive means overconfident (predicted 7, got 5: +2).
 
 `questions` counts what the learner asked the fact desk (level 5 and the testers' pre-test and
 post-test). `testing` is how many of those test the concept (compare, contrast, breaking case, what
@@ -319,7 +324,7 @@ Hint giver).
 
 | When | Rule |
 |---|---|
-| Session start | predict (confidence) → short attempt ("in your own words") → worked example if any move is at level 1 → the four moves → result |
+| Session start | predict (0 to 8 points, after one line explaining the task) → short attempt ("in your own words") → worked example if any move is at level 1 → the four moves → result |
 | Level for a move | read from mastery; new learners start at 1. Watching the worked example moves every move to level 2 |
 | After an answer | evaluator. `correct` → accept, name the move, next move. `partial` / `incorrect` → next hint step |
 | Hint ladder | nudge → hint → partial → reveal. At levels 4 and 5, hints only when the learner taps Help |
@@ -328,7 +333,36 @@ Hint giver).
 | Test sessions (`mode: "test"`) | every move at level 5 whatever the mastery says; the result is computed as usual; mastery is never updated |
 | Points per move | evaluator `quality`, capped at 1 if any hint was used, 0 if revealed. Max 8 |
 | Mastery | done with ≤ 1 hint → level up one (max 5). 0 hints → `unassistedSuccesses + 1`. Never down in this version |
-| Calibration | `actualPercent = round(score / 8 × 100)`; `gap = predicted − actualPercent` |
+| Calibration | `calibrationGap = predictedScore − score` (points) |
+
+### The seam between the orchestrator and the API
+
+The orchestrator is one async function in `agents/`. It never touches the database or the network;
+the only way it reaches Claude is the `callAgent` the API passes in.
+
+```ts
+type AgentName = "questioner" | "evaluator" | "evaluator_full" | "hint_giver" | "fact_desk" | "coach";
+
+// Written by Leo (#10): sends the agent's prompt + Zod schema to Claude, validates, logs to agent_log.
+type CallAgent = (agent: AgentName, input: unknown) => Promise<unknown>;
+
+type TurnInput =
+  | { action: "start" }                                   // sent by the API on POST /sessions
+  | { prediction: number } | { text: string } | { question: string } | { mentefacto: Mentefacto }
+  | { action: "help" } | { action: "continue" };
+
+// Written by Cynthia (#3).
+function advance(
+  state: { session: Session; mastery: Mastery },
+  input: TurnInput,
+  callAgent: CallAgent,
+): Promise<{ session: Session; mastery: Mastery; turn: Turn }>;
+```
+
+The API loads the session and mastery, calls `advance`, saves what comes back, and returns `turn`.
+The API never decides the flow; the orchestrator never stores anything. In test mode `advance` returns
+the mastery unchanged. If `callAgent` throws, `advance` returns the session unchanged and a `Turn`
+with `error` set.
 
 ---
 
@@ -337,7 +371,7 @@ Hint giver).
 | Table | Fields | Notes |
 |---|---|---|
 | `mastery` | user, move, level, unassistedSuccesses, updatedAt | one row per user per move; read every turn |
-| `session` | user, concept, material, mode, predictedConfidence, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result, createdAt | the orchestrator's state |
+| `session` | user, concept, material, mode, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result, createdAt | the orchestrator's state |
 | `agent_log` | session, agent, input, output, ms, at | append-only; debugging and the testers' numbers (fact desk rows are the questions metric) |
 
 `DELETE /me/data` removes all three for the user.
@@ -375,3 +409,6 @@ Hint giver).
 | 5 | `x-dev-user` before Clerk | Yes, until Oct 21; rejected when `NODE_ENV=production` | Front end and back end can test without waiting for Clerk |
 | 6 | Latency | Median under 4 s per turn, never over 8 s; a thinking indicator always shows (section 5) | The number is set before measuring, so the Oct 21 measurement has a pass line |
 | 7 | Fact desk structure answer | `kind: "redirect"` in both the agent output and the `Turn` | One name end to end, nothing to translate |
+| 8 | Prediction scale | 0 to 8 points (`{ prediction }`), after one line explaining the task | Same scale as the score, so the calibration gap compares like with like |
+| 9 | Showing the worked example | `Turn.example` holds the planet map while it fills in | `mentefacto` stays the learner's own concept |
+| 10 | Orchestrator and API | `advance(state, input, callAgent)` (section 3) | Rules stay in `agents/`, storage and Claude calls stay in the API |

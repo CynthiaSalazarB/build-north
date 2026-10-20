@@ -108,6 +108,25 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** fewer, broader workers in orchestrator-workers. The hint giver's prompt
   carries more cases, and its test script has to cover counterexamples too.
 
+### 2026-10-19 · The learner predicts points, not a percentage
+- **Decision:** before building, the learner predicts how many of the 8 points they will get, after
+  one line explaining the task. `calibrationGap = predictedScore − score`.
+- **Instead of:** "How well do you understand democracy?" as a percentage.
+- **Why:** a percentage of "understanding" and a score on a map are different things, so the gap
+  would partly measure not knowing the format. Same scale, same task, a fair comparison.
+- **Pattern / trade-off:** calibration measured as predicted vs. actual score on the same test (the
+  usual design in confidence research). The question is less natural than "how well do you know it?",
+  so it needs the one-line explanation first.
+
+### 2026-10-19 · The orchestrator gets Claude passed in
+- **Decision:** the orchestrator is one function, `advance(state, input, callAgent)`, in `agents/`.
+  The API owns storage and the Claude calls and passes `callAgent` in.
+- **Instead of:** agent calls and database writes inside the orchestrator, or flow logic in the API.
+- **Why:** the rules can be tested with a fake `callAgent` and no server, and the hosting choice never
+  touches them. Each side of the seam has one owner.
+- **Pattern / trade-off:** functional core, imperative shell, with dependency injection. One more
+  interface to agree on, and the API has to save exactly what `advance` returns.
+
 ---
 
 ## Open
