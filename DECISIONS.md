@@ -129,7 +129,22 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 
 ---
 
+### 2026-10-19 · The API runs on Render
+- **Decision:** the Express API runs on Render: the Free instance while building, Starter ($7/month,
+  paid from the $50 credit) from Oct 22 so it never sleeps during the testers, judging and demo day.
+  The Render + SurrealDB test (#8) confirms it; if SurrealDB fails there, mastery goes to local
+  storage for the demo.
+- **Instead of:** Expo API routes on EAS Hosting.
+- **Why:** Render is full Node, so everything we use (SurrealDB, Clerk, Claude) is supported without
+  surprises, and that makes it the more reliable choice for a six-day build. EAS Hosting runs on
+  Cloudflare Workers with partial Node support, and SurrealDB has no guide for it.
+- **Pattern / trade-off:** a managed full runtime over an edge runtime. Two deploys instead of one,
+  and $7/month once the credit runs out (or the Free instance, which takes about a minute to wake).
+  It stays reversible because of ports and adapters: moving later means rewriting only the routes,
+  the token check and the database module, about a day of work.
+
+---
+
 ## Open
 
-- **Render or Expo API routes on EAS Hosting for the API.** Leaning Render. Decided after the
-  Oct 19 Render + SurrealDB test, before the API skeleton starts on Oct 20.
+- **Where the web build is hosted** (the judges' URL): Render static site or EAS Hosting.
