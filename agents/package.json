@@ -12,7 +12,8 @@
     "typecheck": "tsc",
     "eval:evaluator": "node --env-file-if-exists=../.env scripts/eval-evaluator.ts",
     "eval:questioner": "node --env-file-if-exists=../.env scripts/eval-questioner.ts",
-    "eval:hint-giver": "node --env-file-if-exists=../.env scripts/eval-hint-giver.ts"
+    "eval:hint-giver": "node --env-file-if-exists=../.env scripts/eval-hint-giver.ts",
+    "eval:fact-desk": "node --env-file-if-exists=../.env scripts/eval-fact-desk.ts"
   },
   "dependencies": {
     "zod": "^4.6.7"

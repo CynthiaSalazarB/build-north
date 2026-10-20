@@ -40,6 +40,7 @@ npm run typecheck
 npm run eval:evaluator    # Claude judges 6 answers for democracy's bigger group (#2: 5 of 6 right)
 npm run eval:questioner   # Claude asks level-2 and level-3 questions; checks no jargon, no answer
 npm run eval:hint-giver   # the 4 hint steps on "a law" (#21: no answer before reveal) + a counterexample
+npm run eval:fact-desk    # 10 inflation questions, 5 asking for the structure (#25: 0 leaks, type 8/10)
 ```
 
 The `eval:*` scripts call Claude with `ANTHROPIC_API_KEY` from the repo's `.env` and print the cost.
