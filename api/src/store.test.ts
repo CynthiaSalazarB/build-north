@@ -40,6 +40,25 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     assert.doesNotThrow(() => SessionSchema.parse(saved));
   });
 
+  await t.test("every field the orchestrator changes is saved, the fields it added to Session included", async () => {
+    const session = await store.createSession("leo", { concept: "democracy", material: null, mode: "learn" });
+    const changed: typeof session = {
+      ...session,
+      turn: 6,
+      phase: "move",
+      move: "exclusion",
+      hintStep: "nudge",
+      recent: [{ from: "app", text: "How is democracy different from monarchy?" }, { from: "learner", text: "Kings?" }],
+      retries: 1,
+      lastIssue: "too_broad",
+      nextQuestion: { move: "isoordinate", level: 2, question: "What other kinds of government are there?", scaffold: null },
+      questions: { asked: 1, testing: 0 },
+      moveLog: [{ move: "supraordinate", points: 2, hints: 1, retries: 1, from: 2, to: 3 }],
+    };
+    await store.saveSession(changed);
+    assert.deepEqual(await store.getSession("leo", session.id), changed);
+  });
+
   await t.test("a row that drifted from the contract fails as soon as the store reads it", async () => {
     const session = await store.createSession("leo", { concept: "drift", material: null, mode: "learn" });
     await db.query("UPDATE $id SET phase = 'lost'", { id: new RecordId("session", session.id) }).collect();
