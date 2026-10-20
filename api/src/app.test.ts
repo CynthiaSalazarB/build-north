@@ -268,11 +268,9 @@ test("/turns refuses a body the latest Turn doesn't ask for, and a Turn from the
     assert.equal(res.status, 409);
     assert.equal(typeof (await res.json()).error, "string");
   }
-  // help is allowed at any point, but the stand-in can't give one yet
-  const help = await answer(url, sessionId, { turn: 1, action: "help" });
-  assert.equal(help.status, 409);
-  assert.match((await help.json()).error, /#28/);
   assert.equal((await answer(url, sessionId, { turn: 1, prediction: 7 })).status, 200);
+  // help is allowed whatever the Turn expects (Turn 2 expects text)
+  assert.equal((await answer(url, sessionId, { turn: 2, action: "help" })).status, 200);
 });
 
 test("/turns checks its body, and answers only the session's owner", async (t) => {
