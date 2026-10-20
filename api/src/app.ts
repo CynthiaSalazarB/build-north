@@ -1,4 +1,4 @@
-import { CreateSessionBody, TurnBody, type Advance, type CallAgent, type Expects } from "@build-north/agents";
+import { CreateSessionBody, TurnBody, UnexpectedInput, type Advance, type CallAgent, type Expects } from "@build-north/agents";
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
 import { rateLimit } from "express-rate-limit";
@@ -25,12 +25,13 @@ const MAX_CONCEPT = 100;
 const DEV_USER = /^[A-Za-z0-9._@-]{1,64}$/;
 const SESSION_ID = /^[a-z0-9]{1,40}$/; // the ids SurrealDB generates
 
-// CONTRACTS.md section 1: what a /turns body may send for each `expects`. Help works until the result.
+// CONTRACTS.md section 1: what a /turns body may send for each `expects`. Help goes by the phase
+// instead: it works during the moves, the whole map included, where `advance` has a hint to give.
 const ANSWERS: Record<Expects, readonly string[]> = {
-  prediction: ["prediction", "help"],
-  text: ["text", "help"],
-  continue: ["continue", "help"],
-  map: ["question", "mentefacto", "help"],
+  prediction: ["prediction"],
+  text: ["text"],
+  continue: ["continue"],
+  map: ["question", "mentefacto"],
   none: [],
 };
 const TURN_BODY = 'Send turn with one of: prediction (0 to 8), text, question, mentefacto, or action ("help" or "continue")';
@@ -170,11 +171,24 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     }
     const sent = "action" in input ? input.action : (Object.keys(input)[0] ?? "");
     const { expects } = session.lastTurn;
-    if (!ANSWERS[expects].includes(sent)) {
-      res.status(409).json({ error: expects === "none" ? "This session is over" : `Turn ${turn} expects ${expects}, not ${sent}` });
+    const allowed = sent === "help" ? session.phase === "move" : ANSWERS[expects].includes(sent);
+    if (!allowed) {
+      const error =
+        expects === "none" ? "This session is over" : sent === "help" ? "Help works during the moves" : `Turn ${turn} expects ${expects}, not ${sent}`;
+      res.status(409).json({ error });
       return;
     }
-    const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, input, callAgentFor(session.id));
+    const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, input, callAgentFor(session.id)).catch(
+      (error: unknown) => {
+        // CONTRACTS.md section 5: input that doesn't fit the phase changes nothing, and gets the latest Turn
+        if (error instanceof UnexpectedInput) return null;
+        throw error;
+      },
+    );
+    if (!next) {
+      res.status(409).json(session.lastTurn);
+      return;
+    }
     if (!(await who.store.saveSession(next.session, session.turn))) {
       // another request answering the same Turn saved first, and its Turn is the one that counts
       const saved = await who.store.getSession(who.user, session.id);

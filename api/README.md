@@ -46,12 +46,12 @@ key; it never goes in the repo or in the deployed web build.
 Every route except `/health` allows 60 requests a minute from one IP, then answers `429`.
 
 The API's types and request schemas come from `@build-north/agents` (`agents/src/contracts.ts`), so
-a change to the contract shows up here as a type error. Until the orchestrator lands, the `Turn`s
-come from a stand-in for `advance` ([`src/advance-stub.ts`](src/advance-stub.ts)) with the same
-`Advance` type. It replays Cynthia's democracy walk-through,
-[`agents/fixtures/session-1.json`](../agents/fixtures/session-1.json): one `Turn` per answer, the
-same 9 whatever the concept or the answers (a Help gets the next one too), and mastery stays at
-level 1. #28 replaces it with the orchestrator from `agents/`.
+a change to the contract shows up here as a type error. With Claude on (below), `/turns` runs
+Cynthia's orchestrator, `advance` from `@build-north/agents` (#28). With Claude off, the `Turn`s come
+from [`src/advance-stub.ts`](src/advance-stub.ts) instead, with the same `Advance` type. It replays
+Cynthia's democracy walk-through, [`agents/fixtures/session-1.json`](../agents/fixtures/session-1.json):
+one `Turn` per answer, the same 9 whatever the concept or the answers (a Help gets the next one too),
+and mastery stays at level 1. That way the app runs against an API with no key.
 
 ## Claude calls
 
