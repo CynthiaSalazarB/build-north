@@ -26,11 +26,12 @@ from Leo's laptop took 0.12 to 0.16 s.
 
 ## Render
 
-- Web service `build-north-api` (`srv-dbbdoqnf3r2c738h70v0`), live at
-  https://build-north-api.onrender.com. Free plan, Virginia region (next to the database).
+- Web service `build-north-api`, live at https://build-north-api.onrender.com. Free plan, Virginia
+  region (next to the database).
 - The first deploy took 20.5 s. Render picked Node 24.22.0 from `.node-version`.
 - Source: Public Git Repository `https://github.com/CynthiaSalazarB/build-north`, branch
-  `leo/lock-api` (#60, which includes #54 and #58) until they merge, then `main`. No auto-deploy
+  `leo/lock-api` (#60, which includes #54 and #58) until #58 and #60 merge. Then the branch is `main`,
+  deployed by hand (Manual Deploy) after each merge, so prod only runs reviewed code. No auto-deploy
   until Cynthia installs Render's GitHub app on the repo.
 - Build `npm ci --workspace api`, start `node api/src/server.ts`, health check `/health`.
 - Env: `CORS_ORIGIN`, the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `DEV_KEY` (made with
