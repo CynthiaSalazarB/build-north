@@ -53,6 +53,25 @@ come from a stand-in for `advance` ([`src/advance-stub.ts`](src/advance-stub.ts)
 same 8 whatever the concept or the answers, and mastery stays at level 1. Help isn't scripted, so
 `{ action: "help" }` answers `409` for now. #28 replaces it with the orchestrator from `agents/`.
 
+## Claude calls
+
+[`src/call-agent.ts`](src/call-agent.ts) is the only code that talks to Claude (#10). Each agent is
+one structured-output call with its Zod schema from `@build-north/agents`: the agent's prompt is the
+system prompt, its input goes in the user message as JSON, and the reply is checked against the
+schema. Every call writes an `agent_log` row with its milliseconds and its cost in dollars.
+
+| Variable | What it does |
+|---|---|
+| `ANTHROPIC_API_KEY` | Turns Claude calls on. Render and your local `.env` only, never the app |
+| `AGENT_MODEL` | `claude-opus-5-5` (default) or `claude-sonnet-5-5`, the two models with a price in the code |
+| `AGENT_BUDGET_USD` | Required with the key: the Claude budget in dollars |
+
+Following DECISIONS.md (Oct 20), calls stop at 95% of the budget, and while any of Anthropic's
+rate-limit windows is 95% used, until it refills. Both come back as a `rate_limited` error in the
+`Turn`: retryable for a rate limit, not for the budget. The spend is counted in memory, so it starts
+again at $0 after a restart; the account's own balance, with auto-reload off (#20), is the hard stop.
+Until Cynthia's prompts land (#2), every agent fails with a clear error.
+
 ## SurrealDB
 
 - SurrealDB 3 does not create a namespace or database on first use. `SURREAL_NAMESPACE` and
@@ -82,7 +101,7 @@ Render dashboard → **New → Web Service**:
 | Start command | `node api/src/server.ts` |
 | Health check path | `/health` (under Advanced) |
 | Instance type | Free while building (it sleeps after 15 min idle and takes about a minute to wake). Starter from Oct 22, per `DECISIONS.md` |
-| Environment | `CORS_ORIGIN`, the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `DEV_KEY` (Render's Generate button), and `NODE_ENV=development` until Clerk lands (#23) |
+| Environment | `CORS_ORIGIN`, the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `DEV_KEY` (Render's Generate button), `NODE_ENV=development` until Clerk lands (#23), and `ANTHROPIC_API_KEY` with `AGENT_BUDGET_USD` for Claude calls (#10) |
 
 The Node version comes from [`../.node-version`](../.node-version). Render sets `PORT` itself, and
 also sets `NODE_ENV=production` unless the service sets its own. That would refuse `x-dev-user` on the

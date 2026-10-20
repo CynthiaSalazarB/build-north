@@ -10,9 +10,10 @@ export type AppOptions = {
   corsOrigins: string[];
   checkDb: (() => Promise<DbCheck>) | null;
   store: Store | null;
-  // CONTRACTS.md section 3: the orchestrator and the only way it reaches Claude
+  // CONTRACTS.md section 3: the orchestrator and the only way it reaches Claude, one callAgent per
+  // session so every agent_log row names its session
   advance: Advance;
-  callAgent: CallAgent;
+  callAgentFor: (sessionId: string) => CallAgent;
   // CONTRACTS.md section 1: until Clerk lands (#23), x-dev-user names the caller, and it only counts
   // with x-dev-key matching this key. null turns dev users off (production, or no DEV_KEY set).
   devKey: string | null;
@@ -60,7 +61,7 @@ function parseNewSession(body: unknown): Parsed<NewSession> {
   return { ok: true, value: { concept: concept.trim(), material: material?.trim() ? material : null, mode } };
 }
 
-export function createApp({ corsOrigins, checkDb, store, advance, callAgent, devKey, requestsPerMinute = 60 }: AppOptions) {
+export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, devKey, requestsPerMinute = 60 }: AppOptions) {
   const app = express();
   app.disable("x-powered-by");
   // Render puts one proxy in front of the app; trusting it makes req.ip the caller's address.
@@ -124,7 +125,7 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgent, dev
     }
     // CONTRACTS.md section 3: load, advance, save what comes back, return the Turn
     const session = await who.store.createSession(who.user, parsed.value);
-    const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, { action: "start" }, callAgent);
+    const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, { action: "start" }, callAgentFor(session.id));
     // nothing else knows this session's id yet, so this save can't lose to another request
     await who.store.saveSession(next.session, session.turn);
     await who.store.saveMastery(who.user, next.mastery);
@@ -173,7 +174,7 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgent, dev
       res.status(409).json({ error: expects === "none" ? "This session is over" : `Turn ${turn} expects ${expects}, not ${sent}` });
       return;
     }
-    const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, input, callAgent);
+    const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, input, callAgentFor(session.id));
     if (!(await who.store.saveSession(next.session, session.turn))) {
       // another request answering the same Turn saved first, and its Turn is the one that counts
       const saved = await who.store.getSession(who.user, session.id);

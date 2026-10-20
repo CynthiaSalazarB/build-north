@@ -23,7 +23,7 @@ const noDb: AppOptions = {
   checkDb: null,
   store: null,
   advance: advanceStub,
-  callAgent: callAgentStub,
+  callAgentFor: () => callAgentStub,
   devKey: KEY,
 };
 const as = (user: string, key = KEY) => ({ "x-dev-user": user, "x-dev-key": key });
