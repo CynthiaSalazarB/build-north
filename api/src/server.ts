@@ -9,18 +9,19 @@ const corsOrigins = (process.env.CORS_ORIGIN ?? "").split(",").map((origin) => o
 const surreal = surrealConfigFromEnv();
 const db = surreal ? connectSurreal(surreal) : null;
 if (db) defineSchema(db).catch((error: unknown) => console.error("SurrealDB schema failed:", error));
-const allowDevUser = process.env.NODE_ENV !== "production";
+// x-dev-user works only with a DEV_KEY set, and never in production (CONTRACTS.md section 1).
+const devKey = process.env.NODE_ENV === "production" ? null : process.env.DEV_KEY?.trim() || null;
 
 createApp({
   corsOrigins,
   checkDb: db ? surrealCheck(db) : null,
   store: db ? createStore(db) : null,
   advance: advanceStub,
-  allowDevUser,
+  devKey,
 }).listen(port, (error) => {
   if (error) throw error;
   const dbInfo = surreal ? `${new URL(surreal.url).host} (${surreal.namespace}/${surreal.database})` : "not configured";
   console.log(
-    `api listening on :${port} · CORS: ${corsOrigins.join(", ") || "none"} · SurrealDB: ${dbInfo} · x-dev-user: ${allowDevUser ? "on" : "off"}`,
+    `api listening on :${port} · CORS: ${corsOrigins.join(", ") || "none"} · SurrealDB: ${dbInfo} · x-dev-user: ${devKey ? "on, with x-dev-key" : "off"}`,
   );
 });

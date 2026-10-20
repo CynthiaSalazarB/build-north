@@ -59,8 +59,10 @@ const MOVE_LABEL: Record<MoveId, string> = {
 ## 1. API and the `Turn`
 
 Every call needs the Clerk token as `Authorization: Bearer <token>`. Until Clerk lands (Oct 21) the
-API accepts an `x-dev-user: <name>` header instead; the API rejects that header when
-`NODE_ENV=production`.
+API accepts an `x-dev-user: <name>` header instead, but only together with `x-dev-key: <the shared
+dev key>` (Leo shares it privately; it never goes in the repo or the deployed web build). The API
+rejects both when `NODE_ENV=production`. Every route except `/health` allows 60 requests a minute
+from one IP; past that the API answers `429`.
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
@@ -437,3 +439,4 @@ with `error` set.
 | 17 | Fact desk redirect (Leo) | "That part is yours to decide. If you're stuck, tap Help (it costs a point)." Never points at a move | A pointing question was a free hint, and learners could ask for the structure on purpose |
 | 18 | Resent answers (Leo) | Each `Turn` has a `turn` number; a repeat gets the stored `Turn` back | A slow phone resends, and the hint step would move twice |
 | 19 | Package name (Leo) | `@build-north/agents` | The plain name `agents` collides with another package on npm and trips `npm audit` |
+| 20 | Public API before Clerk (Leo, Oct 20) | `x-dev-user` needs `x-dev-key`; 60 requests a minute per IP; Claude calls stop at 95% of Anthropic's limits and the budget | The repo is public, so anyone can read the API's address and header names |

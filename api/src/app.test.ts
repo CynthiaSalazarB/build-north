@@ -8,7 +8,9 @@ import { MOVES, type Session } from "./contract.ts";
 import { initialSession, type Store } from "./store.ts";
 
 const WEB = "http://localhost:8081";
-const noDb: AppOptions = { corsOrigins: [WEB], checkDb: null, store: null, advance: advanceStub, allowDevUser: true };
+const KEY = "test-dev-key";
+const noDb: AppOptions = { corsOrigins: [WEB], checkDb: null, store: null, advance: advanceStub, devKey: KEY };
+const as = (user: string, key = KEY) => ({ "x-dev-user": user, "x-dev-key": key });
 
 // The Store contract kept in memory, so the routes can be tested without a database.
 function memoryStore(): Store {
@@ -36,10 +38,10 @@ function memoryStore(): Store {
 }
 
 const withStore = (): AppOptions => ({ ...noDb, store: memoryStore() });
-const post = (url: string, body: unknown, user: string | null = "leo") =>
+const post = (url: string, body: unknown, headers: Record<string, string> = as("leo")) =>
   fetch(`${url}/sessions`, {
     method: "POST",
-    headers: { "content-type": "application/json", ...(user ? { "x-dev-user": user } : {}) },
+    headers: { "content-type": "application/json", ...headers },
     body: typeof body === "string" ? body : JSON.stringify(body),
   });
 
@@ -70,8 +72,8 @@ test("GET /health/db is 503 without SurrealDB", async (t) => {
   assert.equal((await res.json()).ok, false);
 });
 
-test("GET /health/db returns the check's record and timings", async (t) => {
-  const check = { record: { id: "ping:api", at: "2026-10-19T00:00:00Z" }, ms: { write: 2, read: 3 } };
+test("GET /health/db returns the database's clock and the time it took", async (t) => {
+  const check = { now: "2026-10-20T00:00:00Z", ms: 3 };
   const res = await fetch(`${await start(t, { ...noDb, checkDb: async () => check })}/health/db`);
   assert.equal(res.status, 200);
   assert.deepEqual(await res.json(), { ok: true, ...check });
@@ -97,7 +99,7 @@ test("POST /sessions starts a session and GET /sessions/:id gives back its Turn"
   assert.equal(turn.expects, "prediction");
   assert.match(turn.messages[0].text, /map of democracy in 4 parts/);
 
-  const again = await fetch(`${url}/sessions/${turn.sessionId}`, { headers: { "x-dev-user": "leo" } });
+  const again = await fetch(`${url}/sessions/${turn.sessionId}`, { headers: as("leo") });
   assert.equal(again.status, 200);
   assert.deepEqual(await again.json(), turn);
 });
@@ -105,14 +107,27 @@ test("POST /sessions starts a session and GET /sessions/:id gives back its Turn"
 test("a session is invisible to every other user", async (t) => {
   const url = await start(t, withStore());
   const { sessionId } = await (await post(url, { concept: "inflation" })).json();
-  const res = await fetch(`${url}/sessions/${sessionId}`, { headers: { "x-dev-user": "jonathan" } });
+  const res = await fetch(`${url}/sessions/${sessionId}`, { headers: as("jonathan") });
   assert.equal(res.status, 404);
 });
 
-test("without a dev user, or in production, the session routes answer 401", async (t) => {
-  assert.equal((await post(await start(t, withStore()), { concept: "democracy" }, null)).status, 401);
-  const production = await start(t, { ...withStore(), allowDevUser: false });
+test("the session routes need a dev user with the right dev key, and never work in production", async (t) => {
+  const url = await start(t, withStore());
+  assert.equal((await post(url, { concept: "democracy" }, {})).status, 401);
+  assert.equal((await post(url, { concept: "democracy" }, { "x-dev-user": "leo" })).status, 401);
+  assert.equal((await post(url, { concept: "democracy" }, as("leo", "wrong-key"))).status, 401);
+  const production = await start(t, { ...withStore(), devKey: null });
   assert.equal((await post(production, { concept: "democracy" })).status, 401);
+});
+
+test("each IP gets a limited number of requests a minute, but /health is never limited", async (t) => {
+  const url = await start(t, { ...withStore(), requestsPerMinute: 2 });
+  assert.equal((await post(url, { concept: "a" })).status, 201);
+  assert.equal((await post(url, { concept: "b" })).status, 201);
+  const third = await post(url, { concept: "c" });
+  assert.equal(third.status, 429);
+  assert.equal(typeof (await third.json()).error, "string");
+  for (let i = 0; i < 3; i++) assert.equal((await fetch(`${url}/health`)).status, 200);
 });
 
 test("POST /sessions checks its body", async (t) => {

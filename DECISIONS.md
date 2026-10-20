@@ -193,3 +193,15 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   hint step would move twice and the learner would be charged a hint they never saw. Raised by Leo on #1.
 - **Pattern / trade-off:** idempotency with a sequence number. The session stores its last `Turn`, and
   the check lives in the API, so the orchestrator stays unaware of it.
+
+### 2026-10-20 · The public API stays locked until Clerk
+- **Decision:** until Clerk lands (#23), `x-dev-user` only counts together with an `x-dev-key` equal to
+  the server's `DEV_KEY`, which Leo shares privately. Every route except `/health` allows 60 requests a
+  minute per IP. Render uses its own `prod` database and `dev` is for local work. When the Claude
+  calls land (#10), the API stops calling Claude at 95% of Anthropic's rate limits and of the budget.
+- **Instead of:** an open `x-dev-user` header on a public URL whose address is in a public repo.
+- **Why:** anyone can read the repo, so anyone can find the URL and the header name. Once `/turns`
+  calls Claude (#10, #28), a stranger could spend the budget before Clerk exists. A separate database
+  keeps the testers' sessions clean for the numbers export (#50).
+- **Pattern / trade-off:** a shared secret as a stopgap before real auth, plus rate limits with
+  headroom. One more value to pass around privately, and the app's local `.env` needs it too.
