@@ -50,8 +50,8 @@ a change to the contract shows up here as a type error. Until the orchestrator l
 come from a stand-in for `advance` ([`src/advance-stub.ts`](src/advance-stub.ts)) with the same
 `Advance` type. It replays Cynthia's democracy walk-through,
 [`agents/fixtures/session-1.json`](../agents/fixtures/session-1.json): one `Turn` per answer, the
-same 8 whatever the concept or the answers, and mastery stays at level 1. Help isn't scripted, so
-`{ action: "help" }` answers `409` for now. #28 replaces it with the orchestrator from `agents/`.
+same 9 whatever the concept or the answers (a Help gets the next one too), and mastery stays at
+level 1. #28 replaces it with the orchestrator from `agents/`.
 
 ## Claude calls
 

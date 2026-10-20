@@ -134,15 +134,14 @@ Example, session 1, the learner just answered "A law?" for the bigger group:
   "move": "supraordinate",
   "level": 2,
   "messages": [
-    { "agent": "evaluator", "kind": "feedback", "text": "Not quite. A law is a rule, and democracy isn't a rule." },
-    { "agent": "hint_giver", "kind": "hint", "hintStep": "nudge",
-      "text": "Think of monarchy and dictatorship. What are all three examples of?" }
+    { "agent": "evaluator", "kind": "feedback",
+      "text": "Not quite: a law is one rule, and democracy isn't a rule. So what kind of thing is it?" }
   ],
   "expects": "text",
   "scaffold": null,
   "mentefacto": { "concept": "democracy", "supraordinate": null, "exclusion": [], "isoordinate": [], "infraordinate": [] },
   "example": null,
-  "progress": { "movesDone": 0, "movesTotal": 4, "hintsUsed": 1 },
+  "progress": { "movesDone": 0, "movesTotal": 4, "hintsUsed": 0 },
   "result": null,
   "error": null
 }
@@ -156,7 +155,7 @@ Example, session 1, the learner just answered "A law?" for the bigger group:
   "score": 5,
   "maxScore": 8,
   "calibrationGap": 2,
-  "hintsUsed": 4,
+  "hintsUsed": 2,
   "rubric": [
     { "move": "supraordinate", "points": 1 },
     { "move": "exclusion", "points": 2 },
@@ -164,7 +163,6 @@ Example, session 1, the learner just answered "A law?" for the bigger group:
     { "move": "infraordinate", "points": 1 }
   ],
   "masteryChanges": [
-    { "move": "supraordinate", "from": 2, "to": 3 },
     { "move": "exclusion", "from": 2, "to": 3 },
     { "move": "infraordinate", "from": 2, "to": 3 }
   ],
@@ -238,7 +236,7 @@ In: `AgentContext & { answer: string }`
   "accepted": [],
   "issue": "not_a_class",
   "reason": "A law is a rule, not a class that contains monarchy and dictatorship.",
-  "feedback": "Not quite. A law is a rule, and democracy isn't a rule."
+  "feedback": "Not quite: a law is one rule, and democracy isn't a rule. So what kind of thing is it?"
 }
 ```
 
@@ -247,8 +245,12 @@ In: `AgentContext & { answer: string }`
   and the closest class; 1 = defensible but too broad or incomplete; 0 = not defensible.
 - `accepted`: the `Item`s to write into the mentefacto (empty when not accepted).
 - `issue`: `too_broad | not_a_class | same_level | is_a_subtype | is_a_characteristic | off_topic | none`.
-  Code uses it to pick the next hint; the hint giver uses it to aim the hint.
+  Code keeps it (`session.lastIssue`) for the learner's next Help; the hint giver uses it to aim the hint.
 - `reason` is for logs and for us. `feedback` is shown, and must never contain the answer.
+- When the answer isn't right, `feedback` says what is off. At levels 2 and 3 it ends with a nudge: a
+  question that sends the learner back to their own answer, with no new information (free, the
+  ladder's first step). At levels 4 and 5 it stops there. Pointing where to look is a hint, and hints
+  only come from Help.
 
 ### Evaluator, whole map: scores a mentefacto built alone
 
@@ -300,7 +302,8 @@ In: `AgentContext & { step: HintStep; lastAnswer: string; issue: string }`
   "revealed": null }
 ```
 
-`revealed` is filled only at `reveal`: the `Item` that goes into the mentefacto, with 0 points.
+Called only when the learner taps Help. `revealed` is filled only at `reveal`: the `Item` that goes into
+the mentefacto, with 0 points.
 
 A hint can be a counterexample when the answer is incomplete: "North Korea holds elections. Is it a
 democracy? What's missing?" That is the hint giver's job; Check yourself has no Challenger agent.
@@ -323,7 +326,8 @@ fail on demo day. The shape below is the fixture's shape.
 
 ### Coach: the end-of-session message
 
-In: `{ concept, mentefacto, result }` with every number already computed by code.
+In: `{ concept, mentefacto, result }` with every number already computed by code; `result` comes without
+its `coach` field, since that's what the coach writes.
 
 ```json
 { "message": "You found the bigger group and a real exclusion. 'What it needs' is next.",
@@ -346,15 +350,24 @@ Hint giver).
 |---|---|
 | Session start | predict (0 to 8 points, after one line explaining the task) → short attempt ("in your own words") → worked example if any move is at level 1 → the four moves → result |
 | Level for a move | read from mastery; new learners start at 1. Watching the worked example moves every move to level 2 |
-| After an answer | evaluator. `correct` → accept, name the move, next move. `partial` / `incorrect` → next hint step |
-| Hint ladder | nudge → hint → partial → reveal. At levels 4 and 5, hints only when the learner taps Help |
+| After an answer | evaluator. `correct` → accept, name the move, next move. `partial` / `incorrect` → the feedback only, and the learner tries again (a retry). No automatic hint |
+| Hint ladder | nudge → hint → partial → reveal, one step per Help, and every Help counts. At levels 2 and 3 the feedback after a retry already nudged (free), so the first Help gives `hint`. At levels 4 and 5 there is no free nudge |
+| The next move's question | asked at the same time as the move's first evaluation (or Help), from the map as it was before that answer, and kept in `session.nextQuestion`. The turn that ends a move waits for one call, not two. If it fails, the next move asks when it starts |
 | Level 5 | **the learner asks.** They send any number of `{ question }` to the fact desk while filling the map, then submit `{ mentefacto }`. No per-move checks; whole-map evaluator at the end. Help gives a hint and caps that move at 1 point |
 | Mixed levels | whole-map mode (the learner asks, one submit) runs only when all four moves are at level 5, or in test mode. Otherwise a move at level 5 runs like level 4: a check per move, hints only on Help |
 | Testers' pre-test and post-test | run in level 5 mode, so both measure the same thing: questions asked, how many test the concept, and the score |
 | Test sessions (`mode: "test"`) | every move at level 5 whatever the mastery says; the result is computed as usual; mastery is never updated |
-| Points per move | evaluator `quality`, capped at 1 if any hint was used, 0 if revealed. Max 8 |
-| Mastery | done with ≤ 1 hint → level up one (max 5). 0 hints → `unassistedSuccesses + 1`. Never down in this version |
+| Points per move | evaluator `quality` on the first try with no Help; capped at 1 after a retry or a Help; 0 if revealed. Max 8 |
+| Mastery | done with at most one retry or Help → level up one (max 5). Neither → `unassistedSuccesses + 1`. Never down in this version |
 | Calibration | `calibrationGap = predictedScore − score` (points) |
+| Exclusion without a difference | one follow-up question from code ("What's the key difference between democracy and dictatorship?"); not a hint, not a retry |
+| Reveal | the ladder's last step reveals: the item goes on the map, the move scores 0, it's named, and the next move starts |
+| Help on the whole map | works on the first move, in order, whose hints haven't run out; a revealed item goes on the map |
+| Done, on the whole map | a move counts as done (level up, unassisted success) when its quality is 2 |
+| Writing the map | a sharper item replaces the vaguer one it contains ("free elections" replaces "elections"); `note` only survives on exclusions; "a; b" becomes two items |
+| Input that doesn't fit the phase | `advance` throws `UnexpectedInput`, nothing changes; the API answers 409 with the latest Turn |
+| An agent call fails | `advance` returns the session unchanged and the last Turn with `error` set: `code` and `retryable` from callAgent's error (#10), otherwise `agent_failed`, retryable |
+| The coach fails | the result still comes back, with fixed text built from the numbers (#44) |
 
 ### The seam between the orchestrator and the API
 
@@ -395,7 +408,7 @@ with `error` set. What `callAgent` throws carries `code` and `retryable`, the tw
 | Table | Fields | Notes |
 |---|---|---|
 | `mastery` | user, move, level, unassistedSuccesses, updatedAt | one row per user per move; read every turn |
-| `session` | id, user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat; `hintsPerMove` starts with all four moves at 0 |
+| `session` | id, user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, recent, retries, lastIssue, nextQuestion, questions, moveLog, result, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat; `hintsPerMove` starts with all four moves at 0, `retries` at 0, `lastIssue` at `"none"`, `nextQuestion` at null |
 | `agent_log` | session, agent, input, output, ms, usd, at | append-only; debugging, the testers' numbers (fact desk rows are the questions metric) and what a session costs |
 
 `DELETE /me/data` removes all three for the user.
@@ -412,8 +425,10 @@ with `error` set. What `callAgent` throws carries `code` and `retryable`, the tw
 - Budget: the $100 credits expire Oct 21. Unless the organizers extend them (#19), the account gets
   $30 with auto-reload off (#20). Measure the cost of one full session (#10); if 20 tester sessions
   plus the demo don't fit in $30, `AGENT_MODEL` drops to `claude-sonnet-5-5`.
-- A learner's answer costs two calls in a row (evaluator, then hint giver or questioner). That's the
-  latency to watch. At level 5 each question is one fact desk call (effort `low`).
+- A turn waits for one call at a time: a wrong answer is the evaluator alone, a Help is the hint giver
+  alone, and the next move's question is asked alongside the move's first evaluation (section 3). The
+  one turn with two calls in a row is the last answer (evaluator, then coach). At level 5 each question
+  is one fact desk call (effort `low`).
 - Schemas: every object `additionalProperties: false` (Zod does this). No `min`/`max`/`minLength`:
   the SDK strips them and checks them locally. The first call with a new schema is slower (it gets
   compiled, then cached 24 h), so warm up every agent before the demo.
@@ -440,7 +455,7 @@ with `error` set. What `callAgent` throws carries `code` and `retryable`, the tw
 | 12 | Learner material | Pasted text only, up to 8,000 characters | No upload or parsing code |
 | 13 | Language | English only this week | One set of prompts to test; Spanish goes on the roadmap |
 | 14 | Layout | Phone first; the web build shows the same layout, centered | One layout to build and polish |
-| 15 | Grading | Any defensible answer passes (2 = closest class, 1 = defensible but too broad or incomplete) | Concepts have fuzzy edges; one right answer would mark good thinking wrong |
+| 15 | Grading | Any defensible answer passes (2 = closest class, 1 = defensible but too broad or incomplete). The bigger group is tested with "<concept> is a kind of <answer>": related is not belonging | Concepts have fuzzy edges; one right answer would mark good thinking wrong |
 | 16 | Mixed levels (Leo) | Whole-map mode only when all four moves are at 5 (or test mode); otherwise a level-5 move runs like level 4 | One clear rule; the demo profile is seeded with all four at 5 |
 | 17 | Fact desk redirect (Leo) | "That part is yours to decide. If you're stuck, tap Help (it costs a point)." Never points at a move | A pointing question was a free hint, and learners could ask for the structure on purpose |
 | 18 | Resent answers (Leo) | Each `Turn` has a `turn` number; a repeat gets the stored `Turn` back | A slow phone resends, and the hint step would move twice |

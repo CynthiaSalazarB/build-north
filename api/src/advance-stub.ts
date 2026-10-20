@@ -5,15 +5,11 @@ import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type
 // Turn schema when the API starts.
 const SCRIPT = sessionOne.map((step) => Turn.parse(step.turn));
 
-// Temporary: replays agents/fixtures/session-1.json, one Turn per call, whatever the concept or the
-// answers, so the app can render every phase before the orchestrator exists. Mastery never changes
-// and help isn't scripted. It has the exact `Advance` type from @build-north/agents, so #28 swaps in
-// Cynthia's `advance` (#3) with one import.
-export const advanceStub: Advance = async ({ session, mastery }, input) => {
-  if ("action" in input && input.action === "help") {
-    // a status under 500 reaches the app with this message (the error handler in app.ts)
-    throw Object.assign(new Error("Help isn't in the fixture session; it works once the orchestrator lands (#28)"), { status: 409 });
-  }
+// Temporary: replays agents/fixtures/session-1.json, one Turn per call (a Help too), whatever the
+// concept or the answers, so the app can render every phase before the orchestrator exists. Mastery
+// never changes. It has the exact `Advance` type from @build-north/agents, so #28 swaps in Cynthia's
+// `advance` (#3) with one import.
+export const advanceStub: Advance = async ({ session, mastery }) => {
   const scripted = SCRIPT[session.turn];
   if (!scripted) throw new Error(`The fixture session ends after ${SCRIPT.length} Turns`);
   const turn: Turn = { ...scripted, sessionId: session.id, turn: session.turn + 1 };

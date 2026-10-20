@@ -1,0 +1,11 @@
+tester,test,concept,predicted (0-8),evaluator: bigger group,evaluator: what it isn't,evaluator: what it needs,evaluator: its types,evaluator total,human: bigger group,human: what it isn't,human: what it needs,human: its types,human total,moves where human = evaluator (0-4),questions asked,questions testing,hints,notes
+T1,pre,ecosystem,,,,,,,,,,,,,,,,
+T1,post,contract,,,,,,,,,,,,,,,,
+T2,pre,contract,,,,,,,,,,,,,,,,
+T2,post,ecosystem,,,,,,,,,,,,,,,,
+T3,pre,ecosystem,,,,,,,,,,,,,,,,
+T3,post,contract,,,,,,,,,,,,,,,,
+T4,pre,contract,,,,,,,,,,,,,,,,
+T4,post,ecosystem,,,,,,,,,,,,,,,,
+T5,pre,ecosystem,,,,,,,,,,,,,,,,
+T5,post,contract,,,,,,,,,,,,,,,,
