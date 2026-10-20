@@ -9,12 +9,19 @@
   },
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "eval:evaluator": "node --env-file-if-exists=../.env scripts/eval-evaluator.ts",
+    "eval:questioner": "node --env-file-if-exists=../.env scripts/eval-questioner.ts",
+    "eval:hint-giver": "node --env-file-if-exists=../.env scripts/eval-hint-giver.ts",
+    "eval:fact-desk": "node --env-file-if-exists=../.env scripts/eval-fact-desk.ts",
+    "play:session": "node --env-file-if-exists=../.env scripts/play-session.ts",
+    "play:demo": "node --env-file-if-exists=../.env scripts/play-demo.ts"
   },
   "dependencies": {
     "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@anthropic-ai/sdk": "^0.135.0",
     "@types/node": "^24.19.2",
     "typescript": "~6.0.3",
     "vitest": "^5.0.5"

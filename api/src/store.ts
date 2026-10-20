@@ -70,9 +70,24 @@ export function initialSession(user: string, { concept, material, mode }: NewSes
     hintStep: null,
     hintsPerMove: Object.fromEntries(MOVE_ORDER.map((move) => [move, 0])) as Record<MoveId, number>,
     mentefacto: { concept, supraordinate: null, exclusion: [], isoordinate: [], infraordinate: [] },
+    recent: [],
+    retries: 0,
+    lastIssue: "none",
+    nextQuestion: null,
+    questions: { asked: 0, testing: 0 },
+    moveLog: [],
     result: null,
   };
 }
+
+// saveSession writes every Session field but the ones fixed when the session starts, so a field the
+// orchestrator adds to the contract is saved without a change here. The keys come from the schema,
+// never from a request.
+const FIXED_FIELDS = ["id", "user", "concept", "material", "mode", "createdAt"];
+const SET_SESSION = Object.keys(Session.shape)
+  .filter((key) => !FIXED_FIELDS.includes(key))
+  .map((key) => `${key} = $s.${key}`)
+  .join(", ");
 
 export function createStore(db: Surreal): Store {
   // Runs one statement and returns its result as plain JSON (dates as ISO strings).
@@ -100,16 +115,13 @@ export function createStore(db: Surreal): Store {
       return session ? Session.parse(session) : null;
     },
 
-    async saveSession({ id, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result }, previousTurn) {
-      // user, concept, material, mode and createdAt never change after the session starts. The WHERE
-      // checks and writes in one statement, so two answers to the same Turn can't both move it on.
-      const saved = await one<unknown[]>(
-        `UPDATE $id SET turn = $s.turn, lastTurn = $s.lastTurn, predictedScore = $s.predictedScore,
-           firstAttempt = $s.firstAttempt, phase = $s.phase, move = $s.move, hintStep = $s.hintStep,
-           hintsPerMove = $s.hintsPerMove, mentefacto = $s.mentefacto, result = $s.result
-         WHERE turn = $previousTurn RETURN VALUE turn`,
-        { id: sessionId(id), previousTurn, s: { turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result } },
-      );
+    async saveSession(session, previousTurn) {
+      // The WHERE checks and writes in one statement, so two answers to the same Turn can't both move it on.
+      const saved = await one<unknown[]>(`UPDATE $id SET ${SET_SESSION} WHERE turn = $previousTurn RETURN VALUE turn`, {
+        id: sessionId(session.id),
+        previousTurn,
+        s: session,
+      });
       return saved.length > 0;
     },
 
