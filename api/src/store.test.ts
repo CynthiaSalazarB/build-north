@@ -22,7 +22,7 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
   await defineSchema(db);
   const store = createStore(db);
 
-  await t.test("a session is written, read back by its owner only, and saved after advance", async () => {
+  await t.test("a session is written, read back by its owner only, and saved once per Turn", async () => {
     const session = await store.createSession("leo", { concept: "democracy", material: null, mode: "learn" });
     assert.match(session.id, /^[a-z0-9]+$/);
     assert.equal(session.turn, 0);
@@ -30,11 +30,14 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     assert.equal(await store.getSession("leo", "doesnotexist0000000"), null);
 
     const next = await advanceStub({ session, mastery: await store.getMastery("leo") }, { action: "start" }, callAgentStub);
-    await store.saveSession(next.session);
+    assert.equal(await store.saveSession(next.session, session.turn), true);
     const saved = await store.getSession("leo", session.id);
     assert.equal(saved?.turn, 1);
     assert.deepEqual(saved?.lastTurn, next.turn);
     assert.equal(saved?.createdAt, session.createdAt);
+    // a second answer to Turn 0 lost the race: its save is refused and changes nothing
+    assert.equal(await store.saveSession({ ...next.session, phase: "result" }, session.turn), false);
+    assert.equal((await store.getSession("leo", session.id))?.phase, "predict");
     // what comes back from the database still fits Cynthia's Session schema, so `advance` can trust it
     assert.doesNotThrow(() => SessionSchema.parse(session));
     assert.doesNotThrow(() => SessionSchema.parse(saved));
@@ -55,7 +58,7 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
       questions: { asked: 1, testing: 0 },
       moveLog: [{ move: "supraordinate", points: 2, hints: 1, retries: 1, from: 2, to: 3 }],
     };
-    await store.saveSession(changed);
+    assert.equal(await store.saveSession(changed, session.turn), true);
     assert.deepEqual(await store.getSession("leo", session.id), changed);
   });
 

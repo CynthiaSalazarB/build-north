@@ -1,4 +1,4 @@
-import { CreateSessionBody, type Advance, type CallAgent } from "@build-north/agents";
+import { CreateSessionBody, TurnBody, type Advance, type CallAgent, type Expects } from "@build-north/agents";
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
 import { rateLimit } from "express-rate-limit";
@@ -24,9 +24,23 @@ const MAX_CONCEPT = 100;
 const DEV_USER = /^[A-Za-z0-9._@-]{1,64}$/;
 const SESSION_ID = /^[a-z0-9]{1,40}$/; // the ids SurrealDB generates
 
+// CONTRACTS.md section 1: what a /turns body may send for each `expects`. Help works until the result.
+const ANSWERS: Record<Expects, readonly string[]> = {
+  prediction: ["prediction", "help"],
+  text: ["text", "help"],
+  continue: ["continue", "help"],
+  map: ["question", "mentefacto", "help"],
+  none: [],
+};
+const TURN_BODY = 'Send turn with one of: prediction (0 to 8), text, question, mentefacto, or action ("help" or "continue")';
+
 // Hashing first gives timingSafeEqual two buffers of the same length, whatever was sent.
 const digest = (text: string) => createHash("sha256").update(text).digest();
 const sameKey = (sent: string, expected: string) => timingSafeEqual(digest(sent), digest(expected));
+
+// A schema's issues as one line for the response
+const describe = (issues: readonly { path: readonly PropertyKey[]; message: string }[]) =>
+  issues.map((issue) => `${issue.path.join(".") || "body"}: ${issue.message}`).join("; ");
 
 type Parsed<T> = { ok: true; value: T } | { ok: false; status: number; error: string };
 
@@ -37,8 +51,7 @@ function parseNewSession(body: unknown): Parsed<NewSession> {
   if (!parsed.success) {
     const tooLong = parsed.error.issues.some((issue) => issue.path[0] === "material" && issue.code === "too_big");
     if (tooLong) return { ok: false, status: 413, error: "Your notes are over 8,000 characters. Paste a shorter excerpt." };
-    const why = parsed.error.issues.map((issue) => `${issue.path.join(".") || "body"}: ${issue.message}`).join("; ");
-    return { ok: false, status: 400, error: why };
+    return { ok: false, status: 400, error: describe(parsed.error.issues) };
   }
   const { concept, material, mode = "learn" } = parsed.data;
   if (!concept.trim() || concept.trim().length > MAX_CONCEPT) {
@@ -112,7 +125,8 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgent, dev
     // CONTRACTS.md section 3: load, advance, save what comes back, return the Turn
     const session = await who.store.createSession(who.user, parsed.value);
     const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, { action: "start" }, callAgent);
-    await who.store.saveSession(next.session);
+    // nothing else knows this session's id yet, so this save can't lose to another request
+    await who.store.saveSession(next.session, session.turn);
     await who.store.saveMastery(who.user, next.mastery);
     res.status(201).json(next.turn);
   });
@@ -126,6 +140,63 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgent, dev
       return;
     }
     res.json(session.lastTurn);
+  });
+
+  app.post("/sessions/:id/turns", async (req, res) => {
+    const who = caller(req, res);
+    if (!who) return;
+    const parsed = TurnBody.safeParse(req.body);
+    if (!parsed.success) {
+      // a body that matches none of the shapes gets the list instead of Zod's "Invalid input"
+      const noShape = parsed.error.issues[0]?.code === "invalid_union";
+      res.status(400).json({ error: noShape ? TURN_BODY : describe(parsed.error.issues) });
+      return;
+    }
+    const session = SESSION_ID.test(req.params.id) ? await who.store.getSession(who.user, req.params.id) : null;
+    if (!session?.lastTurn) {
+      res.status(404).json({ error: "No such session" });
+      return;
+    }
+    const { turn, ...input } = parsed.data;
+    // Decision 18: an answer to an older Turn was judged already, so it gets the latest Turn back
+    if (turn < session.turn) {
+      res.json(session.lastTurn);
+      return;
+    }
+    if (turn > session.turn) {
+      res.status(409).json({ error: `Turn ${turn} doesn't exist yet; the latest is ${session.turn}` });
+      return;
+    }
+    const sent = "action" in input ? input.action : (Object.keys(input)[0] ?? "");
+    const { expects } = session.lastTurn;
+    if (!ANSWERS[expects].includes(sent)) {
+      res.status(409).json({ error: expects === "none" ? "This session is over" : `Turn ${turn} expects ${expects}, not ${sent}` });
+      return;
+    }
+    const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, input, callAgent);
+    if (!(await who.store.saveSession(next.session, session.turn))) {
+      // another request answering the same Turn saved first, and its Turn is the one that counts
+      const saved = await who.store.getSession(who.user, session.id);
+      if (saved?.lastTurn) res.json(saved.lastTurn);
+      else res.status(404).json({ error: "No such session" });
+      return;
+    }
+    await who.store.saveMastery(who.user, next.mastery);
+    res.json(next.turn);
+  });
+
+  app.get("/me/mastery", async (req, res) => {
+    const who = caller(req, res);
+    if (!who) return;
+    res.json(await who.store.getMastery(who.user));
+  });
+
+  // The delete button: the caller's sessions, their agent logs, and mastery
+  app.delete("/me/data", async (req, res) => {
+    const who = caller(req, res);
+    if (!who) return;
+    await who.store.deleteUserData(who.user);
+    res.status(204).end();
   });
 
   app.use((_req, res) => {

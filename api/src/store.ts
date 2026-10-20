@@ -39,7 +39,8 @@ export type Store = {
   createSession(user: string, input: NewSession): Promise<Session>;
   // null when the session doesn't exist or belongs to someone else
   getSession(user: string, id: string): Promise<Session | null>;
-  saveSession(session: Session): Promise<void>;
+  // false when the stored session is no longer at `previousTurn`: another request answered it first
+  saveSession(session: Session, previousTurn: number): Promise<boolean>;
   // every move, in session order; a move the learner hasn't touched yet is at level 1
   getMastery(user: string): Promise<Mastery>;
   saveMastery(user: string, mastery: Mastery): Promise<void>;
@@ -114,8 +115,14 @@ export function createStore(db: Surreal): Store {
       return session ? Session.parse(session) : null;
     },
 
-    async saveSession(session) {
-      await one(`UPDATE ONLY $id SET ${SET_SESSION}`, { id: sessionId(session.id), s: session });
+    async saveSession(session, previousTurn) {
+      // The WHERE checks and writes in one statement, so two answers to the same Turn can't both move it on.
+      const saved = await one<unknown[]>(`UPDATE $id SET ${SET_SESSION} WHERE turn = $previousTurn RETURN VALUE turn`, {
+        id: sessionId(session.id),
+        previousTurn,
+        s: session,
+      });
+      return saved.length > 0;
     },
 
     async getMastery(user) {
