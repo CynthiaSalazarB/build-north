@@ -34,6 +34,9 @@ Per-folder run instructions live in each folder's README.
 
 - Tasks live in GitHub Issues + the project board (Todo, In Progress, Done). One owner per issue, 1 to
   3 hours, a "done when" line and a "depends on" line. Each issue sits in the milestone of its day.
-- Short branches (`jonathan/session-screen`), a pull request, one teammate reviews, merge the same day.
+- Every change goes through a short branch (`jonathan/6-session-screen`) and a pull request, docs
+  included: one teammate reviews, merge the same day. Only typos go straight to `main`.
 - Secrets never go in git. `.env.example` lists every variable; the Claude key exists only on the API.
-- Decisions with a real trade-off go in [`DECISIONS.md`](DECISIONS.md).
+- Decisions with a real trade-off go in [`DECISIONS.md`](DECISIONS.md), and changes to
+  [`agents/CONTRACTS.md`](agents/CONTRACTS.md) change what everyone builds: both arrive through a pull
+  request, and the merge is the acceptance.
