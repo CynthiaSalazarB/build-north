@@ -15,6 +15,7 @@ Built for **Build North** (Georgian AI Lab + TapNet), October 2026.
 | [`app/`](app/) | Expo + React Native app (iOS, Android, web) | Jonathan |
 | [`api/`](api/) | Node + Express API: auth, storage, calls the agents | Leo |
 | [`agents/`](agents/) | Prompts, JSON contracts, orchestrator and ladder rules. Pure TypeScript, no server code | Cynthia |
+| [`wiki/`](wiki/index.md) | Project notes: context, research, analysis. Start at `wiki/index.md` | Everyone |
 
 `app`, `api` and `agents` are npm workspaces. The API imports `agents/` as the package `@build-north/agents`; the app imports
 **types only** from it (`import type`), so no server code ends up in the bundle.
