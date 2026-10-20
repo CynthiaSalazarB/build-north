@@ -28,10 +28,11 @@ Status on Oct 19, 11:14 PM: everything is live and the #8 test passed. Render re
   https://build-north-api.onrender.com. Free plan, Virginia region (next to the database).
 - The first deploy took 20.5 s. Render picked Node 24.22.0 from `.node-version`.
 - Source: Public Git Repository `https://github.com/CynthiaSalazarB/build-north`, branch
-  `leo/api-skeleton` until #54 merges, then `main`. No auto-deploy until Cynthia installs Render's
-  GitHub app on the repo.
+  `leo/surreal-store` (#58, which includes #54) until both merge, then `main`. No auto-deploy until
+  Cynthia installs Render's GitHub app on the repo.
 - Build `npm ci --workspace api`, start `node api/src/server.ts`, health check `/health`.
 - Env: `CORS_ORIGIN`, `SURREAL_URL`, `SURREAL_NAMESPACE`, `SURREAL_DATABASE`, `SURREAL_USER`,
-  `SURREAL_AUTH_LEVEL`, `SURREAL_PASS`. No `NODE_ENV` until Clerk lands (#23): with
-  `NODE_ENV=production` the API refuses the `x-dev-user` header the app uses until then.
+  `SURREAL_AUTH_LEVEL`, `SURREAL_PASS`, and `NODE_ENV=development` until Clerk lands (#23). Render
+  sets `NODE_ENV=production` by default, and production refuses the `x-dev-user` header the app uses
+  until then. Delete the variable with #23.
 - Starter ($7/month) from Oct 22, per `DECISIONS.md`.
