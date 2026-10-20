@@ -1,5 +1,5 @@
 {
-  "name": "agents",
+  "name": "@build-north/agents",
   "version": "0.1.0",
   "private": true,
   "type": "module"

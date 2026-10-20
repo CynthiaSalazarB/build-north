@@ -76,6 +76,11 @@ asks for: `prediction` → `{ prediction }`, `text` → `{ text }`, `continue` �
 `map` → `{ question }` while the learner asks and `{ mentefacto }` to submit. `{ action: "help" }`
 can be sent at any point.
 
+Every `/turns` body also carries `turn`: the number of the `Turn` it answers. If that number is
+older than the session's latest, the API returns the latest `Turn` as it is and doesn't call
+`advance` again, so an answer resent after a timeout is judged once. The app disables Send while a
+call is pending.
+
 `prediction` is a whole number from 0 to 8. Before it, the app explains the task in one line and
 asks on the same scale as the score: "You'll build the map of democracy in 4 parts, 2 points each.
 How many of the 8 points do you think you'll get?"
@@ -92,6 +97,7 @@ before the ladder starts.
 ```ts
 type Turn = {
   sessionId: string;
+  turn: number;   // goes up by 1 with each Turn; the app sends it back with its next action
   phase: "predict" | "attempt" | "example" | "move" | "result";
   move: MoveId | null;
   level: Level | null;
@@ -117,6 +123,7 @@ Example, session 1, the learner just answered "A law?" for the bigger group:
 ```json
 {
   "sessionId": "ses_8f2k",
+  "turn": 6,
   "phase": "move",
   "move": "supraordinate",
   "level": 2,
@@ -260,12 +267,13 @@ In: `{ concept, material, mentefacto, question }`
   "questionType": "breaking_case" }
 ```
 
-When the question asks for the structure ("what's the bigger group of inflation?"), it doesn't answer;
-it hands the decision back with a question that points to a move:
+When the question asks for the structure ("what's the bigger group of inflation?"), it doesn't answer.
+It hands the decision back without pointing at any part of the map, and reminds the learner that
+Help exists and costs a point (a question that points somewhere would be a free hint):
 
 ```json
 { "kind": "redirect",
-  "answer": "That part is yours to decide. What other things happen to money in an economy?",
+  "answer": "That part is yours to decide. If you're stuck, tap Help (it costs a point).",
   "questionType": "asks_for_structure" }
 ```
 
@@ -334,6 +342,7 @@ Hint giver).
 | After an answer | evaluator. `correct` → accept, name the move, next move. `partial` / `incorrect` → next hint step |
 | Hint ladder | nudge → hint → partial → reveal. At levels 4 and 5, hints only when the learner taps Help |
 | Level 5 | **the learner asks.** They send any number of `{ question }` to the fact desk while filling the map, then submit `{ mentefacto }`. No per-move checks; whole-map evaluator at the end. Help gives a hint and caps that move at 1 point |
+| Mixed levels | whole-map mode (the learner asks, one submit) runs only when all four moves are at level 5, or in test mode. Otherwise a move at level 5 runs like level 4: a check per move, hints only on Help |
 | Testers' pre-test and post-test | run in level 5 mode, so both measure the same thing: questions asked, how many test the concept, and the score |
 | Test sessions (`mode: "test"`) | every move at level 5 whatever the mastery says; the result is computed as usual; mastery is never updated |
 | Points per move | evaluator `quality`, capped at 1 if any hint was used, 0 if revealed. Max 8 |
@@ -364,7 +373,9 @@ function advance(
 ): Promise<{ session: Session; mastery: Mastery; turn: Turn }>;
 ```
 
-The API loads the session and mastery, calls `advance`, saves what comes back, and returns `turn`.
+The API loads the session and mastery, calls `advance`, saves what comes back, and returns the
+`Turn`. The repeat check on the `turn` number happens in the API before `advance`, so `advance` never
+sees a resend.
 The API never decides the flow; the orchestrator never stores anything. In test mode `advance` returns
 the mastery unchanged. If `callAgent` throws, `advance` returns the session unchanged and a `Turn`
 with `error` set.
@@ -376,7 +387,7 @@ with `error` set.
 | Table | Fields | Notes |
 |---|---|---|
 | `mastery` | user, move, level, unassistedSuccesses, updatedAt | one row per user per move; read every turn |
-| `session` | user, concept, material, mode, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result, createdAt | the orchestrator's state |
+| `session` | user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat |
 | `agent_log` | session, agent, input, output, ms, at | append-only; debugging and the testers' numbers (fact desk rows are the questions metric) |
 
 `DELETE /me/data` removes all three for the user.
@@ -422,3 +433,7 @@ with `error` set.
 | 13 | Language | English only this week | One set of prompts to test; Spanish goes on the roadmap |
 | 14 | Layout | Phone first; the web build shows the same layout, centered | One layout to build and polish |
 | 15 | Grading | Any defensible answer passes (2 = closest class, 1 = defensible but too broad or incomplete) | Concepts have fuzzy edges; one right answer would mark good thinking wrong |
+| 16 | Mixed levels (Leo) | Whole-map mode only when all four moves are at 5 (or test mode); otherwise a level-5 move runs like level 4 | One clear rule; the demo profile is seeded with all four at 5 |
+| 17 | Fact desk redirect (Leo) | "That part is yours to decide. If you're stuck, tap Help (it costs a point)." Never points at a move | A pointing question was a free hint, and learners could ask for the structure on purpose |
+| 18 | Resent answers (Leo) | Each `Turn` has a `turn` number; a repeat gets the stored `Turn` back | A slow phone resends, and the hint step would move twice |
+| 19 | Package name (Leo) | `@build-north/agents` | The plain name `agents` collides with another package on npm and trips `npm audit` |

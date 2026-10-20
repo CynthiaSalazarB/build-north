@@ -16,7 +16,7 @@ Built for **Build North** (Georgian AI Lab + TapNet), October 2026.
 | [`api/`](api/) | Node + Express API: auth, storage, calls the agents | Leo |
 | [`agents/`](agents/) | Prompts, JSON contracts, orchestrator and ladder rules. Pure TypeScript, no server code | Cynthia |
 
-`app`, `api` and `agents` are npm workspaces. The API imports `agents` as a package; the app imports
+`app`, `api` and `agents` are npm workspaces. The API imports `agents/` as the package `@build-north/agents`; the app imports
 **types only** from it (`import type`), so no server code ends up in the bundle.
 
 The contracts between the three are in [`agents/CONTRACTS.md`](agents/CONTRACTS.md).

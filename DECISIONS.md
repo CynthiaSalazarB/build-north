@@ -174,3 +174,22 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   Check yourself loop.
 - **Pattern / trade-off:** scope cut to a walking skeleton plus one complete loop. Each cut is a later
   roadmap item, and none needs a rewrite to add back.
+
+### 2026-10-19 · The fact desk's redirect gives nothing away
+- **Decision:** when a learner asks the fact desk for the structure, it answers "That part is yours to
+  decide. If you're stuck, tap Help (it costs a point)." It never points at a part of the map.
+- **Instead of:** a redirect that hands the decision back with a guiding question ("What other things
+  happen to money in an economy?").
+- **Why:** a guiding question was a free hint, while Help costs a point. A learner could ask for the
+  structure on purpose and get help without paying for it. Raised by Leo on #1.
+- **Pattern / trade-off:** one price for help, so the level-5 score stays honest. The redirect teaches
+  less in the moment; the help is still there, behind the Help button.
+
+### 2026-10-19 · A resent answer is judged once
+- **Decision:** every `Turn` carries a `turn` number and the app sends it back with its next action.
+  When the number repeats, the API returns the stored `Turn` without calling the orchestrator again.
+- **Instead of:** trusting that each request arrives once.
+- **Why:** one answer costs two Claude calls, so a slow phone can time out and resend; without this the
+  hint step would move twice and the learner would be charged a hint they never saw. Raised by Leo on #1.
+- **Pattern / trade-off:** idempotency with a sequence number. The session stores its last `Turn`, and
+  the check lives in the API, so the orchestrator stays unaware of it.
