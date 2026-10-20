@@ -292,6 +292,15 @@ describe("failures and limits", () => {
     expect(out.turn.turn).toBe(started.session.turn);
   });
 
+  it("an error from callAgent keeps its code and retryable (a spent budget isn't retryable)", async () => {
+    const started = await play(newSession("democracy"), masteryAt(2), [{ action: "start" }, { prediction: 5 }], scripted([]).call);
+    const spent: CallAgent = async () => {
+      throw Object.assign(new Error("$95.00 of the $100 Claude budget is spent"), { code: "rate_limited", retryable: false });
+    };
+    const out = await advance({ session: started.session, mastery: started.mastery }, { text: "Rule by the people." }, spent);
+    expect(out.turn.error).toEqual({ code: "rate_limited", retryable: false });
+  });
+
   it("four Helps walk the ladder to reveal: the item goes on the map with 0 points and the next move starts", async () => {
     const reveal = { step: "reveal", text: "It's a form of government.", revealed: item("form of government") };
     const { call } = scripted([

@@ -416,10 +416,13 @@ function toTurn(s: Session, step: Step): Turn {
   };
 }
 
-/** The Turn the app shows when an agent call fails: the last one again, with a retryable error. */
+/** The Turn the app shows when an agent call fails: the last one again, with the error. callAgent's
+ * errors carry `code` and `retryable` (#10: a spent budget isn't retryable); anything else counts as a
+ * retryable agent failure. */
 function errorTurn(s: Session, error: unknown): Turn {
-  const status = (error as { status?: number } | null)?.status;
-  const code = status === 429 ? "rate_limited" : "agent_failed";
+  const e = (error ?? {}) as { code?: unknown; retryable?: unknown; status?: unknown };
+  const code = e.code === "rate_limited" || e.status === 429 ? "rate_limited" : "agent_failed";
+  const retryable = typeof e.retryable === "boolean" ? e.retryable : true;
   const base: Turn = s.lastTurn ?? {
     sessionId: s.id,
     turn: s.turn,
@@ -435,5 +438,5 @@ function errorTurn(s: Session, error: unknown): Turn {
     result: null,
     error: null,
   };
-  return { ...base, error: { code, retryable: true } };
+  return { ...base, error: { code, retryable } };
 }

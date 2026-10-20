@@ -359,7 +359,7 @@ Hint giver).
 | Done, on the whole map | a move counts as done (level up, unassisted success) when its quality is 2 |
 | Writing the map | a sharper item replaces the vaguer one it contains ("free elections" replaces "elections"); `note` only survives on exclusions; "a; b" becomes two items |
 | Input that doesn't fit the phase | `advance` throws `UnexpectedInput`, nothing changes; the API answers 409 with the latest Turn |
-| An agent call fails | `advance` returns the session unchanged and the last Turn with `error` set (retryable) |
+| An agent call fails | `advance` returns the session unchanged and the last Turn with `error` set: `code` and `retryable` from callAgent's error (#10), otherwise `agent_failed`, retryable |
 | The coach fails | the result still comes back, with fixed text built from the numbers (#44) |
 
 ### The seam between the orchestrator and the API
