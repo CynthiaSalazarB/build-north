@@ -196,8 +196,9 @@ Every prompt, and every line the app shows, is in English in this version.
 
 Each agent is one `client.messages.create()` call with `output_config.format: zodOutputFormat(schema)`,
 and the API checks the reply against the same schema, so the output is valid JSON or the call fails.
-The agent's prompt is the system prompt, and its input (below) goes in the user message as JSON. The
-API never shows the learner anything an agent didn't return.
+The system prompt and the user message come from the agent's entry in `AGENTS` (`agents/src/agents.ts`):
+`system`, and `render` writing the user message from the input (below). The API never shows the
+learner anything an agent didn't return.
 
 Every agent receives the same context, plus its own fields:
 
