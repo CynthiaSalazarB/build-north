@@ -17,7 +17,7 @@ import {
   TurnBody,
   WholeMapEvaluatorOutput,
   WorkedExample,
-} from "../src/index.js";
+} from "../src/index.ts";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 

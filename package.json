@@ -7,7 +7,6 @@
     "agents"
   ],
   "scripts": {
-    "build": "npm run build --workspaces --if-present",
     "test": "npm test --workspaces --if-present"
   }
 }

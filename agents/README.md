@@ -20,8 +20,8 @@ import { Turn, TurnBody, EvaluatorOutput } from "@build-north/agents";
 // App: types only, so no server code ends up in the bundle
 import type { Turn } from "@build-north/agents";
 
-// Fixtures
-import session1 from "@build-north/agents/fixtures/session-1.json";
+// Fixtures (in Node, JSON imports need the attribute; Metro in the app doesn't)
+import session1 from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 ```
 
 The agent output schemas (`QuestionerOutput`, `EvaluatorOutput`, `WholeMapEvaluatorOutput`,
@@ -32,8 +32,9 @@ The agent output schemas (`QuestionerOutput`, `EvaluatorOutput`, `WholeMapEvalua
 ```bash
 npm test            # every JSON example in CONTRACTS.md and every fixture parses
 npm run typecheck
-npm run build       # compiles to dist/; the API imports the compiled version
 ```
 
-Types point at `src/`, so the app and editors need no build. At runtime the API imports `dist/`, so
-its build runs `npm run build` from the repo root first (that builds every workspace).
+There is no build step, the same convention as `api/`: Node 24 runs the `.ts` files directly by
+stripping the types. So only write TypeScript that can be erased (no `enum`, `namespace` or constructor
+parameter properties), import local files with their `.ts` extension, and use `import type` for types.
+The type check catches the rest.
