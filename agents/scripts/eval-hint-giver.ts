@@ -4,7 +4,8 @@
 import { AGENTS, type AgentContext, type HintGiverInput, type HintStep } from "../src/index.ts";
 import { type AgentRun, dollars, MODEL, runAgent } from "./run-agent.ts";
 
-const ANSWER = /government|political system/i;
+// The answer is the group's name: "form of government", "political system" and close rewordings.
+const ANSWER = /forms? of govern|system of govern|govern(ment|ing) system|political system|type of government|kind of government/i;
 const QUESTION = "Democracy is one example of a bigger group. What group?";
 const empty = { concept: "democracy", supraordinate: null, exclusion: [], isoordinate: [], infraordinate: [] };
 

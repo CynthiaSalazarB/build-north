@@ -53,8 +53,8 @@ describe("CONTRACTS.md examples", () => {
 describe("fixtures", () => {
   const steps = JSON.parse(read("../fixtures/session-1.json")) as { note: string; input: unknown; turn: unknown }[];
 
-  it("session 1 has 8 Turns", () => {
-    expect(steps).toHaveLength(8);
+  it("session 1 has 9 Turns", () => {
+    expect(steps).toHaveLength(9);
   });
 
   it.each(steps.map((s, i) => [i, s] as const))("step %i: input and Turn parse", (i, step) => {

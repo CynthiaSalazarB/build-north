@@ -13,12 +13,16 @@ export type AgentRun<O> = { output: O; ms: number; inputTokens: number; outputTo
 export async function runAgent<I, O>(agent: AgentDefinition<I, O>, rawInput: I): Promise<AgentRun<O>> {
   const input = agent.input.parse(rawInput);
   const started = performance.now();
+  // AGENT_MODEL_FAST, for latency experiments only: a faster model for the agents that only word things
+  // (questioner, hint giver, fact desk); the evaluators keep MODEL.
+  const fast = process.env.AGENT_MODEL_FAST && ["questioner", "hint_giver", "fact_desk"].includes(agent.name);
   const response = await client.beta.messages.parse({
-    model: MODEL,
+    model: fast ? process.env.AGENT_MODEL_FAST! : MODEL,
     max_tokens: 16000,
     system: agent.system,
     messages: [{ role: "user", content: agent.render(input) }],
-    output_config: { format: zodOutputFormat(agent.output), effort: agent.effort },
+    // AGENT_EFFORT overrides every agent's effort, for latency experiments only.
+    output_config: { format: zodOutputFormat(agent.output), effort: (process.env.AGENT_EFFORT as typeof agent.effort) || agent.effort },
     // If a safety classifier declines, the API retries on the model Anthropic recommends for that case.
     betas: ["server-side-fallback-2026-07-01"],
     fallbacks: "default",
