@@ -1,5 +1,6 @@
 import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { createApp } from "./app.ts";
+import { clerkConfigFromEnv, clerkUserFromToken } from "./clerk.ts";
 import { connectSurreal, surrealCheck, surrealConfigFromEnv } from "./db.ts";
 import { createStore, defineSchema } from "./store.ts";
 
@@ -9,6 +10,8 @@ const corsOrigins = (process.env.CORS_ORIGIN ?? "").split(",").map((origin) => o
 const surreal = surrealConfigFromEnv();
 const db = surreal ? connectSurreal(surreal) : null;
 if (db) defineSchema(db).catch((error: unknown) => console.error("SurrealDB schema failed:", error));
+// The Clerk session token signs the caller in (#23); a web build's token must come from one of the CORS origins.
+const clerk = clerkConfigFromEnv(corsOrigins);
 // x-dev-user works only with a DEV_KEY set, and never in production (CONTRACTS.md section 1).
 const devKey = process.env.NODE_ENV === "production" ? null : process.env.DEV_KEY?.trim() || null;
 
@@ -18,11 +21,12 @@ createApp({
   store: db ? createStore(db) : null,
   advance: advanceStub,
   callAgent: callAgentStub,
+  userFromToken: clerk ? clerkUserFromToken(clerk) : null,
   devKey,
 }).listen(port, (error) => {
   if (error) throw error;
   const dbInfo = surreal ? `${new URL(surreal.url).host} (${surreal.namespace}/${surreal.database})` : "not configured";
   console.log(
-    `api listening on :${port} · CORS: ${corsOrigins.join(", ") || "none"} · SurrealDB: ${dbInfo} · x-dev-user: ${devKey ? "on, with x-dev-key" : "off"}`,
+    `api listening on :${port} · CORS: ${corsOrigins.join(", ") || "none"} · SurrealDB: ${dbInfo} · Clerk: ${clerk ? "on" : "off"} · x-dev-user: ${devKey ? "on, with x-dev-key" : "off"}`,
   );
 });

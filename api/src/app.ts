@@ -13,8 +13,11 @@ export type AppOptions = {
   // CONTRACTS.md section 3: the orchestrator and the only way it reaches Claude
   advance: Advance;
   callAgent: CallAgent;
-  // CONTRACTS.md section 1: until Clerk lands (#23), x-dev-user names the caller, and it only counts
-  // with x-dev-key matching this key. null turns dev users off (production, or no DEV_KEY set).
+  // CONTRACTS.md section 1: the Clerk user id in a session token, or null for a token that doesn't
+  // hold up (#23). null when Clerk isn't set up (no CLERK_JWT_KEY), so no token signs anyone in.
+  userFromToken: ((token: string) => Promise<string | null>) | null;
+  // Outside production, x-dev-user also names the caller, but only with x-dev-key matching this key.
+  // null turns dev users off (production, or no DEV_KEY set).
   devKey: string | null;
   // per IP, for every route except /health
   requestsPerMinute?: number;
@@ -60,7 +63,7 @@ function parseNewSession(body: unknown): Parsed<NewSession> {
   return { ok: true, value: { concept: concept.trim(), material: material?.trim() ? material : null, mode } };
 }
 
-export function createApp({ corsOrigins, checkDb, store, advance, callAgent, devKey, requestsPerMinute = 60 }: AppOptions) {
+export function createApp({ corsOrigins, checkDb, store, advance, callAgent, userFromToken, devKey, requestsPerMinute = 60 }: AppOptions) {
   const app = express();
   app.disable("x-powered-by");
   // Render puts one proxy in front of the app; trusting it makes req.ip the caller's address.
@@ -68,19 +71,29 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgent, dev
   app.use(cors({ origin: corsOrigins }));
   app.use(express.json({ limit: "64kb" }));
 
-  // Who is calling, and whether there is a database to serve them. Answers the request itself when not.
-  function caller(req: Request, res: Response): { user: string; store: Store } | null {
+  // The Clerk user id from the session token. Without a token, x-dev-user with the right x-dev-key,
+  // which devKey turns off in production. A token that doesn't hold up never falls back to the dev headers.
+  async function signedIn(req: Request): Promise<string | null> {
+    const token = /^Bearer (\S+)$/i.exec(req.get("authorization") ?? "")?.[1];
+    if (token) return userFromToken ? userFromToken(token) : null;
     const name = req.get("x-dev-user");
     const key = req.get("x-dev-key");
-    if (!devKey || !name || !DEV_USER.test(name) || !key || !sameKey(key, devKey)) {
-      res.status(401).json({ error: "Sign in first. Until Clerk lands (Oct 21), send x-dev-user and x-dev-key" });
+    return devKey && name && DEV_USER.test(name) && key && sameKey(key, devKey) ? name : null;
+  }
+
+  // Who is calling, and whether there is a database to serve them. Answers the request itself when not.
+  async function caller(req: Request, res: Response): Promise<{ user: string; store: Store } | null> {
+    const user = await signedIn(req);
+    if (!user) {
+      const devHeaders = devKey ? ", or x-dev-user with x-dev-key" : "";
+      res.status(401).json({ error: `Sign in first: send the Clerk session token as Authorization: Bearer <token>${devHeaders}` });
       return null;
     }
     if (!store) {
       res.status(503).json({ error: "SurrealDB is not configured (SURREAL_URL is unset)" });
       return null;
     }
-    return { user: name, store };
+    return { user, store };
   }
 
   app.get("/health", (_req, res) => {
@@ -115,7 +128,7 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgent, dev
   });
 
   app.post("/sessions", async (req, res) => {
-    const who = caller(req, res);
+    const who = await caller(req, res);
     if (!who) return;
     const parsed = parseNewSession(req.body);
     if (!parsed.ok) {
@@ -132,7 +145,7 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgent, dev
   });
 
   app.get("/sessions/:id", async (req, res) => {
-    const who = caller(req, res);
+    const who = await caller(req, res);
     if (!who) return;
     const session = SESSION_ID.test(req.params.id) ? await who.store.getSession(who.user, req.params.id) : null;
     if (!session?.lastTurn) {
@@ -143,7 +156,7 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgent, dev
   });
 
   app.post("/sessions/:id/turns", async (req, res) => {
-    const who = caller(req, res);
+    const who = await caller(req, res);
     if (!who) return;
     const parsed = TurnBody.safeParse(req.body);
     if (!parsed.success) {
@@ -186,14 +199,14 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgent, dev
   });
 
   app.get("/me/mastery", async (req, res) => {
-    const who = caller(req, res);
+    const who = await caller(req, res);
     if (!who) return;
     res.json(await who.store.getMastery(who.user));
   });
 
   // The delete button: the caller's sessions, their agent logs, and mastery
   app.delete("/me/data", async (req, res) => {
-    const who = caller(req, res);
+    const who = await caller(req, res);
     if (!who) return;
     await who.store.deleteUserData(who.user);
     res.status(204).end();
