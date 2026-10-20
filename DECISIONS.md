@@ -204,3 +204,17 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** type stripping (no transpile step). Only erasable TypeScript is allowed (no
   `enum` or `namespace`), local imports carry the `.ts` extension, and it depends on Node 24 or newer.
   A build would only come back if the package were published to npm.
+
+### 2026-10-20 · The bigger group is tested with "is a kind of"
+- **Decision:** the evaluator checks a bigger group with the sentence "<concept> is a kind of <answer>".
+  True with nothing closer in between: 2 points. True but far ("an economic change" for inflation): 1
+  point, too broad. False because the answer is only related ("money" for inflation): 0 points, and the
+  feedback says so ("inflation is related to money, but it isn't a kind of money"). True only because it
+  fits everything ("a thing"): 0.
+- **Instead of:** counting how many levels up the answer is (for example, "too broad" up to three levels).
+- **Why:** money is related to inflation, but it isn't a direct group: currencies, recessions and personal
+  finances are all related to money too, and none of them belong together. Levels can't be counted the
+  same way by everyone; the sentence test can.
+- **Pattern / trade-off:** the closest genus (genus proximum) and the "is a kind of" relation. A sharper
+  rule for the evaluator and a clearer lesson for the learner (related vs. belonging). The demo now shows
+  6/8 with "money", the real score.

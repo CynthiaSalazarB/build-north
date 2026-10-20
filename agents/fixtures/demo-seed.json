@@ -99,7 +99,7 @@
     "map": {
       "concept": "inflation",
       "supraordinate": {
-        "value": "an economic change",
+        "value": "money",
         "note": null
       },
       "exclusion": [
@@ -134,8 +134,8 @@
       ]
     },
     "expected": {
-      "score": 7,
-      "calibrationGap": 0,
+      "score": 6,
+      "calibrationGap": 1,
       "hintsUsed": 0,
       "questions": {
         "asked": 4,

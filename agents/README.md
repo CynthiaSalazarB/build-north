@@ -11,7 +11,7 @@ The thinking engine, as plain TypeScript with no server code. Package name: `@bu
   shipped as a file, not a Claude call.
   [`fixtures/demo-seed.json`](fixtures/demo-seed.json) is the demo profile (#32): the demo user at level 5
   on every move, the inflation session waiting at the whole map, and the script the presenter follows
-  (4 questions, the map to submit, and the numbers it should give: 7/8, gap 0, no hints). The API loads
+  (4 questions, the map to submit, and the numbers it should give: 6/8, gap +1, no hints). The API loads
   it for the demo user (#44).
 - **Prompts**: one file per agent in [`src/prompts/`](src/prompts/), all built from the shared skeleton in
   [`shared.ts`](src/prompts/shared.ts) (the method, the rules every agent follows, the task, the output

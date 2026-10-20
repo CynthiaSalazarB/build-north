@@ -1,6 +1,6 @@
 // Rehearses the demo's level-5 part against Claude: the presenter's questions go to the real fact desk,
 // and each part of the map is scored by the real per-move evaluator, a stand-in until the whole-map
-// evaluator exists (#36). The seed expects 7/8 with no hints.
+// evaluator exists (#36). The seed expects 6/8 with no hints: "money" isn't a kind of group for inflation.
 import { readFileSync } from "node:fs";
 import { AGENTS, DemoSeed, MOVE_LABEL, MOVE_ORDER, type Quality } from "../src/index.ts";
 import { type AgentRun, dollars, MODEL, runAgent } from "./run-agent.ts";

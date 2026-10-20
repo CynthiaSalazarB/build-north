@@ -441,7 +441,7 @@ with `error` set.
 | 12 | Learner material | Pasted text only, up to 8,000 characters | No upload or parsing code |
 | 13 | Language | English only this week | One set of prompts to test; Spanish goes on the roadmap |
 | 14 | Layout | Phone first; the web build shows the same layout, centered | One layout to build and polish |
-| 15 | Grading | Any defensible answer passes (2 = closest class, 1 = defensible but too broad or incomplete) | Concepts have fuzzy edges; one right answer would mark good thinking wrong |
+| 15 | Grading | Any defensible answer passes (2 = closest class, 1 = defensible but too broad or incomplete). The bigger group is tested with "<concept> is a kind of <answer>": related is not belonging | Concepts have fuzzy edges; one right answer would mark good thinking wrong |
 | 16 | Mixed levels (Leo) | Whole-map mode only when all four moves are at 5 (or test mode); otherwise a level-5 move runs like level 4 | One clear rule; the demo profile is seeded with all four at 5 |
 | 17 | Fact desk redirect (Leo) | "That part is yours to decide. If you're stuck, tap Help (it costs a point)." Never points at a move | A pointing question was a free hint, and learners could ask for the structure on purpose |
 | 18 | Resent answers (Leo) | Each `Turn` has a `turn` number; a repeat gets the stored `Turn` back | A slow phone resends, and the hint step would move twice |

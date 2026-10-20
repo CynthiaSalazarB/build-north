@@ -69,5 +69,27 @@ exclusionCases.forEach((c, i) => {
   console.log(`    accepted: ${JSON.stringify(o.accepted)}`);
 });
 
-console.log(`\n${right}/6 right (need 5) · exclusion ${exRight}/3 · ${dollars([...runs, ...exRuns])}`);
+// The "is a kind of" test (extra checks): related is not belonging, and a true but far group is too broad.
+const kindOfBase = {
+  ...input(""),
+  concept: "inflation",
+  mentefacto: { ...input("").mentefacto, concept: "inflation" },
+  recent: [{ from: "app" as const, text: "Inflation is one example of a bigger group. What group?" }],
+};
+const kindOfCases = [
+  { answer: "money", want: "incorrect", quality: 0, mentionsKindOf: true },
+  { answer: "an economic change", want: "partial", quality: 1, mentionsKindOf: false },
+];
+const kindRuns = await Promise.all(kindOfCases.map((c) => runAgent(AGENTS.evaluator, { ...kindOfBase, answer: c.answer })));
+let kindRight = 0;
+console.log("\nThe 'is a kind of' test, inflation (extra checks)\n");
+kindOfCases.forEach((c, i) => {
+  const { output: o, ms } = kindRuns[i]!;
+  const ok = o.verdict === c.want && o.quality === c.quality && (!c.mentionsKindOf || /kind of/i.test(o.feedback));
+  if (ok) kindRight++;
+  console.log(`${ok ? "✔" : "✘"} "${c.answer}" → ${o.verdict} (quality ${o.quality}, ${o.issue}, ${ms} ms), want ${c.want}/${c.quality}`);
+  console.log(`    feedback: ${o.feedback}`);
+});
+
+console.log(`\n${right}/6 right (need 5) · exclusion ${exRight}/3 · kind of ${kindRight}/2 · ${dollars([...runs, ...exRuns, ...kindRuns])}`);
 process.exitCode = right >= 5 ? 0 : 1;

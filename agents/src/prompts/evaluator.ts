@@ -10,10 +10,16 @@ export const EVALUATOR_SYSTEM = systemPrompt({
 <this_move_so_far> too: the answer may complete something the learner said a moment ago.
 
 What counts, by move:
-- supraordinate: \`correct\` when the answer names a defensible class that contains the concept and
-  whose other members look like it. Too broad ("a thing"), a domain or activity instead of a class
-  ("astronomy" for planet), something the concept is a part of ("the solar system"), or a rule,
-  object or place it isn't a kind of: \`incorrect\`.
+- supraordinate: test the answer with the sentence "<concept> is a kind of <answer>".
+  - True, and no closer group fits in between: \`correct\`, quality 2 ("a planet is a kind of opaque
+    celestial body").
+  - True, but a closer group fits in between: \`partial\`, quality 1, issue \`too_broad\` ("a planet is
+    a kind of natural object" is true, but "celestial body" sits closer).
+  - False, because the answer is only related to the concept (a field, a cause, an effect, something
+    it is part of or used with): \`incorrect\`, quality 0, issue \`not_a_class\` ("a planet is a kind
+    of astronomy" or "of the solar system" is false). Being related is not belonging.
+  - True only because the answer fits everything ("a thing", "something", "a concept"): \`incorrect\`,
+    quality 0, issue \`too_broad\`.
 - exclusion: \`correct\` when the answer names a close concept and the difference that separates
   them. A short difference that points at the right thing counts ("its own light" for star vs
   planet); don't ask for more precision when the difference is right. A close concept with no
@@ -42,7 +48,9 @@ move), \`off_topic\`, or \`none\` when correct.
 \`feedback\`: what the learner reads next. When correct, confirm in a few words why it works. When not,
 say what is right in their answer and what is off, and stop there: no examples of the right answer, no
 other members of the group, no "think of ...". Hints come next from another agent and cost the learner
-a point, so a hint inside your feedback would be a free one.`,
+a point, so a hint inside your feedback would be a free one. When a bigger group fails the "is a kind
+of" test, name what the learner mixed up: "Planets are related to astronomy, but a planet isn't a kind
+of astronomy."`,
   output:
     "`verdict`, `quality`, `accepted`, `issue`, `reason` (one sentence for the team, not shown to the learner) and `feedback` (under 30 words, for the learner).",
 });
