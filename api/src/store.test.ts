@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Session as SessionSchema } from "@build-north/agents";
-import { Surreal } from "surrealdb";
+import { RecordId, Surreal } from "surrealdb";
 import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { createStore, defineSchema } from "./store.ts";
 
@@ -41,6 +41,12 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     // what comes back from the database still fits Cynthia's Session schema, so `advance` can trust it
     assert.doesNotThrow(() => SessionSchema.parse(session));
     assert.doesNotThrow(() => SessionSchema.parse(saved));
+  });
+
+  await t.test("a row that drifted from the contract fails as soon as the store reads it", async () => {
+    const session = await store.createSession("leo", { concept: "drift", material: null, mode: "learn" });
+    await db.query("UPDATE $id SET phase = 'lost'", { id: new RecordId("session", session.id) }).collect();
+    await assert.rejects(store.getSession("leo", session.id));
   });
 
   await t.test("mastery starts at level 1 and saves all four moves", async () => {

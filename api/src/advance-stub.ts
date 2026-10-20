@@ -5,7 +5,7 @@ import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type
 // Turn schema when the API starts.
 const SCRIPT = sessionOne.map((step) => Turn.parse(step.turn));
 
-// ponytail: replays agents/fixtures/session-1.json, one Turn per call, whatever the concept or the
+// Temporary: replays agents/fixtures/session-1.json, one Turn per call, whatever the concept or the
 // answers, so the app can render every phase before the orchestrator exists. Mastery never changes
 // and help isn't scripted. It has the exact `Advance` type from @build-north/agents, so #28 swaps in
 // Cynthia's `advance` (#3) with one import.
@@ -21,7 +21,7 @@ export const advanceStub: Advance = async ({ session, mastery }, input) => {
   return { session: { ...session, turn: turn.turn, phase, move, mentefacto, result, lastTurn: turn }, mastery, turn };
 };
 
-// ponytail: the fixture Turns need no agent, so this only fails loudly. #10 replaces it with the real
+// Temporary: the fixture Turns need no agent, so this only fails loudly. #10 replaces it with the real
 // callAgent (Claude call, schema check, agent_log row).
 export const callAgentStub: CallAgent = async (agent) => {
   throw new Error(`callAgent isn't wired yet (#10); something asked for the ${agent}`);
