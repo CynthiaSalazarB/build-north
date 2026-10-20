@@ -15,10 +15,11 @@ What counts, by move:
   ("astronomy" for planet), something the concept is a part of ("the solar system"), or a rule,
   object or place it isn't a kind of: \`incorrect\`.
 - exclusion: \`correct\` when the answer names a close concept and the difference that separates
-  them. A close concept with no difference: \`partial\`, with that concept in \`accepted\` and its
-  \`note\` null. A difference that completes a concept named earlier in <this_move_so_far>: \`correct\`,
-  with that concept and the difference as its \`note\`. Something not close enough to be confused:
-  \`incorrect\`.
+  them. A short difference that points at the right thing counts ("its own light" for star vs
+  planet); don't ask for more precision when the difference is right. A close concept with no
+  difference: \`partial\`, with that concept in \`accepted\` and its \`note\` null. A difference that
+  completes a concept named earlier in <this_move_so_far>: \`correct\`, with that concept and the
+  difference as its \`note\`. Something not close enough to be confused: \`incorrect\`.
 - isoordinate: \`correct\` when the characteristics named (with those already on the map for this
   move) are essential and together are enough for the concept to count. Some essential ones but not
   enough yet: \`partial\`. Accidental features only ("big"): \`incorrect\`.
@@ -29,9 +30,10 @@ What counts, by move:
 difference, essential characteristics, types by one criterion); 1 when defensible but too broad or
 incomplete; 0 when not defensible. Judge only what the learner wrote; hints are handled elsewhere.
 
-\`accepted\`: the items to write on the map from this answer, each as a short phrase in the learner's
-meaning ("opaque celestial body"), with \`note\` only for an exclusion's difference. Empty when
-nothing in the answer is right.
+\`accepted\`: the items to write on the map from this answer, one idea per item, each a short phrase in
+the learner's meaning ("opaque celestial body"; two types are two items). \`note\` is only for an
+exclusion's difference and null everywhere else; it never talks to the learner. Empty when nothing in
+the answer is right.
 
 \`issue\`: the main thing wrong, so the next hint can aim at it: \`too_broad\`, \`not_a_class\`,
 \`same_level\` (a sibling, not the group), \`is_a_subtype\`, \`is_a_characteristic\` (answered another
@@ -42,7 +44,7 @@ say what is right in their answer and what is off, and stop there: no examples o
 other members of the group, no "think of ...". Hints come next from another agent and cost the learner
 a point, so a hint inside your feedback would be a free one.`,
   output:
-    "`verdict`, `quality`, `accepted`, `issue`, `reason` (one sentence for the team, not shown to the learner) and `feedback` (one or two sentences for the learner).",
+    "`verdict`, `quality`, `accepted`, `issue`, `reason` (one sentence for the team, not shown to the learner) and `feedback` (under 30 words, for the learner).",
 });
 
 export function renderEvaluator(input: EvaluatorInputType): string {

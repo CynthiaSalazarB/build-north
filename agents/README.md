@@ -14,7 +14,10 @@ The thinking engine, as plain TypeScript with no server code. Package name: `@bu
   line). [`src/agents.ts`](src/agents.ts) is the registry `callAgent` reads: each agent's `system`,
   `render(input)`, `input` and `output` schemas, and `effort`. Prompt examples use "planet" only, never a
   concept we measure (a test enforces it).
-- The **orchestrator** (`advance`) comes next (#3).
+- The **orchestrator**: `advance(state, input, callAgent)` in [`src/orchestrator/`](src/orchestrator/)
+  (#3). [`rules.ts`](src/orchestrator/rules.ts) holds the numbers (hint ladder, points, levels, mixed
+  levels), [`texts.ts`](src/orchestrator/texts.ts) everything the app says without Claude, and
+  [`advance.ts`](src/orchestrator/advance.ts) the flow. It reaches Claude only through `callAgent`.
 
 ## Use it
 
@@ -41,6 +44,7 @@ npm run eval:evaluator    # Claude judges 6 answers for democracy's bigger group
 npm run eval:questioner   # Claude asks level-2 and level-3 questions; checks no jargon, no answer
 npm run eval:hint-giver   # the 4 hint steps on "a law" (#21: no answer before reveal) + a counterexample
 npm run eval:fact-desk    # 10 inflation questions, 5 asking for the structure (#25: 0 leaks, type 8/10)
+npm run play:session      # the whole democracy session against Claude: transcript, score, seconds per turn
 ```
 
 The `eval:*` scripts call Claude with `ANTHROPIC_API_KEY` from the repo's `.env` and print the cost.

@@ -35,5 +35,39 @@ CASES.forEach((c, i) => {
   console.log(`    feedback: ${o.feedback}`);
   console.log(`    accepted: ${JSON.stringify(o.accepted.map((a) => a.value))}`);
 });
-console.log(`\n${right}/6 right (need 5) · ${dollars(runs)}`);
+// Exclusion (not part of #2's threshold): a close concept alone is partial; a short right difference
+// completes it, as in the brief ("who holds the power").
+const EXCLUSION_Q = "What looks close to democracy but isn't one?";
+const exclusionBase = { ...input(""), move: "exclusion" as const, mentefacto: { ...input("").mentefacto, supraordinate: { value: "form of government", note: null } } };
+const exclusionCases: { label: string; input: EvaluatorInput; want: string }[] = [
+  { label: '"Dictatorship." alone', input: { ...exclusionBase, recent: [{ from: "app", text: EXCLUSION_Q }], answer: "Dictatorship." }, want: "partial" },
+  {
+    label: '"Who holds the power." after dictatorship',
+    input: {
+      ...exclusionBase,
+      mentefacto: { ...exclusionBase.mentefacto, exclusion: [{ value: "dictatorship", note: null }] },
+      recent: [
+        { from: "app", text: EXCLUSION_Q },
+        { from: "learner", text: "Dictatorship." },
+        { from: "app", text: "What's the key difference between democracy and dictatorship?" },
+      ],
+      answer: "Who holds the power.",
+    },
+    want: "correct",
+  },
+  { label: '"A car."', input: { ...exclusionBase, recent: [{ from: "app", text: EXCLUSION_Q }], answer: "A car." }, want: "incorrect" },
+];
+const exRuns = await Promise.all(exclusionCases.map((c) => runAgent(AGENTS.evaluator, c.input)));
+let exRight = 0;
+console.log("\nExclusion (extra checks)\n");
+exclusionCases.forEach((c, i) => {
+  const { output: o, ms } = exRuns[i]!;
+  const ok = o.verdict === c.want;
+  if (ok) exRight++;
+  console.log(`${ok ? "✔" : "✘"} ${c.label} → ${o.verdict} (quality ${o.quality}, ${ms} ms), want ${c.want}`);
+  console.log(`    feedback: ${o.feedback}`);
+  console.log(`    accepted: ${JSON.stringify(o.accepted)}`);
+});
+
+console.log(`\n${right}/6 right (need 5) · exclusion ${exRight}/3 · ${dollars([...runs, ...exRuns])}`);
 process.exitCode = right >= 5 ? 0 : 1;

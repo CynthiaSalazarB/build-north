@@ -268,7 +268,8 @@ export const WorkedExample = z.strictObject({
 });
 export type WorkedExample = z.infer<typeof WorkedExample>;
 
-export const CoachInput = z.strictObject({ concept: z.string(), mentefacto: Mentefacto, result: Result });
+/** The coach writes `result.coach`, so it receives the result without it. */
+export const CoachInput = z.strictObject({ concept: z.string(), mentefacto: Mentefacto, result: Result.omit({ coach: true }) });
 export type CoachInput = z.infer<typeof CoachInput>;
 export const CoachOutput = z.strictObject({ message: z.string(), nextFocus: MoveId.nullable() });
 export type CoachOutput = z.infer<typeof CoachOutput>;
@@ -309,6 +310,14 @@ export const Session = z.strictObject({
   /** All four moves, starting at 0: a Zod record keyed by an enum requires every key. */
   hintsPerMove: z.record(MoveId, z.number().int().min(0)),
   mentefacto: Mentefacto,
+  /** This move's exchanges, passed to the agents as AgentContext.recent; empty when a move starts. */
+  recent: z.array(z.strictObject({ from: z.enum(["app", "learner"]), text: z.string() })),
+  /** Fact desk questions so far (level 5 and test sessions). */
+  questions: z.strictObject({ asked: z.number().int().min(0), testing: z.number().int().min(0) }),
+  /** One entry per finished move: its points, hints, and the level before and after. */
+  moveLog: z.array(
+    z.strictObject({ move: MoveId, points: Quality, hints: z.number().int().min(0), from: Level, to: Level }),
+  ),
   result: Result.nullable(),
   createdAt: z.string(),
 });

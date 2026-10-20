@@ -316,7 +316,8 @@ fail on demo day. The shape below is the fixture's shape.
 
 ### Coach: the end-of-session message
 
-In: `{ concept, mentefacto, result }` with every number already computed by code.
+In: `{ concept, mentefacto, result }` with every number already computed by code; `result` comes without
+its `coach` field, since that's what the coach writes.
 
 ```json
 { "message": "You found the bigger group and a real exclusion. 'What it needs' is next.",
@@ -348,6 +349,14 @@ Hint giver).
 | Points per move | evaluator `quality`, capped at 1 if any hint was used, 0 if revealed. Max 8 |
 | Mastery | done with ≤ 1 hint → level up one (max 5). 0 hints → `unassistedSuccesses + 1`. Never down in this version |
 | Calibration | `calibrationGap = predictedScore − score` (points) |
+| Exclusion without a difference | one follow-up question from code ("What's the key difference between democracy and dictatorship?"); not a hint |
+| Reveal | the fourth hint reveals: the item goes on the map, the move scores 0, it's named, and the next move starts |
+| Help on the whole map | works on the first move, in order, whose hints haven't run out; a revealed item goes on the map |
+| Done, on the whole map | a move counts as done (level up, unassisted success) when its quality is 2 |
+| Writing the map | a sharper item replaces the vaguer one it contains ("free elections" replaces "elections"); `note` only survives on exclusions; "a; b" becomes two items |
+| Input that doesn't fit the phase | `advance` throws `UnexpectedInput`, nothing changes; the API answers 409 with the latest Turn |
+| An agent call fails | `advance` returns the session unchanged and the last Turn with `error` set (retryable) |
+| The coach fails | the result still comes back, with fixed text built from the numbers (#44) |
 
 ### The seam between the orchestrator and the API
 
@@ -387,7 +396,7 @@ with `error` set.
 | Table | Fields | Notes |
 |---|---|---|
 | `mastery` | user, move, level, unassistedSuccesses, updatedAt | one row per user per move; read every turn |
-| `session` | id, user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat; `hintsPerMove` starts with all four moves at 0 |
+| `session` | id, user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, recent, questions, moveLog, result, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat; `hintsPerMove` starts with all four moves at 0 |
 | `agent_log` | session, agent, input, output, ms, at | append-only; debugging and the testers' numbers (fact desk rows are the questions metric) |
 
 `DELETE /me/data` removes all three for the user.

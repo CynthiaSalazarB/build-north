@@ -1,0 +1,73 @@
+// The level-1 worked example (decision 4: a fixture, not a Claude call). The orchestrator shows it as
+// the example phase. fixtures/worked-example.json is the same object for the app; a test keeps them equal.
+import type { WorkedExample } from "./contracts.ts";
+
+export const WORKED_EXAMPLE: WorkedExample = {
+  "exampleConcept": "planet",
+  "steps": [
+    {
+      "move": "supraordinate",
+      "thinkAloud": "First: what kind of thing is a planet? \"A thing\" is too broad, and so is \"something in space\". The closest group is celestial bodies that don't make their own light: opaque celestial bodies.",
+      "item": {
+        "value": "opaque celestial body",
+        "note": null
+      }
+    },
+    {
+      "move": "exclusion",
+      "thinkAloud": "What looks like a planet but isn't one? A star shines in the night sky too, but a star makes its own light. A planet only reflects it.",
+      "item": {
+        "value": "star",
+        "note": "a star makes its own light; a planet only reflects it"
+      }
+    },
+    {
+      "move": "exclusion",
+      "thinkAloud": "Something closer: Pluto, a dwarf planet. It orbits the Sun and it's round, so what's missing? It hasn't cleared the other objects out of its path.",
+      "item": {
+        "value": "dwarf planet",
+        "note": "it hasn't cleared its orbit"
+      }
+    },
+    {
+      "move": "isoordinate",
+      "thinkAloud": "Now, what does something need to count as a planet? It has to orbit a star.",
+      "item": {
+        "value": "orbits a star",
+        "note": null
+      }
+    },
+    {
+      "move": "isoordinate",
+      "thinkAloud": "It needs enough mass for its own gravity to pull it into a round shape.",
+      "item": {
+        "value": "round because of its own gravity",
+        "note": null
+      }
+    },
+    {
+      "move": "isoordinate",
+      "thinkAloud": "And it has cleared its orbit. That's the one Pluto was missing.",
+      "item": {
+        "value": "has cleared its orbit",
+        "note": null
+      }
+    },
+    {
+      "move": "infraordinate",
+      "thinkAloud": "Last: what kinds of planets are there? Rocky ones like Earth and Mars.",
+      "item": {
+        "value": "rocky planets",
+        "note": null
+      }
+    },
+    {
+      "move": "infraordinate",
+      "thinkAloud": "And giant ones made mostly of gas or ice, like Jupiter and Neptune.",
+      "item": {
+        "value": "gas and ice giants",
+        "note": null
+      }
+    }
+  ]
+};

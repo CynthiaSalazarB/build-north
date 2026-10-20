@@ -378,14 +378,14 @@
     }
   },
   {
-    "note": "Turns 10 to 13 are skipped: 'what it needs' took a second hint, the types took one. The result: predicted 7, scored 5, gap +2.",
+    "note": "Turns 10 to 12 are skipped: 'what it needs' took a second hint, the types took one. The last move is named, then the result: predicted 7, scored 5, gap +2.",
     "input": {
-      "turn": 13,
+      "turn": 12,
       "text": "Direct and representative."
     },
     "turn": {
       "sessionId": "ses_demo_democracy",
-      "turn": 14,
+      "turn": 13,
       "phase": "result",
       "move": null,
       "level": null,
@@ -394,6 +394,11 @@
           "agent": "evaluator",
           "kind": "feedback",
           "text": "Yes: direct and representative democracy."
+        },
+        {
+          "agent": "app",
+          "kind": "named_move",
+          "text": "Those are called infraordinate classes: its types. You found them."
         },
         {
           "agent": "coach",

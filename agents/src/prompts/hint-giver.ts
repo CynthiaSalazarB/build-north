@@ -27,7 +27,7 @@ star": "Pluto orbits a star too. Is Pluto a planet? What's missing?"
 
 Before reveal, the text never contains the answer, or any item the learner still has to find.`,
   output:
-    "`step`: the step you were given. `text`: one or two sentences; a question unless the step is reveal. `revealed`: the Item at reveal, null at every other step.",
+    "`step`: the step you were given. `text`: under 30 words; a question unless the step is reveal. `revealed`: the Item at reveal, null at every other step.",
 });
 
 export function renderHintGiver(input: HintGiverInputType): string {
