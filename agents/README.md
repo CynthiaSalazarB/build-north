@@ -17,8 +17,8 @@ The thinking engine, as plain TypeScript with no server code. Package name: `@bu
 // API (runtime): schemas and types
 import { Turn, TurnBody, EvaluatorOutput } from "@build-north/agents";
 
-// App: types only, so no server code ends up in the bundle
-import type { Turn } from "@build-north/agents";
+// App: types and values (no server code lives here); see app/README.md for the one tsconfig line
+import { MOVE_LABEL, type Turn } from "@build-north/agents";
 
 // Fixtures (in Node, JSON imports need the attribute; Metro in the app doesn't)
 import session1 from "@build-north/agents/fixtures/session-1.json" with { type: "json" };

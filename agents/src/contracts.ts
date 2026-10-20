@@ -50,7 +50,10 @@ export type Mentefacto = z.infer<typeof Mentefacto>;
 export const SessionMode = z.enum(["learn", "test"]);
 export type SessionMode = z.infer<typeof SessionMode>;
 
-/** POST /sessions. `material` is pasted text, up to 8,000 characters (the API answers 413 above it). */
+/**
+ * POST /sessions. `material` is pasted text, up to 8,000 characters. When this schema rejects a
+ * too-long `material`, the API answers 413 with a message, not a generic 400 (CONTRACTS.md section 1).
+ */
 export const CreateSessionBody = z.strictObject({
   concept: z.string().min(1),
   material: z.string().max(8000).optional(),
@@ -303,6 +306,7 @@ export const Session = z.strictObject({
   phase: Phase,
   move: MoveId.nullable(),
   hintStep: HintStep.nullable(),
+  /** All four moves, starting at 0: a Zod record keyed by an enum requires every key. */
   hintsPerMove: z.record(MoveId, z.number().int().min(0)),
   mentefacto: Mentefacto,
   result: Result.nullable(),
