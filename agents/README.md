@@ -9,7 +9,12 @@ The thinking engine, as plain TypeScript with no server code. Package name: `@bu
   brief as 8 steps, each with the input the app sends and the `Turn` that comes back.
   [`fixtures/worked-example.json`](fixtures/worked-example.json) is the planet worked example (level 1),
   shipped as a file, not a Claude call.
-- **Prompts** and the **orchestrator** (`advance`) come next (#2, #3).
+- **Prompts**: one file per agent in [`src/prompts/`](src/prompts/), all built from the shared skeleton in
+  [`shared.ts`](src/prompts/shared.ts) (the method, the rules every agent follows, the task, the output
+  line). [`src/agents.ts`](src/agents.ts) is the registry `callAgent` reads: each agent's `system`,
+  `render(input)`, `input` and `output` schemas, and `effort`. Prompt examples use "planet" only, never a
+  concept we measure (a test enforces it).
+- The **orchestrator** (`advance`) comes next (#3).
 
 ## Use it
 
@@ -30,9 +35,16 @@ The agent output schemas (`QuestionerOutput`, `EvaluatorOutput`, `WholeMapEvalua
 ## Commands
 
 ```bash
-npm test            # every JSON example in CONTRACTS.md and every fixture parses
+npm test                  # contracts, fixtures and prompt checks (no Claude calls)
 npm run typecheck
+npm run eval:evaluator    # Claude judges 6 answers for democracy's bigger group (#2: 5 of 6 right)
+npm run eval:questioner   # Claude asks level-2 and level-3 questions; checks no jargon, no answer
 ```
+
+The `eval:*` scripts call Claude with `ANTHROPIC_API_KEY` from the repo's `.env` and print the cost.
+[`scripts/run-agent.ts`](scripts/run-agent.ts) makes the call the way the API's `callAgent` should
+(#10): the agent's `system`, `render(input)` as the user message, `output` through `zodOutputFormat`,
+its `effort`, and `fallbacks: "default"` so a safety decline retries on another model.
 
 There is no build step, the same convention as `api/`: Node 24 runs the `.ts` files directly by
 stripping the types. So only write TypeScript that can be erased (no `enum`, `namespace` or constructor
