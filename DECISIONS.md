@@ -193,3 +193,14 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   hint step would move twice and the learner would be charged a hint they never saw. Raised by Leo on #1.
 - **Pattern / trade-off:** idempotency with a sequence number. The session stores its last `Turn`, and
   the check lives in the API, so the orchestrator stays unaware of it.
+
+### 2026-10-20 · No build step anywhere
+- **Decision:** `api/` and `agents/` run their TypeScript directly on Node 24 (type stripping). Nothing
+  is compiled; `tsc` only type checks. Render installs and runs, with no build command for our code.
+- **Instead of:** compiling `agents/` to `dist/` and having the API import the compiled copy.
+- **Why:** a build is one more step that can break, and its typical bug is running a stale `dist/`
+  after someone forgets to rebuild. Node 24 already runs TypeScript, so the build would add risk and
+  no benefit. One convention for the whole repo.
+- **Pattern / trade-off:** type stripping (no transpile step). Only erasable TypeScript is allowed (no
+  `enum` or `namespace`), local imports carry the `.ts` extension, and it depends on Node 24 or newer.
+  A build would only come back if the package were published to npm.
