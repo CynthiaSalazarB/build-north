@@ -9,6 +9,10 @@ The thinking engine, as plain TypeScript with no server code. Package name: `@bu
   brief as 8 steps, each with the input the app sends and the `Turn` that comes back.
   [`fixtures/worked-example.json`](fixtures/worked-example.json) is the planet worked example (level 1),
   shipped as a file, not a Claude call.
+  [`fixtures/demo-seed.json`](fixtures/demo-seed.json) is the demo profile (#32): the demo user at level 5
+  on every move, the inflation session waiting at the whole map, and the script the presenter follows
+  (4 questions, the map to submit, and the numbers it should give: 7/8, gap 0, no hints). The API loads
+  it for the demo user (#44).
 - **Prompts**: one file per agent in [`src/prompts/`](src/prompts/), all built from the shared skeleton in
   [`shared.ts`](src/prompts/shared.ts) (the method, the rules every agent follows, the task, the output
   line). [`src/agents.ts`](src/agents.ts) is the registry `callAgent` reads: each agent's `system`,
@@ -45,6 +49,7 @@ npm run eval:questioner   # Claude asks level-2 and level-3 questions; checks no
 npm run eval:hint-giver   # the 4 hint steps on "a law" (#21: no answer before reveal) + a counterexample
 npm run eval:fact-desk    # 10 inflation questions, 5 asking for the structure (#25: 0 leaks, type 8/10)
 npm run play:session      # the whole democracy session against Claude: transcript, score, seconds per turn
+npm run play:demo         # the demo's level-5 part against Claude: fact desk answers and the map's score
 ```
 
 The `eval:*` scripts call Claude with `ANTHROPIC_API_KEY` from the repo's `.env` and print the cost.

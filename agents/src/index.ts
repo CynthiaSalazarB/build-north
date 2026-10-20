@@ -4,3 +4,4 @@ export { METHOD, systemPrompt, renderContext, renderMentefacto, moveName } from 
 export { advance, UnexpectedInput } from "./orchestrator/advance.ts";
 export * as rules from "./orchestrator/rules.ts";
 export { WORKED_EXAMPLE } from "./worked-example.ts";
+export { DemoSeed } from "./demo-seed.ts";
