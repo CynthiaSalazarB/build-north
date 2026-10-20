@@ -1,0 +1,502 @@
+[
+  {
+    "note": "POST /sessions. The app explains the task, then asks for the prediction on the score's scale.",
+    "input": {
+      "concept": "democracy"
+    },
+    "turn": {
+      "sessionId": "ses_demo_democracy",
+      "turn": 1,
+      "phase": "predict",
+      "move": null,
+      "level": null,
+      "messages": [
+        {
+          "agent": "app",
+          "kind": "question",
+          "text": "You'll build the map of democracy in 4 parts, 2 points each. How many of the 8 points do you think you'll get?"
+        }
+      ],
+      "expects": "prediction",
+      "scaffold": null,
+      "mentefacto": {
+        "concept": "democracy",
+        "supraordinate": null,
+        "exclusion": [],
+        "isoordinate": [],
+        "infraordinate": []
+      },
+      "example": null,
+      "progress": {
+        "movesDone": 0,
+        "movesTotal": 4,
+        "hintsUsed": 0
+      },
+      "result": null,
+      "error": null
+    }
+  },
+  {
+    "note": "Short attempt before any help.",
+    "input": {
+      "turn": 1,
+      "prediction": 7
+    },
+    "turn": {
+      "sessionId": "ses_demo_democracy",
+      "turn": 2,
+      "phase": "attempt",
+      "move": null,
+      "level": null,
+      "messages": [
+        {
+          "agent": "app",
+          "kind": "question",
+          "text": "Before any help: in your own words, what is democracy?"
+        }
+      ],
+      "expects": "text",
+      "scaffold": null,
+      "mentefacto": {
+        "concept": "democracy",
+        "supraordinate": null,
+        "exclusion": [],
+        "isoordinate": [],
+        "infraordinate": []
+      },
+      "example": null,
+      "progress": {
+        "movesDone": 0,
+        "movesTotal": 4,
+        "hintsUsed": 0
+      },
+      "result": null,
+      "error": null
+    }
+  },
+  {
+    "note": "Level 1: the worked example on planet, from fixtures/worked-example.json. Turn.example holds the planet map.",
+    "input": {
+      "turn": 2,
+      "text": "When people vote."
+    },
+    "turn": {
+      "sessionId": "ses_demo_democracy",
+      "turn": 3,
+      "phase": "example",
+      "move": null,
+      "level": null,
+      "messages": [
+        {
+          "agent": "app",
+          "kind": "example",
+          "text": "Before democracy, watch the four moves on a simpler concept: planet."
+        },
+        {
+          "agent": "example_builder",
+          "kind": "example",
+          "text": "First: what kind of thing is a planet? \"A thing\" is too broad, and so is \"something in space\". The closest group is celestial bodies that don't make their own light: opaque celestial bodies."
+        },
+        {
+          "agent": "example_builder",
+          "kind": "example",
+          "text": "What looks like a planet but isn't one? A star shines in the night sky too, but a star makes its own light. A planet only reflects it."
+        },
+        {
+          "agent": "example_builder",
+          "kind": "example",
+          "text": "Something closer: Pluto, a dwarf planet. It orbits the Sun and it's round, so what's missing? It hasn't cleared the other objects out of its path."
+        },
+        {
+          "agent": "example_builder",
+          "kind": "example",
+          "text": "Now, what does something need to count as a planet? It has to orbit a star."
+        },
+        {
+          "agent": "example_builder",
+          "kind": "example",
+          "text": "It needs enough mass for its own gravity to pull it into a round shape."
+        },
+        {
+          "agent": "example_builder",
+          "kind": "example",
+          "text": "And it has cleared its orbit. That's the one Pluto was missing."
+        },
+        {
+          "agent": "example_builder",
+          "kind": "example",
+          "text": "Last: what kinds of planets are there? Rocky ones like Earth and Mars."
+        },
+        {
+          "agent": "example_builder",
+          "kind": "example",
+          "text": "And giant ones made mostly of gas or ice, like Jupiter and Neptune."
+        }
+      ],
+      "expects": "continue",
+      "scaffold": null,
+      "mentefacto": {
+        "concept": "democracy",
+        "supraordinate": null,
+        "exclusion": [],
+        "isoordinate": [],
+        "infraordinate": []
+      },
+      "example": {
+        "concept": "planet",
+        "supraordinate": {
+          "value": "opaque celestial body",
+          "note": null
+        },
+        "exclusion": [
+          {
+            "value": "star",
+            "note": "a star makes its own light; a planet only reflects it"
+          },
+          {
+            "value": "dwarf planet",
+            "note": "it hasn't cleared its orbit"
+          }
+        ],
+        "isoordinate": [
+          {
+            "value": "orbits a star",
+            "note": null
+          },
+          {
+            "value": "round because of its own gravity",
+            "note": null
+          },
+          {
+            "value": "has cleared its orbit",
+            "note": null
+          }
+        ],
+        "infraordinate": [
+          {
+            "value": "rocky planets",
+            "note": null
+          },
+          {
+            "value": "gas and ice giants",
+            "note": null
+          }
+        ]
+      },
+      "progress": {
+        "movesDone": 0,
+        "movesTotal": 4,
+        "hintsUsed": 0
+      },
+      "result": null,
+      "error": null
+    }
+  },
+  {
+    "note": "Watching the example moves every move to level 2. First move: the bigger group.",
+    "input": {
+      "turn": 3,
+      "action": "continue"
+    },
+    "turn": {
+      "sessionId": "ses_demo_democracy",
+      "turn": 4,
+      "phase": "move",
+      "move": "supraordinate",
+      "level": 2,
+      "messages": [
+        {
+          "agent": "questioner",
+          "kind": "question",
+          "text": "Democracy is one example of a bigger group. What group?"
+        }
+      ],
+      "expects": "text",
+      "scaffold": null,
+      "mentefacto": {
+        "concept": "democracy",
+        "supraordinate": null,
+        "exclusion": [],
+        "isoordinate": [],
+        "infraordinate": []
+      },
+      "example": null,
+      "progress": {
+        "movesDone": 0,
+        "movesTotal": 4,
+        "hintsUsed": 0
+      },
+      "result": null,
+      "error": null
+    }
+  },
+  {
+    "note": "A wrong answer: the evaluator's feedback, then the first step of the hint ladder.",
+    "input": {
+      "turn": 4,
+      "text": "A law?"
+    },
+    "turn": {
+      "sessionId": "ses_demo_democracy",
+      "turn": 5,
+      "phase": "move",
+      "move": "supraordinate",
+      "level": 2,
+      "messages": [
+        {
+          "agent": "evaluator",
+          "kind": "feedback",
+          "text": "Not quite. A law is a rule, and democracy isn't a rule."
+        },
+        {
+          "agent": "hint_giver",
+          "kind": "hint",
+          "text": "Think of monarchy and dictatorship. What are all three examples of?",
+          "hintStep": "nudge"
+        }
+      ],
+      "expects": "text",
+      "scaffold": null,
+      "mentefacto": {
+        "concept": "democracy",
+        "supraordinate": null,
+        "exclusion": [],
+        "isoordinate": [],
+        "infraordinate": []
+      },
+      "example": null,
+      "progress": {
+        "movesDone": 0,
+        "movesTotal": 4,
+        "hintsUsed": 1
+      },
+      "result": null,
+      "error": null
+    }
+  },
+  {
+    "note": "Found with one hint: the move is named, and the next one starts.",
+    "input": {
+      "turn": 5,
+      "text": "Forms of government."
+    },
+    "turn": {
+      "sessionId": "ses_demo_democracy",
+      "turn": 6,
+      "phase": "move",
+      "move": "exclusion",
+      "level": 2,
+      "messages": [
+        {
+          "agent": "evaluator",
+          "kind": "feedback",
+          "text": "Yes: monarchy, dictatorship and democracy are all forms of government."
+        },
+        {
+          "agent": "app",
+          "kind": "named_move",
+          "text": "That's called the supraordinate class: the closest bigger group. You found it."
+        },
+        {
+          "agent": "questioner",
+          "kind": "question",
+          "text": "What looks close to democracy but isn't one?"
+        }
+      ],
+      "expects": "text",
+      "scaffold": null,
+      "mentefacto": {
+        "concept": "democracy",
+        "supraordinate": {
+          "value": "form of government",
+          "note": null
+        },
+        "exclusion": [],
+        "isoordinate": [],
+        "infraordinate": []
+      },
+      "example": null,
+      "progress": {
+        "movesDone": 1,
+        "movesTotal": 4,
+        "hintsUsed": 1
+      },
+      "result": null,
+      "error": null
+    }
+  },
+  {
+    "note": "Turns 7 and 8 are skipped: the exclusion (dictatorship, who holds the power) was found with no hints. A partial answer gets a counterexample as its hint (decision 3).",
+    "input": {
+      "turn": 8,
+      "text": "Elections."
+    },
+    "turn": {
+      "sessionId": "ses_demo_democracy",
+      "turn": 9,
+      "phase": "move",
+      "move": "isoordinate",
+      "level": 2,
+      "messages": [
+        {
+          "agent": "evaluator",
+          "kind": "feedback",
+          "text": "Elections are part of it, but not enough on their own."
+        },
+        {
+          "agent": "hint_giver",
+          "kind": "hint",
+          "text": "North Korea holds elections. Is it a democracy? What's missing?",
+          "hintStep": "nudge"
+        }
+      ],
+      "expects": "text",
+      "scaffold": null,
+      "mentefacto": {
+        "concept": "democracy",
+        "supraordinate": {
+          "value": "form of government",
+          "note": null
+        },
+        "exclusion": [
+          {
+            "value": "dictatorship",
+            "note": "who holds the power"
+          }
+        ],
+        "isoordinate": [],
+        "infraordinate": []
+      },
+      "example": null,
+      "progress": {
+        "movesDone": 2,
+        "movesTotal": 4,
+        "hintsUsed": 2
+      },
+      "result": null,
+      "error": null
+    }
+  },
+  {
+    "note": "Turns 10 to 13 are skipped: 'what it needs' took a second hint, the types took one. The result: predicted 7, scored 5, gap +2.",
+    "input": {
+      "turn": 13,
+      "text": "Direct and representative."
+    },
+    "turn": {
+      "sessionId": "ses_demo_democracy",
+      "turn": 14,
+      "phase": "result",
+      "move": null,
+      "level": null,
+      "messages": [
+        {
+          "agent": "evaluator",
+          "kind": "feedback",
+          "text": "Yes: direct and representative democracy."
+        },
+        {
+          "agent": "coach",
+          "kind": "summary",
+          "text": "You found the bigger group and a real exclusion. 'What it needs' is next."
+        }
+      ],
+      "expects": "none",
+      "scaffold": null,
+      "mentefacto": {
+        "concept": "democracy",
+        "supraordinate": {
+          "value": "form of government",
+          "note": null
+        },
+        "exclusion": [
+          {
+            "value": "dictatorship",
+            "note": "who holds the power"
+          }
+        ],
+        "isoordinate": [
+          {
+            "value": "free elections",
+            "note": null
+          },
+          {
+            "value": "rights",
+            "note": null
+          },
+          {
+            "value": "more than one party",
+            "note": null
+          }
+        ],
+        "infraordinate": [
+          {
+            "value": "direct democracy",
+            "note": null
+          },
+          {
+            "value": "representative democracy",
+            "note": null
+          }
+        ]
+      },
+      "example": null,
+      "progress": {
+        "movesDone": 4,
+        "movesTotal": 4,
+        "hintsUsed": 4
+      },
+      "result": {
+        "predictedScore": 7,
+        "score": 5,
+        "maxScore": 8,
+        "calibrationGap": 2,
+        "hintsUsed": 4,
+        "rubric": [
+          {
+            "move": "supraordinate",
+            "points": 1
+          },
+          {
+            "move": "exclusion",
+            "points": 2
+          },
+          {
+            "move": "isoordinate",
+            "points": 1
+          },
+          {
+            "move": "infraordinate",
+            "points": 1
+          }
+        ],
+        "masteryChanges": [
+          {
+            "move": "supraordinate",
+            "from": 2,
+            "to": 3
+          },
+          {
+            "move": "exclusion",
+            "from": 2,
+            "to": 3
+          },
+          {
+            "move": "infraordinate",
+            "from": 2,
+            "to": 3
+          }
+        ],
+        "questions": {
+          "asked": 0,
+          "testing": 0
+        },
+        "coach": {
+          "message": "You found the bigger group and a real exclusion. 'What it needs' is next.",
+          "nextFocus": "isoordinate"
+        }
+      },
+      "error": null
+    }
+  }
+]

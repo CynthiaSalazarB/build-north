@@ -17,8 +17,9 @@ Built for **Build North** (Georgian AI Lab + TapNet), October 2026.
 | [`agents/`](agents/) | Prompts, JSON contracts, orchestrator and ladder rules. Pure TypeScript, no server code | Cynthia |
 | [`wiki/`](wiki/index.md) | Project notes: context, research, analysis. Start at `wiki/index.md` | Everyone |
 
-`app`, `api` and `agents` are npm workspaces. The API imports `agents/` as the package `@build-north/agents`; the app imports
-**types only** from it (`import type`), so no server code ends up in the bundle.
+`app`, `api` and `agents` are npm workspaces. The API and the app both import `agents/` as the package
+`@build-north/agents`, values included (`MOVE_LABEL`, the fixtures), because it holds no server code: only
+Zod and plain TypeScript. The Claude calls and the keys live in `api/`.
 
 The contracts between the three are in [`agents/CONTRACTS.md`](agents/CONTRACTS.md).
 
@@ -26,7 +27,7 @@ The contracts between the three are in [`agents/CONTRACTS.md`](agents/CONTRACTS.
 
 ```bash
 cp .env.example .env    # fill in the values (ask in Discord)
-npm install             # installs all three workspaces
+npm install             # installs all three workspaces; needs Node 24 (.node-version)
 ```
 
 Per-folder run instructions live in each folder's README.
@@ -35,6 +36,10 @@ Per-folder run instructions live in each folder's README.
 
 - Tasks live in GitHub Issues + the project board (Todo, In Progress, Done). One owner per issue, 1 to
   3 hours, a "done when" line and a "depends on" line. Each issue sits in the milestone of its day.
-- Short branches (`jonathan/session-screen`), a pull request, one teammate reviews, merge the same day.
+- Every change goes through a short branch (`jonathan/6-session-screen`) and a pull request, docs
+  included: one teammate reviews, merge the same day. `main` is protected, so nothing is pushed to it
+  directly; even a typo is a quick pull request.
 - Secrets never go in git. `.env.example` lists every variable; the Claude key exists only on the API.
-- Decisions with a real trade-off go in [`DECISIONS.md`](DECISIONS.md).
+- Decisions with a real trade-off go in [`DECISIONS.md`](DECISIONS.md), and changes to
+  [`agents/CONTRACTS.md`](agents/CONTRACTS.md) change what everyone builds: both arrive through a pull
+  request, and the merge is the acceptance.
