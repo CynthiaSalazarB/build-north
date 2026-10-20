@@ -5,7 +5,9 @@ orchestrator from `agents`, and is the only place the Claude key exists.
 
 Endpoints and the `Turn` shape are in [`../agents/CONTRACTS.md`](../agents/CONTRACTS.md).
 
-Host: Render (leaning; the #8 test decides, see the open item in [`../DECISIONS.md`](../DECISIONS.md)).
+Host: Render, decided in [`../DECISIONS.md`](../DECISIONS.md) (2026-10-19). Live at
+https://build-north-api.onrender.com, in Render's Virginia region next to the SurrealDB Cloud
+instance (AWS US East, N. Virginia).
 
 ## Run it
 
@@ -51,7 +53,7 @@ Render dashboard → **New → Web Service**:
 | Build command | `npm ci --workspace api` |
 | Start command | `node api/src/server.ts` |
 | Health check path | `/health` (under Advanced) |
-| Instance type | Free is fine for a test, but it sleeps after 15 min idle and takes about a minute to wake. Judging needs a paid one (#17) |
+| Instance type | Free while building (it sleeps after 15 min idle and takes about a minute to wake). Starter from Oct 22, per `DECISIONS.md` |
 | Environment | `NODE_ENV=production`, `CORS_ORIGIN`, and the `SURREAL_*` values from `.env` |
 
 The Node version comes from [`../.node-version`](../.node-version). Render sets `PORT` itself.
