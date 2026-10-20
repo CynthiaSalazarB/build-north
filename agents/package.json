@@ -11,7 +11,8 @@
     "test": "vitest run",
     "typecheck": "tsc",
     "eval:evaluator": "node --env-file-if-exists=../.env scripts/eval-evaluator.ts",
-    "eval:questioner": "node --env-file-if-exists=../.env scripts/eval-questioner.ts"
+    "eval:questioner": "node --env-file-if-exists=../.env scripts/eval-questioner.ts",
+    "eval:hint-giver": "node --env-file-if-exists=../.env scripts/eval-hint-giver.ts"
   },
   "dependencies": {
     "zod": "^4.6.7"
