@@ -1,4 +1,4 @@
-import { RecordId, Surreal } from "surrealdb";
+import { Surreal } from "surrealdb";
 
 type AuthLevel = "root" | "namespace" | "database";
 
@@ -11,13 +11,9 @@ export type SurrealConfig = {
   authLevel: AuthLevel;
 };
 
-export type DbCheck = {
-  record: unknown;
-  ms: { write: number; read: number };
-};
+export type DbCheck = { now: string; ms: number };
 
 const AUTH_LEVELS: readonly AuthLevel[] = ["root", "namespace", "database"];
-const PING = new RecordId("ping", "api");
 // A turn's budget is 8 s (CONTRACTS.md §5): a database that can't answer in 5 s fails the request instead.
 const QUERY_TIMEOUT_MS = 5_000;
 
@@ -63,15 +59,11 @@ export function connectSurreal({ url, namespace, database, username, password, a
   return db;
 }
 
-// Writes and reads one fixed record, so calling it over and over never grows the database.
+// Read-only: asks the database for its clock, so a public URL can't be used to write to it.
 export function surrealCheck(db: Surreal): () => Promise<DbCheck> {
   return async () => {
-    const signal = queryTimeout();
     const started = performance.now();
-    await db.upsert(PING).content({ at: new Date() }).signal(signal);
-    const written = performance.now();
-    const record = await db.select(PING).json().signal(signal);
-    const read = performance.now();
-    return { record, ms: { write: Math.round(written - started), read: Math.round(read - written) } };
+    const [now] = await db.query("RETURN time::now()").json().signal(queryTimeout()).collect<[string]>();
+    return { now, ms: Math.round(performance.now() - started) };
   };
 }

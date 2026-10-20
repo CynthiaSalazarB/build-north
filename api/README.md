@@ -31,13 +31,16 @@ local files with their `.ts` extension, and use `import type` for types. The typ
 | Route | What it does |
 |---|---|
 | `GET /health` | `{ ok: true }`. Render's health check; never touches the database |
-| `GET /health/db` | Writes the record `ping:api` to SurrealDB, reads it back and returns it with the milliseconds each step took. `503` when the database is not configured, refuses the login or takes over 5 s; the cause goes to the server log, not the response |
+| `GET /health/db` | Asks SurrealDB for its clock and returns it with how many milliseconds that took. Read-only. `503` when the database is not configured, refuses the login or takes over 5 s; the cause goes to the server log, not the response |
 | `POST /sessions` | `{ concept, material?, mode? }`: saves a new session and returns its first `Turn`, the prediction question. `400` for a bad body, `413` for notes over 8,000 characters |
 | `GET /sessions/:id` | The session's latest `Turn`. `404` if it doesn't exist or belongs to someone else |
 
-Until Clerk lands (#23), the session routes take the caller's name from an `x-dev-user` header.
-With `NODE_ENV=production` the API refuses that header (CONTRACTS.md section 1), and every
-session route answers `401`.
+Until Clerk lands (#23), the session routes take the caller's name from an `x-dev-user` header, and
+only together with an `x-dev-key` header equal to the server's `DEV_KEY` (CONTRACTS.md section 1).
+Without a `DEV_KEY`, or with `NODE_ENV=production`, every session route answers `401`. Leo shares the
+key; it never goes in the repo or in the deployed web build.
+
+Every route except `/health` allows 60 requests a minute from one IP, then answers `429`.
 
 The API's types and request schemas come from `@build-north/agents` (`agents/src/contracts.ts`), so
 a change to the contract shows up here as a type error. The first `Turn` comes from a stand-in for
@@ -50,6 +53,8 @@ knows `{ action: "start" }`. #28 replaces it with the orchestrator from `agents/
   `SURREAL_DATABASE` must already exist on the instance (create them in Surrealist); otherwise
   `/health/db` answers `503` and the log says `The namespace '…' does not exist`.
 - `SURREAL_AUTH_LEVEL` is the level the user was created at: `root` (default), `namespace` or `database`.
+- Two databases on the instance: `dev` for local work, and `prod`, which only Render uses, so the
+  testers' sessions never mix with test data.
 - One connection per process, opened at startup. After a drop it reconnects on its own; requests in
   the meantime fail after 5 s instead of hanging.
 - All the database code is in [`src/store.ts`](src/store.ts), and the orchestrator never touches the
@@ -71,7 +76,7 @@ Render dashboard → **New → Web Service**:
 | Start command | `node api/src/server.ts` |
 | Health check path | `/health` (under Advanced) |
 | Instance type | Free while building (it sleeps after 15 min idle and takes about a minute to wake). Starter from Oct 22, per `DECISIONS.md` |
-| Environment | `CORS_ORIGIN`, the `SURREAL_*` values from `.env`, and `NODE_ENV=development` until Clerk lands (#23) |
+| Environment | `CORS_ORIGIN`, the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `DEV_KEY` (Render's Generate button), and `NODE_ENV=development` until Clerk lands (#23) |
 
 The Node version comes from [`../.node-version`](../.node-version). Render sets `PORT` itself, and
 also sets `NODE_ENV=production` unless the service sets its own. That would refuse `x-dev-user` on the

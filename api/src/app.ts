@@ -1,6 +1,8 @@
 import { CreateSessionBody, type Advance, type CallAgent } from "@build-north/agents";
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
+import { rateLimit } from "express-rate-limit";
+import { createHash, timingSafeEqual } from "node:crypto";
 import type { DbCheck } from "./db.ts";
 import type { NewSession, Store } from "./store.ts";
 
@@ -11,13 +13,20 @@ export type AppOptions = {
   // CONTRACTS.md section 3: the orchestrator and the only way it reaches Claude
   advance: Advance;
   callAgent: CallAgent;
-  // CONTRACTS.md section 1: the x-dev-user header stands in for Clerk until Oct 21, never in production
-  allowDevUser: boolean;
+  // CONTRACTS.md section 1: until Clerk lands (#23), x-dev-user names the caller, and it only counts
+  // with x-dev-key matching this key. null turns dev users off (production, or no DEV_KEY set).
+  devKey: string | null;
+  // per IP, for every route except /health
+  requestsPerMinute?: number;
 };
 
 const MAX_CONCEPT = 100;
 const DEV_USER = /^[A-Za-z0-9._@-]{1,64}$/;
 const SESSION_ID = /^[a-z0-9]{1,40}$/; // the ids SurrealDB generates
+
+// Hashing first gives timingSafeEqual two buffers of the same length, whatever was sent.
+const digest = (text: string) => createHash("sha256").update(text).digest();
+const sameKey = (sent: string, expected: string) => timingSafeEqual(digest(sent), digest(expected));
 
 type Parsed<T> = { ok: true; value: T } | { ok: false; status: number; error: string };
 
@@ -38,17 +47,20 @@ function parseNewSession(body: unknown): Parsed<NewSession> {
   return { ok: true, value: { concept: concept.trim(), material: material?.trim() ? material : null, mode } };
 }
 
-export function createApp({ corsOrigins, checkDb, store, advance, callAgent, allowDevUser }: AppOptions) {
+export function createApp({ corsOrigins, checkDb, store, advance, callAgent, devKey, requestsPerMinute = 60 }: AppOptions) {
   const app = express();
   app.disable("x-powered-by");
+  // Render puts one proxy in front of the app; trusting it makes req.ip the caller's address.
+  app.set("trust proxy", 1);
   app.use(cors({ origin: corsOrigins }));
   app.use(express.json({ limit: "64kb" }));
 
   // Who is calling, and whether there is a database to serve them. Answers the request itself when not.
   function caller(req: Request, res: Response): { user: string; store: Store } | null {
     const name = req.get("x-dev-user");
-    if (!allowDevUser || !name || !DEV_USER.test(name)) {
-      res.status(401).json({ error: "Sign in first. Until Clerk lands (Oct 21), send an x-dev-user header" });
+    const key = req.get("x-dev-key");
+    if (!devKey || !name || !DEV_USER.test(name) || !key || !sameKey(key, devKey)) {
+      res.status(401).json({ error: "Sign in first. Until Clerk lands (Oct 21), send x-dev-user and x-dev-key" });
       return null;
     }
     if (!store) {
@@ -62,7 +74,20 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgent, all
     res.json({ ok: true });
   });
 
-  // Ops check, not part of the app contract: proves the API can write to and read from SurrealDB.
+  // After /health, so Render's health checks never count against it.
+  app.use(
+    rateLimit({
+      windowMs: 60_000,
+      limit: requestsPerMinute,
+      standardHeaders: "draft-8",
+      legacyHeaders: false,
+      handler: (_req, res) => {
+        res.status(429).json({ error: "Too many requests. Wait a minute and try again" });
+      },
+    }),
+  );
+
+  // Ops check, not part of the app contract: proves the API can reach SurrealDB.
   app.get("/health/db", async (_req, res) => {
     if (!checkDb) {
       res.status(503).json({ ok: false, error: "SurrealDB is not configured (SURREAL_URL is unset)" });
