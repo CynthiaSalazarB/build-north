@@ -23,8 +23,6 @@ const callAgentFor =
         ...agents,
         // one retry, and no learner waits on a call longer than 30 s
         send: sendWith(new Anthropic({ maxRetries: 1, timeout: 30_000 })),
-        // Temporary: no prompts until Cynthia's #2 lands, so every agent fails with a clear error
-        prompts: {},
         log: (entry) => store.logAgentCall(entry),
       })
     : () => callAgentStub;

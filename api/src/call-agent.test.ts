@@ -5,9 +5,8 @@ import type { AddressInfo } from "node:net";
 import { test } from "node:test";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { AgentName } from "@build-north/agents";
+import { AGENTS, type AgentContext } from "@build-north/agents";
 import {
-  AGENTS,
   AgentCallError,
   agentConfigFromEnv,
   createCallAgent,
@@ -18,7 +17,7 @@ import {
 import type { AgentLogEntry } from "./store.ts";
 
 // The Questioner's input for the democracy session, and the question it sends back (CONTRACTS.md section 2)
-const context = {
+const context: AgentContext = {
   concept: "democracy",
   material: null,
   move: "supraordinate",
@@ -45,13 +44,12 @@ function setup(send: SendToClaude, budgetUsd = 10) {
     send,
     model: "claude-opus-5-5",
     budgetUsd,
-    prompts: { questioner: "You are the questioner." },
     log: async (entry) => void logged.push(entry),
   });
   return { callAgent: callAgentFor("s1"), logged };
 }
 
-test("a call sends the prompt, the input as JSON and the agent's effort, and logs what came back", async () => {
+test("a call sends the agent's prompt, the message its render writes, and its effort, and logs what came back", async () => {
   const sent: Anthropic.MessageCreateParamsNonStreaming[] = [];
   const { callAgent, logged } = setup(async (params) => {
     sent.push(params);
@@ -60,9 +58,9 @@ test("a call sends the prompt, the input as JSON and the agent's effort, and log
   });
   assert.deepEqual(await callAgent("questioner", context), question);
   assert.equal(sent[0]?.model, "claude-opus-5-5");
-  assert.equal(sent[0]?.system, "You are the questioner.");
-  assert.deepEqual(sent[0]?.messages, [{ role: "user", content: JSON.stringify(context) }]);
-  assert.equal(sent[0]?.output_config?.effort, "low");
+  assert.equal(sent[0]?.system, AGENTS.questioner.system);
+  assert.deepEqual(sent[0]?.messages, [{ role: "user", content: AGENTS.questioner.render(context) }]);
+  assert.equal(sent[0]?.output_config?.effort, AGENTS.questioner.effort);
   assert.equal(sent[0]?.output_config?.format?.type, "json_schema");
   assert.equal(logged.length, 1);
   assert.equal(logged[0]?.session, "s1");
@@ -142,14 +140,14 @@ test("a reply that failed still counts against the budget, since it was billed",
   await assert.rejects(callAgent("questioner", context), failsWith("rate_limited", false));
 });
 
-test("an agent without a prompt, or an input that breaks its schema, fails before calling Claude", async (t) => {
+test("an agent that isn't in the registry yet, or an input that breaks its schema, fails before calling Claude", async (t) => {
   t.mock.method(console, "error", () => {});
   let calls = 0;
   const { callAgent } = setup(async () => {
     calls++;
     return reply(answer(question));
   });
-  await assert.rejects(callAgent("evaluator", { ...context, answer: "A law?" }), /no evaluator prompt yet/);
+  await assert.rejects(callAgent("coach", { concept: "democracy" }), /no coach agent/);
   await assert.rejects(callAgent("questioner", { ...context, level: 9 }), failsWith("agent_failed", false));
   assert.equal(calls, 0);
 });
@@ -193,8 +191,8 @@ test("through the real SDK: the request carries the schema, and the rate-limit h
   assert.deepEqual(await callAgent("questioner", context), question);
   const sent = bodies[0] as { model: string; system: string; output_config: { effort: string; format: { type: string; schema: unknown } } };
   assert.equal(sent.model, "claude-opus-5-5");
-  assert.equal(sent.system, "You are the questioner.");
-  assert.equal(sent.output_config.effort, "low");
+  assert.equal(sent.system, AGENTS.questioner.system);
+  assert.equal(sent.output_config.effort, AGENTS.questioner.effort);
   assert.equal(sent.output_config.format.type, "json_schema");
   // that reply left the requests window 96% used, so the next call waits without reaching the server
   await assert.rejects(callAgent("questioner", context), failsWith("rate_limited", true));
@@ -206,7 +204,7 @@ test("through the real SDK: the request carries the schema, and the rate-limit h
 });
 
 test("every agent's output schema converts to a structured-output format", () => {
-  for (const agent of AgentName.options) assert.doesNotThrow(() => zodOutputFormat(AGENTS[agent].output), agent);
+  for (const agent of Object.values(AGENTS)) assert.doesNotThrow(() => zodOutputFormat(agent.output), agent.name);
 });
 
 test("Claude calls are off without a key, and a key needs a budget and a model with a price", () => {

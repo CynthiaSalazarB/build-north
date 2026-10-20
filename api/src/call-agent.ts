@@ -1,42 +1,19 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import {
-  CoachInput,
-  CoachOutput,
-  EvaluatorInput,
-  EvaluatorOutput,
-  FactDeskInput,
-  FactDeskOutput,
-  HintGiverInput,
-  HintGiverOutput,
-  QuestionerInput,
-  QuestionerOutput,
-  WholeMapEvaluatorInput,
-  WholeMapEvaluatorOutput,
-  type AgentName,
-  type CallAgent,
-} from "@build-north/agents";
+import { AGENTS, type AgentDefinition, type AgentName, type CallAgent } from "@build-north/agents";
 import type { AgentLogEntry } from "./store.ts";
 
 // The only code that talks to Claude (#10). CONTRACTS.md section 2: one structured-output call per
-// agent, with the agent's prompt as the system prompt and its input as JSON in the user message.
+// agent, with everything about the agent from Cynthia's registry in @build-north/agents (#2): its
+// system prompt, the user message `render` writes from the input, its effort, and both schemas.
 // The reply is checked here rather than by the SDK's parse(), which throws on a reply that breaks the
 // schema: that loses the billed usage, and the failure is worth a retry.
 
-type Schema = Parameters<typeof zodOutputFormat>[0];
-type Effort = NonNullable<Anthropic.OutputConfig["effort"]>;
 type Usage = Pick<Anthropic.Usage, "input_tokens" | "output_tokens" | "cache_creation_input_tokens" | "cache_read_input_tokens">;
 
-// CONTRACTS.md sections 2 and 5: what each agent takes and returns, and how hard it thinks. The coach
-// only words numbers it is given, so it gets the lowest effort too.
-export const AGENTS: Record<AgentName, { input: Schema; output: Schema; effort: Effort }> = {
-  questioner: { input: QuestionerInput, output: QuestionerOutput, effort: "low" },
-  evaluator: { input: EvaluatorInput, output: EvaluatorOutput, effort: "medium" },
-  evaluator_full: { input: WholeMapEvaluatorInput, output: WholeMapEvaluatorOutput, effort: "medium" },
-  hint_giver: { input: HintGiverInput, output: HintGiverOutput, effort: "low" },
-  fact_desk: { input: FactDeskInput, output: FactDeskOutput, effort: "low" },
-  coach: { input: CoachInput, output: CoachOutput, effort: "low" },
-};
+// The whole-map evaluator (#36) and the coach (#44) join the registry later; until then they fail
+// before any call.
+const REGISTRY: Partial<Record<AgentName, AgentDefinition>> = AGENTS;
 
 // Dollars per million tokens (platform.claude.com/docs/en/about-claude/pricing, Oct 2026). cacheWrite
 // is the 5-minute cache. AGENT_MODEL can only name a model listed here, so every call has a price.
@@ -96,8 +73,6 @@ export const sendWith =
 
 export type CallAgentOptions = AgentConfig & {
   send: SendToClaude;
-  // the system prompt per agent; an agent without one fails before any call
-  prompts: Partial<Record<AgentName, string>>;
   log: (entry: AgentLogEntry) => Promise<void>;
 };
 
@@ -138,7 +113,7 @@ function failure(agent: AgentName, error: unknown): AgentCallError {
 
 // One callAgent per session, so every agent_log row names its session. The spend and the rate-limit
 // windows are shared by all sessions.
-export function createCallAgent({ send, model, budgetUsd, prompts, log }: CallAgentOptions): (sessionId: string) => CallAgent {
+export function createCallAgent({ send, model, budgetUsd, log }: CallAgentOptions): (sessionId: string) => CallAgent {
   const price = PRICES[model];
   if (!price) throw new Error(`There's no price for ${model}, so the budget can't be counted`);
   // Counted in memory, so it starts again at $0 after a restart; the account's own balance, with
@@ -147,9 +122,8 @@ export function createCallAgent({ send, model, budgetUsd, prompts, log }: CallAg
   let windows: Window[] = [];
 
   const call = async (sessionId: string, agent: AgentName, input: unknown): Promise<unknown> => {
-    const spec = AGENTS[agent];
-    const prompt = prompts[agent];
-    if (!prompt) throw new AgentCallError("agent_failed", false, `There's no ${agent} prompt yet (#2)`);
+    const spec = REGISTRY[agent];
+    if (!spec) throw new AgentCallError("agent_failed", false, `There's no ${agent} agent in @build-north/agents yet`);
     const parsed = spec.input.safeParse(input);
     if (!parsed.success) {
       throw new AgentCallError("agent_failed", false, `The ${agent} input doesn't fit its schema: ${parsed.error.message}`);
@@ -168,8 +142,8 @@ export function createCallAgent({ send, model, budgetUsd, prompts, log }: CallAg
       reply = await send({
         model,
         max_tokens: MAX_TOKENS,
-        system: prompt,
-        messages: [{ role: "user", content: JSON.stringify(parsed.data) }],
+        system: spec.system,
+        messages: [{ role: "user", content: spec.render(parsed.data) }],
         output_config: { effort: spec.effort, format: zodOutputFormat(spec.output) },
       });
     } catch (error) {

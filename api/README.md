@@ -56,9 +56,11 @@ level 1. #28 replaces it with the orchestrator from `agents/`.
 ## Claude calls
 
 [`src/call-agent.ts`](src/call-agent.ts) is the only code that talks to Claude (#10). Each agent is
-one structured-output call with its Zod schema from `@build-north/agents`: the agent's prompt is the
-system prompt, its input goes in the user message as JSON, and the reply is checked against the
-schema. Every call writes an `agent_log` row with its milliseconds and its cost in dollars.
+one structured-output call, set up from Cynthia's registry in `@build-north/agents` (`AGENTS`, #2):
+the agent's system prompt, the user message its `render` writes from the input, its effort, and its
+Zod schemas. The reply is checked against the output schema. Every call writes an `agent_log` row
+with its milliseconds and its cost in dollars. An agent that isn't in the registry yet (the
+whole-map evaluator, #36, and the coach, #44) fails before any call.
 
 | Variable | What it does |
 |---|---|
@@ -70,7 +72,6 @@ Following DECISIONS.md (Oct 20), calls stop at 95% of the budget, and while any 
 rate-limit windows is 95% used, until it refills. Both come back as a `rate_limited` error in the
 `Turn`: retryable for a rate limit, not for the budget. The spend is counted in memory, so it starts
 again at $0 after a restart; the account's own balance, with auto-reload off (#20), is the hard stop.
-Until Cynthia's prompts land (#2), every agent fails with a clear error.
 
 ## SurrealDB
 
