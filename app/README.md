@@ -14,5 +14,5 @@ Note the template in the Devpost submission (templates are allowed if disclosed)
 
 Rules:
 - Read the API URL from `EXPO_PUBLIC_API_URL`. Nothing secret goes in `EXPO_PUBLIC_*`.
-- Import from `agents` with `import type` only.
+- Import from `@build-north/agents` with `import type` only.
 - Until the API exists, render the example `Turn` objects in [`../agents/CONTRACTS.md`](../agents/CONTRACTS.md).

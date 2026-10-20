@@ -108,9 +108,88 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** fewer, broader workers in orchestrator-workers. The hint giver's prompt
   carries more cases, and its test script has to cover counterexamples too.
 
+### 2026-10-19 · The learner predicts points, not a percentage
+- **Decision:** before building, the learner predicts how many of the 8 points they will get, after
+  one line explaining the task. `calibrationGap = predictedScore − score`.
+- **Instead of:** "How well do you understand democracy?" as a percentage.
+- **Why:** a percentage of "understanding" and a score on a map are different things, so the gap
+  would partly measure not knowing the format. Same scale, same task, a fair comparison.
+- **Pattern / trade-off:** calibration measured as predicted vs. actual score on the same test (the
+  usual design in confidence research). The question is less natural than "how well do you know it?",
+  so it needs the one-line explanation first.
+
+### 2026-10-19 · The orchestrator gets Claude passed in
+- **Decision:** the orchestrator is one function, `advance(state, input, callAgent)`, in `agents/`.
+  The API owns storage and the Claude calls and passes `callAgent` in.
+- **Instead of:** agent calls and database writes inside the orchestrator, or flow logic in the API.
+- **Why:** the rules can be tested with a fake `callAgent` and no server, and the hosting choice never
+  touches them. Each side of the seam has one owner.
+- **Pattern / trade-off:** functional core, imperative shell, with dependency injection. One more
+  interface to agree on, and the API has to save exactly what `advance` returns.
+
 ---
 
-## Open
+### 2026-10-19 · The API runs on Render
+- **Decision:** the Express API runs on Render: the Free instance while building, Starter ($7/month,
+  paid from the $50 credit) from Oct 22 so it never sleeps during the testers, judging and demo day.
+  The Render + SurrealDB test (#8) confirms it; if SurrealDB fails there, mastery goes to local
+  storage for the demo.
+- **Instead of:** Expo API routes on EAS Hosting.
+- **Why:** Render is full Node, so everything we use (SurrealDB, Clerk, Claude) is supported without
+  surprises, and that makes it the more reliable choice for a six-day build. EAS Hosting runs on
+  Cloudflare Workers with partial Node support, and SurrealDB has no guide for it.
+- **Pattern / trade-off:** a managed full runtime over an edge runtime. Two deploys instead of one,
+  and $7/month once the credit runs out (or the Free instance, which takes about a minute to wake).
+  It stays reversible because of ports and adapters: moving later means rewriting only the routes,
+  the token check and the database module, about a day of work.
+- **Web build (the judges' URL):** a Render Static Site in the same workspace, so one dashboard and
+  one owner for deploys. Plan B is EAS Hosting, only if Render charges for it or causes trouble: the
+  files are the same, so moving takes about 30 minutes plus a `CORS_ORIGIN` update.
 
-- **Render or Expo API routes on EAS Hosting for the API.** Leaning Render. Decided after the
-  Oct 19 Render + SurrealDB test, before the API skeleton starts on Oct 20.
+### 2026-10-19 · Any defensible answer passes
+- **Decision:** the evaluators accept any defensible answer, not one right answer. 2 = defensible and
+  the closest class; 1 = defensible but too broad or incomplete; 0 = not defensible.
+- **Instead of:** matching the learner's answer against a single expected answer.
+- **Why:** real concepts have fuzzy edges ("form of government" and "political system" both work for
+  democracy). One right answer would mark good thinking wrong and make the scores unfair.
+- **Pattern / trade-off:** rubric grading over answer matching (prototype theory: concepts have
+  graded membership). More judgment in the model, so the human double-check (#33, #49) matters more.
+  Asking the learner to justify the choice ("why that group?") is left for later.
+
+### 2026-10-19 · Tester concepts and order
+- **Decision:** the pre-test and post-test use "ecosystem" (biology) and "contract" (law); training
+  uses "metaphor" (language) and "habit" (psychology). Half the testers take ecosystem first and
+  contract last, the other half the reverse.
+- **Instead of:** the same pre-test concept for everyone, or reusing democracy and inflation.
+- **Why:** a concept that happens to be harder could fake progress or hide it; swapping the order
+  cancels that out. None of the four appears in the prompts' test cases, so tuning can't inflate them.
+- **Pattern / trade-off:** counterbalancing. With 5 testers the halves are 3 and 2, so it reduces the
+  bias, it doesn't remove it; the slide still calls this a pilot.
+
+### 2026-10-19 · Build-week scope cuts
+- **Decision:** sign-in by Clerk email code only; learner material is pasted text only (up to 8,000
+  characters); English only; phone-first layout, with the web build showing the same layout centered.
+- **Instead of:** Google or Apple sign-in, file and photo uploads, Spanish, a separate desktop layout.
+- **Why:** each of these is work that doesn't change the demo. Cutting them keeps the six days on the
+  Check yourself loop.
+- **Pattern / trade-off:** scope cut to a walking skeleton plus one complete loop. Each cut is a later
+  roadmap item, and none needs a rewrite to add back.
+
+### 2026-10-19 · The fact desk's redirect gives nothing away
+- **Decision:** when a learner asks the fact desk for the structure, it answers "That part is yours to
+  decide. If you're stuck, tap Help (it costs a point)." It never points at a part of the map.
+- **Instead of:** a redirect that hands the decision back with a guiding question ("What other things
+  happen to money in an economy?").
+- **Why:** a guiding question was a free hint, while Help costs a point. A learner could ask for the
+  structure on purpose and get help without paying for it. Raised by Leo on #1.
+- **Pattern / trade-off:** one price for help, so the level-5 score stays honest. The redirect teaches
+  less in the moment; the help is still there, behind the Help button.
+
+### 2026-10-19 · A resent answer is judged once
+- **Decision:** every `Turn` carries a `turn` number and the app sends it back with its next action.
+  When the number repeats, the API returns the stored `Turn` without calling the orchestrator again.
+- **Instead of:** trusting that each request arrives once.
+- **Why:** one answer costs two Claude calls, so a slow phone can time out and resend; without this the
+  hint step would move twice and the learner would be charged a hint they never saw. Raised by Leo on #1.
+- **Pattern / trade-off:** idempotency with a sequence number. The session stores its last `Turn`, and
+  the check lives in the API, so the orchestrator stays unaware of it.
