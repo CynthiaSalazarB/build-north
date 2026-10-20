@@ -39,7 +39,8 @@ export type Store = {
   createSession(user: string, input: NewSession): Promise<Session>;
   // null when the session doesn't exist or belongs to someone else
   getSession(user: string, id: string): Promise<Session | null>;
-  saveSession(session: Session): Promise<void>;
+  // false when the stored session is no longer at `previousTurn`: another request answered it first
+  saveSession(session: Session, previousTurn: number): Promise<boolean>;
   // every move, in session order; a move the learner hasn't touched yet is at level 1
   getMastery(user: string): Promise<Mastery>;
   saveMastery(user: string, mastery: Mastery): Promise<void>;
@@ -96,14 +97,17 @@ export function createStore(db: Surreal): Store {
       return session ?? null;
     },
 
-    async saveSession({ id, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result }) {
-      // user, concept, material, mode and createdAt never change after the session starts
-      await one(
-        `UPDATE ONLY $id SET turn = $s.turn, lastTurn = $s.lastTurn, predictedScore = $s.predictedScore,
+    async saveSession({ id, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result }, previousTurn) {
+      // user, concept, material, mode and createdAt never change after the session starts. The WHERE
+      // checks and writes in one statement, so two answers to the same Turn can't both move it on.
+      const saved = await one<unknown[]>(
+        `UPDATE $id SET turn = $s.turn, lastTurn = $s.lastTurn, predictedScore = $s.predictedScore,
            firstAttempt = $s.firstAttempt, phase = $s.phase, move = $s.move, hintStep = $s.hintStep,
-           hintsPerMove = $s.hintsPerMove, mentefacto = $s.mentefacto, result = $s.result`,
-        { id: sessionId(id), s: { turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result } },
+           hintsPerMove = $s.hintsPerMove, mentefacto = $s.mentefacto, result = $s.result
+         WHERE turn = $previousTurn RETURN VALUE turn`,
+        { id: sessionId(id), previousTurn, s: { turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, result } },
       );
+      return saved.length > 0;
     },
 
     async getMastery(user) {
