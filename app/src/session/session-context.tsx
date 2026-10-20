@@ -1,0 +1,66 @@
+// The session the screens share: the transcript state plus the three things a learner can do (start,
+// send, retry). The rules live in transcript.ts; this file only wires them to the client. Starting a
+// session replaces the previous one.
+import type { CreateSessionBody, TurnInput } from "@build-north/agents";
+import { createContext, useContext, useState, type ReactNode } from "react";
+import { ClientError, type SessionClient } from "./client.ts";
+import { failed, initialState, received, sent, type SessionState } from "./transcript.ts";
+
+/** What the learner can send: a /turns body without its `turn` number, which the provider adds. */
+export type LearnerInput = Exclude<TurnInput, { action: "start" }>;
+
+type SessionApi = {
+  state: SessionState;
+  offline: boolean;
+  /** Starts a new session; resolves with an error message to show, or null when it started. */
+  start(body: CreateSessionBody): Promise<string | null>;
+  send(input: LearnerInput): void;
+  retry(): void;
+};
+
+const SessionContext = createContext<SessionApi | null>(null);
+
+const messageOf = (error: unknown) => (error instanceof ClientError ? error.message : "Something went wrong. Try again.");
+const retryableOf = (error: unknown) => (error instanceof ClientError ? error.retryable : true);
+
+export function SessionProvider({ client, children }: { client: SessionClient; children: ReactNode }) {
+  const [state, setState] = useState<SessionState>(initialState);
+
+  const deliver = (body: Parameters<typeof sent>[1], retry: boolean) => {
+    const sessionId = state.turn?.sessionId;
+    if (!sessionId || state.pending) return;
+    setState((s) => sent(s, body, retry));
+    client.send(sessionId, body).then(
+      (turn) => setState((s) => received(s, turn)),
+      (error: unknown) => setState((s) => failed(s, messageOf(error), retryableOf(error))),
+    );
+  };
+
+  const api: SessionApi = {
+    state,
+    offline: client.offline,
+    async start(body) {
+      try {
+        const turn = await client.start(body);
+        setState(received(initialState, turn));
+        return null;
+      } catch (error) {
+        return messageOf(error);
+      }
+    },
+    send(input) {
+      if (state.turn) deliver({ turn: state.turn.turn, ...input }, false);
+    },
+    retry() {
+      if (state.failure?.retryable) deliver(state.failure.body, true);
+    },
+  };
+
+  return <SessionContext.Provider value={api}>{children}</SessionContext.Provider>;
+}
+
+export function useSession(): SessionApi {
+  const api = useContext(SessionContext);
+  if (!api) throw new Error("useSession needs a SessionProvider above it");
+  return api;
+}

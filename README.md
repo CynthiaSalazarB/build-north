@@ -12,7 +12,7 @@ Built for **Build North** (Georgian AI Lab + TapNet), October 2026.
 
 | Folder | What lives there | Owner |
 |---|---|---|
-| [`app/`](app/) | Expo + React Native app (iOS, Android, web) | Jonathan |
+| [`app/`](app/) | Expo + React Native app (iOS, Android, web) | Jonathan (Cynthia: #4, #6, #7) |
 | [`api/`](api/) | Node + Express API: auth, storage, calls the agents | Leo |
 | [`agents/`](agents/) | Prompts, JSON contracts, orchestrator and ladder rules. Pure TypeScript, no server code | Cynthia |
 | [`wiki/`](wiki/index.md) | Project notes: context, research, analysis. Start at `wiki/index.md` | Everyone |
