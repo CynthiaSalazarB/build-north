@@ -5,7 +5,7 @@ direction, it gets a line in [`DECISIONS.md`](../../DECISIONS.md), and its color
 
 These are design boards (HTML pages), not app code. Open them in a browser: GitHub only shows their source.
 
-**Start with [`all-designs.html`](all-designs.html).** It holds all five rounds in one self-contained file
+**Start with [`all-designs.html`](all-designs.html).** It holds all six rounds in one self-contained file
 (images included), so it also works when sent on its own. Each round is saved as a standalone file below too.
 
 ## The rounds
@@ -17,9 +17,10 @@ These are design boards (HTML pages), not app code. Open them in a browser: GitH
 | 3 | [`03-socratic-photo/socratic-photo-directions.html`](03-socratic-photo/socratic-photo-directions.html) | Six Socratic directions with photos and paintings: Engraving Light, Marble & Gold, Chiaroscuro, Fresco, Collage, Old Master |
 | 4 | [`04-socratic-abstract/socratic-abstract-directions.html`](04-socratic-abstract/socratic-abstract-directions.html) | Six abstract directions drawn in code: Byrne's Euclid, Black-Figure, Plato's Cave, Verde & Gold, Ionic Order, Euler Circles |
 | 5 | [`05-plaster-to-bronze/plaster-to-bronze.html`](05-plaster-to-bronze/plaster-to-bronze.html) | The direction built from what the app means: Rodin's Thinker, plaster for what you felt sure of, bronze for what you proved, across six screens |
+| 6 | [`06-out-of-the-cave/out-of-the-cave.html`](06-out-of-the-cave/out-of-the-cave.html) | The mix of the picks from rounds 3 to 5 (Plato's Cave, Chiaroscuro, Fresco, Old Master, Plaster to Bronze): every session walks from the dark into daylight. Version 2 applies Apple's design principles and research on reading, navigation and learning: twelve screens with home, waiting and error states, a working guess-and-dawn prototype, and the brand kit for #14. The research is in [`design-principles.md`](06-out-of-the-cave/design-principles.md) |
 
-Rounds 2 to 5 use the democracy walk-through from [`agents/fixtures/session-1.json`](../../agents/fixtures/session-1.json)
-(predicted 7, scored 5, so the calibration gap is +2). Rounds 2 and 5 also show the level-5 inflation example from
+Rounds 2 to 6 use the democracy walk-through from [`agents/fixtures/session-1.json`](../../agents/fixtures/session-1.json)
+(predicted 7, scored 5, so the calibration gap is +2). Rounds 2, 5 and 6 also show the level-5 inflation example from
 [`agents/CONTRACTS.md`](../../agents/CONTRACTS.md).
 
 ## What stays the same in every direction
@@ -28,14 +29,17 @@ Rounds 2 to 5 use the democracy walk-through from [`agents/fixtures/session-1.js
 - Red or terracotta always means the overconfidence gap.
 - One earned color (olive, blue or patina green, depending on the direction) marks a part done with no help.
 - The calibration gap is always shown as a number and a sentence, never by color alone.
-- Rounds 2 to 5 each end with a WCAG 2 contrast table. Every text pair passes AA (4.5:1). The thin divider lines
+- Rounds 2 to 6 each end with a WCAG 2 contrast table. Every text pair passes AA (4.5:1). The thin divider lines
   are lighter than 3:1 on purpose: they only separate rows, and WCAG doesn't require contrast for decoration.
 
 ## Other files
 
 - [`02-ink-and-highlighter/ink-and-highlighter-tokens.ts`](02-ink-and-highlighter/ink-and-highlighter-tokens.ts): light and
   dark color tokens for round 2, named by role (`surface`, `onSurface`, `hintContainer`, and so on), in the shape a React
-  Native theme uses. The other rounds keep their colors inside their boards.
+  Native theme uses.
+- [`06-out-of-the-cave/out-of-the-cave-tokens.ts`](06-out-of-the-cave/out-of-the-cave-tokens.ts): the same shape for round 6,
+  with a third palette for the always-dark cave screens, increased-contrast values, the five stages, and the type scale. Rounds 3 to 5 keep their
+  colors inside their boards.
 
 ## Image credits and licenses
 
@@ -60,6 +64,6 @@ companies' sites from the research round are not in this repo; the research boar
 | `parchment-texture.jpg` | Parchment texture by Divya M | Unsplash License |
 | `thinker-on-pedestal.jpg` | *The Thinker* at the Musée Rodin, by Richard Hedrick | Unsplash License |
 
-The public-domain and CC0 files came through Wikimedia Commons. The laurel and scales icons in rounds 3 and 4 are from
+Round 6 reuses six of these images; its folder holds its own copies. The public-domain and CC0 files came through Wikimedia Commons. The laurel and scales icons in rounds 3, 4 and 6 are from
 [game-icons.net](https://game-icons.net) by Lorc (CC BY 3.0, credited on the boards). Fonts load from Google Fonts,
 under their open licenses.
