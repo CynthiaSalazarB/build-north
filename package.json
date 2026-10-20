@@ -5,5 +5,8 @@
     "app",
     "api",
     "agents"
-  ]
+  ],
+  "scripts": {
+    "test": "npm test --workspaces --if-present"
+  }
 }
