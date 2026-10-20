@@ -142,9 +142,6 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   and $7/month once the credit runs out (or the Free instance, which takes about a minute to wake).
   It stays reversible because of ports and adapters: moving later means rewriting only the routes,
   the token check and the database module, about a day of work.
-
----
-
-## Open
-
-- **Where the web build is hosted** (the judges' URL): Render static site or EAS Hosting.
+- **Web build (the judges' URL):** a Render Static Site in the same workspace, so one dashboard and
+  one owner for deploys. Plan B is EAS Hosting, only if Render charges for it or causes trouble: the
+  files are the same, so moving takes about 30 minutes plus a `CORS_ORIGIN` update.
