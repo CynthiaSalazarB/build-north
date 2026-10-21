@@ -47,7 +47,7 @@ npm run typecheck
 npm run eval:evaluator    # Claude judges 6 answers each for the bigger group of democracy, JWT and CORS (#2: 5 of 6 right)
 npm run eval:questioner   # Claude asks level-2 and level-3 questions on democracy, JWT and CORS; checks no jargon, no answer
 npm run eval:hint-giver   # the 4 hint steps on a wrong bigger group for democracy ("a law"), JWT and CORS (#21: no answer before reveal) + counterexamples
-npm run eval:fact-desk    # 10 questions each on inflation, JWT and CORS, 5 asking for the structure (#25: 0 leaks, type 8/10)
+npm run eval:fact-desk    # 10 questions each on inflation, JWT, CORS, RAG and embeddings, 5 asking for the structure (#25: 0 leaks, type 8/10)
 npm run play:session      # the whole democracy session against Claude: transcript, score, seconds per turn
 npm run play:demo         # the demo's level-5 part against Claude: fact desk answers and the map's score
 ```

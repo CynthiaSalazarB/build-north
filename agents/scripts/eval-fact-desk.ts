@@ -1,9 +1,10 @@
 // #25 done when: 10 test questions for "inflation", 5 of them asking for the structure: zero leaks, and
 // `questionType` right on 8 of 10. A leak is a structure question answered with facts, or a fact answer
 // that names a bigger group, a type or a requirement of inflation. Leak patterns are a net, not proof:
-// read the printed answers too. JWT and CORS, the demo's concepts, get 10 questions each the same way,
-// with their own leak patterns, and the same bar: zero leaks, and the type right on 8 of every 10. Name
-// concepts after `--` to run only those (`npm run eval:fact-desk -- JWT CORS`).
+// read the printed answers too. JWT and CORS, the demo's concepts, and RAG and embeddings, the start
+// screen's AI presets, get 10 questions each the same way, with their own leak patterns, and the same
+// bar: zero leaks, and the type right on 8 of every 10. Name concepts after `--` to run only those
+// (`npm run eval:fact-desk -- JWT CORS`).
 import { AGENTS, FACT_DESK_REDIRECT, type QuestionType } from "../src/index.ts";
 import { dollars, MODEL, pick, runAgent } from "./run-agent.ts";
 
@@ -65,6 +66,45 @@ const CONCEPTS = pick<{ concept: string; leak: RegExp; cases: Case[] }>([
       { question: "Does the server have to send a header for the browser to allow it?", structure: false, type: "what_it_needs" },
       { question: "Is CORS like a guest list the server gives the browser?", structure: false, type: "compare" },
       { question: "Which standard defines CORS today?", structure: false, type: "fact" },
+    ],
+  },
+  {
+    concept: "RAG",
+    // its bigger group (an AI or LLM technique, a design pattern, prompt or context engineering), and its
+    // types by pipeline (naive, advanced, modular, agentic), by what it searches (vector, graph, hybrid),
+    // or a named variant (Self-RAG, RAG-Fusion, the 2020 paper's RAG-Sequence and RAG-Token)
+    leak: /(types?|kinds?|sorts?|flavou?rs?|variants?|forms?) of (RAG|retrieval[- ]augmented generation)|\b(AI|LLM|NLP|ML|machine[- ]learning|deep[- ]learning|prompting|grounding) (techniques?|methods?|approach(es)?|patterns?|architectures?|frameworks?|strateg(y|ies))|(design|architecture|architectural) patterns?|prompt engineering|context engineering|\b(naive|advanced|modular|agentic|graph|vector|hybrid|multi-?modal|corrective|adaptive|speculative|self)[- ]?RAG\b|RAG[- ](fusion|sequence|token)\b|hybrid (search|retrieval)/i,
+    cases: [
+      { question: "What's the bigger group that RAG belongs to?", structure: true, type: "asks_for_structure" },
+      { question: "Is RAG a kind of prompt engineering?", structure: true, type: "asks_for_structure" },
+      { question: "What types of RAG are there?", structure: true, type: "asks_for_structure" },
+      { question: "Is it something about search?", structure: true, type: "asks_for_structure" },
+      { question: "What does something need to count as RAG?", structure: true, type: "asks_for_structure" },
+      { question: "How is RAG different from fine-tuning a model?", structure: false, type: "contrast" },
+      { question: "If I paste the whole document into the chat myself, is that still RAG?", structure: false, type: "breaking_case" },
+      { question: "Does RAG need a vector database?", structure: false, type: "what_it_needs" },
+      { question: "Is RAG like letting the model take an open-book exam?", structure: false, type: "compare" },
+      { question: "Who came up with the name RAG, and when?", structure: false, type: "fact" },
+    ],
+  },
+  {
+    concept: "embeddings",
+    // its bigger group (a vector or numerical representation, a feature vector), and its types by what
+    // they encode (word, sentence, image, graph, multimodal), static or contextual, or a named method
+    // (word2vec, GloVe, fastText). "Text embedding model" is the tool's usual name, so a type right before
+    // "model" doesn't count
+    leak: /(types?|kinds?|sorts?) of embeddings?|(vector|numerical|numeric|learned|dense|latent|distributed|continuous) representations?|feature vectors?|representation learning|\b(word|sentence|text|document|image|audio|video|multi-?modal|graph|node|user|item|token|positional|contextual(ized)?|static) embeddings?\b(?! models?)|word2vec|GloVe|fastText|node2vec/i,
+    cases: [
+      { question: "What's the bigger group that embeddings belong to?", structure: true, type: "asks_for_structure" },
+      { question: "Is an embedding a kind of vector?", structure: true, type: "asks_for_structure" },
+      { question: "What types of embeddings are there?", structure: true, type: "asks_for_structure" },
+      { question: "Is it something about meaning?", structure: true, type: "asks_for_structure" },
+      { question: "What does a list of numbers need to count as an embedding?", structure: true, type: "asks_for_structure" },
+      { question: "How is an embedding different from a hash of the same text?", structure: false, type: "contrast" },
+      { question: "If I compare embeddings from two different models, does the distance between them still mean anything?", structure: false, type: "breaking_case" },
+      { question: "Does an embedding have to be the same length for a short input and a long one?", structure: false, type: "what_it_needs" },
+      { question: "Is an embedding like GPS coordinates for meaning?", structure: false, type: "compare" },
+      { question: "What does cosine similarity measure between two embeddings?", structure: false, type: "fact" },
     ],
   },
 ]);
