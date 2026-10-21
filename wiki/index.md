@@ -1,7 +1,7 @@
 ---
 title: Project Wiki Index
 type: index
-updated: 2026-10-20
+updated: 2026-10-21
 total_pages: 4
 ---
 
@@ -39,5 +39,5 @@ page under a Sources heading, the way the SurrealDB prize page does.
 
 | Page | Summary | Updated |
 |------|---------|---------|
-| [Plan to win](synthesis/plan-to-win.md) | Where the project stands on Oct 20, the Expo prize playbook (EAS Build, Update, Hosting, Workflows), each judging criterion, the days to Oct 29, owners, the cut list and the decisions to take | 2026-10-20 |
+| [Plan to win](synthesis/plan-to-win.md) | The final plan (Oct 21): our user (CS students who build with coding agents), the story and its sources, each judging criterion, the prizes we enter, the changes for the new user, the days to Oct 29, owners, the cut list and the decisions | 2026-10-21 |
 | [Expo prize plan](synthesis/expo-prize-plan.md) | Best Use of Expo in full: what Expo rewards, the EAS setup with config, every judge's path (APK, TestFlight, web), native feel, SDK 58 features, the evidence, owners and risks | 2026-10-20 |

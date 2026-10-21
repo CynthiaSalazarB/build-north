@@ -3,7 +3,7 @@ title: "Expo prize plan"
 type: synthesis
 related: ["[[plan-to-win]]"]
 created: 2026-10-20
-updated: 2026-10-20
+updated: 2026-10-21
 ---
 
 How we go after Best Use of Expo. The main plan ([plan-to-win](plan-to-win.md), section 4) has the short
@@ -306,15 +306,11 @@ learner: three cheap ones are worth doing, the widget only if there's time, and 
 
 ## 9. Day by day
 
-| Day | Expo work |
-|---|---|
-| Oct 20, tonight | Decide who enrolls with Apple and enroll. Create the Expo owner and invite everyone |
-| Oct 21 | `eas init`, the ids, `expo-updates` and `update:configure`, `eas.json`, the environment variables. Android development build first thing. The app PR and #75 merged, then the `preview` APK, the first update and the first web deploy. Start the Expo log. 3 PM: office hours. Clerk: the Native API on, the bundle id registered, the reviewer account signed up |
-| Oct 22 | `ship.yml` running on every merge (Cynthia installs the Expo GitHub app). The native-feel items, the Expo UI guess picker and Expo Observe. The privacy page and account deletion. With Apple's approval: the iOS build, TestFlight Test Information, the external group, review starts |
-| Oct 23 | Testers on the APK and the web build; every fix ships as an update and goes in the log, with Observe watching for crashes. When review passes: the public link, tested on an iPhone. If Pillars 1 to 3 are done, start the Android widget |
-| Oct 24 | Polish. 6 PM freeze: the last `preview` and `production` builds, the last update, the last deploy. Screenshots and the video's Expo segment |
-| Oct 25 | The Devpost section, the README block, the slide. Submit |
-| Oct 26 to 29 | Keep the APK, the TestFlight link and the web build working. Phones charged for Demo Day |
+The schedule lives in the main plan's [section 6](plan-to-win.md#6-day-by-day), so there's one to keep
+current. Its Expo work runs like this: E1 to E3 and the office hours on Oct 21, then the web build on
+EAS Hosting, the first `preview` APK and update, and the workflows on Oct 22. Updates go out on tester
+night (Oct 23), the freeze builds run at 6 PM on Oct 24, and the Devpost section is written on Oct 25.
+TestFlight follows section 4 if one of us enrolls with Apple on Oct 21.
 
 ## 10. Owners (proposal)
 
@@ -345,7 +341,7 @@ Before we enter the Expo category:
 
 | Risk | What we do |
 |---|---|
-| Apple takes longer to confirm the account, or to review | Enroll tonight. The web build covers iPhones meanwhile |
+| Apple takes longer to confirm the account, or to review | Enroll on Oct 21. The web build covers iPhones meanwhile |
 | Beta App Review rejects the build | The reviewer account and its note, the privacy page, account deletion, the API awake on Starter |
 | Clerk's 100 emails a month run out | The `+clerk_test` fallback in the testing notes; ask Clerk support to raise the limit |
 | Clerk's 100-user cap on a development instance | Keep an eye on the user count; testers and judges fit, random sign-ups might not |

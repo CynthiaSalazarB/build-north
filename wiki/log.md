@@ -12,3 +12,5 @@
 | 2026-10-20 | update | context/hosting-setup | Render moves to main once #58 and #60 merge, with a Manual Deploy after each merge; service id left out |
 | 2026-10-20 | add | synthesis/plan-to-win | Plan to win, from a full read of the repo, the issues, the PRs and the Devpost pages; a proposal for Cynthia |
 | 2026-10-20 | add | synthesis/expo-prize-plan | The Expo prize in full, checked against Expo's, Apple's and Clerk's docs; plan-to-win section 4 now summarizes it |
+| 2026-10-21 | update | synthesis/plan-to-win | The final plan: the user narrowed to CS students who build with coding agents after the mentors' feedback, the Oct 20 items done or moved |
+| 2026-10-21 | update | synthesis/expo-prize-plan | The day by day now points to the main plan's schedule |

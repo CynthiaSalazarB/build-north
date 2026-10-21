@@ -1,437 +1,344 @@
 ---
 title: "Plan to win Build North"
 type: synthesis
-related: ["[[surrealdb-sponsor-prize]]", "[[hosting-setup]]"]
+related: ["[[expo-prize-plan]]", "[[surrealdb-sponsor-prize]]", "[[hosting-setup]]"]
 created: 2026-10-20
-updated: 2026-10-20
+updated: 2026-10-21
 ---
 
-Written on Oct 20 at 9:30 PM from a full read of the repo (`main` and the open branches), all 55
-issues, all 20 pull requests, the Devpost pages and the current Expo docs. It's a proposal: Cynthia
-decides, and anything adopted goes in `DECISIONS.md` or an issue. Section 14 lists what this is based
-on and what couldn't be checked.
+The final plan, written on Oct 21 after the mentors told Cynthia the idea needs one specific user and
+one specific problem. It replaces the Oct 20 version. It's a proposal: Cynthia decides, and anything
+adopted goes in `DECISIONS.md` or an issue. The Expo details live in the
+[Expo prize plan](expo-prize-plan.md).
 
-## 1. The short version
+## 1. The goal
 
-**We can win.** The thinking engine and the API are the strongest part of the project, and better
-engineered than most of what judges will open. The gap is the part judges touch: the app. With five
-days left it has a start screen and a session screen on a branch with no PR, and sign-in in a PR on top
-of it (#75). It has no level-5 screen, no brand and no EAS build yet.
+Reality Check shows CS students which concepts in their AI-built code they can't explain, and gets
+them explaining those concepts on their own.
 
-Three bets:
+Devpost asks every team three questions. Our answers:
 
-1. **Finish the app on phones and the web**, with the calibration gap and level 5 as the stars.
-   (UI & Design, Tech & Deployment)
-2. **Make Expo the backbone and prove it**: EAS Build, EAS Update, EAS Hosting and EAS Workflows, plus
-   the SDK doing visible work in the app. (Best Use of Expo, Tech & Deployment)
-3. **Bring proof**: real tester numbers, the cost of a session from `agent_log`, and a three-minute
-   demo that lands. (Real-World Impact, Best Overall)
+1. Who is the user? A CS student who builds class and side projects with a coding agent (Claude Code,
+   Cursor or Copilot) and can't explain the code it wrote. Our testers are classmates like this.
+2. What's better because we exist? They find out what they can't explain before an interviewer or a
+   bug does, and they learn it by building it themselves.
+3. Is there a path to production? Students start free and pay for more sessions. CS programs and
+   bootcamps pay per student. We price both from the measured cost of a session.
 
-The ten things that matter most, in order:
+What winning looks like, in order: the top 10 on Oct 26, Best Overall at Demo Day on Oct 29, then Best
+Use of Expo and Best Use of Clerk.
 
-1. A Claude key with a budget on Render before the credits expire on Oct 21 (#19, #20). Without it,
-   nothing is live.
-2. Merge #64 and #73, deploy `main`, play democracy live, and post the latency and the cost of one
-   session (#28, #10).
-3. Open the app PR from `cynthia/4-expo-app` and merge it (#4, #6), then #75 on top, so everyone
-   builds on the same app.
-4. The EAS project: `eas.json`, bundle ids, `expo-updates`, the first Android build and the first
-   update, on Oct 21. Expo Go can't run SDK 58 on a phone yet, so an EAS build is the only way anyone
-   gets the app on a phone.
-5. The whole-map evaluator (#36) by Oct 22. Level 5, the testers' pre-test and post-test, and the demo
-   all need it, and unlike the coach it has no fallback.
-6. The level-5 screen (#26) by Oct 22, and a real sign-in reaching the API (#22: #75 needs the Clerk
-   publishable key and the dashboard settings).
-7. The brand picked on Oct 21 and the theme in (#14, #46), with the app icon and splash replaced:
-   they're still the Expo template's.
-8. Testers recruited and scheduled today (#12, #24), run on Oct 23, with fixes shipped over the air.
-9. Render on Starter from Oct 22 until Oct 30 (#59), so a judge never waits a minute for a cold start.
-10. The video, the deck and the Devpost page, with an Expo evidence section, submitted by 9 PM on
-    Oct 25 (#48, #47, #30, #53).
+By Sunday, Oct 25 at 9 PM, all of this is true:
 
-## 2. Where we stand (Oct 20, 9 PM)
+- The app is live on the web and on Android, with Claude on, sign-in, level 5 and the result screen
+  with the gap. iPhones get TestFlight or the web build.
+- Five testers from our user took a pre-test and a post-test, and we have their numbers.
+- The video, the deck, the README and the Devpost page are done, and the project is submitted.
 
-| Part | Done | Open |
+## 2. The story
+
+### The problem
+
+- Coding agents make students learn less. In Anthropic's randomized trial (January 2026), developers
+  who coded with an AI assistant scored 50% on a quiz about concepts they had used minutes before, and
+  the group that coded by hand scored 67%.
+- Students don't notice. Prather et al. (ICER 2024) found that struggling novices using AI "thought
+  they performed better than they did."
+- How they use the AI decides it. In the same trial, people who asked the AI conceptual questions
+  scored 65% or more, and people who handed it the work scored under 40%.
+- It reaches past students: in a CHI 2025 study of 319 knowledge workers, more confidence in AI went
+  with less critical thinking.
+
+### What Reality Check does
+
+1. You pick a concept from your project, like JWT or CORS, and predict your score out of 8.
+2. You build the concept's map in four moves: its bigger group, what it needs, what it isn't, and its
+   types. The AI asks questions and gives hints that cost a point and fade as you improve. It never
+   writes the answer.
+3. You see the gap between how sure you felt and how you did.
+4. At level 5 the roles flip. You ask the questions, and a fact desk answers with facts only.
+
+The gap shows students the illusion, and level 5 trains the habit the high scorers had.
+`DECISIONS.md` (Oct 18) already says the subject is the gym equipment and thinking is the muscle, so
+the method stays and only the concepts change.
+
+### The concepts
+
+We picked them from what coding agents put in student projects. Six of the eight are in our own API.
+
+| What the agent built | Concepts |
+|---|---|
+| Login | JWT, hashing |
+| Data | database index, cache |
+| An API | REST API, rate limiting |
+| Deploy | environment variable, CORS |
+
+- The demo uses JWT for session 1 and CORS for the level-5 profile.
+- The testers use database index and rate limiting for the pre-test and post-test, swapped between
+  testers as now, and hashing and environment variable in the two training sessions.
+- No demo or tester concept may appear in a prompt (`MEASURED` in `agents/test/prompts.test.ts` checks
+  it), and the tester concepts stay out of the evals, so we never tune the prompts on what we measure.
+  Planet stays the only worked example.
+
+### Why it's new
+
+AI tutors explain things to you. Reality Check makes you do the explaining, shows how far off you
+were, and then hands you the questions. The method is the mentefacto from Miguel de Zubiría's
+conceptual pedagogy, with help that fades (Wood, Bruner and Ross; Collins, Brown and Newman) and
+calibration measured as the predicted score against the real one on the same task.
+
+### Path to production
+
+Students start with free sessions, then pay for a plan priced from the cost of a session, which
+`agent_log` records for every Claude call. CS programs and bootcamps pay per student and get classes
+through Clerk Organizations. Next on the roadmap: concepts read straight from your repo, Check the AI
+(checking what your coding agent wrote), Spanish, and the same method for any concept, democracy and
+inflation included. At Demo Day we ask for a pilot with one CS program.
+
+## 3. How we score
+
+Devpost publishes no weights, so we treat the five criteria as equal. The judges are a Georgian
+investor, Georgian's CTO, an AI founder and a Google startups engineer, so the business case gets read
+as closely as the code.
+
+| Criterion | What we show | Still to do |
 |---|---|---|
-| `agents/` (Cynthia) | Prompts for the questioner, evaluator, hint giver and fact desk, with evals against Claude (evaluator 6/6, questioner 5/5, hint giver clean on all four steps, fact desk 0 leaks in 10). `advance()` and the ladder rules. Session 1 replays to 5/8 with a gap of +2. The demo seed plays to 6/8, gap +1. 59 tests pass. Median turn against Claude: 3.2 s and 2.8 s (two runs, budget 4 s) | The whole-map evaluator (#36) and the coach (#44) aren't in the `AGENTS` registry. The coach falls back to fixed text; the whole map has no fallback |
-| `api/` (Leo) | Live on Render with SurrealDB Cloud. Every contract route, resent answers judged once, dev key and rate limit, `callAgent` with the 95% budget and rate-limit stops and the cost of every call in `agent_log`. 38 tests: 37 pass, 1 needs a database | #64 (Clerk, with the `.env.example` change Cynthia asked for) and #73 (orchestrator) are mergeable and waiting for her; they only conflict in `api/src/app.test.ts`, and Leo has that merge resolved. No Claude key on Render. Free instance, so it sleeps. #36, #44, #59. **Live today, the API replays the democracy fixture and makes no Claude calls** |
-| `app/` (branch `cynthia/4-expo-app`, no PR) | Expo SDK 58 (React Native 0.88, Expo Router with typed routes, React Compiler, static web output). Start screen; session screen with the pinned map, the 0 to 8 picker, answers with Help, the worked example and a result card; an API client that already sends a Clerk token when it has one and draws the Turn a 409 sends back; a demo mode that replays session 1 with no API; tests | Level 5 (#26: the input says "coming soon"), the result screen (#34), mastery (#42), delete my data and the privacy note (#43), the theme (#46). The icon and splash are the template's. No bundle id, no `expo-updates`, no `eas.json`. The web build isn't deployed (#27). Sign-in (#22) is PR #75 (Leo, on top of this branch): `@clerk/expo`, Clerk's prebuilt `<SignIn />` on the web and its hosted sign-in in an in-app browser on phones, which works in Expo Go. It waits on the publishable key, email code as the only method and the Native API turned on in the Clerk dashboard, and a real sign-in |
-| Design (Leo, PR #72) | Six rounds of boards. Round 6, "Out of the Cave", has everything #14 asks for (name, logo, three brand colors, meaning colors, Newsreader) and a tokens file in the shape a React Native theme uses | Nothing picked; #14 is due Oct 21 |
-| Testers, deck, Devpost (Kyle) | | No branch, PR or issue comment on GitHub yet for #11, #12, #13, #19, #20, #24, #30 or #31. It may be moving in Discord: confirm today |
-| App issues (Jonathan) | | #4 and #6 moved to Cynthia, and #22 to Leo (#75). No branch, PR or issue comment on GitHub yet for #5, #26 or #27. Confirm today |
+| Innovation | An AI that won't do the thinking. The gap reveal and the role flip are the two demo moments | The new hook in the video and the deck |
+| Real-World Impact | One user, three sources, tester numbers, the cost of a session, who pays | The testers (P2, P3) and the cost of a session (#10) |
+| UI & Design | Round 6, "Out of the Cave", with every state designed (waiting, error, empty, a small phone) and Reduce Motion | Pick it on Oct 21 (#14), then the theme, icon and splash (#46) |
+| Tech & Deployment | A contract-first monorepo with Zod at every boundary, the orchestrator in code, evals against Claude, 59 agent tests and 37 API tests passing (Oct 20), budget and rate-limit stops | Everything deployed: the API on Render Starter, the web build on EAS Hosting, the Android build, Clerk |
+| Security & Ethics | The Claude key only on the server, Clerk tokens checked without a network call, rate limits, the 95% budget stop, the learner's text fenced as data, 0 leaks in 10 from the fact desk, no streaks, adult testers who consent, tester data in its own database | Delete my data and the privacy note (#43), and a welcome line that says the tutor is an AI that asks and never hands over the answer |
 
-## 3. How we're judged
+## 4. The prizes we enter
 
-- **Criteria:** Innovation; Real-World Impact (a clear user, the value it adds, a path to production);
-  UI & Design (usable by a real user); Tech & Deployment (solid architecture, deployed, serving
-  features); Security & Ethics (guardrails, safe handling of user data). No weights are published, so
-  treat them as equal.
-- **Process:** submissions close Oct 25 at 11:59 PM ET (we aim for 9 PM). The top 10 are announced on
-  Oct 26 and demo live in Toronto on Oct 29, with at least one of us there. The top 10 are picked from
-  the Devpost page, so the video, the live link and the write-up decide whether we demo at all.
-- **Field:** 73 people registered and teams have up to four, so roughly 15 to 25 teams (an estimate).
-- **Prizes:** Best Overall (the Georgian Golden Ticket, $15,000 in Anthropic credits, a Google Home
-  each), Best Use of Expo (an LG 27" monitor each and a year of Expo Starter), Best Use of Clerk (JBL
-  headphones each), Best Use of Eon, and Best Use of SurrealDB Agent Memory ($1,000 in credit). For a
-  category prize, judges look for evidence that the platform "materially shaped" the build.
-- **Rules that touch us:** disclose prior work, templates and the AI tools we used (the
-  `create-expo-app` default template; Claude and Claude Code during Build Week). The repo, the video
-  and the Devpost page become public. One submission per team.
+### Best Overall
 
-## 4. The Expo prize playbook
+Everything above.
 
-The full version, with the config, the judge's path, TestFlight and the evidence, is
-**[expo-prize-plan.md](expo-prize-plan.md)**. This section is the summary.
+### Best Use of Expo
 
-What Expo asks for: an app built with its React Native tooling that uses the SDK and ships with EAS
-Build or EAS Update, so the platform does real work in the stack.
+Expo asks for an app built with its React Native tooling that uses the SDK and ships with EAS Build or
+EAS Update, so Expo does real work in the stack. Our story: one TypeScript codebase ships to iOS,
+Android and the web, and EAS builds it, updates it over the air, hosts the web build and ships every
+merge.
 
-Our story: **one TypeScript codebase ships Reality Check to iOS, Android and the web through Expo, and
-shares its contracts (the Zod schemas in `@build-north/agents`) with the API through the npm
-workspace. EAS builds it, updates it over the air, hosts the web build and ships every merge.** The
-phone is where learning happens; the web build is the judges' front door.
+The must-haves are E1 to E6 in the Expo plan: the EAS project, an Android development build and then a
+`preview` APK with an install link, EAS Update, the web build on EAS Hosting, our own icon and splash,
+and a "How we used Expo" section. After them come EAS Workflows, level 5 as a native sheet, the SDK
+doing visible work (the font, haptics, secure store, images, glass, Reanimated), the demo on a real
+phone, and ten seconds of `eas update` in the video.
 
-**What the docs changed (checked Oct 20).** Expo Go for SDK 58 isn't in the App Store or Google Play
-yet: Expo expects it in the stores a few weeks after the SDK 58 release, and until then SDK 58 projects
-need a development build. Since May 2026, Expo Go also only opens projects that belong to your own Expo
-account or organization. So no judge or tester will run our app through Expo Go: every phone runs an
-EAS build. That puts EAS Build on the critical path for anything on a phone, and it's exactly the
-"ship with Build" the prize asks for. Staying on SDK 58 is right: the next store Expo Go supports only
-58.
+### Best Use of Clerk
 
-**The free plan shapes the plan.** EAS Build gives 15 Android and 15 iOS builds a month in a
-low-priority queue (waits of over 90 minutes at peak, a 45-minute timeout), so we build rarely and
-update often. EAS Update is unlimited up to 1,000 monthly users. EAS Hosting is free at a
-`name.expo.app` address. EAS Workflows gets 60 CI minutes a month. Maestro tests need a paid plan, so
-they're out.
+Clerk asks teams to use it for sign-in and sessions instead of building their own. The API checks
+Clerk's session token without a network call and keys every row by the Clerk user id (#64). The app
+signs in with Clerk on the web and on phones, keeps the token in secure store and sends a fresh one on
+every call (#75). A Google sign-in already worked on the web build against the API.
 
-### 4.1 Must have: the bar to be in the running
+Still to add: a sign-in tested on a phone, and delete my data deleting the Clerk account too (#43). Our
+demo's first concept is JWT, the kind of token Clerk issues, which gives the write-up a good line. The
+development instance allows 100 users and 100 emails a month, so we ask Clerk support to raise the
+email cap and keep the `+clerk_test` fallback in the testing notes.
 
-| # | What | Why it counts | Proposed owner | Time | When |
-|---|---|---|---|---|---|
-| E1 | An EAS project under a team Expo organization, set up from `app/` (in a monorepo, `eas.json` lives there): `eas init` (adds `owner` and `extra.eas.projectId`), `ios.bundleIdentifier` and `android.package` in `app.json`, an `eas.json` with `development`, `preview` and `production` profiles, and the `EXPO_PUBLIC_*` values (the API URL and the Clerk publishable key, never the dev key) as EAS environment variables | Everything below needs it | Leo | 1 h | Oct 21 morning |
-| E2 | **EAS Build**: first an Android development build (an APK with `expo-dev-client`), so the team can run SDK 58 on Android phones; then a `preview` build (APK, internal distribution: anyone with the link can install it) with an install link and a QR code in the README and on Devpost. Start each build early: the free queue can take over an hour. About six of our 15 builds cover it (development, two previews, production, spares). #4's done-when says Expo Go; on SDK 58 that has to be the development build. iOS: see 4.4 | "Ship with Build", and the only way onto a phone | Leo | 1 to 2 h with the queue | Oct 21, again at the freeze |
-| E3 | **EAS Update** (`npx expo install expo-updates`, then `eas update:configure`): `preview` and `production` channels, with the `fingerprint` runtime policy so an update only reaches builds with the same native code. Every merged app change ships as an update (`eas update --channel preview --environment preview`), and an installed build picks it up after a relaunch or two. On tester night, fixes go out over the air: count them for the write-up | "Ship with Update", and the best story we'll have | Leo | 45 min | Oct 21 |
-| E4 | **The web build on EAS Hosting** (`npx expo export --platform web`, then `eas deploy --prod` for `name.expo.app`) instead of a Render Static Site. Keep `"output": "static"` in `app.json`, since SDK 58 defaults to server output when it's unset. Only the production address goes in the API's `CORS_ORIGIN`: each preview deploy gets a new address. The free limits (100,000 requests a month) are plenty | All three platforms ship through Expo, EAS Workflows can deploy it, and #27 hasn't started, so switching costs nothing. The API stays on Render. Needs a `DECISIONS.md` line: EAS Hosting was Render's plan B | Leo | 30 min | Oct 21 or 22 |
-| E5 | **The app's identity**: the brand icon (with an Android adaptive icon), the splash and the name. The template's Expo and React logos and blue splash go. Check the splash on a release build | A judge sees the icon before anything else | Jonathan or Leo | 1 h | Oct 22 |
-| E6 | **"How we used Expo"** in the README and on Devpost: the links, screenshots of the EAS dashboard (builds, updates, workflow runs, hosting deploys) and every Expo module with the job it does | The judges need evidence, and this is where they look | Leo, Kyle | 1 h | Oct 25 |
+### What we skip
 
-### 4.2 Strong: what sets us apart
+We skip SurrealDB Agent Memory. We use plain tables, and its judges want facts that replace old ones,
+answers traced to a source and memory shared across agents. We'd only try it if the core is green on
+Oct 23. We skip Eon too: Era simulates companies for testing enterprise agents, which doesn't fit us.
 
-| # | What | Proposed owner | Time |
+## 5. The changes for the new user
+
+About a day of work across three people. Nothing in the API changes.
+
+| # | Change | Owner | By |
 |---|---|---|---|
-| E7 | **EAS Workflows** in `.eas/workflows/`: one workflow that publishes an update to `preview` and deploys the web build, and one that makes an Android build. `eas workflow:run` runs them from the CLI today. Running them on every push to `main` needs the Expo GitHub app, which only Cynthia can install, since the repo is on her personal account. Builds stay manual within the 60 CI minutes | Leo | 1 to 2 h |
-| E8 | **Level 5 that feels native**: the map owns the screen and the fact desk is a half-height sheet (Expo Router's `presentation: "formSheet"`, a draggable bottom sheet), as round 6 designs it | Cynthia (#26) | inside #26 |
-| E9 | **The SDK doing visible work**: `expo-font` with Newsreader (`@expo-google-fonts/newsreader`); `expo-haptics` (selection when the guess changes, success on a level up, nothing else; the web gets the Vibration API); `expo-secure-store` for Clerk's token cache on phones (it has no web version); `expo-splash-screen`; `expo-image` for the arch photos; `expo-glass-effect` for the floating controls (glass on iOS 26 and later, an opaque surface on Android and the web); and Reanimated for the two moments (the dawn after the guess, the points casting into bronze), which turn into fades with Reduce Motion | Jonathan, Cynthia | 3 to 4 h |
-| E10 | **Demo Day on a real phone** running the `preview` build, mirrored to the screen: an Android phone, unless someone has an Apple account (4.4). The web build is the backup, and demo mode (the session-1 replay, no network) the last resort | Cynthia | rehearsal |
-| E11 | **Ten seconds in the video**: change one line, run `eas update`, relaunch, and the phone has the change. Update doing real work, on camera | Kyle, Leo | 0.5 h |
-| E12 | **Expo's office hours** on Discord, Wednesdays at 12 PM Pacific (3 PM Eastern), and Oct 21 is a Wednesday. Ask what evidence of real use they want to see. Expo's partner team is also in the Transferred Learnings Discord | Leo or Cynthia | 30 min |
-| E13 | **What SDK 58 just shipped, where it fits**: the 0 to 8 guess as a native Expo UI control, Expo Observe for startup times and crashes per release, and an "Update ready: restart" banner with `useUpdates()` | Jonathan, Leo | 2 to 3 h |
+| P1 | Log the decision in `DECISIONS.md` (draft in section 9) | Cynthia | Oct 21 |
+| P2 | Recruit five classmates who build with Claude Code, Cursor or Copilot, and book their Oct 23 slots (#12) | Kyle | Oct 21 |
+| P3 | Swap the tester concepts in the protocol (#24), `docs/grading-sheet.md` and `MEASURED` | Kyle, Cynthia | Oct 22, morning |
+| P4 | Move the demo seed's level-5 session from inflation to CORS. #78's whole-map eval and the seed's test follow it | Leo | Oct 22 |
+| P5 | Write session 1 of the demo on JWT and play it live with Claude until it shows a hint and a gap of about +2 | Cynthia | Oct 22 |
+| P6 | Add JWT and CORS cases to the four agent evals, starting with the fact desk's leak eval | Leo, Cynthia reviews | Oct 22 |
+| P7 | The start screen: the hook "Can you explain the code your AI wrote?", the concept list from section 2, "type your own", and the placeholder "For example: JWT" | Cynthia or Jonathan | Oct 22 |
+| P8 | The deck, the Devpost draft and the video script around the new story (#13, #30, #31, #48) | Kyle | Oct 22, draft |
 
-### 4.3 Only if we're ahead
+`agents/fixtures/session-1.json` (democracy) stays as test data, so the tests built on it don't change.
 
-- E14. Dark mode with round 6's dark palette (`"userInterfaceStyle": "automatic"`).
-- E15. An iOS simulator build (free, no Apple account needed) if one of us has a Mac, to show the iOS
-  app at Demo Day.
-- E16. An Android home screen widget (`expo-widgets`, new in SDK 58): "Resume inflation: 3 of 4 parts"
-  and each part's stage, progress only.
+## 6. Day by day
 
-### 4.4 iPhones: TestFlight
+Times are rough. Each evening's check sets the next morning's list.
 
-- Expo Go is no iOS path for us: no SDK 58 in the stores yet, and it only opens our own projects.
-- The way to put the native app on judges' iPhones is a **TestFlight public link**. It needs an Apple
-  Developer Program membership (USD 99 a year; one of us enrolls as an individual, about a day to
-  confirm), then Apple's Beta App Review of the first build (Apple's general figure: half in 24 hours,
-  90% in 48). So the decision is tonight's (section 10). The steps, the reviewer login and what Apple
-  checks are in [expo-prize-plan.md](expo-prize-plan.md), Pillar 2.
-- Without it, iPhone users get the web build, a Mac can run the simulator build (E15), and Android
-  gets the APK.
+### Oct 21: unblock
 
-### 4.5 What not to do
-
-- No App Store or Play Store submission: review times don't fit the deadline, and judges don't need it.
-- No push notifications. They'd contradict our no-streaks decision; the write-up says we left them out
-  on purpose.
-- Don't spend a build on every change: builds are scarce and slow on the free plan, and JavaScript
-  changes go out as updates.
-- Never commit a lockfile regenerated on Windows: npm there drops its `libc` fields, and EAS installs
-  from it on Linux, where that can pull the wrong native binaries.
-- Never hand-edit `ios/` or `android/`: they're generated, and native settings live in `app.json`.
-- Don't let EAS work block the core loop. E1 to E4 take a morning; the screens come first.
-
-### 4.6 Evidence checklist for the Expo judges
-
-- Links: the web build on EAS Hosting, the Android install page with its QR code, and screenshots of
-  the EAS project (builds, updates, workflow runs).
-- Numbers: builds made, updates shipped (the tester-night count), workflow runs.
-- One diagram: one codebase, then EAS Build, Update and Hosting, then iOS, Android and the web, with
-  the contracts shared with the API.
-- The template disclosure: `create-expo-app` default template on SDK 58, demo screens removed.
-
-## 5. Best Overall, criterion by criterion
-
-### Innovation
-
-- What we have that others won't: **an AI that refuses to think for you.** It asks instead of telling,
-  its help fades as the learner improves, and at level 5 it hands the questions to the learner while a
-  fact desk answers with facts only. The calibration gap shows how sure you felt next to how you did.
-- Make the gap reveal and the role flip the two moments of the demo and the video. Name the method once
-  (the mentefacto, from Miguel de Zubiría's conceptual pedagogy) and the research behind each choice,
-  which `DECISIONS.md` already cites (Wood, Bruner and Ross; Collins, Brown and Newman; Koedinger and
-  Aleven; Pearson and Gallagher).
-
-### Real-World Impact
-
-- **The problem, with a source.** A peer-reviewed CHI 2025 study by Microsoft Research and Carnegie
-  Mellon (319 knowledge workers, 936 examples) found that more confidence in AI went with less critical
-  thinking, and the authors suggest tools that adjust AI help to the user's confidence and expertise.
-  That's our ladder and our calibration gap. MIT's "Your Brain on ChatGPT" is a preprint that hasn't
-  been peer reviewed: label it that way, or leave it out.
-- **One user.** The testers are adults, so the persona should match them: a first-year college student
-  fits better than a high-school student. Schools stay the buyer on the vision slide. If the brief's
-  persona is a high-school student, say the pilot used adults on purpose (no parental consent needed).
-  Decide on Oct 21, before #31.
-- **The value it adds, in numbers.** The pre-test and post-test (concepts counterbalanced, maps graded
-  by hand and blind, the agreement with the evaluator reported) are rare at a hackathon. Run them even
-  with three testers, and call it a pilot.
-- **A path to production.** The cost of a session from `agent_log` (every call has its `usd`), a price
-  per student and the margin; Clerk organizations for classes as the next step; Check the AI as the
-  expansion; Spanish on the roadmap.
-
-### UI & Design
-
-- If time runs short, adopt round 6 "lite": the colors, Newsreader, the icon and splash, capsule
-  buttons, the hint card that shows its price, and the result screen's shadow and bronze blocks, plus
-  one dawn moment. Skip the photo-heavy screens.
-- Design every state: waiting ("Checking your answer…"), an error with Try Again (the app already
-  has it), empty, and a small phone.
-- Tester night is the usability test: fix the top three problems on Oct 24.
-- Accessibility: labels (already in the code), text that scales, the contrast round 6 already passes,
-  and Reduce Motion.
-
-### Tech & Deployment
-
-- Already strong: a contract-first monorepo with Zod at every boundary, resent answers judged once, 37
-  and 59 tests passing, evals against Claude, budget and rate-limit stops, and the cost of every call
-  logged.
-- Must happen: everything deployed and serving. The API on Render Starter with Claude on, the web build
-  on EAS Hosting, an Android build, Clerk sign-in, and the demo seed loaded for the demo user.
-- Show it: an architecture diagram in the README (Mermaid renders on GitHub). Optional, about 20
-  minutes for the repo owner: a GitHub Actions workflow that runs `npm test` on every PR.
-
-### Security & Ethics
-
-- Already strong: the Claude key lives only on the server; Clerk tokens are checked without a network
-  call and the web build's origin is checked too; the dev headers are off in production; rate limits;
-  the budget stop at 95%; the learner's text is fenced as data in every prompt, and a test checks it;
-  the fact desk can't hand over the structure (0 leaks in the eval, and code forces the redirect text);
-  no streaks or XP; adult testers who consent; tester data in its own database.
-- To add: the delete button and the privacy note (#43), and the welcome line that says the tutor is an
-  AI that asks and never hands over the answer (round 6). Optional: deleting the learner's Clerk
-  account too when they delete their data.
-- Show it: a "Responsible by design" section in the README and on Devpost, and one slide.
-
-## 6. The other prizes
-
-- **Clerk:** low odds, cheap points, so enter. #75 signs in with `@clerk/expo`: the prebuilt
-  `<SignIn />` on the web, the hosted sign-in on phones, the token cache in `expo-secure-store`, and a
-  fresh session token on every API call. The API side is done (#64). The write-up describes the
-  networkless token check and the origin check. #75 picked the hosted sign-in because it works in Expo
-  Go; now that phones run a development build anyway, a sign-in screen in our own design (Clerk's
-  email-code flow) or Clerk's native components (beta, `@clerk/expo-native-components`) would look
-  better and show more of Clerk, if there's time. Delete my data (#43) should also delete the Clerk
-  account, with `user.delete()` in the app after `DELETE /me/data`: Apple's guidelines ask for in-app
-  account deletion, so TestFlight needs it too. Mind the development instance's limits: 100 users, and
-  100 emails a calendar month. Ask Clerk support to raise the email limit, and keep the `+clerk_test`
-  fallback ready (an address with `+clerk_test` signs in with the code `424242`, no email sent).
-- **SurrealDB Agent Memory:** don't chase it by default. We use plain tables, and their judges want
-  facts that supersede old ones, answers traced to a source, and memory shared by several agents.
-  Agent Memory also needs access turned on for the Studio profile. Leo checks in ten minutes whether
-  Contexts shows up in Studio and whether `BUILDNORTH50` redeems. Only if the core is green on Oct 23:
-  write each mastery change as a fact and let the coach read them. Enter the category only if that's in.
-- **Eon:** skip it; it's a poor fit.
-
-## 7. Day by day
-
-Proposed owners; Cynthia confirms. Times are rough.
-
-### Tonight, Oct 20
-
-- Cynthia merges #64 and #73 (the `.env.example` change on #64 is in). The second one needs a small
-  merge in `api/src/app.test.ts`, which Leo has resolved.
-- Everyone, in Discord: does anyone have an Apple Developer account, and if not, who enrolls tonight
-  for TestFlight (section 10, decision 8)? Who goes to Toronto on Oct 29? Jonathan and Kyle: where your
-  issues stand.
-- Cynthia: the decisions in section 10.
-
-### Oct 21: the walking skeleton, and EAS
-
-- Morning: the Claude budget (#20: Cynthia adds $30 with auto-reload off and makes a key). Leo sets
-  `ANTHROPIC_API_KEY`, `AGENT_BUDGET_USD` and `CLERK_JWT_KEY` on Render and runs a Manual Deploy of
-  `main`. Democracy plays live; post the median latency and the cost of one session (#10, #28).
-- Cynthia: open the app PR (#4, #6) and get it merged, then #75 on top; pick the brand by noon; start
-  #26.
-- Leo: E1 to E3 once the app is on `main`, starting the Android development build first thing so the
-  queue runs while everything else happens; then E4. Then #36: the prompt, its registry entry and an
-  eval. Check its done-when against the demo seed, which expects 6/8 with "money".
-- 3 PM: Expo's office hours on Discord (E12).
-- Leo: #75 to done: the Clerk publishable key in `app/.env` (and later in the EAS environment), email
-  code as the only method and the Native API on in the dashboard, then a real sign-in reaching the API.
-- Jonathan: #46 with the picked tokens and Newsreader, and the icon and splash (E5).
-- Kyle: #12 (five names with time slots), #24 (the protocol in `docs/`), #14 (the brand page), #13.
+| What | Who |
+|---|---|
+| Confirm a Claude key that still works after the credits expire on Oct 21. If there's none, add $30 with auto-reload off and make a key (#19, #20) | Cynthia, Kyle |
+| Set `ANTHROPIC_API_KEY` and `AGENT_BUDGET_USD` on Render | Leo |
+| Merge #64, then #73 (their one conflict, in `api/src/app.test.ts`, is resolved on Leo's side). Manual Deploy `main` and post the latency and the cost of one session (#10, #28) | Cynthia, Leo |
+| Open the app PR from `cynthia/4-expo-app` and merge it (#4, #6), then #75 | Cynthia |
+| Take the decisions in section 9, P1 and the brand first | Cynthia |
+| Recruit the testers (P2) | Kyle |
+| The EAS project, ids, `eas.json` and `expo-updates`, then the Android development build first, so the queue runs while the rest happens (E1 to E3) | Leo |
+| Expo's office hours on Discord, 3 PM ET (E12) | Leo |
+| Everyone confirms their issues by 9 PM, and anything unclaimed moves (section 7) | Everyone |
 
 ### Oct 22: feature complete
 
-- App: #26 with the fact desk sheet, #34 (the gap as shadow and bronze), #75 and #46 merged, haptics,
-  the waiting and error states.
-- API: #36 merged; #29 checked (with #73, test mode and the fact desk already run through `advance`);
-  #44 (the coach, and the demo seed keyed to the demo user's Clerk id); #59 (Starter, its own key, and
-  `NODE_ENV=production` once the app signs in with Clerk).
-- EAS: E7 (Cynthia installs the Expo GitHub app), the web build on EAS Hosting, `CORS_ORIGIN` updated.
-- Kyle: #30 (the Devpost draft) and #31 (the slides).
-- Evening: a full session with Claude on, on an Android phone and on the web. Whatever breaks is the
-  list for the morning.
+| What | Who |
+|---|---|
+| P3 to P8 | As in section 5 |
+| Level 5 with the fact desk as a sheet (#26) and the result screen with the gap (#34) | Cynthia |
+| Merge #77, #78 and #79 (test mode, the whole map, the coach), then load the demo seed on prod for the demo account | Cynthia reviews, Leo |
+| Render Starter until Oct 30 and the production settings (#59) | Leo |
+| The web build on EAS Hosting with `CORS_ORIGIN` updated (E4), the first `preview` APK and update, and EAS Workflows once Cynthia installs the Expo GitHub app (E7) | Leo, Cynthia |
+| The theme, icon, splash and haptics (#46, E5, E9) | Jonathan |
+| The Devpost draft and the slides (#30, #31) | Kyle |
+| Evening: a whole session with Claude on JWT, on an Android phone and on the web. Whatever breaks is the morning's list | Everyone |
 
 ### Oct 23: testers
 
-- Morning: integration, warm-up (#37), a smoke test, and an update shipped to `preview`.
-- Evening: five testers (#38): the pre-test in test mode, two training sessions, the post-test. Fixes
-  ship with `eas update`; count them. Cynthia observes (#33), Kyle logs the bugs (#39), Leo watches the
-  API (#37), and whoever built the app stays on call (#35).
+| What | Who |
+|---|---|
+| Morning: fixes, the warm-up (#37), a smoke test, an update to `preview` | Leo, Cynthia |
+| Evening: five testers (#38). The pre-test in test mode, two training sessions, the post-test, then two questions: would you use this before an interview or a project demo, and what would you pay for it? | Kyle runs it, Cynthia observes (#33), Leo watches the API (#37), the app's builder stays on call (#35) |
+| Fixes go out with `eas update`, and we count them for the write-up | Leo |
 
 ### Oct 24: polish, and the freeze at 6 PM
 
-- Prompt fixes (#40), the top three usability fixes, #43 (delete and privacy), #42 (first to cut).
-- #50 (the numbers export) and the start of #49 (hand grading).
-- 6 PM freeze (#45): a `production` Android build, the last update on the `production` channel, the
-  last web deploy. Nothing ships after.
-- Evening: the rehearsal (#41) and the video (#48), both on the frozen build.
+| What | Who |
+|---|---|
+| Prompt fixes (#40), the top three usability fixes, delete my data and the privacy note (#43). The mastery screen (#42) is first to cut | Cynthia, Jonathan |
+| The numbers export (#50) and the start of hand grading (#49) | Leo, Cynthia |
+| 6 PM freeze (#45): the `production` Android build, the last update, the last web deploy. Nothing ships after | Leo |
+| Evening: the rehearsal (#41) and the video (#48), both on the frozen build | Cynthia, Kyle |
 
 ### Oct 25: submit by 9 PM
 
-- #49 and #52 (the numbers slide), #47 (the final deck), #55 (the README: the live links and QR codes
-  at the top, the architecture diagram, the Expo, Clerk and SurrealDB sections, the disclosures), #30
-  and #51 (the Devpost page), #53 (submit, with a screenshot in the chat).
+| What | Who |
+|---|---|
+| Hand grading (#49), the numbers slide (#52) and the final deck (#47) | Cynthia, Kyle |
+| The README (#55): the live links and QR codes at the top, the architecture diagram, the Expo and Clerk sections, the disclosures | Leo |
+| The Devpost page (#30, #51) and the submission (#53), with a screenshot in the chat | Kyle, Cynthia |
 
 ### Oct 26 to 29: stay alive
 
-- Starter stays on and the budget stays topped up. No deploys except a fix. Someone opens the live
+- Starter stays on and the budget stays topped up. No deploys except a fix, and someone opens the live
   link every day.
-- Rehearse the live demo twice. Bring a phone with the native build, a laptop with the web build, and
-  the video on a USB stick.
+- The top 10 comes out on Oct 26. We rehearse the live demo twice, and at least one of us goes to
+  Toronto on Oct 29 with a phone running the native build, a laptop with the web build and the video
+  on a USB stick.
 
-## 8. Who does what (a proposal for Cynthia)
+## 7. Who does what (proposal)
 
-- **Leo:** the API and hosting, plus EAS (Build, Update, Hosting, Workflows), since it's deployment;
-  #36, #44, #59; Clerk end to end, with #22 in #75 since Cynthia handed it over.
-- **Cynthia:** the app screens, since she built the app's base: #26 and #34; prompt fixes; reviews and
-  merges; the brand decision.
-- **Jonathan:** #46 with the icon and splash, #43, #42.
-- **Kyle:** credits (#19, #20), testers (#12, #24, #38, #39), the deck (#13, #31, #47, #52), Devpost
-  (#30, #53) and the video (#48).
-- If someone can't take their part by Oct 21 at noon, it moves: app work to Cynthia and Leo, and the
-  deck, video and Devpost page to whoever has the most room. Those matter as much as the code for
-  getting into the top 10.
+- Cynthia: the decisions, reviews and merges, the app screens (#26, #34, P7), the JWT session (P5) and
+  the prompt fixes.
+- Leo: the API and hosting, EAS (Build, Update, Hosting, Workflows), Clerk end to end, the demo seed and
+  the evals (P4, P6), the README.
+- Jonathan: the theme, icon and splash (#46), haptics, delete my data (#43), the mastery screen (#42).
+- Kyle: the credits (#19, #20), the testers (#12, #24, #38, #39), the deck (#13, #31, #47, #52),
+  Devpost (#30, #53) and the video (#48).
 
-## 9. The cut list, in order
+If someone can't take their part by 9 PM on Oct 21, app work moves to Cynthia and Leo, and the deck,
+video and Devpost page move to whoever has the most room. Those decide the top 10 as much as the code
+does.
 
-1. #42, the mastery screen (the demo uses the seeded profile).
-2. E14 to E16 (dark mode, the iOS simulator build, the Android widget).
-3. SurrealDB Agent Memory.
-4. Round 6's photo-heavy screens (keep the colors, the font, the icon and the result blocks).
+## 8. The cut list
+
+Cut in this order if we fall behind:
+
+1. The mastery screen (#42). The demo uses the seeded profile.
+2. TestFlight, if Apple hasn't confirmed an account by the evening of Oct 22. iPhones use the web
+   build.
+3. The SDK 58 extras: the Expo UI picker, Expo Observe and the update banner.
+4. Round 6's photo-heavy screens. Keep the colors, the font, the icon and the result blocks.
 5. Extra welcome steps.
 
-Never cut: Claude live, level 5, the result screen with the gap, EAS Build and Update, the web build,
-sign-in, delete my data, the testers, the video.
+Not this week: dark mode, the iOS simulator build, the Android widget, SurrealDB Agent Memory, and
+reading concepts from the student's repo.
 
-## 10. Decisions for the team
+Never cut: Claude live, the tech concepts in the demo, level 5, the result screen with the gap,
+sign-in, delete my data, EAS Build and Update, the web build, the five testers, the video.
 
-Each one becomes a `DECISIONS.md` line once it's taken.
+## 9. Decisions for Oct 21
 
-1. The brand direction (#14), by noon on Oct 21.
-2. The web build on EAS Hosting instead of a Render Static Site.
-3. The Expo organization, and who owns the EAS project.
-4. The Claude budget and model for the testers and judging, Opus 5.5 or Sonnet 5.5 (#20), sized from
-   the measured cost of a session, with enough left for the judges until Oct 29.
-5. The deck's persona, matching the adult testers.
-6. Render Starter until Oct 30 (about $7). Each participant can claim $50 of Render credit through the
-   form on the Devpost resources page.
-7. Whether to try Agent Memory (default: no).
-8. An Apple Developer Program membership for TestFlight (USD 99 a year), so judges' iPhones get the
-   native app. Tonight, since Apple takes about a day to confirm and then reviews the first build.
+Each one becomes a `DECISIONS.md` entry once it's taken.
 
-## 11. Risks
+1. The user and the concepts. A draft entry:
+
+   ```markdown
+   ### 2026-10-21 · CS students who build with coding agents
+   - **Decision:** our user is a CS student who builds projects with a coding agent and can't explain
+     the code it wrote. The concepts come from what agents build (JWT, hashing, database index, cache,
+     REST API, rate limiting, environment variable, CORS). The demo uses JWT and CORS.
+   - **Instead of:** abstract concepts like democracy and inflation, for any learner.
+   - **Why:** Devpost and the mentors ask for one specific user. Coding agents made this problem new,
+     two recent studies measure it, and our testers are this user.
+   - **Pattern / trade-off:** a narrower beachhead inside the Oct 18 thinking-tool decision, where the
+     subject is still the gym equipment. Abstract concepts move to the vision slide.
+   ```
+
+2. The brand (#14): round 6, "Out of the Cave".
+3. The Claude budget and model for the testers and judging (Opus 5.5 or Sonnet 5.5), sized from the
+   measured cost of a session, with enough left for the judges until Oct 29.
+4. TestFlight: one of us enrolls in the Apple Developer Program on Oct 21 (USD 99 a year, about a day
+   to confirm), or we skip it.
+5. The web build on EAS Hosting instead of a Render Static Site.
+6. The Expo organization, and who owns the EAS project.
+7. Render Starter from Oct 22 to Oct 30, about $7. Each of us can claim $50 of Render credit.
+8. Who goes to Toronto on Oct 29.
+
+## 10. Risks
 
 | Risk | What we do |
 |---|---|
-| The credits expire on Oct 21 with no new key, so nothing is live | #20 today. Sonnet if a session costs too much |
-| The app isn't finished (level 5, sign-in) | Owners confirmed by noon on Oct 21; the cut list |
-| No whole-map evaluator: level 5, the testers and the demo break | #36 right after the walking skeleton |
-| No testers, so no numbers | Recruit classmates tonight; three is enough for a pilot |
-| A cold start when a judge opens the link | Starter from Oct 22 to Oct 30 |
-| A turn takes over 8 s | Lower the effort first, then Sonnet for the questioner and hint giver (CONTRACTS.md section 5) |
-| The network fails at Demo Day | The web build on a laptop, demo mode, the video |
-| The first native build fails: so far the app has only run on the web and in Node tests | Build on Oct 21, not Oct 24. It's also the first test of Clerk's Native API, secure storage and Zod on the phone's JavaScript engine |
-| The free build queue is slow (over 90 minutes at peak) | Start builds in the morning, ship JavaScript fixes as updates, and never leave the freeze build to the last hour |
-| A spent budget shows as "Too many requests" in the app | A clearer message for a `rate_limited` error that isn't retryable |
-| Clerk's development instance runs out of its 100 emails a month, so judges can't get a code | Ask Clerk support to raise the limit; the `+clerk_test` fallback in Devpost's testing notes |
-| More design rounds | No new rounds once the brand is picked |
+| No Claude key works after the credits expire on Oct 21, so nothing is live | #20 on Oct 21, and Sonnet if a session costs too much |
+| Cynthia's review queue blocks everyone: the app PR, #64, #73, #75, #77, #78, #79 | One review block on Oct 21 in that order. Leo keeps the branches merged up and green |
+| The new concepts eat feature time | They're content (P3 to P7) spread over three people, and the API doesn't change |
+| The fact desk gives away more on tech concepts, whose definitions are precise | P6 runs the leak eval first, and the code still forces the redirect text |
+| The testers don't overestimate on the pre-test | We report what we find. The post-test and the testers' answers still count |
+| A turn takes over 8 s | Lower the effort first, then Sonnet for the questioner and the hint giver |
+| A judge hits a cold start | Starter from Oct 22 |
+| The first native build fails | Build on Oct 21, which leaves three days to fix it |
+| The network fails at Demo Day | The web build on a laptop, then the video. The offline replay only if we say it's a replay, since Devpost's rules ban faking a demo |
+| Clerk's 100 emails a month run out | Ask Clerk support, and use the `+clerk_test` fallback |
 
-## 12. Submission checklist
+## 11. Submission checklist
 
-Devpost page:
+Devpost's list, and what goes in each part:
 
-- A one-line pitch; the problem with the CHI 2025 citation; the persona; how it works (four parts, the
-  help that fades, the gap, the role flip); the tester numbers; the cost of a session.
-- Live links: the web build, the Android install QR code, the repo.
-- The video, three minutes at most (the limit is four): a hook in the first ten seconds, the gap
+- A public GitHub repo: ours is public already.
+- Live links: the web build, the Android install page with its QR code, and the TestFlight link if we
+  have one.
+- The video: 3 minutes (the limit is 4), shareable, no login. A hook in the first ten seconds, the gap
   reveal, level 5, fifteen seconds on Expo and EAS, the numbers, the ask.
-- The stack and the architecture diagram; "How we used Expo" (E6); "How we used Clerk"; SurrealDB
-  Cloud; the Claude agents and the orchestrator in code; Render.
-- "Responsible by design".
+- The write-up: the one-line pitch, the problem with its sources, the user, how it works, the tester
+  numbers, the cost of a session, How we used Expo, How we used Clerk, Responsible by design, and the
+  architecture diagram.
 - The team: four names.
-- Disclosures: the `create-expo-app` default template; the AI tools we used (Claude, Claude Code);
-  confirm with the team that nothing was built before Build Week.
-- Categories: Best Overall, Expo and Clerk; SurrealDB only if Agent Memory is in.
+- Disclosures: the `create-expo-app` default template on SDK 58, the AI tools we used (Claude and
+  Claude Code), and that nothing was built before Build Week, once the team confirms it.
+- Categories: Best Overall, Best Use of Expo, Best Use of Clerk.
+- Rules we keep: everyone is 18 or older and lives in Canada, the repo, the video and the page go
+  public, and every image has permission (the design boards use CC0, public-domain and Unsplash
+  images).
 
-README (#55): the live links and QR codes at the top, a two-line pitch, the architecture diagram, how to
-run it from a clean clone, the sponsor sections, the disclosures.
+## 12. Demo Day, in 3 minutes
 
-## 13. Demo Day, Oct 29
+1. The hook: "Can you explain the code your AI wrote?" The presenter predicts their score on JWT.
+2. Session 1, live: a hint costs a point, and the gap shows (about +2).
+3. The switch to the level-5 profile on CORS: the learner asks, the fact desk answers with facts, a
+   question fishing for the structure gets the redirect, and the result shows a small gap.
+4. The tester numbers.
+5. The vision (concepts read from your repo, Check the AI, schools) and the ask: a pilot with one CS
+   program.
 
-- Three minutes: the hook (predict your score), session 1 (a hint costs a point, the gap of +2), the
-  switch to the level-5 profile (the learner asks, the fact desk answers with facts, and a question
-  fishing for the structure gets the redirect), the result (6/8, gap +1), the tester numbers, Check the
-  AI as the vision, the ask.
-- Run it on a real phone with the native build, mirrored. The web build is the backup, demo mode covers
-  a dead network, and the video is the last resort.
-- Warm up every agent ten minutes before going on: the first call with a new schema is slower.
+We run it on a real phone with the native build, mirrored. The web build is the backup and the video
+is the last resort. Every agent gets a warm-up ten minutes before we go on, since the first call with
+a new schema is slower.
 
-## 14. What this plan is based on
+## Sources
 
-- **Read in full:** every tracked file on `main` and on `leo/clerk-token`; all of `cynthia/4-expo-app`
-  (source, config, docs); the diffs of #73 and #75; PR #72's design files (README, design principles,
-  round 6's tokens, and the text of every board); all 55 issues and 20 PRs with every comment and review; the
-  Devpost overview, rules, resources, updates and gallery pages.
-- **Checked against the docs on Oct 20:** Expo Go and SDK 58, the EAS free plan, EAS Build, Update,
-  Hosting and Workflows, the Expo modules in E9, Clerk's Expo package, and Metro in a monorepo (sources
-  below).
-- **Not read in full:** `.env.example` (a local safety hook blocks it; the variable names come from the
-  READMEs), `package-lock.json`, the images, `all-designs.html` (the same six boards in one file), and
-  the vendored Claude skills on `leo/claude-skills`.
-- **Checked live:** `/health` and `/health/db` on Render answer 200, and the session routes answer 401
-  without the dev key. `npm test` on `leo/clerk-token`: the API 37 passed and 1 skipped (it needs a
-  database), the agents 59 passed.
-- **Not checked:** Discord, where #12, #19 and #20 may have moved; the brief.
-
-Sources:
-
-- Build North on Devpost: [overview](https://build-north.devpost.com/), [rules](https://build-north.devpost.com/rules), [resources](https://build-north.devpost.com/resources)
+- Build North on Devpost: [overview](https://build-north.devpost.com/), [rules](https://build-north.devpost.com/rules), [resources](https://build-north.devpost.com/resources), read Oct 21
+- Anthropic, [How AI assistance impacts the formation of coding skills](https://www.anthropic.com/research/AI-assistance-coding-skills), January 2026
+- Prather et al., [The Widening Gap: The Benefits and Harms of Generative AI for Novice Programmers](https://arxiv.org/abs/2405.17739), ICER 2024
 - Lee et al., [The Impact of Generative AI on Critical Thinking](https://advait.org/files/lee_2025_ai_critical_thinking_survey.pdf), CHI 2025
-- Expo: [SDK 58 changelog](https://expo.dev/changelog/sdk-58) (Expo Go timing, office hours), [Expo Go loading changes, May 2026](https://expo.dev/changelog/expo-go-loading-changes-may-2026), [pricing](https://expo.dev/pricing)
-- EAS: [internal distribution](https://docs.expo.dev/build/internal-distribution/), [APKs](https://docs.expo.dev/build-reference/apk/), [simulator builds](https://docs.expo.dev/build-reference/simulators/), [EAS Update](https://docs.expo.dev/eas-update/getting-started/), [runtime versions](https://docs.expo.dev/eas-update/runtime-versions/), [EAS Hosting](https://docs.expo.dev/eas/hosting/get-started/), [Workflows syntax](https://docs.expo.dev/eas/workflows/syntax/), [pre-packaged jobs](https://docs.expo.dev/eas/workflows/pre-packaged-jobs/), [building from GitHub](https://docs.expo.dev/build/building-from-github/), [monorepos](https://docs.expo.dev/guides/monorepos/)
-- Expo Router [modals and form sheets](https://docs.expo.dev/router/advanced/modals)
-- Apple's TestFlight rules, Clerk's test logins and limits, and what Expo rewards: the sources in
-  [expo-prize-plan.md](expo-prize-plan.md)
-- Clerk [Expo quickstart](https://clerk.com/docs/expo/getting-started/quickstart)
-- SurrealDB [Agent Memory hosted quickstart](https://surrealdb.com/docs/agent-memory/quickstarts/hosted)
+- Expo, Apple and Clerk: the sources in the [Expo prize plan](expo-prize-plan.md)
