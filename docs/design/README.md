@@ -1,14 +1,15 @@
 # Design directions
 
-Branding and screen mockups for Reality Check, October 20 and 21, 2026. Leo picked round 6 on October 21 and #81
-puts it in the app, waiting for Cynthia's review there. Round 7 shows six directions for the new user, CS students who
-build with coding agents, and round 8 mixes four of them into one direction in two color themes. A pick gets a line in [`DECISIONS.md`](../../DECISIONS.md), and its colors become the app's
-theme in `app/`.
+Branding and screen mockups for Reality Check, October 20 and 21, 2026. **Round 8, Open Box, is the design we're
+using.** Leo picked it on October 21, in place of round 6 (which #81 first put in the app) and round 7's
+recommendation. Rounds 1 to 7 stay here as the history of how we got there. The pick is logged in
+[`DECISIONS.md`](../../DECISIONS.md), and round 8's tokens become the app's theme in `app/`.
 
 These are design boards (HTML pages), not app code. Open them in a browser: GitHub only shows their source.
 
-**Start with [`all-designs.html`](all-designs.html).** It holds all eight rounds in one self-contained file
-(images included), so it also works when sent on its own. Each round is saved as a standalone file below too.
+**Start with [`08-open-box/open-box.html`](08-open-box/open-box.html), the design we're using.**
+[`all-designs.html`](all-designs.html) holds all eight rounds in one self-contained file (images included), so it
+also works when sent on its own. Each round is saved as a standalone file below too.
 
 ## The rounds
 
@@ -20,8 +21,8 @@ These are design boards (HTML pages), not app code. Open them in a browser: GitH
 | 4 | [`04-socratic-abstract/socratic-abstract-directions.html`](04-socratic-abstract/socratic-abstract-directions.html) | Six abstract directions drawn in code: Byrne's Euclid, Black-Figure, Plato's Cave, Verde & Gold, Ionic Order, Euler Circles |
 | 5 | [`05-plaster-to-bronze/plaster-to-bronze.html`](05-plaster-to-bronze/plaster-to-bronze.html) | The direction built from what the app means: Rodin's Thinker, plaster for what you felt sure of, bronze for what you proved, across six screens |
 | 6 | [`06-out-of-the-cave/out-of-the-cave.html`](06-out-of-the-cave/out-of-the-cave.html) | The mix of the picks from rounds 3 to 5 (Plato's Cave, Chiaroscuro, Fresco, Old Master, Plaster to Bronze): every session walks from the dark into daylight. Version 2 applies Apple's design principles and research on reading, navigation and learning: twelve screens with home, waiting and error states, a working guess-and-dawn prototype, and the brand kit for #14. The research is in [`design-principles.md`](06-out-of-the-cave/design-principles.md) |
-| 7 | [`07-pivot-directions/pivot-directions.html`](07-pivot-directions/pivot-directions.html) | Six directions for CS students who build with coding agents, on Android-size screens next to the current app: Cave for Code, Red to Green, Whiteboard, Black Box, Your Pair and Warm Editor. Warm Editor (7F) is the recommendation: the session as a test run, in round 6's voice and colors. The research is in [`pivot-research.md`](07-pivot-directions/pivot-research.md) |
-| 8 | [`08-open-box/open-box.html`](08-open-box/open-box.html) | One direction mixed from four of round 7's: the session as a test run (7B), the box that opens one corner per proved point (7D), the pair that asks (7E), and the tutor's serif voice with the forecast-error result (7F). Shown in two color themes, Cobalt (blue and white) and Obsidian (black and white), each with a day and a night mode |
+| 7 | [`07-pivot-directions/pivot-directions.html`](07-pivot-directions/pivot-directions.html) | Six directions for CS students who build with coding agents, on Android-size screens next to the current app: Cave for Code, Red to Green, Whiteboard, Black Box, Your Pair and Warm Editor. Warm Editor (7F) was the recommendation until round 8: the session as a test run, in round 6's voice and colors. The research is in [`pivot-research.md`](07-pivot-directions/pivot-research.md) |
+| 8 | [`08-open-box/open-box.html`](08-open-box/open-box.html) | **The design we're using.** One direction mixed from four of round 7's: the session as a test run (7B), the box that opens one corner per proved point (7D), the pair that asks (7E), and the tutor's serif voice with the forecast-error result (7F). Shown in two color themes, Cobalt (blue and white) and Obsidian (black and white), each with a day and a night mode |
 
 Rounds 2 to 6 use the democracy walk-through from [`agents/fixtures/session-1.json`](../../agents/fixtures/session-1.json)
 (predicted 7, scored 5, so the calibration gap is +2). Rounds 2, 5 and 6 also show the level-5 inflation example from
@@ -45,10 +46,12 @@ same numbers, and a level-5 CORS profile.
 - [`06-out-of-the-cave/out-of-the-cave-tokens.ts`](06-out-of-the-cave/out-of-the-cave-tokens.ts): the same shape for round 6,
   with a third palette for the always-dark cave screens, increased-contrast values, the five stages, and the type scale. Rounds 3 to 5 keep their
   colors inside their boards.
-- [`08-open-box/open-box-tokens.ts`](08-open-box/open-box-tokens.ts): the same roles for round 8, with the two themes (Cobalt, Obsidian) each in a day and a night palette, the box's corner states, Material 3 sizes and springs.
 - [`07-pivot-directions/warm-editor-tokens.ts`](07-pivot-directions/warm-editor-tokens.ts): the same roles for 7F, with an
   editor (dark) and a paper (light) palette, Material 3 sizes, springs and the check states. The other round 7
   directions keep their colors inside the board.
+- [`08-open-box/open-box-tokens.ts`](08-open-box/open-box-tokens.ts): the app's theme. The same roles for round 8,
+  with the two themes (Cobalt, the default, and Obsidian) each in a day and a night palette, the box's geometry and
+  corner states, Material 3 sizes and springs. The pair's drawings are in [`08-open-box/pair/`](08-open-box/pair/).
 
 ## Image credits and licenses
 
@@ -77,6 +80,6 @@ Round 6 reuses six of these images; its folder holds its own copies. The public-
 [game-icons.net](https://game-icons.net) by Lorc (CC BY 3.0, credited on the boards). Fonts load from Google Fonts,
 under their open licenses.
 
-Round 7 uses no photos. Its "current" frames are screenshots of our own review build, and everything else is drawn
-in code. The mascot in 7E is drawn with the engine from [Maskot](https://github.com/ExtraBinoss/Maskot), built on
+Rounds 7 and 8 use no photos. Round 7's "current" frames are screenshots of our own review build, and everything
+else is drawn in code. The pair in 7E and round 8 is drawn with the engine from [Maskot](https://github.com/ExtraBinoss/Maskot), built on
 Bloub by Jérémy Perret (both MIT).

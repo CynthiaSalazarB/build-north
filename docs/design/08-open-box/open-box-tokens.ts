@@ -1,4 +1,4 @@
-// Round 8 "Open Box": one direction in two color themes, each with a day and a night mode.
+// Round 8 "Open Box", the app's design (picked Oct 21): one direction in two color themes, each with a day and a night mode.
 // Same roles as app/src/theme.ts and round 7's warm-editor-tokens.ts, so screens keep reading colors by name.
 export const brand = { name: "Reality Check" } as const;
 
@@ -34,6 +34,7 @@ const cobaltDay = {
   // mint: a part done alone
   alone: "#135231",
   aloneContainer: "#d3f1e0",
+  // the pair: pair/*.svg are filled #2f55d4 and #fbfcfe; draw them in pair and pairEye instead
   pair: "#2a4fd0",
   pairEye: "#ffffff",
   scrim: "rgba(18, 26, 51, 0.4)",
@@ -137,12 +138,16 @@ const obsidianStudio: Colors = {
 
 export type Colors = { readonly [K in keyof typeof cobaltDay]: string };
 
-/** Two themes, each with a day and a night mode. `cobalt` opens in day, `obsidian` in night, then follows the system. */
+/** Two themes, each with a day and a night mode. The mode follows the phone's light or dark setting; `default` is the
+ *  mode used when the phone has none. */
 export const palette = {
   cobalt: { day: cobaltDay, night: cobaltNight, default: "day" },
   obsidian: { day: obsidianStudio, night: obsidianEditor, default: "night" },
 } as const;
 export type Theme = keyof typeof palette;
+
+/** The theme the app opens in. Obsidian is the second theme: switching is this one constant. */
+export const defaultTheme: Theme = "cobalt";
 export type Mode = "day" | "night";
 
 /** A part's state as a check run, in GitHub's words: queued, in progress, then how it ended. */
@@ -160,6 +165,27 @@ export const corner = {
   proved: "filled with onSurface; its face turns to glass",
   feltSure: "ring in gap",
   neverExpected: "dashed ring in placeholder",
+} as const;
+
+/** The box, drawn in a 210 x 214 viewBox, with corners numbered as on the board. */
+export const box = {
+  viewBox: { width: 210, height: 214 },
+  corners: {
+    1: [112, 22], 2: [184, 60], 3: [98, 104], 4: [26, 66],
+    5: [112, 114], 6: [184, 152], 7: [98, 196], 8: [26, 158],
+  },
+  /** Closed, the top is filled `box`, the left `boxDeep` and the right `boxSide`. A face turns to glass once all
+   *  four of its corners are proved. */
+  faces: { top: [1, 2, 3, 4], left: [4, 3, 7, 8], right: [3, 2, 6, 7] },
+  visibleEdges: [[1, 2], [2, 3], [3, 4], [4, 1], [2, 6], [3, 7], [4, 8], [7, 6], [7, 8]],
+  /** Behind the box, drawn dashed in `glassEdge`. */
+  hiddenEdges: [[1, 5], [5, 6], [5, 8]],
+  /** Point n of 8 is corner `cornerOrder[n - 1]`: a guess of 7 marks the first seven, a score of 5 proves the first
+   *  five, and the corners in between are the ones felt sure. */
+  cornerOrder: [4, 8, 3, 7, 1, 2, 6, 5],
+  /** The top bar's mini box: part n is edge `partEdges[n - 1]`, thick when done and dashed in `primary` while in
+   *  progress. */
+  partEdges: [[4, 8], [3, 7], [2, 6], [1, 5]],
 } as const;
 
 /** Newsreader carries the tutor's voice (already loaded by the app); Atkinson Hyperlegible Mono carries code,

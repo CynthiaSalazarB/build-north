@@ -260,3 +260,18 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** prefetching (two independent calls in parallel). The next question is
   written from the map as it was before the answer being judged, so it can't build on what the
   learner just found. If the early call fails, the part asks normally when it starts.
+
+### 2026-10-21 · The app's design is round 8, Open Box
+- **Decision:** the app uses round 8, Open Box (`docs/design/08-open-box/`), picked by Leo on Oct 21. It
+  replaces round 6, Out of the Cave, which #81 first put in the app, and round 7's recommendation, 7F. The
+  app opens in the Cobalt theme (blue and white), and its day and night modes follow the phone's setting.
+  Obsidian (black and white) stays in the tokens as the second theme. Per #14, Cynthia approves the
+  direction on #72.
+- **Instead of:** keeping round 6's cave and bronze, or moving to 7F (round 6's colors on a test run).
+- **Why:** the user is now CS students who build with coding agents. Round 8 is drawn from what they
+  already read every day: a spec file, a list of checks, `Expected` and `Received`. The gap gets a picture
+  they get at a glance, a black box whose corners open as they prove points, and the pair keeps the tutor
+  friendly without ever reacting to the score.
+- **Pattern / trade-off:** colors by role. Screens read colors by name from one tokens file, so the second
+  theme is one constant, not a second set of screens. Round 6's dawn and bronze cast go; the box opening
+  on the result is now the session's one big moment.
