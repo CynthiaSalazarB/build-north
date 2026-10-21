@@ -4,7 +4,7 @@ import { connectSurreal, surrealConfigFromEnv } from "./db.ts";
 import { createStore, defineSchema, type Store } from "./store.ts";
 
 // Cynthia's demo profile (#32) under one user (#44), through the Store the API reads: the seed's mastery
-// (level 5 on every move) and its inflation session, waiting at the whole-map Turn with the prediction
+// (level 5 on every move) and its CORS session, waiting at the whole-map Turn with the prediction
 // made. The session gets its id from SurrealDB like any other, since the API only accepts those ids. A
 // second run resets the mastery and adds a fresh session; the earlier sessions stay.
 export async function loadDemoSeed(store: Store, user: string): Promise<Session> {

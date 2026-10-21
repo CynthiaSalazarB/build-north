@@ -96,7 +96,7 @@ npm run seed:demo -w api -- <user id>
 ```
 
 Loads Cynthia's demo profile ([`agents/fixtures/demo-seed.json`](../agents/fixtures/demo-seed.json),
-#32) for one user, through the same store the API reads: level 5 on all four moves, and the inflation
+#32) for one user, through the same store the API reads: level 5 on all four moves, and the CORS
 session waiting at the whole map, with the prediction (7) already made. It prints the session's id.
 Running it again resets the mastery to the seed and adds a fresh waiting session; earlier sessions
 stay.

@@ -1,5 +1,5 @@
 // #44 done when: the coach's message states no number it wasn't given. Four finished sessions, with the
-// numbers computed the way the orchestrator computes them: the demo (inflation, 6/8), session 1
+// numbers computed the way the orchestrator computes them: the demo (CORS, 6/8), session 1
 // (democracy, 5/8, from the fixture), a perfect map that beat its prediction, and a weak pre-test with a
 // big gap and questions to count. Every number in a message must appear in what the coach was sent;
 // `nextFocus` must be a part with the fewest points, or null when every part got 2; and the message names
@@ -41,7 +41,7 @@ const one = sessionOne.result!;
 const CASES: { label: string; input: CoachInput }[] = [
   {
     label: "the demo, level 5",
-    input: finished("inflation", seed.script.map, seed.session.predictedScore!, [0, 2, 2, 2], {
+    input: finished(seed.session.concept, seed.script.map, seed.session.predictedScore!, [1, 2, 2, 1], {
       hintsUsed: 0,
       masteryChanges: [],
       questions: seed.script.expected.questions,

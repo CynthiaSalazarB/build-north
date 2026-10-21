@@ -108,14 +108,14 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     assert.notEqual(await store.getSession("keep-me", theirs.id), null);
   });
 
-  await t.test("the demo seed puts its user at level 5 on every move, with an inflation session the API carries on", async (st) => {
+  await t.test("the demo seed puts its user at level 5 on every move, with a CORS session the API carries on", async (st) => {
     const seed = DemoSeed.parse(demoSeed);
     const session = await loadDemoSeed(store, "demo");
     assert.deepEqual(await store.getMastery("demo"), seed.mastery);
     assert.deepEqual(await store.getSession("demo", session.id), session);
 
     // what the app gets when the demo user signs in, then the presenter's first question
-    const fact = { kind: "fact", answer: "Broadly, prices across the economy.", questionType: "contrast" };
+    const fact = { kind: "fact", answer: "No. Browsers enforce CORS, and curl doesn't check it.", questionType: "breaking_case" };
     const server = createApp({ corsOrigins: [], checkDb: null, store, advance, callAgentFor: () => async () => fact, devKey: "k" }).listen(0);
     st.after(() => server.close());
     await once(server, "listening");
