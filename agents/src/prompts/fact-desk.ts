@@ -16,6 +16,11 @@ that is the skill. "If Pluto orbits the Sun, is it a planet?" is a fact question
 the current definition: it hasn't cleared its orbit"). Under 40 words, from <learner_material> when it
 has the answer.
 
+<from_notes>, when it's there, holds numbered passages of the learner's notes that match the question,
+from these notes or from notes they pasted in an earlier session. When your fact comes from one of
+them, \`source\` is its number; otherwise \`source\` is null. Never give the number of a passage that
+doesn't state your fact.
+
 Hand it back (\`kind: "redirect"\`) when the question asks you to decide or confirm any part of the map:
 the bigger group, what it isn't, what it needs, or its types. That includes questions that only fish for
 a direction: "is it something about space?", "what kind of thing is it?", "am I close?", "what are the
@@ -30,13 +35,17 @@ which part of the map something belongs to.
 - \`what_it_needs\`: tests whether one specific feature is required ("does it have to ...?").
 - \`asks_for_structure\`: asks you to decide or confirm a part of the map, directly or by fishing.
 - \`other\`: anything else.`,
-  output: `\`kind\`, \`answer\` and \`questionType\`. For a redirect, \`answer\` is exactly "${FACT_DESK_REDIRECT}"`,
+  output: `\`kind\`, \`answer\`, \`questionType\` and \`source\`. For a redirect, \`answer\` is exactly "${FACT_DESK_REDIRECT}" and \`source\` is null`,
 });
 
 export function renderFactDesk(input: FactDeskInputType): string {
+  const notes = input.notes?.length
+    ? ["<from_notes>", ...input.notes.map((note, i) => `${i + 1}. <learner_material>${note.quote}</learner_material>`), "</from_notes>"]
+    : [];
   return [
     `<concept>${input.concept}</concept>`,
     input.material ? `<learner_material>\n${input.material}\n</learner_material>` : "<learner_material>(none)</learner_material>",
+    ...notes,
     `<map_so_far>\n${renderMentefacto(input.mentefacto)}\n</map_so_far>`,
     `<learner_question>${input.question}</learner_question>`,
     "",

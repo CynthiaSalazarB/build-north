@@ -4,7 +4,7 @@
 //
 // Examples in prompts use "planet" only. The test scripts use democracy and inflation, and the testers
 // use ecosystem, contract, metaphor and habit, so no prompt carries the answer to anything we measure.
-import type { AgentContext, Mentefacto, MoveId } from "../contracts.ts";
+import type { AgentContext, LearnerMemory, Mentefacto, MoveId } from "../contracts.ts";
 import { MOVE_LABEL } from "../contracts.ts";
 
 /** The method, the same for every agent. */
@@ -61,6 +61,13 @@ export function renderMentefacto(m: Mentefacto): string {
     `isoordinate: ${list(m.isoordinate)}`,
     `infraordinate: ${list(m.infraordinate)}`,
   ].join("\n");
+}
+
+/** What Agent Memory holds on the learner for this concept (hint giver and coach): one line per fact,
+ * each part's oldest first, marking the ones a later answer replaced. */
+export function renderLearnerMemory(memory: LearnerMemory): string {
+  const line = (m: LearnerMemory[number]) => `- ${moveName(m.move)}: ${m.fact}${m.current ? "" : " (replaced)"}`;
+  return ["<learner_memory>", ...memory.map(line), "</learner_memory>"].join("\n");
 }
 
 /** The context every per-move agent receives, as the user message's opening blocks. */
