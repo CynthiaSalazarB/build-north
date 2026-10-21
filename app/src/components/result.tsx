@@ -63,6 +63,9 @@ export function ResultScreen({ concept, result, onDone }: Props) {
           ))}
         </View>
 
+        <Footnote dim>
+          {result.hintsUsed === 0 ? "You didn't use Help." : `You used Help ${result.hintsUsed} ${result.hintsUsed === 1 ? "time" : "times"}.`}
+        </Footnote>
         {result.masteryChanges.map((change) => (
           <Footnote key={change.move}>{`${MOVE_LABEL[change.move]} moved up to ${stageOf(change.to).name}.`}</Footnote>
         ))}
