@@ -1,5 +1,7 @@
 // The start screen (round 6, daylight): what the app does, a session to resume, and a new map: an idea,
-// and optionally the learner's own notes (pasted text only, up to 8,000 characters: decision 12).
+// and optionally the learner's own notes (pasted text only, up to 8,000 characters: decision 12). Test
+// Myself starts a self-test instead: the whole map alone (the testers' pre-test and post-test).
+import { MOVE_ORDER, type SessionMode } from "@build-north/agents";
 import type { Metadata } from "expo-router/server";
 import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
@@ -10,7 +12,7 @@ import { KeyUnit } from "../components/icons.tsx";
 import { Failure } from "../components/messages.tsx";
 import { Body, BrandTitle, Button, Footnote, Screen, Ui, useColors } from "../components/ui.tsx";
 import { UpdateNotice } from "../components/update-notice.tsx";
-import { keysOf } from "../session/present.ts";
+import { filledOf, itemsOf, keysOf } from "../session/present.ts";
 import { clerkKey } from "../session/config.ts";
 import { useSession } from "../session/session-context.tsx";
 import { radius, size, space, type } from "../theme.ts";
@@ -36,17 +38,19 @@ export default function StartScreen() {
   const [concept, setConcept] = useState(offline ? "democracy" : "");
   const [notes, setNotes] = useState("");
   const [notesOpen, setNotesOpen] = useState(false);
-  const [starting, setStarting] = useState(false);
+  const [starting, setStarting] = useState<SessionMode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const unfinished = state.turn && state.turn.expects !== "none" ? state.turn : null;
+  // at level 5 the parts fill on the phone until the map is submitted
+  const draft = unfinished?.expects === "map" ? state.draft : null;
 
-  const begin = async () => {
+  const begin = async (mode: SessionMode) => {
     const name = concept.trim();
     if (!name || starting) return;
-    setStarting(true);
+    setStarting(mode);
     setError(null);
-    const problem = await start({ concept: name, ...(notes.trim() ? { material: notes } : {}) });
-    setStarting(false);
+    const problem = await start({ concept: name, ...(notes.trim() ? { material: notes } : {}), ...(mode === "test" ? { mode } : {}) });
+    setStarting(null);
     if (problem) setError(problem);
     else router.push("/session");
   };
@@ -70,9 +74,11 @@ export default function StartScreen() {
                 <Ui strong style={styles.capitalized}>
                   {unfinished.mentefacto.concept}
                 </Ui>
-                <Footnote dim>{`${unfinished.progress.movesDone} of ${unfinished.progress.movesTotal} parts built`}</Footnote>
+                <Footnote dim>
+                  {draft ? `${filledOf(draft)} of 4 parts filled` : `${unfinished.progress.movesDone} of ${unfinished.progress.movesTotal} parts built`}
+                </Footnote>
                 <View style={styles.keys} accessible={false}>
-                  {keysOf(unfinished).map((unit, i) => (
+                  {(draft ? MOVE_ORDER.map((move) => (itemsOf(draft, move).length > 0 ? "done" : "todo")) : keysOf(unfinished)).map((unit, i) => (
                     <KeyUnit key={i} color={unit === "done" ? c.primary : c.onSurfaceVariant} opacity={unit === "done" ? 1 : 0.35} />
                   ))}
                 </View>
@@ -106,7 +112,7 @@ export default function StartScreen() {
               accessibilityLabel="A concept to map"
               style={[styles.input, field]}
               returnKeyType="go"
-              onSubmitEditing={begin}
+              onSubmitEditing={() => void begin("learn")}
             />
           </View>
 
@@ -135,8 +141,20 @@ export default function StartScreen() {
         </ScrollView>
 
         <View style={styles.foot}>
-          <Button label="Start Mapping" busy={starting} disabled={!concept.trim()} onPress={begin} />
-          {clerkKey && <SignOut />}
+          <Button label="Start Mapping" busy={starting === "learn"} disabled={!concept.trim() || starting !== null} onPress={() => void begin("learn")} />
+          <View style={styles.footRow}>
+            {!offline && (
+              <Button
+                kind="plain"
+                label="Test Myself"
+                hint="The whole map on your own, with only the fact desk. Your levels don't change."
+                busy={starting === "test"}
+                disabled={!concept.trim() || starting !== null}
+                onPress={() => void begin("test")}
+              />
+            )}
+            {clerkKey && <SignOut />}
+          </View>
         </View>
       </KeyboardAvoidingView>
       <ObserveInteractiveMarker />
@@ -168,7 +186,7 @@ function Choice({ label, selected, onPress }: { label: string; selected: boolean
 // Only rendered with Clerk on (#22), since useAuth needs the ClerkProvider in the root layout
 function SignOut() {
   const { signOut } = useAuth();
-  return <Button kind="plain" label="Sign Out" onPress={() => void signOut()} style={styles.signOut} />;
+  return <Button kind="plain" label="Sign Out" onPress={() => void signOut()} />;
 }
 
 const styles = StyleSheet.create({
@@ -203,5 +221,5 @@ const styles = StyleSheet.create({
   },
   count: { alignSelf: "flex-end" },
   foot: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m, gap: space.xs },
-  signOut: { alignSelf: "center" },
+  footRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: space.xl },
 });

@@ -88,11 +88,13 @@ type ButtonProps = {
   busy?: boolean;
   /** Read out instead of the label, when the label alone isn't clear. */
   hint?: string;
+  /** A bronze button that sizes to its label, for a bar (level 5's Submit). */
+  compact?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
 /** A capsule: the main action is bronze and full width; the others size to their label. */
-export function Button({ label, onPress, kind = "primary", icon, disabled, busy, hint, style }: ButtonProps) {
+export function Button({ label, onPress, kind = "primary", icon, disabled, busy, hint, compact, style }: ButtonProps) {
   const c = useColors();
   const off = disabled || busy;
   const look = {
@@ -109,10 +111,10 @@ export function Button({ label, onPress, kind = "primary", icon, disabled, busy,
       accessibilityState={{ disabled: !!off, busy: !!busy }}
       disabled={off}
       onPress={onPress}
-      hitSlop={kind === "primary" ? undefined : size.hitSlop}
+      hitSlop={kind === "primary" && !compact ? undefined : size.hitSlop}
       style={({ pressed }) => [
         styles.button,
-        kind === "primary" ? styles.primary : styles.small,
+        kind === "primary" && !compact ? styles.primary : styles.small,
         look.box,
         off && styles.disabled,
         pressed && !off && styles.pressed,

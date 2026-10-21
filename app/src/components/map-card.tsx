@@ -1,11 +1,10 @@
 // The mentefacto so far, one row per part with its plain label (MOVE_LABEL). During the worked example
 // it shows the planet map instead (Turn.example). At level 3 the current part shows the given half.
-import { MOVE_LABEL, MOVE_ORDER, type Item, type Mentefacto, type MoveId, type Turn } from "@build-north/agents";
+import { MOVE_LABEL, MOVE_ORDER, type Mentefacto, type MoveId, type Turn } from "@build-north/agents";
 import { StyleSheet, Text, View } from "react-native";
+import { itemsOf } from "../session/present.ts";
 import { palette, radius, space, type } from "../theme.ts";
 import { Body, Footnote, Ui, useColors } from "./ui.tsx";
-
-const itemsOf = (map: Mentefacto, move: MoveId): Item[] => (move === "supraordinate" ? (map.supraordinate ? [map.supraordinate] : []) : map[move]);
 
 type Props = { map: Mentefacto; title: string; current?: MoveId | null; scaffold?: Turn["scaffold"] };
 

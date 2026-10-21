@@ -3,13 +3,14 @@
 import { Image, StyleSheet, View, type ImageSourcePropType } from "react-native";
 import Svg, { Defs, LinearGradient, Polygon, RadialGradient, Rect, Stop } from "react-native-svg";
 import { palette, space } from "../theme.ts";
+import { decorative } from "./icons.tsx";
 
 const cave = palette.cave;
 
 /** The light from the cave mouth, high on the screen. */
 export function Glow({ top = "34%" }: { top?: string }) {
   return (
-    <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} accessible={false}>
+    <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} {...decorative}>
       <Defs>
         <RadialGradient id="glow" cx="50%" cy={top} rx="72%" ry="40%">
           <Stop offset="0" stopColor={cave.beam} stopOpacity={0.2} />
@@ -24,7 +25,7 @@ export function Glow({ top = "34%" }: { top?: string }) {
 /** The beam the opening throws on the floor, widening as it falls. */
 export function Beam({ strength = 0.16 }: { strength?: number }) {
   return (
-    <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" accessible={false}>
+    <Svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="none" {...decorative}>
       <Defs>
         <LinearGradient id="beam" x1="0" y1="0" x2="0" y2="1">
           <Stop offset="0" stopColor={cave.beam} stopOpacity={strength} />

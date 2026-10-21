@@ -1,13 +1,13 @@
 // The bottom of a session screen: the one input the latest Turn asks for (`expects`), and Help during the
 // moves with its price on it. Everything waits while a call is pending (decision 18). The guess has its
-// own screen (guess.tsx).
+// own screen (guess.tsx), and so does the whole map at level 5 (whole-map.tsx).
 import type { Turn } from "@build-north/agents";
 import { useState } from "react";
 import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from "react-native";
 import type { LearnerInput } from "../session/session-context.tsx";
 import { radius, size, space, type } from "../theme.ts";
 import { Icon } from "./icons.tsx";
-import { Button, Footnote, useColors } from "./ui.tsx";
+import { Button, useColors } from "./ui.tsx";
 
 type Props = { turn: Turn; pending: boolean; helpLabel: string; onSend: (input: LearnerInput) => void };
 
@@ -21,13 +21,8 @@ export function Composer({ turn, pending, helpLabel, onSend }: Props) {
           <Button label="Continue" busy={pending} onPress={() => onSend({ action: "continue" })} />
         </View>
       );
+    // the guess and the whole map (level 5) have their own screens
     case "map":
-      // Building the whole map alone is the level-5 screen (#26).
-      return (
-        <View style={styles.bar}>
-          <Footnote dim>Building the whole map yourself (level 5) isn't in this version yet.</Footnote>
-        </View>
-      );
     case "prediction":
     case "none":
       return null;

@@ -1,7 +1,7 @@
 // What the screens say, as pure functions of the Turns and the transcript: the stage of a part, the
 // hint card, the price on Help, the calibration gap and its blocks. No React here, so it's tested
 // under Node. The rules behind the words are in CONTRACTS.md section 3.
-import type { HintStep, Level, Result, Turn, TurnBody } from "@build-north/agents";
+import { MOVE_LABEL, MOVE_ORDER, type HintStep, type Item, type Level, type Mentefacto, type Message, type MoveId, type Result, type Turn, type TurnBody } from "@build-north/agents";
 import type { Entry } from "./transcript.ts";
 
 /** A part's level as a stage of the statue (round 6): what the learner sees on the chip. */
@@ -108,4 +108,64 @@ export type Block = "cast" | "shade" | "empty";
 /** The 8 points: cast in bronze when proven, a shadow when felt sure but not proven, empty otherwise. */
 export function blocksOf(predicted: number, score: number, max = 8): Block[] {
   return Array.from({ length: max }, (_, i) => (i < score ? "cast" : i < predicted ? "shade" : "empty"));
+}
+
+// ---------- Level 5: the learner builds the whole map and asks the fact desk ----------
+
+/** A part's items: the bigger group is one item, the other parts are lists. */
+export const itemsOf = (map: Mentefacto, move: MoveId): Item[] =>
+  move === "supraordinate" ? (map.supraordinate ? [map.supraordinate] : []) : map[move];
+
+/** How many of the four parts have something in them. */
+export const filledOf = (map: Mentefacto): number => MOVE_ORDER.filter((move) => itemsOf(map, move).length > 0).length;
+
+/** What each part asks for, in plain words: the method's moves without its names. */
+export function partMeaningOf(move: MoveId, concept: string): string {
+  switch (move) {
+    case "supraordinate":
+      return `The closest bigger group that ${concept} belongs to.`;
+    case "exclusion":
+      return `Something close to ${concept} that it isn't, and how they differ.`;
+    case "isoordinate":
+      return `What something needs to count as ${concept}.`;
+    case "infraordinate":
+      return `The kinds of ${concept}.`;
+  }
+}
+
+/** Writes one part back into the map: blank items go, a note only stays on an exclusion. */
+export function withPart(map: Mentefacto, move: MoveId, items: readonly Item[]): Mentefacto {
+  const clean = items
+    .map((i) => ({ value: i.value.trim(), note: move === "exclusion" && i.note?.trim() ? i.note.trim() : null }))
+    .filter((i) => i.value);
+  return move === "supraordinate" ? { ...map, supraordinate: clean[0] ?? null } : { ...map, [move]: clean };
+}
+
+/** The ladder has four steps per part (three hints, then the answer). */
+const STEPS_PER_PART = 4;
+
+/** On the whole map, Help works on the first part whose hints haven't run out, in order (CONTRACTS.md
+ * section 3), so the n-th hint of the session (from 0) is about this part. */
+export const hintPartOf = (n: number): MoveId => MOVE_ORDER[Math.min(Math.floor(n / STEPS_PER_PART), MOVE_ORDER.length - 1)]!;
+
+/** Help on the whole map: the first Help on a part costs a point, the next ones nothing more until the
+ * answer itself. Null once every part has been revealed. */
+export function wholeMapHelpLabelOf(hintsUsed: number): string | null {
+  if (hintsUsed >= STEPS_PER_PART * MOVE_ORDER.length) return null;
+  return hintsUsed % STEPS_PER_PART === 0 ? "Help · −1 pt" : "More Help";
+}
+
+const LABELED = new RegExp(`^(${MOVE_ORDER.map((m) => MOVE_LABEL[m]).join("|")}): ([\\s\\S]+)$`);
+
+/** The whole-map evaluator's note on each part. The orchestrator writes each one as "Bigger group: …"
+ * (submitMap in agents/src/orchestrator/advance.ts). */
+export function partNotesOf(messages: readonly Message[]): Partial<Record<MoveId, string>> {
+  const notes: Partial<Record<MoveId, string>> = {};
+  for (const message of messages) {
+    if (message.kind !== "feedback") continue;
+    const match = LABELED.exec(message.text);
+    const move = match && MOVE_ORDER.find((m) => MOVE_LABEL[m] === match[1]);
+    if (move) notes[move] = match[2]!.trim();
+  }
+  return notes;
 }

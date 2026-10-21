@@ -1,6 +1,11 @@
 // The app's own drawn icons (round 6), one stroke weight per family. The laurel is game-icons.net by
 // Lorc (CC BY 3.0), credited in the README.
+import { Platform } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
+
+/** For a drawing the screen reader skips (the control around it carries the label). On the web it's
+ * aria-hidden, since an <svg> element has no `accessible` attribute and React warns about it. */
+export const decorative = Platform.select({ web: { "aria-hidden": true } as const, default: { accessible: false } as const });
 
 export type IconName = "x" | "back" | "up" | "plus" | "minus" | "sun" | "alert" | "chev";
 
@@ -10,7 +15,7 @@ type Props = { name: IconName; color: string; size?: number };
 export function Icon({ name, color, size = 20 }: Props) {
   const stroke = { fill: "none", stroke: color, strokeLinecap: "round", strokeLinejoin: "round" } as const;
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" accessible={false}>
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
       {name === "x" && <Path d="M7 7l10 10M17 7L7 17" {...stroke} strokeWidth={2} />}
       {name === "back" && <Path d="M14.5 5.5L8 12l6.5 6.5" {...stroke} strokeWidth={2.2} />}
       {name === "chev" && <Path d="M9 5l7 7-7 7" {...stroke} strokeWidth={2.4} />}
@@ -41,7 +46,7 @@ export function Icon({ name, color, size = 20 }: Props) {
 /** The mark: a question mark whose dot is a check (the brand kit, #14). */
 export function Mark({ color, check, size = 26 }: { color: string; check: string; size?: number }) {
   return (
-    <Svg width={size} height={(size * 42) / 36} viewBox="0 0 36 42" accessible={false}>
+    <Svg width={size} height={(size * 42) / 36} viewBox="0 0 36 42" {...decorative}>
       <Path d="M9 13C9 7 13.5 4 18.5 4 24 4 28 7.5 28 12.5c0 5.5-5 7.5-7.5 10-1.5 1.5-2 3-2 5.5" fill="none" stroke={color} strokeWidth={3.4} strokeLinecap="round" />
       <Path d="M11.5 33.5l4.5 4.5 9.5-9.5" fill="none" stroke={check} strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" />
     </Svg>
@@ -51,7 +56,7 @@ export function Mark({ color, check, size = 26 }: { color: string; check: string
 /** One unit of the Greek key: a part of the map. */
 export function KeyUnit({ color, opacity = 1 }: { color: string; opacity?: number }) {
   return (
-    <Svg width={26} height={16} viewBox="0 0 26 16" opacity={opacity} accessible={false}>
+    <Svg width={26} height={16} viewBox="0 0 26 16" opacity={opacity} {...decorative}>
       <Path d="M1 15V1h24v14H8V6h10v5" fill="none" stroke={color} strokeWidth={2} />
     </Svg>
   );
@@ -60,7 +65,7 @@ export function KeyUnit({ color, opacity = 1 }: { color: string; opacity?: numbe
 /** The laurel: a part done alone, with no hint and no retry. */
 export function Laurel({ color, size = 14 }: { color: string; size?: number }) {
   return (
-    <Svg width={size} height={size} viewBox="0 0 512 512" accessible={false}>
+    <Svg width={size} height={size} viewBox="0 0 512 512" {...decorative}>
       <Path fill={color} d={LAUREL} />
     </Svg>
   );

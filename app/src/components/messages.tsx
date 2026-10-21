@@ -2,7 +2,7 @@
 // replies plain serif text, a hint is a lamp card that says what it costs, and the learner's answers sit
 // on the right. The learner sees what kind of message it is, never which agent wrote it.
 import type { Message } from "@build-north/agents";
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
 import { eyebrowOf, hintCardOf, splitTrailingQuestion } from "../session/present.ts";
@@ -10,7 +10,8 @@ import { motion, palette, radius, space, type } from "../theme.ts";
 import { Icon } from "./icons.tsx";
 import { Body, Footnote, Question, useColors } from "./ui.tsx";
 
-export function AppMessage({ message }: { message: Message }) {
+/** `part` names the part a hint is about, where the screen doesn't already show it (level 5). */
+export function AppMessage({ message, part }: { message: Message; part?: string }) {
   switch (message.kind) {
     case "question": {
       const { eyebrow, text } = eyebrowOf(message.text);
@@ -22,7 +23,7 @@ export function AppMessage({ message }: { message: Message }) {
       );
     }
     case "hint":
-      return <HintCard message={message} />;
+      return <HintCard message={message} part={part} />;
     case "fact":
     case "redirect":
       return (
@@ -50,14 +51,15 @@ function Reply({ text }: { text: string }) {
   );
 }
 
-function HintCard({ message }: { message: Message }) {
+function HintCard({ message, part }: { message: Message; part?: string }) {
   const card = hintCardOf(message.hintStep);
+  const title = part ? `${part} · ${card.title}` : card.title;
   return (
-    <View style={styles.hint} accessibilityRole="summary" accessibilityLabel={`${card.title}. ${message.text} ${card.note}`}>
+    <View style={styles.hint} accessibilityRole="summary" accessibilityLabel={`${title}. ${message.text} ${card.note}`}>
       <View style={styles.hintHead}>
         <View style={styles.hintLabel}>
           <Icon name="sun" color={palette.day.hintIcon} size={18} />
-          <Text style={[type.footnoteStrong, { color: palette.day.onHintContainer }]}>{card.title}</Text>
+          <Text style={[type.footnoteStrong, { color: palette.day.onHintContainer }]}>{title}</Text>
         </View>
         {card.pips !== null && (
           <View style={styles.pips}>
@@ -80,6 +82,21 @@ export function LearnerMessage({ text }: { text: string }) {
       <Body>{text}</Body>
     </View>
   );
+}
+
+/** A reply that takes longer than this says so (NN/g: over 10 s, explain the wait). */
+const SLOW_MS = 10_000;
+
+/** True once a call has been in flight for SLOW_MS. */
+export function useSlow(waiting: boolean): boolean {
+  const [slow, setSlow] = useState(false);
+  useEffect(() => {
+    setSlow(false);
+    if (!waiting) return;
+    const timer = setTimeout(() => setSlow(true), SLOW_MS);
+    return () => clearTimeout(timer);
+  }, [waiting]);
+  return slow;
 }
 
 /** While the tutor answers: moving dots and what is happening (a fade only, with Reduce Motion). */

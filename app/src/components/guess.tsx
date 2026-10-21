@@ -11,7 +11,7 @@ import { splitTrailingQuestion, waitingLineOf } from "../session/present.ts";
 import type { Failure as CallFailure } from "../session/transcript.ts";
 import { motion, palette, radius, size, space, type } from "../theme.ts";
 import { Beam, Glow } from "./art.tsx";
-import { Icon } from "./icons.tsx";
+import { decorative, Icon } from "./icons.tsx";
 import { Failure, Thinking } from "./messages.tsx";
 import { Body, Button, CircleButton, Footnote, Screen, ToneScope, Ui } from "./ui.tsx";
 
@@ -101,7 +101,7 @@ export function GuessScreen({ turn, pending, failure, onLock, onRetry, onClose, 
               <Beam />
             </Animated.View>
             <Animated.View style={[styles.door, doorLook]}>
-            <Svg style={StyleSheet.absoluteFill} viewBox={`0 0 ${DOOR.width} ${DOOR.height}`} preserveAspectRatio="none" accessible={false}>
+            <Svg style={StyleSheet.absoluteFill} viewBox={`0 0 ${DOOR.width} ${DOOR.height}`} preserveAspectRatio="none" {...decorative}>
               <Defs>
                 <LinearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
                   <Stop offset="0" stopColor={cave.archTop} />

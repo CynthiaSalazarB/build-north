@@ -1,28 +1,27 @@
 // The session (#6, #7, round 6): the guess in the cave, then the work in daylight (the conversation, the
-// one input the latest Turn asks for), then the result. A single route with no id in the path, so the web
-// build stays static (decision 14, #27). Closing saves: the start screen offers to resume.
+// one input the latest Turn asks for, or at level 5 the whole map with the fact desk), then the result.
+// A single route with no id in the path, so the web build stays static (decision 14, #27). Closing
+// saves: the start screen offers to resume.
 import type { Turn } from "@build-north/agents";
 import { Redirect, useRouter } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View, type ScrollViewInstance } from "react-native";
 import { Composer } from "../components/composer.tsx";
 import { GuessScreen } from "../components/guess.tsx";
 import { MapCard } from "../components/map-card.tsx";
-import { AppMessage, Failure, LearnerMessage, Thinking } from "../components/messages.tsx";
+import { AppMessage, Failure, LearnerMessage, Thinking, useSlow } from "../components/messages.tsx";
 import { ResultScreen } from "../components/result.tsx";
 import { SessionBar } from "../components/session-bar.tsx";
+import { WholeMapScreen } from "../components/whole-map.tsx";
 import { Body, Button, Screen, StageChip, Ui } from "../components/ui.tsx";
-import { helpLabelOf, sinceLastQuestion, waitingLineOf } from "../session/present.ts";
+import { helpLabelOf, partNotesOf, sinceLastQuestion, waitingLineOf } from "../session/present.ts";
 import { useSession } from "../session/session-context.tsx";
 import type { SessionState } from "../session/transcript.ts";
 import { palette, radius, space } from "../theme.ts";
 
-/** A reply that takes longer than this says so (NN/g: over 10 s, explain the wait). */
-const SLOW_MS = 10_000;
-
 export default function SessionScreen() {
   const router = useRouter();
-  const { state, send, retry } = useSession();
+  const { state, send, retry, edit } = useSession();
   const { turn } = state;
   // The dawn plays once, between the guess and the first question.
   const [dawnDone, setDawnDone] = useState(() => turn?.phase !== "predict");
@@ -50,7 +49,10 @@ export default function SessionScreen() {
     );
   }
   if (turn.result && turn.expects === "none") {
-    return <ResultScreen concept={turn.mentefacto.concept} result={turn.result} onDone={() => router.replace("/")} />;
+    return <ResultScreen concept={turn.mentefacto.concept} result={turn.result} notes={partNotesOf(turn.messages)} onDone={() => router.replace("/")} />;
+  }
+  if (turn.expects === "map") {
+    return <WholeMapScreen turn={turn} state={state} send={send} retry={retry} edit={edit} onClose={close} />;
   }
   return <WorkScreen turn={turn} state={state} send={send} retry={retry} onClose={close} />;
 }
@@ -118,18 +120,6 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
       <MapSheet turn={turn} open={mapOpen} onClose={() => setMapOpen(false)} />
     </Screen>
   );
-}
-
-/** True once a call has been in flight for SLOW_MS. */
-function useSlow(waiting: boolean): boolean {
-  const [slow, setSlow] = useState(false);
-  useEffect(() => {
-    setSlow(false);
-    if (!waiting) return;
-    const timer = setTimeout(() => setSlow(true), SLOW_MS);
-    return () => clearTimeout(timer);
-  }, [waiting]);
-  return slow;
 }
 
 /** The map so far, in a half-height sheet over the session (the Greek key opens it). */

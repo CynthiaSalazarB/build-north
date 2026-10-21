@@ -1,7 +1,8 @@
 // The end of a session (round 6, #34): the guess and the score on one 0 to 8 scale, the gap as a number
 // and one sentence, each proven point casting into bronze one by one, the points per part, and one next
-// step. Every number comes from Turn.result, computed by code.
-import { MOVE_LABEL, type Result } from "@build-north/agents";
+// step. Every number comes from Turn.result, computed by code. After a whole map (level 5), each part
+// also shows what the evaluator said about it.
+import { MOVE_LABEL, type MoveId, type Result } from "@build-north/agents";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
@@ -9,15 +10,15 @@ import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { success } from "../haptics.ts";
 import { blocksOf, gapOf, stageOf, type Block } from "../session/present.ts";
 import { motion, palette, radius, size, space, type } from "../theme.ts";
-import { Icon } from "./icons.tsx";
+import { decorative, Icon } from "./icons.tsx";
 import { AloneTag, Body, Button, Footnote, PointDots, Screen, Ui } from "./ui.tsx";
 
 const day = palette.day;
 const GAP = space.s;
 
-type Props = { concept: string; result: Result; onDone: () => void };
+type Props = { concept: string; result: Result; notes?: Partial<Record<MoveId, string>>; onDone: () => void };
 
-export function ResultScreen({ concept, result, onDone }: Props) {
+export function ResultScreen({ concept, result, notes = {}, onDone }: Props) {
   const gap = gapOf(result);
   const ink = gap.over ? day.gap : day.onSurface;
   const leveledUp = result.masteryChanges.length > 0;
@@ -55,10 +56,13 @@ export function ResultScreen({ concept, result, onDone }: Props) {
 
         <View style={styles.list} accessibilityLabel="Points per part">
           {result.rubric.map((row, i) => (
-            <View key={row.move} style={[styles.row, i > 0 && styles.rowLine]}>
-              <Ui style={styles.part}>{MOVE_LABEL[row.move]}</Ui>
-              {row.points === 2 && <AloneTag />}
-              <PointDots points={row.points} />
+            <View key={row.move} style={[styles.rowBox, i > 0 && styles.rowLine, !!notes[row.move] && styles.rowNoted]}>
+              <View style={styles.row}>
+                <Ui style={styles.part}>{MOVE_LABEL[row.move]}</Ui>
+                {row.points === 2 && <AloneTag />}
+                <PointDots points={row.points} />
+              </View>
+              {notes[row.move] && <Footnote dim>{notes[row.move]}</Footnote>}
             </View>
           ))}
         </View>
@@ -133,7 +137,7 @@ function BlockView({ block, index }: { block: Block; index: number }) {
     <View style={styles.cast}>
       <View style={styles.castFloor} />
       <View style={styles.bronze}>
-        <Svg width="100%" height="100%" viewBox="0 0 10 48" preserveAspectRatio="none" accessible={false}>
+        <Svg width="100%" height="100%" viewBox="0 0 10 48" preserveAspectRatio="none" {...decorative}>
           <Defs>
             <LinearGradient id={`bronze-${index}`} x1="0" y1="0" x2="0" y2="1">
               <Stop offset="0" stopColor={day.primaryHigh} />
@@ -174,7 +178,9 @@ const styles = StyleSheet.create({
   bracketBelow: { borderBottomWidth: 1.5, borderBottomLeftRadius: space.xs, borderBottomRightRadius: space.xs },
   bracketLabel: { textAlign: "center", alignSelf: "stretch" },
   list: { backgroundColor: day.surfaceContainer, borderRadius: radius.card, overflow: "hidden" },
-  row: { flexDirection: "row", alignItems: "center", gap: space.m, minHeight: 52, paddingHorizontal: space.l },
+  rowBox: { paddingHorizontal: space.l },
+  rowNoted: { paddingBottom: space.m },
+  row: { flexDirection: "row", alignItems: "center", gap: space.m, minHeight: 52 },
   rowLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: day.separator },
   part: { flex: 1 },
   foot: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m },

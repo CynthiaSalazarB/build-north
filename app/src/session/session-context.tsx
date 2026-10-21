@@ -1,10 +1,10 @@
-// The session the screens share: the transcript state plus the three things a learner can do (start,
-// send, retry). The rules live in transcript.ts; this file only wires them to the client. Starting a
-// session replaces the previous one.
-import type { CreateSessionBody, TurnInput } from "@build-north/agents";
+// The session the screens share: the transcript state plus what a learner can do (start, send, retry,
+// and at level 5 edit their map). The rules live in transcript.ts; this file only wires them to the
+// client. Starting a session replaces the previous one.
+import type { CreateSessionBody, Mentefacto, TurnInput } from "@build-north/agents";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { ClientError, type SessionClient } from "./client.ts";
-import { failed, initialState, received, sent, type SessionState } from "./transcript.ts";
+import { drafted, failed, initialState, received, sent, startedWith, type SessionState } from "./transcript.ts";
 
 /** What the learner can send: a /turns body without its `turn` number, which the provider adds. */
 export type LearnerInput = Exclude<TurnInput, { action: "start" }>;
@@ -16,6 +16,8 @@ type SessionApi = {
   start(body: CreateSessionBody): Promise<string | null>;
   send(input: LearnerInput): void;
   retry(): void;
+  /** Level 5: keeps the learner's map; `send({ mentefacto })` submits it. */
+  edit(draft: Mentefacto): void;
 };
 
 const SessionContext = createContext<SessionApi | null>(null);
@@ -42,7 +44,7 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     async start(body) {
       try {
         const turn = await client.start(body);
-        setState(received(initialState, turn));
+        setState(startedWith(turn, body.mode));
         return null;
       } catch (error) {
         return messageOf(error);
@@ -53,6 +55,9 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     },
     retry() {
       if (state.failure?.retryable) deliver(state.failure.body, true);
+    },
+    edit(draft) {
+      setState((s) => drafted(s, draft));
     },
   };
 
