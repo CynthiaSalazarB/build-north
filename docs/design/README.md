@@ -2,12 +2,12 @@
 
 Branding and screen mockups for Reality Check, October 20 and 21, 2026. Leo picked round 6 on October 21 and #81
 puts it in the app, waiting for Cynthia's review there. Round 7 shows six directions for the new user, CS students who
-build with coding agents. A pick gets a line in [`DECISIONS.md`](../../DECISIONS.md), and its colors become the app's
+build with coding agents, and round 8 mixes four of them into one direction in two color themes. A pick gets a line in [`DECISIONS.md`](../../DECISIONS.md), and its colors become the app's
 theme in `app/`.
 
 These are design boards (HTML pages), not app code. Open them in a browser: GitHub only shows their source.
 
-**Start with [`all-designs.html`](all-designs.html).** It holds all seven rounds in one self-contained file
+**Start with [`all-designs.html`](all-designs.html).** It holds all eight rounds in one self-contained file
 (images included), so it also works when sent on its own. Each round is saved as a standalone file below too.
 
 ## The rounds
@@ -21,6 +21,7 @@ These are design boards (HTML pages), not app code. Open them in a browser: GitH
 | 5 | [`05-plaster-to-bronze/plaster-to-bronze.html`](05-plaster-to-bronze/plaster-to-bronze.html) | The direction built from what the app means: Rodin's Thinker, plaster for what you felt sure of, bronze for what you proved, across six screens |
 | 6 | [`06-out-of-the-cave/out-of-the-cave.html`](06-out-of-the-cave/out-of-the-cave.html) | The mix of the picks from rounds 3 to 5 (Plato's Cave, Chiaroscuro, Fresco, Old Master, Plaster to Bronze): every session walks from the dark into daylight. Version 2 applies Apple's design principles and research on reading, navigation and learning: twelve screens with home, waiting and error states, a working guess-and-dawn prototype, and the brand kit for #14. The research is in [`design-principles.md`](06-out-of-the-cave/design-principles.md) |
 | 7 | [`07-pivot-directions/pivot-directions.html`](07-pivot-directions/pivot-directions.html) | Six directions for CS students who build with coding agents, on Android-size screens next to the current app: Cave for Code, Red to Green, Whiteboard, Black Box, Your Pair and Warm Editor. Warm Editor (7F) is the recommendation: the session as a test run, in round 6's voice and colors. The research is in [`pivot-research.md`](07-pivot-directions/pivot-research.md) |
+| 8 | [`08-open-box/open-box.html`](08-open-box/open-box.html) | One direction mixed from four of round 7's: the session as a test run (7B), the box that opens one corner per proved point (7D), the pair that asks (7E), and the tutor's serif voice with the forecast-error result (7F). Shown in two color themes, Cobalt (blue and white) and Obsidian (black and white), each with a day and a night mode |
 
 Rounds 2 to 6 use the democracy walk-through from [`agents/fixtures/session-1.json`](../../agents/fixtures/session-1.json)
 (predicted 7, scored 5, so the calibration gap is +2). Rounds 2, 5 and 6 also show the level-5 inflation example from
@@ -44,6 +45,7 @@ same numbers, and a level-5 CORS profile.
 - [`06-out-of-the-cave/out-of-the-cave-tokens.ts`](06-out-of-the-cave/out-of-the-cave-tokens.ts): the same shape for round 6,
   with a third palette for the always-dark cave screens, increased-contrast values, the five stages, and the type scale. Rounds 3 to 5 keep their
   colors inside their boards.
+- [`08-open-box/open-box-tokens.ts`](08-open-box/open-box-tokens.ts): the same roles for round 8, with the two themes (Cobalt, Obsidian) each in a day and a night palette, the box's corner states, Material 3 sizes and springs.
 - [`07-pivot-directions/warm-editor-tokens.ts`](07-pivot-directions/warm-editor-tokens.ts): the same roles for 7F, with an
   editor (dark) and a paper (light) palette, Material 3 sizes, springs and the check states. The other round 7
   directions keep their colors inside the board.
