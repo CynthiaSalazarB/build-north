@@ -40,7 +40,7 @@ export default function SignInScreen() {
           Step out of the shadows
         </Footnote>
         <BrandTitle splash />
-        <Body>Feeling sure isn't knowing. Map an idea, answer real questions, and see how close your guess was.</Body>
+        <Body>Can you explain the code your AI wrote? Map a concept, answer real questions, and see how close your guess was.</Body>
         <Footnote dim>Your tutor is an AI that asks questions and never hands you the answer.</Footnote>
         {error && <Failure message={error} />}
         <View style={styles.actions}>

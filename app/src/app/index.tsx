@@ -4,7 +4,7 @@ import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, TextInput, View } from "react-native";
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { KeyUnit } from "../components/icons.tsx";
 import { Failure } from "../components/messages.tsx";
 import { Body, BrandTitle, Button, Footnote, Screen, Ui, useColors } from "../components/ui.tsx";
@@ -15,6 +15,8 @@ import { radius, size, space, type } from "../theme.ts";
 
 const MAX_CONCEPT = 100;
 const MAX_NOTES = 8000;
+/** What coding agents put in student projects (the Oct 21 plan, section 2), to pick in one tap. */
+const CONCEPTS = ["JWT", "hashing", "database index", "cache", "REST API", "rate limiting", "environment variable", "CORS"] as const;
 
 export default function StartScreen() {
   const router = useRouter();
@@ -46,7 +48,7 @@ export default function StartScreen() {
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <View style={styles.intro}>
             <BrandTitle />
-            <Body>Feeling sure isn't knowing. Map an idea, answer real questions, and see how close your guess was.</Body>
+            <Body>Can you explain the code your AI wrote? Pick a concept from your project, guess your score, then build its map yourself.</Body>
             <Footnote dim>Your tutor is an AI that asks questions and never hands you the answer.</Footnote>
           </View>
 
@@ -75,16 +77,21 @@ export default function StartScreen() {
 
           <View style={styles.fieldGroup}>
             <Footnote strong dim>
-              An idea to map
+              A concept from your code
             </Footnote>
+            <View style={styles.chips}>
+              {CONCEPTS.map((name) => (
+                <Choice key={name} label={name} selected={concept.trim() === name} onPress={() => setConcept(name)} />
+              ))}
+            </View>
             <TextInput
               value={concept}
               onChangeText={setConcept}
               maxLength={MAX_CONCEPT}
-              placeholder="For example: democracy"
+              placeholder="Or type your own. For example: JWT"
               placeholderTextColor={c.placeholder}
               autoCapitalize="none"
-              accessibilityLabel="An idea to map"
+              accessibilityLabel="A concept to map"
               style={[styles.input, field]}
               returnKeyType="go"
               onSubmitEditing={begin}
@@ -125,6 +132,27 @@ export default function StartScreen() {
   );
 }
 
+/** A concept to pick in one tap; the picked one turns bronze. */
+function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+  const c = useColors();
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      hitSlop={size.hitSlop}
+      style={({ pressed }) => [
+        styles.choice,
+        selected ? { backgroundColor: c.primary } : { backgroundColor: c.surfaceContainer, borderColor: c.separator, borderWidth: StyleSheet.hairlineWidth },
+        pressed && styles.pressed,
+      ]}
+    >
+      <Text style={[type.ui, { color: selected ? c.onPrimary : c.onSurface }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 // Only rendered with Clerk on (#22), since useAuth needs the ClerkProvider in the root layout
 function SignOut() {
   const { signOut } = useAuth();
@@ -141,6 +169,9 @@ const styles = StyleSheet.create({
   keys: { flexDirection: "row", gap: space.xs, paddingTop: space.xs },
   note: { borderRadius: radius.card, paddingVertical: space.m, paddingHorizontal: space.l },
   fieldGroup: { gap: space.s },
+  chips: { flexDirection: "row", flexWrap: "wrap", gap: space.s, paddingBottom: space.xs },
+  choice: { height: size.control, borderRadius: radius.control, paddingHorizontal: space.l, justifyContent: "center" },
+  pressed: { transform: [{ scale: 0.96 }] },
   input: {
     ...type.ui,
     lineHeight: 20,
