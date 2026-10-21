@@ -54,7 +54,7 @@ The ten things that matter most, in order:
 | Part | Done | Open |
 |---|---|---|
 | `agents/` (Cynthia) | Prompts for the questioner, evaluator, hint giver and fact desk, with evals against Claude (evaluator 6/6, questioner 5/5, hint giver clean on all four steps, fact desk 0 leaks in 10). `advance()` and the ladder rules. Session 1 replays to 5/8 with a gap of +2. The demo seed plays to 6/8, gap +1. 59 tests pass. Median turn against Claude: 3.2 s and 2.8 s (two runs, budget 4 s) | The whole-map evaluator (#36) and the coach (#44) aren't in the `AGENTS` registry. The coach falls back to fixed text; the whole map has no fallback |
-| `api/` (Leo) | Live on Render with SurrealDB Cloud. Every contract route, resent answers judged once, dev key and rate limit, `callAgent` with the 95% budget and rate-limit stops and the cost of every call in `agent_log`. 38 tests: 37 pass, 1 needs a database | #64 (Clerk) is mergeable; Cynthia also asked for `CLERK_JWT_KEY` in `.env.example` in place of `CLERK_SECRET_KEY`, still to do. #73 (orchestrator) is mergeable and waiting for her. No Claude key on Render. Free instance, so it sleeps. #36, #44, #59. **Live today, the API replays the democracy fixture and makes no Claude calls** |
+| `api/` (Leo) | Live on Render with SurrealDB Cloud. Every contract route, resent answers judged once, dev key and rate limit, `callAgent` with the 95% budget and rate-limit stops and the cost of every call in `agent_log`. 38 tests: 37 pass, 1 needs a database | #64 (Clerk, with the `.env.example` change Cynthia asked for) and #73 (orchestrator) are mergeable and waiting for her; they only conflict in `api/src/app.test.ts`, and Leo has that merge resolved. No Claude key on Render. Free instance, so it sleeps. #36, #44, #59. **Live today, the API replays the democracy fixture and makes no Claude calls** |
 | `app/` (branch `cynthia/4-expo-app`, no PR) | Expo SDK 58 (React Native 0.88, Expo Router with typed routes, React Compiler, static web output). Start screen; session screen with the pinned map, the 0 to 8 picker, answers with Help, the worked example and a result card; an API client that already sends a Clerk token when it has one and draws the Turn a 409 sends back; a demo mode that replays session 1 with no API; tests | Level 5 (#26: the input says "coming soon"), the result screen (#34), mastery (#42), delete my data and the privacy note (#43), the theme (#46). The icon and splash are the template's. No bundle id, no `expo-updates`, no `eas.json`. The web build isn't deployed (#27). Sign-in (#22) is PR #75 (Leo, on top of this branch): `@clerk/expo`, Clerk's prebuilt `<SignIn />` on the web and its hosted sign-in in an in-app browser on phones, which works in Expo Go. It waits on the publishable key, email code as the only method and the Native API turned on in the Clerk dashboard, and a real sign-in |
 | Design (Leo, PR #72) | Six rounds of boards. Round 6, "Out of the Cave", has everything #14 asks for (name, logo, three brand colors, meaning colors, Newsreader) and a tokens file in the shape a React Native theme uses | Nothing picked; #14 is due Oct 21 |
 | Testers, deck, Devpost (Kyle) | | No branch, PR or issue comment on GitHub yet for #11, #12, #13, #19, #20, #24, #30 or #31. It may be moving in Discord: confirm today |
@@ -257,9 +257,8 @@ Proposed owners; Cynthia confirms. Times are rough.
 
 ### Tonight, Oct 20
 
-- Leo: on #64, put `CLERK_JWT_KEY` in `.env.example` in place of `CLERK_SECRET_KEY`, as Cynthia asked,
-  and push. Then Cynthia merges #64 and #73; the second one needs a small merge in `app.ts` and
-  `server.ts`.
+- Cynthia merges #64 and #73 (the `.env.example` change on #64 is in). The second one needs a small
+  merge in `api/src/app.test.ts`, which Leo has resolved.
 - Everyone, in Discord: does anyone have an Apple Developer account, and if not, who enrolls tonight
   for TestFlight (section 10, decision 8)? Who goes to Toronto on Oct 29? Jonathan and Kyle: where your
   issues stand.
