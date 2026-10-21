@@ -129,7 +129,8 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, { action: "start" }, callAgentFor(session.id));
     // nothing else knows this session's id yet, so this save can't lose to another request
     await who.store.saveSession(next.session, session.turn);
-    await who.store.saveMastery(who.user, next.mastery);
+    // CONTRACTS.md section 3: a test session never writes mastery
+    if (session.mode !== "test") await who.store.saveMastery(who.user, next.mastery);
     res.status(201).json(next.turn);
   });
 
@@ -201,7 +202,9 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       else res.status(404).json({ error: "No such session" });
       return;
     }
-    await who.store.saveMastery(who.user, next.mastery);
+    // CONTRACTS.md section 3: a test session never writes mastery. advance hands it back unchanged, but
+    // that copy predates the Claude call, and saving it could undo a level another session saved since.
+    if (session.mode !== "test") await who.store.saveMastery(who.user, next.mastery);
     res.json(next.turn);
   });
 
