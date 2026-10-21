@@ -37,8 +37,10 @@ signs in and the app works as before.
 - Web: `src/app/sign-in.web.tsx` shows Clerk's prebuilt `<SignIn />`.
 - iOS and Android: `src/app/sign-in.tsx` opens Clerk's hosted sign-in in an in-app browser, which also
   works in Expo Go.
-- In the Clerk Dashboard: leave email verification code as the only sign-in method (#22: no Google or
-  Apple), and enable the Native API on the **Native applications** page so the phone apps can sign in.
+- The Clerk Dashboard decides the sign-in methods (email and Google for now), with no code change.
+  Enable the Native API on its **Native applications** page so the phone apps can sign in.
+- To try the web build with sign-in locally, use `npx expo serve` on the export: Clerk's Google
+  sign-in comes back to `/sign-in`, which a plain static server can't map to `sign-in.html`.
 
 ## Commands
 

@@ -1,6 +1,6 @@
 // Sign-in on iOS and Android (#22): Clerk's hosted page opens in an in-app browser, which also works in
-// Expo Go. The Clerk dashboard decides the methods it offers (email code only). The look comes with the
-// brand kit (#14); the web build uses sign-in.web.tsx instead.
+// Expo Go. The Clerk dashboard decides the methods it offers. The look comes with the brand kit (#14);
+// the web build uses sign-in.web.tsx instead.
 import { useHostedAuth } from "@clerk/expo/hosted-auth";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
