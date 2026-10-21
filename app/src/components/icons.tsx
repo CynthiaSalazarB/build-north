@@ -1,69 +1,36 @@
-// The app's own drawn icons (round 6), one stroke weight per family. The laurel is game-icons.net by
-// Lorc (CC BY 3.0), credited in the README.
+// The app's icons (round 8): one 24-unit line set from the board's symbols, all drawn at the same stroke.
+import { Platform } from "react-native";
 import Svg, { Circle, Path } from "react-native-svg";
 
-export type IconName = "x" | "back" | "up" | "plus" | "minus" | "sun" | "alert" | "chev";
+/** For a drawing the screen reader skips (the control around it carries the label). On the web it's
+ * aria-hidden, since an <svg> element has no `accessible` attribute and React warns about it. */
+export const decorative = Platform.select({ web: { "aria-hidden": true } as const, default: { accessible: false } as const });
 
-type Props = { name: IconName; color: string; size?: number };
+export type IconName = "x" | "up" | "plus" | "minus" | "check" | "bulb" | "alert";
+
+const PATHS: Record<Exclude<IconName, "alert">, string> = {
+  x: "M6.5 6.5l11 11M17.5 6.5l-11 11",
+  up: "M12 19V5M5.5 11.5 12 5l6.5 6.5",
+  plus: "M12 5v14M5 12h14",
+  minus: "M5 12h14",
+  check: "M5 12.5l4.5 4.5L19 7.5",
+  bulb: "M9.5 18h5M10.5 21h3M12 3a6 6 0 0 0-3.7 10.7c.8.7 1.2 1.4 1.2 2.3h5c0-.9.4-1.6 1.2-2.3A6 6 0 0 0 12 3z",
+};
 
 /** A 24-unit icon. Decorative: the control around it carries the label. */
-export function Icon({ name, color, size = 20 }: Props) {
-  const stroke = { fill: "none", stroke: color, strokeLinecap: "round", strokeLinejoin: "round" } as const;
+export function Icon({ name, color, size = 22 }: { name: IconName; color: string; size?: number }) {
+  const stroke = { fill: "none", stroke: color, strokeWidth: 2, strokeLinecap: "round", strokeLinejoin: "round" } as const;
   return (
-    <Svg width={size} height={size} viewBox="0 0 24 24" accessible={false}>
-      {name === "x" && <Path d="M7 7l10 10M17 7L7 17" {...stroke} strokeWidth={2} />}
-      {name === "back" && <Path d="M14.5 5.5L8 12l6.5 6.5" {...stroke} strokeWidth={2.2} />}
-      {name === "chev" && <Path d="M9 5l7 7-7 7" {...stroke} strokeWidth={2.4} />}
-      {name === "up" && <Path d="M12 19V5M6 11l6-6 6 6" {...stroke} strokeWidth={2.2} />}
-      {name === "plus" && <Path d="M12 5v14M5 12h14" {...stroke} strokeWidth={2.2} />}
-      {name === "minus" && <Path d="M5 12h14" {...stroke} strokeWidth={2.2} />}
-      {name === "sun" && (
-        <>
-          <Circle cx={12} cy={12} r={4.4} fill={color} />
-          <Path
-            d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7"
-            {...stroke}
-            strokeWidth={1.8}
-          />
-        </>
-      )}
-      {name === "alert" && (
+    <Svg width={size} height={size} viewBox="0 0 24 24" {...decorative}>
+      {name === "alert" ? (
         <>
           <Circle cx={12} cy={12} r={9} {...stroke} strokeWidth={1.8} />
-          <Path d="M12 7.5v5.5" {...stroke} strokeWidth={2} />
+          <Path d="M12 7.5v5.5" {...stroke} />
           <Circle cx={12} cy={16.3} r={1.2} fill={color} />
         </>
+      ) : (
+        <Path d={PATHS[name]} {...stroke} />
       )}
     </Svg>
   );
 }
-
-/** The mark: a question mark whose dot is a check (the brand kit, #14). */
-export function Mark({ color, check, size = 26 }: { color: string; check: string; size?: number }) {
-  return (
-    <Svg width={size} height={(size * 42) / 36} viewBox="0 0 36 42" accessible={false}>
-      <Path d="M9 13C9 7 13.5 4 18.5 4 24 4 28 7.5 28 12.5c0 5.5-5 7.5-7.5 10-1.5 1.5-2 3-2 5.5" fill="none" stroke={color} strokeWidth={3.4} strokeLinecap="round" />
-      <Path d="M11.5 33.5l4.5 4.5 9.5-9.5" fill="none" stroke={check} strokeWidth={3.6} strokeLinecap="round" strokeLinejoin="round" />
-    </Svg>
-  );
-}
-
-/** One unit of the Greek key: a part of the map. */
-export function KeyUnit({ color, opacity = 1 }: { color: string; opacity?: number }) {
-  return (
-    <Svg width={26} height={16} viewBox="0 0 26 16" opacity={opacity} accessible={false}>
-      <Path d="M1 15V1h24v14H8V6h10v5" fill="none" stroke={color} strokeWidth={2} />
-    </Svg>
-  );
-}
-
-/** The laurel: a part done alone, with no hint and no retry. */
-export function Laurel({ color, size = 14 }: { color: string; size?: number }) {
-  return (
-    <Svg width={size} height={size} viewBox="0 0 512 512" accessible={false}>
-      <Path fill={color} d={LAUREL} />
-    </Svg>
-  );
-}
-
-const LAUREL = "M234.7 18.05c-21 .2-38.8 2.5-62 10.2-4.1 2-8.2 4.1-12.2 6.2.8 5.26 3.2 10.77 5.5 14.7-4.9 4.2-9.6 8.4-14.1 12.8-3.7-5.5-6.6-11.4-8.3-17.4-14.2 9.2-27.7 19.6-40.1 31.4 1.9 9.5 9.2 18.21 15.2 24.15-3.7 5.2-7.2 10.4-10.5 15.7-8.22-7.2-15.12-15.5-19.32-24.65C74.97 108.1 61.92 126 53.08 142.3c5.29 13 19.01 22.7 29.8 28.4-2 6.1-3.7 12.2-5.1 18.4-13.5-6.4-26.3-15.7-34.5-26.6-8.7 20.1-14.7 40.7-18.2 61.4 9.63 15.5 30.57 22.9 46 25.9.1 6.4.4 12.8.9 19.2-17.79-2.7-37.26-9.6-49.9-20.4-1.6 22.3-.5 44.5 3.4 66.2 15.25 13.7 41.14 15.3 58.6 13.7 2 6.1 4.1 12.2 6.5 18.1-18.61 4.5-43.29 1.1-59.3-6.2 6.6 23.7 16.4 46.4 29.2 67.4 19.33 8.6 44.52 3.6 61.72-2.5 3.7 5.3 7.6 10.5 11.6 15.5-17.8 9.5-39.9 11.5-57.52 10.1 12.3 16.3 26.62 31.2 42.72 44.4 4.9 1.1 10.5 1.1 16.7.3 11.7-1.7 25.2-7 37.9-14.7 16.7 13.5 34.9 24.7 54.1 33.1l7.5-17.2c-16-6.9-31.3-16.2-45.6-27.3 13.3-10.9 24.3-24 30.2-36.5 4.7-9.7 6.3-18.4 4.5-26.3-10.7-5.7-20.6-12.5-29.5-20.3-7.8 20.8-26.4 36.1-43.5 46-4-4.9-7.9-9.9-11.6-15 16.8-9.8 39.9-27.5 39.1-47.1-8.9-10.3-16.6-21.8-22.9-34.1-12 14-30.7 22.5-46.5 26.7-2.4-5.8-4.6-11.6-6.6-17.6 16.8-5.2 37.9-13 44.1-29.7-4.3-11.5-7.5-23.6-9.7-36-13.8 8.4-32 11.1-46.32 10.9-.6-6.2-1-12.4-1.2-18.7 15.52-.6 33.92-2.5 44.92-14.3-.8-12.6-.5-25.5.9-38.5-13.4 2.8-29 .3-40.42-3.2 1.3-6 2.9-12.1 4.8-18.1 12.82 3.2 27.12 6.7 38.82.8 2.7-13.6 6.7-27.3 12-40.8-9.9-1.8-20.2-6.3-27.7-10.7 3.3-5.3 6.8-10.5 10.5-15.7 8.1 4.2 16.3 8.8 25.2 8.4 5.7-11.6 12.3-22.65 19.5-32.75-5.1-2.7-10-6.4-14.4-10.6 4.4-4.3 9.1-8.5 13.9-12.7 3.8 3.54 8 6.18 12.3 8.2 15.9-18.6 35.9-36.23 49-53.8zm38.4 0c15.4 20.75 33.8 35.63 48.9 53.7 4.6-1.76 9.1-5.23 12.3-8.1 4.9 4.2 9.5 8.4 13.9 12.7-4.4 4.2-9.2 7.9-14.4 10.6 7.3 10.1 13.9 21.05 19.6 32.65 9-.1 18.4-4.4 25.2-8.4 3.7 5.2 7.2 10.4 10.4 15.7-8.8 5.9-18.2 9.6-27.6 10.7 5.3 13.5 9.3 27.2 12 40.8 12.3 5.4 27.3 2.7 38.7-.8 1.9 6 3.5 12.1 4.9 18.1-14.2 3.4-27.3 6.2-40.4 3.3 1.4 12.9 1.6 25.8.8 38.5 11.4 12.3 30.2 14.4 44.9 14.2-.2 6.3-.5 12.5-1.2 18.7-17.1-.5-32.8-2.5-46.3-10.9-2.1 12.4-5.3 24.5-9.6 36.1 8.2 17.4 27.8 25.3 44.1 29.6-2 6-4.2 11.8-6.6 17.6-18.5-5.6-34.9-13-46.6-26.7-6.3 12.4-13.9 23.8-22.9 34.1 1.5 22.4 22.4 37.8 39.2 47.1-3.7 5.1-7.6 10.1-11.6 15-19-11.8-36.6-25.8-43.5-46-9 7.8-18.8 14.6-29.6 20.3-1.8 7.9-.1 16.6 4.5 26.3 6 12.5 17 25.6 30.3 36.5-14.3 11.1-29.6 20.4-45.6 27.3l7.4 17.2c19.3-8.4 37.4-19.6 54.1-33.2 12.7 7.8 26.2 13.1 38 14.8 6.2.8 11.8.8 16.7-.3 16.1-13.2 30.4-28.1 42.7-44.4-18 1.7-37.9-2.3-56.5-9.7-.3-.1-.7-.3-1.1-.4 4.1-5 7.9-10.2 11.7-15.5 18.2 7.8 43.7 11.7 61.6 2.5 12.8-21 22.6-43.7 29.2-67.4-.4.2-.8.4-1.2.5-20.5 6.4-40.1 7.6-58.1 5.7 2.4-5.9 4.5-12 6.5-18 19.1 1.7 45.2.1 58.6-13.8 3.9-21.7 5.1-43.9 3.4-66.2-14.4 10.7-34.9 17.9-49.9 20.4.5-6.4.9-12.8 1-19.2 16.8-4.8 37.9-10 45.9-25.9-3.5-20.7-9.5-41.3-18.2-61.4-9.4 11.6-23.1 21-34.4 26.5-1.5-6.1-3.2-12.2-5.2-18.3 12-7.4 25.1-15.3 29.9-28.4-10.1-18.7-22.2-35.8-35.9-51.05-4.2 9.05-11.1 17.45-19.2 24.65-3.3-5.3-6.8-10.5-10.6-15.7 6.2-7.17 14.2-14.71 15.2-24.15-12.4-11.8-25.8-22.2-40-31.4-1.8 6-4.7 11.9-8.3 17.4-4.5-4.4-9.2-8.6-14.1-12.8 2.7-4.82 4.7-9.62 5.4-14.7-4-2.1-8.1-4.2-12.2-6.2-24.7-8.2-43.3-10.3-66.2-10.2z";

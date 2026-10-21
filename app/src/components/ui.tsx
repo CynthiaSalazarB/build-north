@@ -1,46 +1,41 @@
-// Small building blocks every screen uses, styled only from the theme (round 6). A screen picks its
-// tone (daylight or the cave) once, and everything inside takes its colors from it.
-import type { Level } from "@build-north/agents";
+// Small building blocks every screen uses, styled only from the theme (round 8 "Open Box"). Colors come
+// from the theme's current mode, so nothing here holds a color of its own.
 import { StatusBar } from "expo-status-bar";
-import { createContext, useContext, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
+  TextInput,
   View,
   type AccessibilityRole,
+  type LayoutChangeEvent,
   type StyleProp,
+  type TextInputProps,
   type TextStyle,
   type ViewStyle,
 } from "react-native";
 import { SafeAreaView, useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
-import { stageOf } from "../session/present.ts";
-import { maxContentWidth, palette, radius, serif, size, space, stageColor, type, type Colors, type Tone } from "../theme.ts";
-import { Icon, Laurel, type IconName } from "./icons.tsx";
+import { defaultTheme, maxContentWidth, palette, radius, size, space, type, useMode, type Colors } from "../theme.ts";
+import { Icon, type IconName } from "./icons.tsx";
 
-const ToneContext = createContext<Tone>("day");
-
-/** The colors of the screen this component sits in. */
+/** The colors of the theme's current mode (day or night). */
 export function useColors(): Colors {
-  return palette[useContext(ToneContext)];
+  return palette[defaultTheme][useMode()];
 }
 
-/** Gives everything inside the colors of daylight or the cave. */
-export function ToneScope({ tone, children }: { tone: Tone; children: ReactNode }) {
-  return <ToneContext.Provider value={tone}>{children}</ToneContext.Provider>;
-}
-
-/** A phone-width column, centered on wider screens (decision 14), in daylight or the cave. */
-export function Screen({ tone = "day", edges = ["top", "bottom"], children }: { tone?: Tone; edges?: Edge[]; children: ReactNode }) {
+/** A phone-width column, centered on wider screens (decision 14). */
+export function Screen({ edges = ["top", "bottom"], children }: { edges?: Edge[]; children: ReactNode }) {
+  const c = useColors();
+  const night = useMode() === "night";
   return (
-    <ToneScope tone={tone}>
-      <SafeAreaView style={[styles.safe, { backgroundColor: palette[tone].surface }]} edges={edges}>
-        <StatusBar style={tone === "cave" ? "light" : "dark"} />
-        <View style={styles.column}>{children}</View>
-      </SafeAreaView>
-    </ToneScope>
+    <SafeAreaView style={[styles.safe, { backgroundColor: c.surface }]} edges={edges}>
+      <StatusBar style={night ? "light" : "dark"} />
+      <View style={styles.column}>{children}</View>
+    </SafeAreaView>
   );
 }
 
@@ -67,30 +62,16 @@ function Styled({ base, children, style, dim, numberOfLines, role }: TextProps &
   );
 }
 
-export const LargeTitle = (p: TextProps) => <Styled base={type.largeTitle} role="header" {...p} />;
 export const Title = (p: TextProps) => <Styled base={type.title} role="header" {...p} />;
+export const SheetTitle = (p: TextProps) => <Styled base={type.sheetTitle} role="header" {...p} />;
 /** Every question the tutor asks is italic. */
 export const Question = (p: TextProps) => <Styled base={type.question} role="header" {...p} />;
-export const Body = ({ italic, strong, ...p }: TextProps & { italic?: boolean; strong?: boolean }) => (
-  <Styled base={italic ? type.bodyItalic : strong ? type.bodyStrong : type.body} {...p} />
-);
-export const Ui = ({ strong, ...p }: TextProps & { strong?: boolean }) => <Styled base={strong ? type.uiStrong : type.ui} {...p} />;
-export const Footnote = ({ strong, ...p }: TextProps & { strong?: boolean }) => (
-  <Styled base={strong ? type.footnoteStrong : type.footnote} {...p} />
-);
+export const Body = ({ strong, ...p }: TextProps & { strong?: boolean }) => <Styled base={strong ? type.bodyStrong : type.body} {...p} />;
+/** Mono, for code, file names and the labels above things. */
+export const Label = ({ strong, ...p }: TextProps & { strong?: boolean }) => <Styled base={strong ? type.labelStrong : type.label} {...p} />;
+export const Code = (p: TextProps) => <Styled base={type.code} {...p} />;
 
-/** The name as the brand kit sets it: "Reality *Check*". */
-export function BrandTitle({ splash, style }: { splash?: boolean; style?: StyleProp<TextStyle> }) {
-  const c = useColors();
-  return (
-    <Text style={[splash ? type.splash : type.largeTitle, { color: c.onSurface }, style]} accessibilityRole="header">
-      {"Reality "}
-      <Text style={{ fontFamily: splash ? serif.italic : serif.mediumItalic }}>Check</Text>
-    </Text>
-  );
-}
-
-export type ButtonKind = "primary" | "plain" | "hint" | "tonal";
+export type ButtonKind = "primary" | "secondary" | "text" | "hint";
 
 type ButtonProps = {
   label: string;
@@ -101,19 +82,22 @@ type ButtonProps = {
   busy?: boolean;
   /** Read out instead of the label, when the label alone isn't clear. */
   hint?: string;
+  /** A main-action button that sizes to its label, for a bar (Submit). */
+  compact?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
-/** A capsule: the main action is bronze and full width; the others size to their label. */
-export function Button({ label, onPress, kind = "primary", icon, disabled, busy, hint, style }: ButtonProps) {
+/** The main action is a full-width 56dp button; the others size to their label. Help is the amber outline. */
+export function Button({ label, onPress, kind = "primary", icon, disabled, busy, hint, compact, style }: ButtonProps) {
   const c = useColors();
   const off = disabled || busy;
   const look = {
-    primary: { box: { backgroundColor: c.primary }, ink: c.onPrimary, iconInk: c.onPrimary },
-    plain: { box: null, ink: c.onSurface, iconInk: c.onSurface },
-    hint: { box: { backgroundColor: palette.day.hintContainer }, ink: palette.day.onHintContainer, iconInk: palette.day.hintIcon },
-    tonal: { box: { backgroundColor: c.surfaceContainer, borderColor: c.separator, borderWidth: 1 }, ink: c.onSurface, iconInk: c.onSurface },
+    primary: { box: { backgroundColor: c.primary }, ink: c.onPrimary },
+    secondary: { box: { backgroundColor: c.surfaceHigh, borderColor: c.outline, borderWidth: 1 }, ink: c.onSurface },
+    text: { box: null, ink: c.onSurface },
+    hint: { box: { borderColor: c.hintOutline, borderWidth: 1 }, ink: c.hint },
   }[kind];
+  const full = kind === "primary" && !compact;
   return (
     <Pressable
       accessibilityRole="button"
@@ -122,10 +106,10 @@ export function Button({ label, onPress, kind = "primary", icon, disabled, busy,
       accessibilityState={{ disabled: !!off, busy: !!busy }}
       disabled={off}
       onPress={onPress}
-      hitSlop={kind === "primary" ? undefined : size.hitSlop}
+      hitSlop={full ? undefined : size.hitSlop}
       style={({ pressed }) => [
         styles.button,
-        kind === "primary" ? styles.primary : styles.small,
+        full ? styles.full : kind === "text" ? styles.textButton : styles.small,
         look.box,
         off && styles.disabled,
         pressed && !off && styles.pressed,
@@ -136,8 +120,8 @@ export function Button({ label, onPress, kind = "primary", icon, disabled, busy,
         <ActivityIndicator color={look.ink} />
       ) : (
         <>
-          {icon && <Icon name={icon} color={look.iconInk} />}
-          <Text style={[type.uiStrong, { color: look.ink }]} numberOfLines={1}>
+          {icon && <Icon name={icon} color={look.ink} size={18} />}
+          <Text style={[kind === "hint" ? type.labelStrong : type.button, { color: look.ink }]} numberOfLines={1}>
             {label}
           </Text>
         </>
@@ -146,8 +130,8 @@ export function Button({ label, onPress, kind = "primary", icon, disabled, busy,
   );
 }
 
-/** A round control with an icon only (Close, Send). */
-export function CircleButton({ icon, label, onPress, filled, disabled }: { icon: IconName; label: string; onPress: () => void; filled?: boolean; disabled?: boolean }) {
+/** A square control with an icon only (Close). */
+export function IconButton({ icon, label, onPress, disabled }: { icon: IconName; label: string; onPress: () => void; disabled?: boolean }) {
   const c = useColors();
   return (
     <Pressable
@@ -157,51 +141,72 @@ export function CircleButton({ icon, label, onPress, filled, disabled }: { icon:
       disabled={disabled}
       onPress={onPress}
       hitSlop={size.hitSlop}
-      style={({ pressed }) => [
-        styles.circle,
-        filled ? { backgroundColor: c.primary } : { backgroundColor: c.surfaceContainer, borderColor: c.separator, borderWidth: StyleSheet.hairlineWidth },
-        disabled && styles.disabled,
-        pressed && !disabled && styles.pressed,
-      ]}
+      style={({ pressed }) => [styles.iconButton, { backgroundColor: c.surfaceHigh }, disabled && styles.disabled, pressed && !disabled && styles.pressed]}
     >
-      <Icon name={icon} color={filled ? c.onPrimary : c.onSurface} />
+      <Icon name={icon} color={c.onSurface} />
     </Pressable>
   );
 }
 
-/** A part's stage, with what that level means: "Clay · Guided". */
-export function StageChip({ level }: { level: Level }) {
-  const stage = stageOf(level);
-  const look = stageColor[level];
-  return (
-    <View
-      style={[styles.chip, look.fill ? { backgroundColor: look.fill } : styles.sketchChip, level === 3 && styles.plasterChip]}
-      accessibilityLabel={`Level ${level}, ${stage.name}: ${stage.does}`}
-    >
-      <View style={[styles.chipDot, { backgroundColor: look.ink }]} />
-      <Text style={[type.footnoteStrong, { color: look.ink }]}>{`${stage.name} · ${stage.does}`}</Text>
-    </View>
-  );
-}
-
-/** Done alone: no hint and no retry. */
-export function AloneTag() {
-  return (
-    <View style={styles.alone} accessibilityLabel="Done alone">
-      <Laurel color={palette.day.onAloneContainer} />
-      <Text style={[type.footnoteStrong, { color: palette.day.onAloneContainer }]}>Alone</Text>
-    </View>
-  );
-}
-
-/** Points as filled dots: 1 of 2 is one filled, one open. */
-export function PointDots({ points, max = 2 }: { points: number; max?: number }) {
+/** A concept in mono, picked in one tap; the picked one is filled. */
+export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const c = useColors();
   return (
-    <View style={styles.dots} accessibilityLabel={`${points} of ${max} points`}>
-      {Array.from({ length: max }, (_, i) => (
-        <View key={i} style={[styles.dot, { borderColor: c.primary }, i < points && { backgroundColor: c.primary }]} />
-      ))}
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ selected }}
+      onPress={onPress}
+      hitSlop={size.hitSlop}
+      style={({ pressed }) => [
+        styles.chip,
+        selected ? { backgroundColor: c.primary } : { backgroundColor: c.surfaceHigh, borderColor: c.outline, borderWidth: StyleSheet.hairlineWidth },
+        pressed && styles.pressed,
+      ]}
+    >
+      <Text style={[type.chip, { color: selected ? c.onPrimary : c.onSurface }]}>{label}</Text>
+    </Pressable>
+  );
+}
+
+/** A rounded panel on the surface. */
+export function Card({ children, style }: { children: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const c = useColors();
+  return <View style={[styles.card, { backgroundColor: c.surfaceContainer, borderColor: c.outline }, style]}>{children}</View>;
+}
+
+/** A web textarea is two rows tall and never grows, so a multiline field there takes its rows from its text:
+ * about 8 px a character, up to 4 rows (then it scrolls). Android sizes the field itself. */
+const webRows = (text: string, width: number) =>
+  Math.min(4, text.split("\n").reduce((rows, line) => rows + Math.max(1, Math.ceil((line.length * 8) / Math.max(width, 1))), 0));
+
+/** A one-line field that starts with a `›` prompt, like a terminal; `end` sits inside it on the right. */
+export function PromptField({ end, style, onFocus, onBlur, ...input }: TextInputProps & { end?: ReactNode }) {
+  const c = useColors();
+  const [width, setWidth] = useState(0);
+  // the whole field shows focus, so the browser's own ring around the inner text area goes
+  const [focused, setFocused] = useState(false);
+  const web = Platform.OS === "web" && input.multiline ? { rows: webRows(input.value ?? "", width), onLayout: (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width) } : null;
+  return (
+    <View style={[styles.field, { backgroundColor: c.surfaceContainer, borderColor: focused ? c.onSurfaceVariant : c.outline }, style]}>
+      <Text style={[type.code, styles.prompt, { color: c.onSurfaceVariant }]} accessible={false}>
+        ›
+      </Text>
+      <TextInput
+        placeholderTextColor={c.placeholder}
+        {...input}
+        {...web}
+        onFocus={(e) => {
+          setFocused(true);
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocused(false);
+          onBlur?.(e);
+        }}
+        style={[type.body, styles.input, { color: c.onSurface }, Platform.OS === "web" && styles.noRing]}
+      />
+      {end}
     </View>
   );
 }
@@ -211,16 +216,28 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   column: { flex: 1, width: "100%", maxWidth: maxContentWidth, alignSelf: "center" },
   button: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.s },
-  primary: { height: size.button, borderRadius: radius.button, paddingHorizontal: space.xl, alignSelf: "stretch" },
-  small: { height: size.control, borderRadius: radius.control, paddingHorizontal: space.l, alignSelf: "flex-start" },
+  full: { height: size.button, borderRadius: radius.button, paddingHorizontal: space.xl, alignSelf: "stretch" },
+  small: { height: size.smallButton, borderRadius: radius.iconButton, paddingHorizontal: space.l, alignSelf: "flex-start" },
+  textButton: { height: size.touch, paddingHorizontal: space.l, alignSelf: "center" },
   disabled: { opacity: 0.45 },
-  pressed: { transform: [{ scale: 0.96 }] },
-  circle: { width: size.control, height: size.control, borderRadius: radius.control, alignItems: "center", justifyContent: "center" },
-  chip: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: space.s, height: 28, paddingLeft: space.s, paddingRight: space.m, borderRadius: radius.chip },
-  sketchChip: { borderWidth: 1.5, borderStyle: "dashed", borderColor: palette.day.onSurfaceVariant },
-  plasterChip: { borderWidth: 1, borderColor: palette.day.separator },
-  chipDot: { width: 8, height: 8, borderRadius: 4 },
-  alone: { flexDirection: "row", alignItems: "center", gap: space.xs, height: 24, paddingHorizontal: space.s, borderRadius: 12, backgroundColor: palette.day.aloneContainer },
-  dots: { flexDirection: "row", gap: space.xs },
-  dot: { width: 12, height: 12, borderRadius: 6, borderWidth: 2 },
+  pressed: { transform: [{ scale: 0.97 }] },
+  iconButton: { width: 44, height: 44, borderRadius: radius.iconButton, alignItems: "center", justifyContent: "center" },
+  chip: { height: size.chip, borderRadius: radius.chip, paddingHorizontal: space.m, justifyContent: "center" },
+  card: { borderRadius: radius.card, borderWidth: StyleSheet.hairlineWidth, padding: space.l },
+  field: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    minHeight: size.button,
+    borderRadius: radius.field,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingLeft: space.l,
+    paddingRight: space.s,
+    paddingVertical: space.s,
+    gap: space.s,
+  },
+  prompt: { paddingBottom: space.s },
+  // grows with a long answer; on Android a custom line height or centering hides all but the last line
+  input: { flex: 1, maxHeight: 128, paddingVertical: space.s, textAlignVertical: "top" },
+  // a browser's "auto" ring ignores a width of 0, so the style is solid
+  noRing: { outlineStyle: "solid", outlineWidth: 0 },
 });

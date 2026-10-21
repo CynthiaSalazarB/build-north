@@ -1,24 +1,35 @@
-// The start screen (round 6, daylight): what the app does, a session to resume, and a new map: an idea,
-// and optionally the learner's own notes (pasted text only, up to 8,000 characters: decision 12).
+// The start screen (round 8 "Open Box"): the closed box your AI's code is, a session to resume, and a new
+// map: a concept picked from the folders coding agents write, or typed, plus optionally your notes (pasted
+// text only, up to 8,000 characters: decision 12). "Ask your AI what to map" gives a prompt to paste into
+// your coding agent, so the concepts come from your own project; notes that look like a key or a password
+// never leave the phone.
 import type { Metadata } from "expo-router/server";
 import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
-import { KeyUnit } from "../components/icons.tsx";
+import { Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { MiniBox, OpenBox } from "../components/box.tsx";
 import { Failure } from "../components/messages.tsx";
-import { Body, BrandTitle, Button, Footnote, KeyboardSafe, Screen, Ui, useColors } from "../components/ui.tsx";
+import { Pair } from "../components/pair.tsx";
+import { Body, Button, Card, Chip, KeyboardSafe, Label, PromptField, Screen, SheetTitle, Title, useColors } from "../components/ui.tsx";
 import { UpdateNotice } from "../components/update-notice.tsx";
-import { keysOf } from "../session/present.ts";
+import { AI_PROMPT, secretLineOf } from "../session/present.ts";
 import { clerkKey } from "../session/config.ts";
 import { useSession } from "../session/session-context.tsx";
-import { radius, size, space, type } from "../theme.ts";
+import { radius, space, type } from "../theme.ts";
 
 const MAX_CONCEPT = 100;
 const MAX_NOTES = 8000;
-/** What coding agents put in student projects (the Oct 21 plan, section 2), to pick in one tap. */
-const CONCEPTS = ["JWT", "hashing", "database index", "cache", "REST API", "rate limiting", "environment variable", "CORS"] as const;
+/** What coding agents put in student projects (the Oct 21 plan, section 2), by the folder they live in, plus
+ * the AI concepts students wire into their own apps. Picked in one tap. */
+const TREE = [
+  { folder: "login/", concepts: ["JWT", "hashing"] },
+  { folder: "data/", concepts: ["database index", "cache"] },
+  { folder: "api/", concepts: ["REST API", "rate limiting"] },
+  { folder: "deploy/", concepts: ["environment variable", "CORS"] },
+  { folder: "ai/", concepts: ["RAG", "embeddings"] },
+] as const;
 
 /** The web page's title and description, in the static HTML, so a shared link previews well. */
 export function generateMetadata(): Metadata {
@@ -36,13 +47,16 @@ export default function StartScreen() {
   const [concept, setConcept] = useState(offline ? "democracy" : "");
   const [notes, setNotes] = useState("");
   const [notesOpen, setNotesOpen] = useState(false);
+  const [askOpen, setAskOpen] = useState(false);
   const [starting, setStarting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const unfinished = state.turn && state.turn.expects !== "none" ? state.turn : null;
+  const secretLine = secretLineOf(notes);
+  const secret = secretLine !== null;
 
   const begin = async () => {
     const name = concept.trim();
-    if (!name || starting) return;
+    if (!name || starting || secret) return;
     setStarting(true);
     setError(null);
     const problem = await start({ concept: name, ...(notes.trim() ? { material: notes } : {}) });
@@ -51,156 +65,180 @@ export default function StartScreen() {
     else router.push("/session");
   };
 
-  const field = { color: c.onSurface, backgroundColor: c.surfaceContainer, borderColor: c.separator };
-
   return (
-    <Screen tone="day">
+    <Screen>
       <KeyboardSafe>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <UpdateNotice />
+          <Label dim>$ reality-check</Label>
+          <View style={styles.hero}>
+            <OpenBox width={150} label="A closed box" />
+            <View style={styles.peek}>
+              <Pair look="asking" size={56} />
+            </View>
+          </View>
           <View style={styles.intro}>
-            <BrandTitle />
-            <Body>Can you explain the code your AI wrote? Pick a concept from your project, guess your score, then build its map yourself.</Body>
-            <Footnote dim>Your tutor is an AI that asks questions and never hands you the answer.</Footnote>
+            <Title>{"The code your AI wrote is a black box. Can you explain\u00a0it?"}</Title>
+            <Body dim>Pick a concept your agent wrote. Guess your score, then open the box one part at a time.</Body>
           </View>
 
           {unfinished && (
-            <View style={[styles.card, { backgroundColor: c.surfaceContainer }]}>
-              <View style={styles.cardText}>
-                <Ui strong style={styles.capitalized}>
+            <Card style={styles.resume}>
+              <View style={styles.resumeHead}>
+                <MiniBox done={unfinished.progress.movesDone} now={unfinished.phase === "move" ? unfinished.progress.movesDone : null} />
+                <Body strong style={styles.flex} numberOfLines={1}>
                   {unfinished.mentefacto.concept}
-                </Ui>
-                <Footnote dim>{`${unfinished.progress.movesDone} of ${unfinished.progress.movesTotal} parts built`}</Footnote>
-                <View style={styles.keys} accessible={false}>
-                  {keysOf(unfinished).map((unit, i) => (
-                    <KeyUnit key={i} color={unit === "done" ? c.primary : c.onSurfaceVariant} opacity={unit === "done" ? 1 : 0.35} />
+                </Body>
+                <Label dim>{`${unfinished.progress.movesDone}/${unfinished.progress.movesTotal}`}</Label>
+              </View>
+              <Button label="Resume" onPress={() => router.push("/session")} />
+            </Card>
+          )}
+
+          {offline && <Label dim>{"// demo mode: no API is set, so this replays the democracy session"}</Label>}
+
+          <Card style={styles.tree}>
+            {TREE.map(({ folder, concepts }, i) => (
+              <View key={folder} style={[styles.treeRow, i > 0 && { borderTopColor: c.separator, borderTopWidth: StyleSheet.hairlineWidth }]}>
+                <Label dim style={styles.folder}>
+                  {folder}
+                </Label>
+                <View style={styles.chips}>
+                  {concepts.map((name) => (
+                    <Chip key={name} label={name} selected={concept.trim() === name} onPress={() => setConcept(name)} />
                   ))}
                 </View>
               </View>
-              <Button label="Resume" onPress={() => router.push("/session")} />
-            </View>
-          )}
+            ))}
+          </Card>
 
-          {offline && (
-            <View style={[styles.note, { backgroundColor: c.surfaceContainer }]}>
-              <Footnote dim>Demo mode: no API is set, so this replays the democracy session.</Footnote>
-            </View>
-          )}
+          <PromptField
+            value={concept}
+            onChangeText={setConcept}
+            maxLength={MAX_CONCEPT}
+            placeholder="Or type your own"
+            autoCapitalize="none"
+            accessibilityLabel="A concept to map"
+            returnKeyType="go"
+            onSubmitEditing={() => void begin()}
+          />
 
-          <View style={styles.fieldGroup}>
-            <Footnote strong dim>
-              A concept from your code
-            </Footnote>
-            <View style={styles.chips}>
-              {CONCEPTS.map((name) => (
-                <Choice key={name} label={name} selected={concept.trim() === name} onPress={() => setConcept(name)} />
-              ))}
-            </View>
-            <TextInput
-              value={concept}
-              onChangeText={setConcept}
-              maxLength={MAX_CONCEPT}
-              placeholder="Or type your own. For example: JWT"
-              placeholderTextColor={c.placeholder}
-              autoCapitalize="none"
-              accessibilityLabel="A concept to map"
-              style={[styles.input, field]}
-              returnKeyType="go"
-              onSubmitEditing={begin}
-            />
+          <View style={styles.extras}>
+            <Button kind="text" label="Ask your AI what to map" hint="A prompt for your coding agent, so you map concepts from your own project" onPress={() => setAskOpen(true)} style={styles.left} />
+            {!notesOpen && <Button kind="text" label="Add your notes" hint="Optional: paste text the tutor can draw on" onPress={() => setNotesOpen(true)} style={styles.left} />}
           </View>
 
-          {notesOpen ? (
-            <View style={styles.fieldGroup}>
-              <Footnote strong dim>
-                Your notes
-              </Footnote>
+          {notesOpen && (
+            <View style={styles.notesGroup}>
+              <Label dim>your notes</Label>
               <TextInput
                 value={notes}
                 onChangeText={setNotes}
                 maxLength={MAX_NOTES}
-                placeholder="Paste text from your class or reading"
+                placeholder="Paste your AI's answer, or text from your class"
                 placeholderTextColor={c.placeholder}
                 multiline
                 accessibilityLabel="Your notes"
-                style={[styles.notes, field]}
+                style={[type.body, styles.notes, { color: c.onSurface, backgroundColor: c.surfaceContainer, borderColor: secret ? c.gap : c.outline }]}
               />
-              <Footnote dim style={styles.count}>{`${notes.length.toLocaleString("en-US")} / 8,000`}</Footnote>
+              <Label dim style={styles.count}>{`${notes.length.toLocaleString("en-US")} / 8,000`}</Label>
+              {secret && <Failure message={`Line ${secretLine} looks like it has a key, a token or a password. Take it out before you start: your notes go to the AI tutor.`} />}
             </View>
-          ) : (
-            <Button kind="plain" icon="plus" label="Add Your Notes" hint="Optional: paste text the tutor can draw on" onPress={() => setNotesOpen(true)} />
           )}
 
           {error && <Failure message={error} />}
         </ScrollView>
 
         <View style={styles.foot}>
-          <Button label="Start Mapping" busy={starting} disabled={!concept.trim()} onPress={begin} />
+          <Button label="Start mapping" busy={starting} disabled={!concept.trim() || secret} onPress={() => void begin()} />
           {clerkKey && <SignOut />}
+          <Label dim style={styles.center}>
+            {"// your pair is an AI. it asks, you\u00a0explain."}
+          </Label>
         </View>
       </KeyboardSafe>
+      <AskYourAi
+        open={askOpen}
+        onClose={() => setAskOpen(false)}
+        onPaste={() => {
+          setAskOpen(false);
+          setNotesOpen(true);
+        }}
+      />
       <ObserveInteractiveMarker />
     </Screen>
   );
 }
 
-/** A concept to pick in one tap; the picked one turns bronze. */
-function Choice({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
+/** The prompt for your coding agent: copied on the web, shared on a phone (the copy button needs a native
+ * module, which waits for the next build). */
+function AskYourAi({ open, onClose, onPaste }: { open: boolean; onClose: () => void; onPaste: () => void }) {
   const c = useColors();
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
+      await navigator.clipboard.writeText(AI_PROMPT).then(() => setCopied(true), () => setCopied(false));
+    } else {
+      await Share.share({ message: AI_PROMPT }).catch(() => undefined);
+    }
+  };
   return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={label}
-      accessibilityState={{ selected }}
-      onPress={onPress}
-      hitSlop={size.hitSlop}
-      style={({ pressed }) => [
-        styles.choice,
-        selected ? { backgroundColor: c.primary } : { backgroundColor: c.surfaceContainer, borderColor: c.separator, borderWidth: StyleSheet.hairlineWidth },
-        pressed && styles.pressed,
-      ]}
-    >
-      <Text style={[type.ui, { color: selected ? c.onPrimary : c.onSurface }]}>{label}</Text>
-    </Pressable>
+    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
+      <Pressable style={[styles.scrim, { backgroundColor: c.scrim }]} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close" />
+      <View style={[styles.sheet, { backgroundColor: c.surfaceContainer }]}>
+        <View style={[styles.grabber, { backgroundColor: c.outline }]} />
+        <SheetTitle>Ask your AI what to map</SheetTitle>
+        <Body dim>Paste this into Claude Code, Cursor or Copilot inside your project. Then paste its answer into your notes and pick a concept from it.</Body>
+        <View style={[styles.prompt, { backgroundColor: c.surfaceHigh, borderColor: c.outline }]}>
+          <Text selectable style={[type.label, styles.promptText, { color: c.onSurface }]}>
+            {AI_PROMPT}
+          </Text>
+        </View>
+        <Button label={Platform.OS === "web" ? (copied ? "Copied" : "Copy the prompt") : "Share the prompt"} onPress={() => void copy()} />
+        <Button kind="secondary" label="Paste its answer" onPress={onPaste} style={styles.center} />
+      </View>
+    </Modal>
   );
 }
 
 // Only rendered with Clerk on (#22), since useAuth needs the ClerkProvider in the root layout
 function SignOut() {
   const { signOut } = useAuth();
-  return <Button kind="plain" label="Sign Out" onPress={() => void signOut()} style={styles.signOut} />;
+  return <Button kind="text" label="Sign out" onPress={() => void signOut()} />;
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: space.margin, paddingTop: space.xxl, paddingBottom: space.xl, gap: space.xl },
+  content: { paddingHorizontal: space.margin, paddingTop: space.xl, paddingBottom: space.xl, gap: space.l },
+  hero: { alignItems: "center", paddingVertical: space.s },
+  peek: { position: "absolute", left: "22%", bottom: space.xl },
   intro: { gap: space.m },
-  card: { borderRadius: radius.cardLarge, padding: space.l, gap: space.l },
-  cardText: { gap: space.xs },
-  capitalized: { textTransform: "capitalize" },
-  keys: { flexDirection: "row", gap: space.xs, paddingTop: space.xs },
-  note: { borderRadius: radius.card, paddingVertical: space.m, paddingHorizontal: space.l },
-  fieldGroup: { gap: space.s },
-  chips: { flexDirection: "row", flexWrap: "wrap", gap: space.s, paddingBottom: space.xs },
-  choice: { height: size.control, borderRadius: radius.control, paddingHorizontal: space.l, justifyContent: "center" },
-  pressed: { transform: [{ scale: 0.96 }] },
-  input: {
-    ...type.ui,
-    lineHeight: 20,
-    height: size.button,
-    paddingHorizontal: space.margin,
-    borderRadius: radius.button,
-    borderWidth: StyleSheet.hairlineWidth,
-  },
-  notes: {
-    ...type.ui,
-    minHeight: 140,
-    paddingHorizontal: space.l,
-    paddingVertical: space.m,
-    borderRadius: radius.card,
-    borderWidth: StyleSheet.hairlineWidth,
-    textAlignVertical: "top",
-  },
+  flex: { flex: 1 },
+  resume: { gap: space.m },
+  resumeHead: { flexDirection: "row", alignItems: "center", gap: space.m },
+  tree: { padding: 0, overflow: "hidden" },
+  treeRow: { flexDirection: "row", alignItems: "flex-start", gap: space.s, paddingHorizontal: space.m, paddingVertical: space.m },
+  folder: { width: 56, paddingTop: space.m },
+  chips: { flex: 1, flexDirection: "row", flexWrap: "wrap", gap: space.s },
+  extras: { gap: 0 },
+  left: { alignSelf: "flex-start", paddingHorizontal: 0 },
+  notesGroup: { gap: space.s },
+  notes: { minHeight: 140, paddingHorizontal: space.l, paddingVertical: space.m, borderRadius: radius.field, borderWidth: StyleSheet.hairlineWidth, textAlignVertical: "top" },
   count: { alignSelf: "flex-end" },
   foot: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m, gap: space.xs },
-  signOut: { alignSelf: "center" },
+  center: { alignSelf: "center", textAlign: "center" },
+  scrim: { flex: 1 },
+  sheet: {
+    borderTopLeftRadius: radius.sheet,
+    borderTopRightRadius: radius.sheet,
+    paddingHorizontal: space.margin,
+    paddingTop: space.m,
+    paddingBottom: space.xxl,
+    gap: space.m,
+    width: "100%",
+    maxWidth: 520,
+    alignSelf: "center",
+  },
+  grabber: { alignSelf: "center", width: 36, height: 4, borderRadius: 2 },
+  prompt: { borderRadius: radius.field, borderWidth: StyleSheet.hairlineWidth, padding: space.l },
+  promptText: { lineHeight: 18 },
 });

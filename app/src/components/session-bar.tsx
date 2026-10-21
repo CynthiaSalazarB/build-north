@@ -1,38 +1,55 @@
-// The top of a session screen (round 6): Close, which saves; the Greek key, one unit per part of the map,
-// which also opens the map; and "1 of 4" while the learner works on a part.
-import type { Turn } from "@build-north/agents";
-import { Pressable, StyleSheet, View } from "react-native";
-import { keysOf, partLabelOf } from "../session/present.ts";
-import { size, space } from "../theme.ts";
-import { KeyUnit } from "./icons.tsx";
-import { CircleButton, Footnote, useColors } from "./ui.tsx";
+// The top of a session screen (round 8): Close, which saves; the concept as a file name ("jwt.spec"); and on
+// the right the mini box with "3/4", which also opens the map. `end` replaces the right side (Submit, "done").
+import type { ReactNode } from "react";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { fileNameOf } from "../session/present.ts";
+import { size, space, type } from "../theme.ts";
+import { MiniBox } from "./box.tsx";
+import { IconButton, useColors } from "./ui.tsx";
 
-export function SessionBar({ turn, onClose, onMap }: { turn: Turn; onClose: () => void; onMap: () => void }) {
+type Props = {
+  concept: string;
+  onClose: () => void;
+  /** The parts done and the one in progress, for the mini box; with `onMap` it opens the map. */
+  progress?: { done: number; now: number | null; label: string };
+  onMap?: () => void;
+  end?: ReactNode;
+};
+
+export function SessionBar({ concept, onClose, progress, onMap, end }: Props) {
   const c = useColors();
-  const part = partLabelOf(turn);
-  const { movesDone, movesTotal } = turn.progress;
+  const name = fileNameOf(concept);
+  const stem = name.slice(0, -".spec".length);
   return (
     <View style={styles.bar}>
-      <CircleButton icon="x" label="Close and save" onPress={onClose} />
-      <Pressable
-        accessibilityRole="button"
-        accessibilityLabel={`Your map: ${movesDone} of ${movesTotal} parts built. Show the map.`}
-        onPress={onMap}
-        hitSlop={size.hitSlop}
-        style={({ pressed }) => [styles.keys, pressed && styles.pressed]}
-      >
-        {keysOf(turn).map((state, i) => (
-          <KeyUnit key={i} color={state === "done" ? c.primary : state === "now" ? c.onSurface : c.onSurfaceVariant} opacity={state === "todo" ? 0.35 : 1} />
-        ))}
-      </Pressable>
-      <View style={styles.side}>{part && <Footnote dim>{part}</Footnote>}</View>
+      <IconButton icon="x" label="Close and save" onPress={onClose} />
+      <Text style={[type.label, styles.file, { color: c.onSurfaceVariant }]} numberOfLines={1} accessibilityLabel={concept}>
+        <Text style={[type.labelStrong, { color: c.onSurface }]}>{stem}</Text>.spec
+      </Text>
+      <View style={styles.side}>
+        {end ??
+          (progress && (
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={`Your map: ${progress.done} of 4 parts done. Show the map.`}
+              disabled={!onMap}
+              onPress={onMap}
+              hitSlop={size.hitSlop}
+              style={({ pressed }) => [styles.progress, pressed && styles.pressed]}
+            >
+              <MiniBox done={progress.done} now={progress.now} />
+              <Text style={[type.label, { color: c.onSurfaceVariant }]}>{progress.label}</Text>
+            </Pressable>
+          ))}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: "row", alignItems: "center", gap: space.s, height: size.control, paddingHorizontal: space.margin, marginTop: space.s },
-  keys: { flex: 1, flexDirection: "row", justifyContent: "center", alignItems: "center", gap: space.xs, height: size.control },
-  side: { width: size.control, alignItems: "flex-end" },
-  pressed: { transform: [{ scale: 0.96 }] },
+  bar: { flexDirection: "row", alignItems: "center", gap: space.s, minHeight: size.touch, paddingHorizontal: space.margin, marginTop: space.s },
+  file: { flex: 1, textAlign: "center" },
+  side: { minWidth: 72, alignItems: "flex-end" },
+  progress: { flexDirection: "row", alignItems: "center", gap: space.s, minHeight: size.touch },
+  pressed: { opacity: 0.7 },
 });

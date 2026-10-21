@@ -4,8 +4,8 @@
 import * as Updates from "expo-updates";
 import { useEffect } from "react";
 import { Platform, StyleSheet, View } from "react-native";
-import { radius, space } from "../theme.ts";
-import { Button, Ui, useColors } from "./ui.tsx";
+import { space } from "../theme.ts";
+import { Body, Button, Card, Label } from "./ui.tsx";
 
 export function UpdateNotice() {
   if (Platform.OS === "web" || !Updates.isEnabled) return null;
@@ -13,7 +13,6 @@ export function UpdateNotice() {
 }
 
 function Pending() {
-  const c = useColors();
   const { isUpdateAvailable, isUpdatePending } = Updates.useUpdates();
   // the launch check finds a new update; download it now so the notice can offer it this session
   useEffect(() => {
@@ -21,14 +20,17 @@ function Pending() {
   }, [isUpdateAvailable, isUpdatePending]);
   if (!isUpdatePending) return null;
   return (
-    <View style={[styles.card, { backgroundColor: c.surfaceContainer }]} accessibilityRole="alert">
-      <Ui style={styles.text}>A new version is ready.</Ui>
-      <Button kind="tonal" label="Restart" onPress={() => void Updates.reloadAsync()} />
-    </View>
+    <Card style={styles.card}>
+      <View style={styles.text} accessibilityRole="alert">
+        <Label dim>update ready</Label>
+        <Body>A new version is ready.</Body>
+      </View>
+      <Button kind="secondary" label="Restart" onPress={() => void Updates.reloadAsync()} />
+    </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  card: { flexDirection: "row", alignItems: "center", gap: space.m, borderRadius: radius.card, paddingVertical: space.m, paddingHorizontal: space.l },
-  text: { flex: 1 },
+  card: { flexDirection: "row", alignItems: "center", gap: space.m },
+  text: { flex: 1, gap: space.xs },
 });
