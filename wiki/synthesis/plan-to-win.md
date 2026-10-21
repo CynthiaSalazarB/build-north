@@ -253,15 +253,20 @@ does.
 
 ## 8. The cut list
 
-Cut in this order if we fall behind:
+We checked each item against the story and the five criteria: none of these changes what a judge sees
+in the core loop (the guess, the fading help, the gap, level 5). Cut in this order if we fall behind:
 
 1. The mastery screen (#42). The demo uses the seeded profile.
-2. The SDK 58 extras still left: the Expo UI picker and the update banner.
-3. Round 6's photo-heavy screens. Keep the colors, the font, the icon and the result blocks.
+2. The update banner (`useUpdates()`). The Expo UI picker is out already: Expo UI has no stepper, and
+   the design's stepper does the job.
+3. Round 6's photo-heavy screens. #81 already leaves out the Welcome painting and the Progress
+   statues, and keeps one photo in the first-launch arch.
 4. Extra welcome steps.
 
-Not this week: TestFlight and any iOS build (no Apple account, decided Oct 21), dark mode, the Android
-widget, SurrealDB Agent Memory, and reading concepts from the student's repo.
+Not this week: TestFlight and any iOS build (no Apple account, decided Oct 21), glass and App Intents
+(iPhone only), a home screen that lists past maps (the API has no sessions list, and Resume covers the
+map in progress), dark mode, the Android widget, SurrealDB Agent Memory, and reading concepts from the
+student's repo.
 
 Never cut: Claude live, the tech concepts in the demo, level 5, the result screen with the gap,
 sign-in, delete my data, EAS Build and Update, the web build, the five testers, the video.
