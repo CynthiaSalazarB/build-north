@@ -131,8 +131,9 @@ phone, and ten seconds of `eas update` in the video.
 Where it stands on Oct 21: #80 has the EAS project (`@leo_atienza/reality-check`), `eas.json`, EAS
 Update with the fingerprint policy, Expo Observe and two workflows, and #81 has the icon and splash.
 The first development and `preview` Android builds are in the free queue, and a review deploy of the
-web build is up. The workflows' push trigger waits on Cynthia installing the Expo GitHub app. The
-native app is Android only, and iPhones use the web build.
+web build is up. The workflows' push trigger waits on Cynthia installing the Expo GitHub app. #80
+also starts E6 with `docs/expo-log.md` and an EAS section in `app/README.md`. The native app is
+Android only, and iPhones use the web build.
 
 ### Best Use of Clerk
 
@@ -164,7 +165,7 @@ About a day of work across three people. Nothing in the API changes.
 | P4 | Move the demo seed's level-5 session from inflation to CORS. #78's whole-map eval and the seed's test follow it | Leo | Oct 22 |
 | P5 | Write session 1 of the demo on JWT and play it live with Claude until it shows a hint and a gap of about +2 | Cynthia | Oct 22 |
 | P6 | Add JWT and CORS cases to the four agent evals, starting with the fact desk's leak eval | Leo, Cynthia reviews | Oct 22 |
-| P7 | The start screen: the hook "Can you explain the code your AI wrote?", the concept list from section 2, "type your own", and the placeholder "For example: JWT" | Leo, on top of #81 | Oct 22 |
+| P7 | Done in #81: the start screen asks "Can you explain the code your AI wrote?", offers the eight concepts in one tap and keeps a field with "For example: JWT", and both sign-in screens open with the same question. Cynthia reviews the wording on #81 | Leo | Oct 21 |
 | P8 | The deck, the Devpost draft and the video script around the new story (#13, #30, #31, #48) | Kyle | Oct 22, draft |
 
 `agents/fixtures/session-1.json` (democracy) stays as test data, so the tests built on it don't change.
@@ -239,8 +240,8 @@ Times are rough. Each evening's check sets the next morning's list.
 
 - Cynthia: the decisions, reviews and merges, the app screens (#26, #34), the JWT session (P5) and the
   prompt fixes.
-- Leo: the API and hosting, EAS (Build, Update, Hosting, Workflows), Clerk end to end, round 6 in the
-  app (#81), the start screen (P7), the demo seed and the evals (P4, P6), the README.
+- Leo: the API and hosting, EAS (Build, Update, Hosting, Workflows), Clerk end to end, round 6 and the
+  start screen in the app (#81, P7), the demo seed and the evals (P4, P6), the README.
 - Jonathan: delete my data and the privacy note (#43) and the mastery screen (#42). #81 already did the
   theme (#46), the icon, the splash and haptics.
 - Kyle: the credits (#19, #20), the testers (#12, #24, #38, #39), the deck (#13, #31, #47, #52),
