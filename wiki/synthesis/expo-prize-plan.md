@@ -51,6 +51,10 @@ evening, and a write-up that makes that plain.
 
 ## 2. Where we stand on Expo (Oct 20)
 
+Update, Oct 21: #80 adds the EAS project, `eas.json`, EAS Update, Expo Observe and the workflows, and
+#81 adds the brand icon and splash. The main plan's section 4 has the current status. The team also
+decided against an Apple account, so the native app is Android only and iPhones use the web build.
+
 **Already in the code** (Cynthia's `cynthia/4-expo-app` and #75 on top of it):
 
 - Expo SDK 58, React Native 0.88, React 19.3. SDK 58 came out days ago, so we're on the newest SDK.
@@ -310,7 +314,7 @@ The schedule lives in the main plan's [section 6](plan-to-win.md#6-day-by-day), 
 current. Its Expo work runs like this: E1 to E3 and the office hours on Oct 21, then the web build on
 EAS Hosting, the first `preview` APK and update, and the workflows on Oct 22. Updates go out on tester
 night (Oct 23), the freeze builds run at 6 PM on Oct 24, and the Devpost section is written on Oct 25.
-TestFlight follows section 4 if one of us enrolls with Apple on Oct 21.
+TestFlight's steps in section 4 are on hold, since the team decided against an Apple account on Oct 21.
 
 ## 10. Owners (proposal)
 
