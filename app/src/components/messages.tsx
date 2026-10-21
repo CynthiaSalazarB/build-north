@@ -1,73 +1,161 @@
-// One line of the conversation. The learner sees what kind of message it is (a question, a hint, the
-// example...), never which agent wrote it.
-import type { HintStep, Message } from "@build-north/agents";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import { colors, fonts, radius, space } from "../theme.ts";
+// One line of the conversation, in the round 6 voice: the tutor's questions are italic titles, its
+// replies plain serif text, a hint is a lamp card that says what it costs, and the learner's answers sit
+// on the right. The learner sees what kind of message it is, never which agent wrote it.
+import type { Message } from "@build-north/agents";
+import { useEffect, type ReactNode } from "react";
+import { StyleSheet, Text, View } from "react-native";
+import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withSequence, withTiming } from "react-native-reanimated";
+import { eyebrowOf, hintCardOf, splitTrailingQuestion } from "../session/present.ts";
+import { motion, palette, radius, space, type } from "../theme.ts";
+import { Icon } from "./icons.tsx";
+import { Body, Footnote, Question, useColors } from "./ui.tsx";
 
-const HINT_STEP: Record<HintStep, string> = { nudge: "Nudge", hint: "Hint", partial: "Part of the answer", reveal: "The answer" };
-
-type Look = { label: string | null; box: object; labelColor: string };
-
-function lookOf(message: Message): Look {
+export function AppMessage({ message }: { message: Message }) {
   switch (message.kind) {
-    case "question":
-      return { label: null, box: styles.question, labelColor: colors.question };
+    case "question": {
+      const { eyebrow, text } = eyebrowOf(message.text);
+      return (
+        <View style={styles.question}>
+          {eyebrow && <Footnote strong dim>{eyebrow}</Footnote>}
+          <Question>{text}</Question>
+        </View>
+      );
+    }
     case "hint":
-      return { label: message.hintStep ? HINT_STEP[message.hintStep] : "Hint", box: styles.hint, labelColor: colors.hint };
-    case "example":
-      return { label: message.agent === "app" ? null : "Example", box: styles.example, labelColor: colors.example };
-    case "named_move":
-      return { label: null, box: styles.found, labelColor: colors.found };
-    case "summary":
-      return { label: "Coach", box: styles.coach, labelColor: colors.coach };
+      return <HintCard message={message} />;
     case "fact":
     case "redirect":
-      return { label: "Fact desk", box: styles.feedback, labelColor: colors.textMuted };
+      return (
+        <View style={styles.fact}>
+          <Footnote strong dim>
+            Fact desk
+          </Footnote>
+          <Body>{message.text}</Body>
+        </View>
+      );
     default:
-      return { label: null, box: styles.feedback, labelColor: colors.feedback };
+      return <Reply text={message.text} />;
   }
 }
 
-export function AppMessage({ message }: { message: Message }) {
-  const look = lookOf(message);
+/** A reply that ends in a question sets the question in italic, as the tutor asks it. */
+function Reply({ text }: { text: string }) {
+  const { statement, question } = splitTrailingQuestion(text);
   return (
-    <View style={[styles.bubble, look.box]}>
-      {look.label && <Text style={[styles.label, { color: look.labelColor }]}>{look.label}</Text>}
-      <Text style={[styles.text, message.kind === "question" && styles.questionText]}>{message.text}</Text>
+    <Body>
+      {statement}
+      {statement && question ? " " : ""}
+      {question && <Text style={type.bodyItalic}>{question}</Text>}
+    </Body>
+  );
+}
+
+function HintCard({ message }: { message: Message }) {
+  const card = hintCardOf(message.hintStep);
+  return (
+    <View style={styles.hint} accessibilityRole="summary" accessibilityLabel={`${card.title}. ${message.text} ${card.note}`}>
+      <View style={styles.hintHead}>
+        <View style={styles.hintLabel}>
+          <Icon name="sun" color={palette.day.hintIcon} size={18} />
+          <Text style={[type.footnoteStrong, { color: palette.day.onHintContainer }]}>{card.title}</Text>
+        </View>
+        {card.pips !== null && (
+          <View style={styles.pips}>
+            {[1, 2, 3].map((n) => (
+              <View key={n} style={[styles.pip, n <= card.pips! && styles.pipOn]} />
+            ))}
+          </View>
+        )}
+      </View>
+      <Text style={[type.bodyItalic, { color: palette.day.onHintContainer }]}>{message.text}</Text>
+      <Text style={[type.footnote, { color: palette.day.onHintContainer }]}>{card.note}</Text>
     </View>
   );
 }
 
 export function LearnerMessage({ text }: { text: string }) {
+  const c = useColors();
   return (
-    <View style={[styles.bubble, styles.learner]}>
-      <Text style={[styles.text, styles.learnerText]}>{text}</Text>
+    <View style={[styles.learner, { backgroundColor: c.surfaceContainer, borderColor: c.separator }]}>
+      <Body>{text}</Body>
     </View>
   );
 }
 
-export function Thinking() {
+/** While the tutor answers: moving dots and what is happening (a fade only, with Reduce Motion). */
+export function Thinking({ line }: { line: string }) {
+  const c = useColors();
   return (
-    <View style={[styles.bubble, styles.feedback, styles.thinking]} accessibilityLiveRegion="polite" accessibilityLabel="Thinking">
-      <ActivityIndicator color={colors.textMuted} size="small" />
-      <Text style={[styles.text, styles.mutedText]}>Thinking…</Text>
+    <View style={styles.thinking} accessibilityLiveRegion="polite" accessibilityLabel={line}>
+      <View style={[styles.dotsBox, { backgroundColor: c.surfaceContainer, borderColor: c.separator }]}>
+        {[0, 1, 2].map((i) => (
+          <Dot key={i} delay={i * 200} />
+        ))}
+      </View>
+      <Footnote dim>{line}</Footnote>
+    </View>
+  );
+}
+
+function Dot({ delay }: { delay: number }) {
+  const c = useColors();
+  const still = useReducedMotion();
+  const opacity = useSharedValue(still ? 0.7 : 0.3);
+  useEffect(() => {
+    if (still) return;
+    const half = motion.dots / 2;
+    opacity.value = withRepeat(
+      withSequence(withTiming(0.3, { duration: delay }), withTiming(1, { duration: half - delay / 2 }), withTiming(0.3, { duration: half - delay / 2 })),
+      -1,
+    );
+  }, [still, delay, opacity]);
+  const look = useAnimatedStyle(() => ({ opacity: opacity.value }));
+  return <Animated.View style={[styles.dot, { backgroundColor: c.onSurfaceVariant }, look]} />;
+}
+
+/** A failed call: what happened, where it happened, and a way to try again. Never terracotta. */
+export function Failure({ message, children }: { message: string; children?: ReactNode }) {
+  const c = useColors();
+  return (
+    <View style={styles.failure} accessibilityRole="alert">
+      <Icon name="alert" color={c.onSurfaceVariant} />
+      <View style={styles.failureBody}>
+        <Text style={[type.ui, { color: c.onSurface }]}>{message}</Text>
+        {children}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bubble: { maxWidth: "88%", alignSelf: "flex-start", paddingVertical: space.md, paddingHorizontal: space.lg, borderRadius: radius.md, gap: space.xs },
-  label: { fontFamily: fonts.body, fontSize: fonts.size.small, fontWeight: fonts.weight.bold, textTransform: "uppercase", letterSpacing: 0.5 },
-  text: { fontFamily: fonts.body, fontSize: fonts.size.body, lineHeight: 23, color: colors.text },
-  questionText: { fontSize: fonts.size.large, lineHeight: 26, fontWeight: fonts.weight.medium },
-  mutedText: { color: colors.textMuted },
-  question: { maxWidth: "100%", alignSelf: "stretch", backgroundColor: colors.surface, borderLeftWidth: 4, borderLeftColor: colors.question },
-  feedback: { backgroundColor: colors.surface },
-  hint: { backgroundColor: colors.hintBackground },
-  example: { backgroundColor: colors.exampleBackground },
-  found: { backgroundColor: colors.foundBackground },
-  coach: { maxWidth: "100%", alignSelf: "stretch", backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  learner: { alignSelf: "flex-end", backgroundColor: colors.learner },
-  learnerText: { color: colors.learnerText },
-  thinking: { flexDirection: "row", alignItems: "center", gap: space.sm },
+  question: { gap: space.xs },
+  fact: { gap: space.xs },
+  hint: { backgroundColor: palette.day.hintContainer, borderRadius: radius.card, padding: space.l, gap: space.s },
+  hintHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  hintLabel: { flexDirection: "row", alignItems: "center", gap: space.s },
+  pips: { flexDirection: "row", gap: space.xs },
+  pip: { width: 8, height: 8, borderRadius: 4, borderWidth: 1.5, borderColor: palette.day.onHintContainer },
+  pipOn: { backgroundColor: palette.day.onHintContainer },
+  learner: {
+    alignSelf: "flex-end",
+    maxWidth: "80%",
+    paddingVertical: space.s,
+    paddingHorizontal: space.l,
+    borderRadius: radius.card,
+    borderBottomRightRadius: space.xs,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  thinking: { flexDirection: "row", alignItems: "center", gap: space.m },
+  dotsBox: {
+    flexDirection: "row",
+    gap: space.xs,
+    paddingVertical: space.m,
+    paddingHorizontal: space.l,
+    borderRadius: radius.card,
+    borderBottomLeftRadius: space.xs,
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  dot: { width: 8, height: 8, borderRadius: 4 },
+  failure: { flexDirection: "row", alignItems: "flex-start", gap: space.m },
+  failureBody: { flex: 1, gap: space.s },
 });

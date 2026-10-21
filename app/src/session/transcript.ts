@@ -1,9 +1,15 @@
 // What the session screen shows, as pure functions of the Turns that came back: the conversation so
 // far, the latest Turn, the call in flight and a failed call to retry. No React here, so it's tested
 // under Node.
-import type { Message, Turn, TurnBody } from "@build-north/agents";
+import type { Level, Mentefacto, Message, MoveId, Phase, Turn, TurnBody } from "@build-north/agents";
 
-export type Entry = { id: string; from: "app"; message: Message } | { id: string; from: "learner"; text: string };
+/** An app entry keeps the phase, part and level of the Turn it came with, so the screen can draw a
+ * question with its stage, and leave the guess's own messages to the guess screen. A map entry is the
+ * worked example's map (planet), which stays in the conversation after the example. */
+export type Entry =
+  | { id: string; from: "app"; message: Message; phase: Phase; move: MoveId | null; level: Level | null }
+  | { id: string; from: "learner"; text: string }
+  | { id: string; from: "map"; map: Mentefacto };
 
 export type Failure = { message: string; retryable: boolean; body: TurnBody };
 
@@ -18,11 +24,12 @@ export type SessionState = {
 
 export const initialState: SessionState = { turn: null, entries: [], pending: null, failure: null };
 
-/** The learner's side of the conversation, as it shows in the transcript. */
+/** The learner's side of the conversation, as it shows in the transcript. The guess has its own
+ * screen and comes back on the result, so it isn't echoed. */
 export function echoFor(body: TurnBody): string | null {
   if ("text" in body) return body.text;
   if ("question" in body) return body.question;
-  if ("prediction" in body) return `I'll get ${body.prediction} of 8.`;
+  if ("prediction" in body) return null;
   if ("mentefacto" in body) return "Here's my map.";
   if (body.action === "help") return "Help";
   return null;
@@ -39,8 +46,22 @@ export function sent(state: SessionState, body: TurnBody, retry = false): Sessio
  * latest one, which is already on screen. */
 export function received(state: SessionState, turn: Turn): SessionState {
   const isNew = turn.turn > (state.turn?.turn ?? 0);
+  // one worked example per session: its map goes in once, ahead of its messages
+  const example =
+    isNew && turn.example && !state.entries.some((e) => e.from === "map") ? [{ id: `turn-${turn.turn}-map`, from: "map" as const, map: turn.example }] : [];
   const entries = isNew
-    ? [...state.entries, ...turn.messages.map((message, i) => ({ id: `turn-${turn.turn}-${i}`, from: "app" as const, message }))]
+    ? [
+        ...state.entries,
+        ...example,
+        ...turn.messages.map((message, i) => ({
+          id: `turn-${turn.turn}-${i}`,
+          from: "app" as const,
+          message,
+          phase: turn.phase,
+          move: turn.move,
+          level: turn.level,
+        })),
+      ]
     : state.entries;
   // An agent failed (CONTRACTS.md section 5): nothing moved on, and the same body can be sent again.
   const failure =

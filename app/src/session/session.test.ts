@@ -28,12 +28,23 @@ test("the fixture client clicks through the whole democracy session, then stops"
 test("the transcript adds a Turn's messages once, and echoes what the learner sent", () => {
   let state = received(initialState, first);
   assert.equal(state.entries.length, first.messages.length);
-  state = sent(state, { turn: 1, prediction: 7 });
-  assert.deepEqual(state.entries.at(-1), { id: "learner-1", from: "learner", text: "I'll get 7 of 8." });
+  state = sent(state, { turn: 1, text: "A form of government" });
+  assert.deepEqual(state.entries.at(-1), { id: "learner-1", from: "learner", text: "A form of government" });
   // a resend or a 409 answers with the same Turn: nothing is added twice
   state = received(state, first);
   assert.equal(state.entries.length, first.messages.length + 1);
   assert.equal(echoFor({ turn: 3, action: "continue" }), null);
+  // the guess has its own screen, so it isn't echoed
+  assert.equal(echoFor({ turn: 1, prediction: 7 }), null);
+});
+
+test("the worked example's map joins the conversation once, ahead of its messages", () => {
+  let state = initialState;
+  for (const turn of fixtureTurns) state = received(state, turn);
+  const at = state.entries.findIndex((e) => e.from === "map");
+  const exampleTurn = fixtureTurns.find((t) => t.example)!;
+  assert.equal(state.entries.filter((e) => e.from === "map").length, 1);
+  assert.equal(state.entries[at + 1]!.id, `turn-${exampleTurn.turn}-0`);
 });
 
 test("an error Turn keeps the screen and offers to send the same body again, without echoing it twice", () => {

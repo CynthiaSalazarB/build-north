@@ -1,37 +1,52 @@
-// Sign-in on iOS and Android (#22): Clerk's hosted page opens in an in-app browser, which also works in
-// Expo Go. The Clerk dashboard decides the methods it offers. The look comes with the brand kit (#14);
-// the web build uses sign-in.web.tsx instead.
+// Sign-in on Android (#22), as round 6's first launch: the cave, the arch with daylight in it, and the
+// way out. Clerk's hosted page opens in an in-app browser, on its sign-up or sign-in screen; the Clerk
+// dashboard decides the methods it offers. The web build uses sign-in.web.tsx instead.
 import { useHostedAuth } from "@clerk/expo/hosted-auth";
 import { ObserveInteractiveMarker } from "expo-observe";
 import { useState } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import { Body, Button, Screen, Title } from "../components/ui.tsx";
-import { brand, colors, fonts, space } from "../theme.ts";
+import { StyleSheet, View } from "react-native";
+import { Arch, Glow } from "../components/art.tsx";
+import { Failure } from "../components/messages.tsx";
+import { Body, BrandTitle, Button, Footnote, Screen } from "../components/ui.tsx";
+import { space } from "../theme.ts";
+
+const acropolis = require("../../assets/images/acropolis-columns.jpg");
 
 export default function SignInScreen() {
   const { startHostedAuth } = useHostedAuth();
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<"sign-up" | "sign-in" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const signIn = async () => {
-    setBusy(true);
+  const go = async (mode: "sign-up" | "sign-in") => {
+    setBusy(mode);
     setError(null);
     try {
       // once Clerk has a session, the root layout swaps this screen for the start screen
-      await startHostedAuth();
+      await startHostedAuth({ mode });
     } catch {
       setError("Sign-in didn't finish. Try again.");
     }
-    setBusy(false);
+    setBusy(null);
   };
 
   return (
-    <Screen>
-      <View style={styles.content}>
-        <Title>{brand.name}</Title>
-        <Body muted>Sign in with your email to start.</Body>
-        <Button label="Sign in" busy={busy} onPress={signIn} />
-        {error && <Text style={styles.error}>{error}</Text>}
+    <Screen tone="cave">
+      <Glow top="24%" />
+      <View style={styles.art}>
+        <Arch source={acropolis} label="The Acropolis in bright daylight, seen from the cave" width={188} height={268} />
+      </View>
+      <View style={styles.stack}>
+        <Footnote strong dim>
+          Step out of the shadows
+        </Footnote>
+        <BrandTitle splash />
+        <Body>Feeling sure isn't knowing. Map an idea, answer real questions, and see how close your guess was.</Body>
+        <Footnote dim>Your tutor is an AI that asks questions and never hands you the answer.</Footnote>
+        {error && <Failure message={error} />}
+        <View style={styles.actions}>
+          <Button label="Get Started" busy={busy === "sign-up"} disabled={busy !== null} onPress={() => go("sign-up")} />
+          <Button kind="plain" label="I Have an Account" busy={busy === "sign-in"} disabled={busy !== null} onPress={() => go("sign-in")} style={styles.center} />
+        </View>
       </View>
       <ObserveInteractiveMarker />
     </Screen>
@@ -39,6 +54,8 @@ export default function SignInScreen() {
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1, justifyContent: "center", padding: space.xl, gap: space.lg },
-  error: { fontFamily: fonts.body, fontSize: fonts.size.body, color: colors.error },
+  art: { flex: 1, alignItems: "center", justifyContent: "center", paddingTop: space.xl },
+  stack: { paddingHorizontal: space.margin, paddingBottom: space.m, gap: space.m },
+  actions: { gap: space.xs, paddingTop: space.s },
+  center: { alignSelf: "center" },
 });

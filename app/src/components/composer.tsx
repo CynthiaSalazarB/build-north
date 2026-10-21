@@ -1,20 +1,20 @@
-// The bottom of the session screen: the one input the latest Turn asks for (`expects`), and Help
-// during the moves. Everything is disabled while a call is pending (decision 18).
+// The bottom of a session screen: the one input the latest Turn asks for (`expects`), and Help during the
+// moves with its price on it. Everything waits while a call is pending (decision 18). The guess has its
+// own screen (guess.tsx).
 import type { Turn } from "@build-north/agents";
 import { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, Pressable, StyleSheet, TextInput, View } from "react-native";
 import type { LearnerInput } from "../session/session-context.tsx";
-import { colors, fonts, radius, space } from "../theme.ts";
-import { Button, Small } from "./ui.tsx";
+import { radius, size, space, type } from "../theme.ts";
+import { Icon } from "./icons.tsx";
+import { Button, Footnote, useColors } from "./ui.tsx";
 
-type Props = { turn: Turn; pending: boolean; onSend: (input: LearnerInput) => void };
+type Props = { turn: Turn; pending: boolean; helpLabel: string; onSend: (input: LearnerInput) => void };
 
-export function Composer({ turn, pending, onSend }: Props) {
+export function Composer({ turn, pending, helpLabel, onSend }: Props) {
   switch (turn.expects) {
-    case "prediction":
-      return <PredictionPicker pending={pending} onPick={(prediction) => onSend({ prediction })} />;
     case "text":
-      return <TextComposer pending={pending} canHelp={turn.phase === "move"} onSend={onSend} />;
+      return <AnswerBar pending={pending} help={turn.phase === "move" ? helpLabel : null} onSend={onSend} />;
     case "continue":
       return (
         <View style={styles.bar}>
@@ -22,40 +22,20 @@ export function Composer({ turn, pending, onSend }: Props) {
         </View>
       );
     case "map":
-      // The whole-map screen (level 5) is #26.
+      // Building the whole map alone is the level-5 screen (#26).
       return (
         <View style={styles.bar}>
-          <Small>The whole-map screen is coming soon.</Small>
+          <Footnote dim>Building the whole map yourself (level 5) isn't in this version yet.</Footnote>
         </View>
       );
+    case "prediction":
     case "none":
       return null;
   }
 }
 
-function PredictionPicker({ pending, onPick }: { pending: boolean; onPick: (n: number) => void }) {
-  return (
-    <View style={styles.bar}>
-      <View style={styles.numbers}>
-        {Array.from({ length: 9 }, (_, n) => (
-          <Pressable
-            key={n}
-            accessibilityRole="button"
-            accessibilityLabel={`${n} of 8`}
-            disabled={pending}
-            onPress={() => onPick(n)}
-            style={({ pressed }) => [styles.number, pending && styles.disabled, pressed && styles.numberPressed]}
-          >
-            <Text style={styles.numberLabel}>{n}</Text>
-          </Pressable>
-        ))}
-      </View>
-      <Small style={styles.center}>Points out of 8</Small>
-    </View>
-  );
-}
-
-function TextComposer({ pending, canHelp, onSend }: { pending: boolean; canHelp: boolean; onSend: (input: LearnerInput) => void }) {
+function AnswerBar({ pending, help, onSend }: { pending: boolean; help: string | null; onSend: (input: LearnerInput) => void }) {
+  const c = useColors();
   const [text, setText] = useState("");
   const answer = text.trim();
   const submit = () => {
@@ -65,58 +45,70 @@ function TextComposer({ pending, canHelp, onSend }: { pending: boolean; canHelp:
   };
   return (
     <View style={styles.bar}>
-      <TextInput
-        value={text}
-        onChangeText={setText}
-        placeholder="Your answer"
-        placeholderTextColor={colors.textMuted}
-        multiline
-        editable={!pending}
-        accessibilityLabel="Your answer"
-        style={styles.input}
-        onSubmitEditing={submit}
-        submitBehavior="submit"
-      />
-      <View style={styles.actions}>
-        {canHelp && <Button label="Help" kind="secondary" disabled={pending} onPress={() => onSend({ action: "help" })} style={styles.help} />}
-        <Button label="Send" busy={pending} disabled={!answer} onPress={submit} style={styles.send} />
+      {help && (
+        <Button
+          kind="hint"
+          icon="sun"
+          label={help}
+          hint={help.includes("pt") ? "Costs a point: this part can then score 1 at most" : undefined}
+          disabled={pending}
+          onPress={() => onSend({ action: "help" })}
+        />
+      )}
+      <View style={styles.row}>
+        <TextInput
+          value={text}
+          onChangeText={setText}
+          placeholder="Your answer"
+          placeholderTextColor={c.placeholder}
+          multiline
+          numberOfLines={1}
+          editable={!pending}
+          accessibilityLabel="Your answer"
+          style={[styles.field, { color: c.onSurface, backgroundColor: c.surfaceContainer, borderColor: c.separator }]}
+          onSubmitEditing={submit}
+          submitBehavior="submit"
+        />
+        <SendButton busy={pending} disabled={!answer} onPress={submit} />
       </View>
     </View>
   );
 }
 
+/** The round bronze send button; it shows a spinner while the tutor answers. */
+export function SendButton({ busy, disabled, onPress, label = "Send" }: { busy: boolean; disabled: boolean; onPress: () => void; label?: string }) {
+  const c = useColors();
+  const off = busy || disabled;
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={busy ? "Sending" : label}
+      accessibilityState={{ disabled: off, busy }}
+      disabled={off}
+      onPress={onPress}
+      style={({ pressed }) => [styles.send, { backgroundColor: c.primary }, disabled && !busy && styles.disabled, pressed && !off && styles.pressed]}
+    >
+      {busy ? <ActivityIndicator color={c.onPrimary} /> : <Icon name="up" color={c.onPrimary} size={22} />}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
-  bar: { padding: space.md, gap: space.sm, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: colors.background },
-  numbers: { flexDirection: "row", justifyContent: "space-between", gap: space.xs },
-  number: {
+  bar: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m, gap: space.s },
+  row: { flexDirection: "row", alignItems: "flex-end", gap: space.s },
+  field: {
+    ...type.ui,
+    lineHeight: 20,
     flex: 1,
-    aspectRatio: 1,
-    maxWidth: 48,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    alignItems: "center",
-    justifyContent: "center",
+    minHeight: size.button,
+    maxHeight: 128,
+    paddingHorizontal: space.margin,
+    paddingVertical: space.l,
+    borderRadius: radius.button,
+    borderWidth: StyleSheet.hairlineWidth,
+    textAlignVertical: "center",
   },
-  numberPressed: { backgroundColor: colors.primary },
-  numberLabel: { fontFamily: fonts.body, fontSize: fonts.size.large, fontWeight: fonts.weight.medium, color: colors.text },
+  send: { width: size.button, height: size.button, borderRadius: radius.button, alignItems: "center", justifyContent: "center" },
   disabled: { opacity: 0.45 },
-  center: { textAlign: "center" },
-  input: {
-    minHeight: 48,
-    maxHeight: 140,
-    paddingHorizontal: space.lg,
-    paddingVertical: space.md,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: colors.surface,
-    fontFamily: fonts.body,
-    fontSize: fonts.size.body,
-    color: colors.text,
-  },
-  actions: { flexDirection: "row", gap: space.sm },
-  help: { flex: 1 },
-  send: { flex: 2 },
+  pressed: { transform: [{ scale: 0.96 }] },
 });
