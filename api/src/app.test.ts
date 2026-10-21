@@ -1,7 +1,5 @@
 import assert from "node:assert/strict";
-import { once } from "node:events";
-import type { AddressInfo } from "node:net";
-import { test, type TestContext } from "node:test";
+import { test } from "node:test";
 import {
   AGENTS,
   FACT_DESK_REDIRECT,
@@ -13,17 +11,14 @@ import {
   UnexpectedInput,
   advance,
   type Advance,
-  type Mastery,
-  type Session,
 } from "@build-north/agents";
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import { advanceStub, callAgentStub } from "./advance-stub.ts";
-import { createApp, type AppOptions } from "./app.ts";
-import { createCallAgent, type SendToClaude } from "./call-agent.ts";
-import { initialSession, type AgentLogEntry, type Store } from "./store.ts";
+import type { AppOptions } from "./app.ts";
+import { initialSession } from "./store.ts";
+import { KEY, answer, as, fakeClaude, memoryStore, post, start } from "./testing.ts";
 
 const WEB = "http://localhost:8081";
-const KEY = "test-dev-key";
 const noDb: AppOptions = {
   corsOrigins: [WEB],
   checkDb: null,
@@ -32,78 +27,8 @@ const noDb: AppOptions = {
   callAgentFor: () => callAgentStub,
   devKey: KEY,
 };
-const as = (user: string, key = KEY) => ({ "x-dev-user": user, "x-dev-key": key });
-
-// The Store contract kept in memory, so the routes can be tested without a database.
-function memoryStore(): Store {
-  const sessions = new Map<string, Session>();
-  const mastery = new Map<string, Mastery>();
-  let created = 0;
-  return {
-    async createSession(user, input) {
-      const session: Session = { ...initialSession(user, input), id: `s${++created}`, createdAt: new Date().toISOString() };
-      sessions.set(session.id, session);
-      return structuredClone(session);
-    },
-    async getSession(user, id) {
-      const session = sessions.get(id);
-      return session?.user === user ? structuredClone(session) : null;
-    },
-    async saveSession(session, previousTurn) {
-      if (sessions.get(session.id)?.turn !== previousTurn) return false;
-      sessions.set(session.id, structuredClone(session));
-      return true;
-    },
-    async getMastery(user) {
-      const fresh = { moves: MOVE_ORDER.map((move) => ({ move, level: 1 as const, unassistedSuccesses: 0 })) };
-      return structuredClone(mastery.get(user) ?? fresh);
-    },
-    async saveMastery(user, saved) {
-      mastery.set(user, structuredClone(saved));
-    },
-    async logAgentCall() {},
-    async deleteUserData(user) {
-      for (const [id, session] of sessions) if (session.user === user) sessions.delete(id);
-      mastery.delete(user);
-    },
-  };
-}
 
 const withStore = (): AppOptions => ({ ...noDb, store: memoryStore() });
-const post = (url: string, body: unknown, headers: Record<string, string> = as("leo")) =>
-  fetch(`${url}/sessions`, {
-    method: "POST",
-    headers: { "content-type": "application/json", ...headers },
-    body: typeof body === "string" ? body : JSON.stringify(body),
-  });
-const answer = (url: string, id: string, body: unknown, headers: Record<string, string> = as("leo")) =>
-  fetch(`${url}/sessions/${id}/turns`, {
-    method: "POST",
-    headers: { "content-type": "application/json", ...headers },
-    body: JSON.stringify(body),
-  });
-
-async function start(t: TestContext, options: AppOptions): Promise<string> {
-  const server = createApp(options).listen(0);
-  t.after(() => server.close());
-  await once(server, "listening");
-  return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-}
-
-// Claude, faked behind the real callAgent: each call gets the next reply scripted for its agent (the
-// system prompt says which agent is calling, so two calls at once get their own replies)
-function fakeClaude(replies: [keyof typeof AGENTS, unknown][]) {
-  const send: SendToClaude = async ({ system }) => {
-    const next = replies.findIndex(([agent]) => AGENTS[agent].system === system);
-    if (next < 0) throw new Error("a call the script doesn't have");
-    const [, output] = replies.splice(next, 1)[0]!;
-    const usage = { input_tokens: 1_000, output_tokens: 500, cache_creation_input_tokens: null, cache_read_input_tokens: null };
-    return { message: { content: [{ type: "text", text: JSON.stringify(output) }], stop_reason: "end_turn", usage }, headers: new Headers() };
-  };
-  const logged: AgentLogEntry[] = [];
-  const callAgentFor = createCallAgent({ send, model: "claude-opus-5-5", budgetUsd: 10, log: async (entry) => void logged.push(entry) });
-  return { callAgentFor, logged };
-}
 
 test("GET /health answers ok", async (t) => {
   const res = await fetch(`${await start(t, noDb)}/health`);
