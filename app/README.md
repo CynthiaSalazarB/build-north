@@ -19,12 +19,26 @@ With no `app/.env`, the app runs in **demo mode**: it replays the democracy sess
 
 ```bash
 EXPO_PUBLIC_API_URL=http://localhost:3000   # on a phone, use your computer's LAN address instead of localhost
-EXPO_PUBLIC_DEV_USER=yourname               # until Clerk (#22)
-EXPO_PUBLIC_DEV_KEY=                        # the API's DEV_KEY, from Leo; local only
+EXPO_PUBLIC_DEV_USER=yourname               # without Clerk only
+EXPO_PUBLIC_DEV_KEY=                        # the API's DEV_KEY, from Leo; local only, without Clerk
+EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY=          # pk_test_..., turns on sign-in (#22)
 ```
 
 `EXPO_PUBLIC_*` is bundled into the app, so nothing secret goes there, and `EXPO_PUBLIC_DEV_KEY` is
 never set for the deployed web build.
+
+### Sign-in (#22)
+
+With `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` set, a signed-out learner only sees the sign-in screen, and
+every API call sends the Clerk session token as `Authorization: Bearer` instead of the dev headers. The
+API checks it with `CLERK_JWT_KEY` from the same Clerk application (#23). Without the key, nobody
+signs in and the app works as before.
+
+- Web: `src/app/sign-in.web.tsx` shows Clerk's prebuilt `<SignIn />`.
+- iOS and Android: `src/app/sign-in.tsx` opens Clerk's hosted sign-in in an in-app browser, which also
+  works in Expo Go.
+- In the Clerk Dashboard: leave email verification code as the only sign-in method (#22: no Google or
+  Apple), and enable the Native API on the **Native applications** page so the phone apps can sign in.
 
 ## Commands
 
@@ -38,7 +52,7 @@ npm run export:web -w app   # the static web build in app/dist (Render Static Si
 
 | Path | What |
 |---|---|
-| `src/app/` | The routes: `index.tsx` (start: concept + optional notes) and `session.tsx` (the session). No id in a path, so the web build stays static |
+| `src/app/` | The routes: `index.tsx` (start: concept + optional notes), `session.tsx` (the session) and `sign-in.tsx` / `sign-in.web.tsx` (#22). No id in a path, so the web build stays static |
 | `src/session/` | The session logic, no React: the two clients (`api-client.ts`, `fixture-client.ts`), what the transcript shows (`transcript.ts`), and the tests |
 | `src/components/` | Messages, the map card, the input for each `expects`, the result card |
 | `src/theme.ts` | Every color, font and size, so the brand kit (#46) changes one file |
