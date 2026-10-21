@@ -1,6 +1,7 @@
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { Stack } from "expo-router";
+import { ObserveRoot } from "expo-observe";
 import { StatusBar } from "expo-status-bar";
 import { useMemo } from "react";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -12,7 +13,10 @@ import { colors } from "../theme.ts";
 // Without a Clerk key, everyone counts as signed in and API calls carry the dev headers (local dev).
 const devClient = createClient();
 
-export default function RootLayout() {
+// Expo Observe records launch times and crashes on phone release builds (it does nothing on the web)
+export default ObserveRoot.wrap(RootLayout);
+
+function RootLayout() {
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />

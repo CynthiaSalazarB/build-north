@@ -10,7 +10,11 @@
     "ios": {
       "icon": "./assets/expo.icon"
     },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
     "android": {
+      "package": "ca.buildnorth.realitycheck",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

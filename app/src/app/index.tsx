@@ -2,6 +2,7 @@
 // characters: decision 12).
 import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
+import { ObserveInteractiveMarker } from "expo-observe";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Body, Button, Screen, Small, Title } from "../components/ui.tsx";
@@ -82,6 +83,7 @@ export default function StartScreen() {
           {clerkKey && <SignOut />}
         </ScrollView>
       </KeyboardAvoidingView>
+      <ObserveInteractiveMarker />
     </Screen>
   );
 }
