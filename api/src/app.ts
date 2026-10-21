@@ -4,6 +4,7 @@ import express, { type ErrorRequestHandler, type Request, type Response } from "
 import { rateLimit } from "express-rate-limit";
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { DbCheck } from "./db.ts";
+import type { Memory } from "./memory.ts";
 import type { NewSession, Store } from "./store.ts";
 
 export type AppOptions = {
@@ -19,6 +20,8 @@ export type AppOptions = {
   devKey: string | null;
   // per IP, for every route except /health
   requestsPerMinute?: number;
+  // SurrealDB Agent Memory (memory.ts). Null when the SPECTRON_* variables are unset: then nothing calls it.
+  memory?: Memory | null;
 };
 
 const MAX_CONCEPT = 100;
@@ -62,7 +65,7 @@ function parseNewSession(body: unknown): Parsed<NewSession> {
   return { ok: true, value: { concept: concept.trim(), material: material?.trim() ? material : null, mode } };
 }
 
-export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, devKey, requestsPerMinute = 60 }: AppOptions) {
+export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, devKey, requestsPerMinute = 60, memory = null }: AppOptions) {
   const app = express();
   app.disable("x-powered-by");
   // Render puts one proxy in front of the app; trusting it makes req.ip the caller's address.
@@ -131,6 +134,8 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     await who.store.saveSession(next.session, session.turn);
     // CONTRACTS.md section 3: a test session never writes mastery
     if (session.mode !== "test") await who.store.saveMastery(who.user, next.mastery);
+    // the notes go to Agent Memory in the background, for the fact desk to cite later
+    memory?.startSession(who.user, session);
     res.status(201).json(next.turn);
   });
 
@@ -184,7 +189,10 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       conflict(expects === "none" ? "This session is over" : sent === "help" ? "Help works during the moves" : `Turn ${turn} expects ${expects}, not ${sent}`);
       return;
     }
-    const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, input, callAgentFor(session.id)).catch(
+    const callAgent = callAgentFor(session.id);
+    // with Agent Memory on, the agents' calls read and record it (memory.ts)
+    const turnMemory = memory?.forTurn(who.user, session, callAgent);
+    const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, input, turnMemory?.callAgent ?? callAgent).catch(
       (error: unknown) => {
         // input that doesn't fit the phase changes nothing
         if (error instanceof UnexpectedInput) return error;
@@ -195,6 +203,8 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       conflict(next.message);
       return;
     }
+    // the fact desk's source goes on its message before the save, so a resent answer gets it too
+    turnMemory?.cite(next.turn);
     if (!(await who.store.saveSession(next.session, session.turn))) {
       // another request answering the same Turn saved first, and its Turn is the one that counts
       const saved = await who.store.getSession(who.user, session.id);
@@ -202,6 +212,8 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       else res.status(404).json({ error: "No such session" });
       return;
     }
+    // what the evaluators found goes to Agent Memory once the Turn counts; a failed Turn is answered again
+    if (!next.turn.error) turnMemory?.remember();
     // CONTRACTS.md section 3: a test session never writes mastery. advance hands it back unchanged, but
     // that copy predates the Claude call, and saving it could undo a level another session saved since.
     if (session.mode !== "test") await who.store.saveMastery(who.user, next.mastery);
@@ -214,11 +226,19 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     res.json(await who.store.getMastery(who.user));
   });
 
-  // The delete button: the caller's sessions, their agent logs, and mastery
+  // The delete button: the caller's sessions, their agent logs, and mastery, then their Agent Memory.
+  // Both are safe to run again, so when the memory erase fails the learner is told to try again.
   app.delete("/me/data", async (req, res) => {
     const who = caller(req, res);
     if (!who) return;
     await who.store.deleteUserData(who.user);
+    try {
+      await memory?.forget(who.user);
+    } catch (error) {
+      console.error("DELETE /me/data: Agent Memory couldn't erase the learner's memory:", error);
+      res.status(503).json({ error: "Your sessions and progress are deleted, but the memory our agents share couldn't be erased yet. Try again in a minute." });
+      return;
+    }
     res.status(204).end();
   });
 

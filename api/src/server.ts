@@ -4,6 +4,7 @@ import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { createApp } from "./app.ts";
 import { agentConfigFromEnv, createCallAgent, sendWith } from "./call-agent.ts";
 import { connectSurreal, surrealCheck, surrealConfigFromEnv } from "./db.ts";
+import { createMemory, memoryClient, memoryConfigFromEnv } from "./memory.ts";
 import { createStore, defineSchema } from "./store.ts";
 
 const port = Number(process.env.PORT || 3000);
@@ -28,6 +29,8 @@ const callAgentFor =
         log: (entry) => store.logAgentCall(entry),
       })
     : () => callAgentStub;
+// SurrealDB Agent Memory needs all three SPECTRON_* variables; without them nothing calls it (memory.ts)
+const memoryConfig = memoryConfigFromEnv();
 
 createApp({
   corsOrigins,
@@ -36,11 +39,13 @@ createApp({
   advance: agents && store ? advance : advanceStub,
   callAgentFor,
   devKey,
+  memory: memoryConfig ? createMemory(memoryClient(memoryConfig)) : null,
 }).listen(port, (error) => {
   if (error) throw error;
   const dbInfo = surreal ? `${new URL(surreal.url).host} (${surreal.namespace}/${surreal.database})` : "not configured";
   const claude = agents && store ? `${agents.model}, $${agents.budgetUsd} budget` : "off, sessions replay the session-1 fixture";
+  const memory = memoryConfig ? `${new URL(memoryConfig.url).host} (context ${memoryConfig.contextId})` : "off";
   console.log(
-    `api listening on :${port} · CORS: ${corsOrigins.join(", ") || "none"} · SurrealDB: ${dbInfo} · x-dev-user: ${devKey ? "on, with x-dev-key" : "off"} · Claude: ${claude}`,
+    `api listening on :${port} · CORS: ${corsOrigins.join(", ") || "none"} · SurrealDB: ${dbInfo} · x-dev-user: ${devKey ? "on, with x-dev-key" : "off"} · Claude: ${claude} · Agent Memory: ${memory}`,
   );
 });

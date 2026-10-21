@@ -36,7 +36,7 @@ local files with their `.ts` extension, and use `import type` for types. The typ
 | `GET /sessions/:id` | The session's latest `Turn`. `404` if it doesn't exist or belongs to someone else |
 | `POST /sessions/:id/turns` | One of the bodies in CONTRACTS.md section 1, plus `turn`, the number of the `Turn` it answers. Returns the next `Turn`. An answer to an older `Turn` gets the latest one back and runs nothing, even when two copies arrive at once. `400` for a bad body, `404` if the session doesn't exist or belongs to someone else (both with `{ error }`). `409` with the latest `Turn` for a `turn` from the future or a body the latest `Turn` doesn't ask for; the reason goes to the server log |
 | `GET /me/mastery` | The caller's `Mastery`: the four moves in session order, at level 1 until the orchestrator raises them |
-| `DELETE /me/data` | `204`. Deletes the caller's sessions, their agent logs and mastery (the delete button) |
+| `DELETE /me/data` | `204`. Deletes the caller's sessions, their agent logs and mastery (the delete button), and with Agent Memory on (below), their memory there too. `503` when that erase fails; a retry is safe |
 
 Until Clerk lands (#23), the session and `/me` routes take the caller's name from an `x-dev-user`
 header, and only together with an `x-dev-key` header equal to the server's `DEV_KEY` (CONTRACTS.md
@@ -73,6 +73,31 @@ Following DECISIONS.md (Oct 20), calls stop at 95% of the budget, and while any 
 rate-limit windows is 95% used, until it refills. Both come back as a `rate_limited` error in the
 `Turn`: retryable for a rate limit, not for the budget. The spend is counted in memory, so it starts
 again at $0 after a restart; the account's own balance, with auto-reload off (#20), is the hard stop.
+
+## SurrealDB Agent Memory
+
+Off unless all three variables below are set. [`src/memory.ts`](src/memory.ts) keeps what the agents
+learn about a learner in [SurrealDB Agent Memory](https://surrealdb.com/docs/agent-memory), through
+SurrealDB's own client (`@surrealdb/memory`), around the agent calls the API already makes. The details
+are in CONTRACTS.md section 4, "Agent Memory":
+
+- One scope per learner, named after a hash of the user id, which never leaves the API.
+- The notes a session starts with go in as a document. Before each fact desk question, the 3 passages
+  that match it go to the fact desk, and the one its fact comes from goes on the fact's message as
+  `source`, so the app can show "From your notes".
+- After each saved Turn, what its evaluator found on each part goes in as a fact on that part. A later
+  fact replaces it, and Agent Memory keeps the old one. The hint giver and the coach get that history.
+- Delete my data erases the scope. When that fails, `DELETE /me/data` answers `503`, and a retry is safe.
+
+Test sessions never read or write it. A memory call never fails a turn: a Help waits at most 1.5 s for
+its read and a fact desk question for its search, the coach's read runs alongside the last evaluation,
+and the writes happen after the Turn is saved. A failure goes to the log as a warning.
+
+| Variable | What it does |
+|---|---|
+| `SPECTRON_URL` | The context's host from SurrealDB Studio, with `https://` |
+| `SPECTRON_CONTEXT_ID` | The context's id |
+| `SPECTRON_API_KEY` | The context's API key (`sp-…`). Render and your local `.env` only, never the app. It needs `memory:read`, `memory:write`, `memory:forget` and `scope:create` |
 
 ## SurrealDB
 
@@ -121,7 +146,7 @@ Render dashboard → **New → Web Service**:
 | Start command | `node api/src/server.ts` |
 | Health check path | `/health` (under Advanced) |
 | Instance type | Free while building (it sleeps after 15 min idle and takes about a minute to wake). Starter from Oct 22, per `DECISIONS.md` |
-| Environment | `CORS_ORIGIN`, the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `DEV_KEY` (Render's Generate button), `NODE_ENV=development` until Clerk lands (#23), and `ANTHROPIC_API_KEY` with `AGENT_BUDGET_USD` for Claude calls (#10) |
+| Environment | `CORS_ORIGIN`, the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `DEV_KEY` (Render's Generate button), `NODE_ENV=development` until Clerk lands (#23), `ANTHROPIC_API_KEY` with `AGENT_BUDGET_USD` for Claude calls (#10), and the three `SPECTRON_*` variables for Agent Memory |
 
 The Node version comes from [`../.node-version`](../.node-version). Render sets `PORT` itself, and
 also sets `NODE_ENV=production` unless the service sets its own. That would refuse `x-dev-user` on the
