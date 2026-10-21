@@ -205,6 +205,18 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   `enum` or `namespace`), local imports carry the `.ts` extension, and it depends on Node 24 or newer.
   A build would only come back if the package were published to npm.
 
+### 2026-10-20 · The public API stays locked until Clerk
+- **Decision:** until Clerk lands (#23), `x-dev-user` only counts together with an `x-dev-key` equal to
+  the server's `DEV_KEY`, which Leo shares privately. Every route except `/health` allows 60 requests a
+  minute per IP. Render uses its own `prod` database and `dev` is for local work. When the Claude
+  calls land (#10), the API stops calling Claude at 95% of Anthropic's rate limits and of the budget.
+- **Instead of:** an open `x-dev-user` header on a public URL whose address is in a public repo.
+- **Why:** anyone can read the repo, so anyone can find the URL and the header name. Once `/turns`
+  calls Claude (#10, #28), a stranger could spend the budget before Clerk exists. A separate database
+  keeps the testers' sessions clean for the numbers export (#50).
+- **Pattern / trade-off:** a shared secret as a stopgap before real auth, plus rate limits with
+  headroom. One more value to pass around privately, and the app's local `.env` needs it too.
+
 ### 2026-10-20 · The bigger group is tested with "is a kind of"
 - **Decision:** the evaluator checks a bigger group with the sentence "<concept> is a kind of <answer>".
   True with nothing closer in between: 2 points. True but far ("an economic change" for inflation): 1
@@ -235,3 +247,16 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   frustrates, too much makes learning shallow. Explanatory feedback with help that fades sits in
   between. "Hints used" now means how many times the learner asked; retries are counted on their own,
   so getting it after a nudge still scores 1, not 2, and session 1 still scores 5/8.
+
+### 2026-10-20 · The next question is prepared while the answer is judged
+- **Decision:** at the learner's first answer (or first Help) of each part, the Questioner writes the
+  next part's question at the same time as the Evaluator judges the answer. It's saved in the session
+  and shown as soon as the part ends.
+- **Instead of:** waiting for the part to end and then calling the Questioner (two calls in a row,
+  ~4.5 s), or preparing the questions while the learner reads the planet example (only the first
+  session has it).
+- **Why:** to reduce latency. The turn that ends a part waits for one call instead of two, in every
+  session.
+- **Pattern / trade-off:** prefetching (two independent calls in parallel). The next question is
+  written from the map as it was before the answer being judged, so it can't build on what the
+  learner just found. If the early call fails, the part asks normally when it starts.

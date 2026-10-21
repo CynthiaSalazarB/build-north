@@ -59,8 +59,10 @@ const MOVE_LABEL: Record<MoveId, string> = {
 ## 1. API and the `Turn`
 
 Every call needs the Clerk token as `Authorization: Bearer <token>`. Until Clerk lands (Oct 21) the
-API accepts an `x-dev-user: <name>` header instead; the API rejects that header when
-`NODE_ENV=production`.
+API accepts an `x-dev-user: <name>` header instead, but only together with `x-dev-key: <the shared
+dev key>` (Leo shares it privately; it never goes in the repo or the deployed web build). The API
+rejects both when `NODE_ENV=production`. Every route except `/health` allows 60 requests a minute
+from one IP; past that the API answers `429`.
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
@@ -74,12 +76,16 @@ API accepts an `x-dev-user: <name>` header instead; the API rejects that header 
 One endpoint moves a session forward: `/turns`. The app sends the body the last `Turn`'s `expects`
 asks for: `prediction` → `{ prediction }`, `text` → `{ text }`, `continue` → `{ action: "continue" }`,
 `map` → `{ question }` while the learner asks and `{ mentefacto }` to submit. `{ action: "help" }`
-can be sent at any point.
+can be sent at any point until the result.
 
 Every `/turns` body also carries `turn`: the number of the `Turn` it answers. If that number is
 older than the session's latest, the API returns the latest `Turn` as it is and doesn't call
 `advance` again, so an answer resent after a timeout is judged once. The app disables Send while a
 call is pending.
+
+A body the latest `Turn` doesn't ask for gets `409`, and `advance` isn't called: a `turn` newer than
+the latest, a body other than the one `expects` names, or any body once `expects` is `none` (the
+session is over).
 
 `prediction` is a whole number from 0 to 8. Before it, the app explains the task in one line and
 asks on the same scale as the score: "You'll build the map of democracy in 4 parts, 2 points each.
@@ -188,9 +194,11 @@ it needs) instead of asking a plain fact. In session 1 both are 0: the app does 
 
 Every prompt, and every line the app shows, is in English in this version.
 
-Each agent is one `client.messages.parse()` call with `output_config.format: zodOutputFormat(schema)`,
-so the output is valid JSON or the call fails. The API never shows the learner anything an agent
-didn't return.
+Each agent is one `client.messages.create()` call with `output_config.format: zodOutputFormat(schema)`,
+and the API checks the reply against the same schema, so the output is valid JSON or the call fails.
+The system prompt and the user message come from the agent's entry in `AGENTS` (`agents/src/agents.ts`):
+`system`, and `render` writing the user message from the input (below). The API never shows the
+learner anything an agent didn't return.
 
 Every agent receives the same context, plus its own fields:
 
@@ -391,7 +399,8 @@ The API loads the session and mastery, calls `advance`, saves what comes back, a
 sees a resend.
 The API never decides the flow; the orchestrator never stores anything. In test mode `advance` returns
 the mastery unchanged. If `callAgent` throws, `advance` returns the session unchanged and a `Turn`
-with `error` set.
+with `error` set. What `callAgent` throws carries `code` and `retryable`, the two fields of
+`Turn.error`, so `advance` can copy them.
 
 ---
 
@@ -401,7 +410,7 @@ with `error` set.
 |---|---|---|
 | `mastery` | user, move, level, unassistedSuccesses, updatedAt | one row per user per move; read every turn |
 | `session` | id, user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, recent, retries, lastIssue, nextQuestion, questions, moveLog, result, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat; `hintsPerMove` starts with all four moves at 0, `retries` at 0, `lastIssue` at `"none"`, `nextQuestion` at null |
-| `agent_log` | session, agent, input, output, ms, at | append-only; debugging and the testers' numbers (fact desk rows are the questions metric) |
+| `agent_log` | session, agent, input, output, ms, usd, at | append-only; debugging, the testers' numbers (fact desk rows are the questions metric) and what a session costs |
 
 `DELETE /me/data` removes all three for the user.
 
@@ -452,3 +461,4 @@ with `error` set.
 | 17 | Fact desk redirect (Leo) | "That part is yours to decide. If you're stuck, tap Help (it costs a point)." Never points at a move | A pointing question was a free hint, and learners could ask for the structure on purpose |
 | 18 | Resent answers (Leo) | Each `Turn` has a `turn` number; a repeat gets the stored `Turn` back | A slow phone resends, and the hint step would move twice |
 | 19 | Package name (Leo) | `@build-north/agents` | The plain name `agents` collides with another package on npm and trips `npm audit` |
+| 20 | Public API before Clerk (Leo, Oct 20) | `x-dev-user` needs `x-dev-key`; 60 requests a minute per IP; Claude calls stop at 95% of Anthropic's limits and the budget | The repo is public, so anyone can read the API's address and header names |
