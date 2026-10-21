@@ -98,11 +98,24 @@ export const MessageKind = z.enum([
   "redirect",
 ]);
 
+/** A passage of the learner's notes as SurrealDB Agent Memory stored it: `start` and `end` are character
+ * positions in the notes it comes from. */
+export const NoteSource = z.strictObject({
+  document: z.string(),
+  title: z.string(),
+  quote: z.string(),
+  start: z.number().int().min(0),
+  end: z.number().int().min(0),
+});
+export type NoteSource = z.infer<typeof NoteSource>;
+
 export const Message = z.strictObject({
   agent: MessageAgent,
   kind: MessageKind,
   text: z.string(),
   hintStep: HintStep.optional(),
+  /** Fact desk only, with Agent Memory on: the passage of the learner's notes the fact comes from. */
+  source: NoteSource.optional(),
 });
 export type Message = z.infer<typeof Message>;
 
@@ -166,6 +179,14 @@ export const AgentContext = z.strictObject({
   recent: z.array(z.strictObject({ from: z.enum(["app", "learner"]), text: z.string() })),
 });
 export type AgentContext = z.infer<typeof AgentContext>;
+
+/**
+ * What SurrealDB Agent Memory holds on this learner and concept, added by the API when memory is on:
+ * each part's facts, oldest first. `current` is false for a fact a later answer replaced. A fact is the
+ * evaluators' verdict on an answer, and never holds a right answer.
+ */
+export const LearnerMemory = z.array(z.strictObject({ move: MoveId, fact: z.string(), current: z.boolean() }));
+export type LearnerMemory = z.infer<typeof LearnerMemory>;
 
 export const QuestionerInput = AgentContext;
 export const QuestionerOutput = z.strictObject({
@@ -235,12 +256,16 @@ export const FactDeskInput = z.strictObject({
   material: z.string().nullable(),
   mentefacto: Mentefacto,
   question: z.string(),
+  /** Passages of the learner's notes that match the question, added by the API when Agent Memory is on. */
+  notes: z.array(NoteSource).optional(),
 });
 export type FactDeskInput = z.infer<typeof FactDeskInput>;
 export const FactDeskOutput = z.strictObject({
   kind: z.enum(["fact", "redirect"]),
   answer: z.string(),
   questionType: QuestionType,
+  /** The number of the passage in `notes` the fact comes from (1 is the first), or null. */
+  source: z.number().int().nullable(),
 });
 export type FactDeskOutput = z.infer<typeof FactDeskOutput>;
 
@@ -251,6 +276,7 @@ export const HintGiverInput = AgentContext.extend({
   step: HintStep,
   lastAnswer: z.string(),
   issue: EvaluatorIssue,
+  memory: LearnerMemory.optional(),
 });
 export type HintGiverInput = z.infer<typeof HintGiverInput>;
 export const HintGiverOutput = z.strictObject({
@@ -269,7 +295,12 @@ export const WorkedExample = z.strictObject({
 export type WorkedExample = z.infer<typeof WorkedExample>;
 
 /** The coach writes `result.coach`, so it receives the result without it. */
-export const CoachInput = z.strictObject({ concept: z.string(), mentefacto: Mentefacto, result: Result.omit({ coach: true }) });
+export const CoachInput = z.strictObject({
+  concept: z.string(),
+  mentefacto: Mentefacto,
+  result: Result.omit({ coach: true }),
+  memory: LearnerMemory.optional(),
+});
 export type CoachInput = z.infer<typeof CoachInput>;
 export const CoachOutput = z.strictObject({ message: z.string(), nextFocus: MoveId.nullable() });
 export type CoachOutput = z.infer<typeof CoachOutput>;

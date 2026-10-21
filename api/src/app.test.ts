@@ -446,9 +446,9 @@ test("a test session starts at level 5, { question } gets the fact desk's answer
   await store.saveMastery("leo", before);
   const masterySaves = t.mock.method(store, "saveMastery");
   const replies: [keyof typeof AGENTS, unknown][] = [
-    ["fact_desk", { kind: "fact", answer: "Yes, when the fish, the plants and the water act on one another.", questionType: "breaking_case" }],
+    ["fact_desk", { kind: "fact", answer: "Yes, when the fish, the plants and the water act on one another.", questionType: "breaking_case", source: null }],
     // the model's words give the bigger group away; the learner only ever sees the fixed redirect (decision 17)
-    ["fact_desk", { kind: "redirect", answer: "It's a kind of system.", questionType: "asks_for_structure" }],
+    ["fact_desk", { kind: "redirect", answer: "It's a kind of system.", questionType: "asks_for_structure", source: null }],
     ["evaluator_full", { rubric: MOVE_ORDER.map((move) => ({ move, quality: move === "isoordinate" ? 1 : 2, feedback: `Scripted ${move}.` })) }],
     ["coach", { message: "Scripted coach.", nextFocus: "isoordinate" }],
   ];

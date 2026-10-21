@@ -70,7 +70,7 @@ from one IP; past that the API answers `429`.
 | `POST` | `/sessions/:id/turns` | one of `{ prediction }`, `{ text }`, `{ question }`, `{ mentefacto }`, `{ action: "help" }`, `{ action: "continue" }` | `Turn` |
 | `GET` | `/sessions/:id` | | latest `Turn` (resume after the app reloads) |
 | `GET` | `/me/mastery` | | `Mastery` |
-| `DELETE` | `/me/data` | | `204`, deletes sessions, logs and mastery (the delete button) |
+| `DELETE` | `/me/data` | | `204`, deletes sessions, logs and mastery (the delete button), and with Agent Memory on, erases the learner's memory too ([section 4](#agent-memory-optional)). `503` with `{ error }` when that erase fails; a retry is safe |
 | `GET` | `/health` | | `{ ok: true }` |
 
 One endpoint moves a session forward: `/turns`. The app sends the body the last `Turn`'s `expects`
@@ -114,6 +114,7 @@ type Turn = {
     kind: "question" | "feedback" | "hint" | "example" | "named_move" | "summary" | "fact" | "redirect";
     text: string;
     hintStep?: HintStep;
+    source?: NoteSource;   // fact desk only, with Agent Memory on: the passage of the learner's notes the fact comes from
   }[];
   expects: "prediction" | "text" | "continue" | "map" | "none";   // decides which input the screen shows
   // "map" = level 5: a chat box for the learner's questions + the editable map + a Submit button
@@ -124,7 +125,16 @@ type Turn = {
   result: Result | null;                                    // only when phase = "result"
   error: { code: "agent_failed" | "rate_limited"; retryable: boolean } | null;
 };
+
+// A passage of the learner's notes as Agent Memory stored it; start and end are character positions in
+// the notes it comes from (the notes of this session or of an earlier one)
+type NoteSource = { document: string; title: string; quote: string; start: number; end: number };
 ```
+
+`source` is optional and new (proposed with Agent Memory, for review): the app can show "From your
+notes" with `quote`. It only appears when the API runs with Agent Memory on, and an app built before it
+refuses a Turn that has it (the app parses Turns with the strict schema), so the app ships with this
+contract before memory is turned on.
 
 Example, session 1, the learner just answered "A law?" for the bigger group:
 
@@ -213,7 +223,15 @@ type AgentContext = {
   mentefacto: Mentefacto;                          // built so far
   recent: { from: "app" | "learner"; text: string }[];   // this move's exchanges only
 };
+
+// With Agent Memory on, the API adds this to the hint giver's and the coach's input (section 4)
+type LearnerMemory = { move: MoveId; fact: string; current: boolean }[];
 ```
+
+`memory` is what the learner's earlier answers on this concept showed: each part's facts, oldest first,
+with `current: false` for a fact a later answer replaced. A fact is an evaluator's verdict on an answer
+(`incorrect (not_a_class): said "A law?". Not quite: a law is one rule, …`), or `correct`, so it never
+holds a right answer.
 
 ### Questioner: asks the plain question for the learner's level
 
@@ -271,12 +289,15 @@ defensible answer passes. In: `{ concept, material, mentefacto }`
 
 ### Fact desk: level 5 only, answers the learner's questions with facts, never the structure
 
-In: `{ concept, material, mentefacto, question }`
+In: `{ concept, material, mentefacto, question, notes? }`. With Agent Memory on, `notes` holds up to 3
+passages of the learner's notes that match the question (`NoteSource`, section 1), from this session's
+notes or an earlier session's.
 
 ```json
 { "kind": "fact",
   "answer": "Not by itself: that's one product. It counts as inflation when the overall price level goes up.",
-  "questionType": "breaking_case" }
+  "questionType": "breaking_case",
+  "source": null }
 ```
 
 When the question asks for the structure ("what's the bigger group of inflation?"), it doesn't answer.
@@ -286,18 +307,22 @@ Help exists and costs a point (a question that points somewhere would be a free 
 ```json
 { "kind": "redirect",
   "answer": "That part is yours to decide. If you're stuck, tap Help (it costs a point).",
-  "questionType": "asks_for_structure" }
+  "questionType": "asks_for_structure",
+  "source": null }
 ```
 
 - `questionType`: `fact | compare | contrast | breaking_case | what_it_needs | asks_for_structure | other`.
   Everything except `fact`, `asks_for_structure` and `other` counts as `testing` in the result.
+- `source`: the number of the passage in `notes` the fact comes from (1 is the first), or null: always
+  null for a redirect or without `notes`. The API copies that passage into the fact's message
+  (`Message.source`), so the quote the learner sees is the stored passage, never the model's words.
 - Facts in one or two sentences, from the learner's material when it has the answer.
 - Never names a part of the map or says which box something belongs in. A leak here gives the answer
   away, so this prompt gets the most test cases.
 
 ### Hint giver: words the hint step code chose
 
-In: `AgentContext & { step: HintStep; lastAnswer: string; issue: string }`
+In: `AgentContext & { step: HintStep; lastAnswer: string; issue: string; memory?: LearnerMemory }`
 
 ```json
 { "step": "hint",
@@ -329,8 +354,8 @@ fail on demo day. The shape below is the fixture's shape.
 
 ### Coach: the end-of-session message
 
-In: `{ concept, mentefacto, result }` with every number already computed by code; `result` comes without
-its `coach` field, since that's what the coach writes.
+In: `{ concept, mentefacto, result, memory? }` with every number already computed by code; `result` comes
+without its `coach` field, since that's what the coach writes.
 
 ```json
 { "message": "You found the bigger group and a real exclusion. 'What it needs' is next.",
@@ -416,6 +441,28 @@ with `error` set. What `callAgent` throws carries `code` and `retryable`, the tw
 
 `DELETE /me/data` removes all three for the user.
 
+### Agent Memory (optional)
+
+SurrealDB Agent Memory holds what the agents learn about a learner, shared by all of them and kept across
+sessions. It's off unless `SPECTRON_URL`, `SPECTRON_CONTEXT_ID` and `SPECTRON_API_KEY` are set
+(`api/src/memory.ts`), and test sessions never read or write it, like mastery. The numbers (levels,
+points, mastery) stay in the tables above.
+
+- **The learner:** one scope, `learner/<the first 24 hex digits of the SHA-256 of the user id>`. The
+  user id itself never leaves the API.
+- **Their notes:** a session with `material` uploads it as a document in that scope, labelled
+  `session=<id>`, in the background after `POST /sessions`. Before each fact desk question, the 3
+  passages that match it best go in as `notes`.
+- **What the evaluators found:** one entity per learner and concept (type `concept`, named
+  `<concept> (learner <key>)`) with one attribute per part, its key the move id. After a Turn is saved
+  without an error, the API writes what that Turn's evaluator found, as triples labelled
+  `agent=evaluator` or `agent=evaluator_full` and `session=<id>`: a verdict with an issue (wrong or
+  partial answers), a whole-map verdict per part, or `correct`. A later value for a part replaces the
+  earlier one, which Agent Memory keeps, closed with an end date. The hint giver and the coach get that
+  history as `memory`: the latest 3 facts per part.
+- **Delete my data:** `DELETE /me/data` erases the learner's scope (`POST /scopes/forget`), notes and facts
+  included.
+
 ---
 
 ## 5. Notes for the API
@@ -432,6 +479,10 @@ with `error` set. What `callAgent` throws carries `code` and `retryable`, the tw
   alone, and the next move's question is asked alongside the move's first evaluation (section 3). The
   one turn with two calls in a row is the last answer (evaluator, then coach). At level 5 each question
   is one fact desk call (effort `low`).
+- With Agent Memory on, a Help also waits for one memory read and a fact desk question for one search
+  of the notes, each for at most 1.5 s; past that the agent goes without and the turn goes on. The
+  coach's read starts with the last answer's evaluation, so it adds nothing in the common case, and the
+  facts are written after the Turn is saved, off the learner's wait.
 - Schemas: every object `additionalProperties: false` (Zod does this). No `min`/`max`/`minLength`:
   the SDK strips them and checks them locally. The first call with a new schema is slower (it gets
   compiled, then cached 24 h), so warm up every agent before the demo.

@@ -260,3 +260,18 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** prefetching (two independent calls in parallel). The next question is
   written from the map as it was before the answer being judged, so it can't build on what the
   learner just found. If the early call fails, the part asks normally when it starts.
+
+### 2026-10-21 · SurrealDB Agent Memory for what the agents learn about a learner, behind a switch
+- **Decision:** the API keeps one Agent Memory scope per learner, with the notes they paste and what the
+  evaluators found on each part. Each new verdict on a part replaces the last one, and Agent Memory
+  keeps the old one. The fact desk points to the passage of the notes its fact comes from, and the hint
+  giver and the coach read the learner's history on the concept. It's off until the three `SPECTRON_*`
+  variables are set, test sessions never touch it, and Delete my data erases it.
+- **Instead of:** only our own tables, where nothing but the mastery levels survives a session, or
+  moving mastery itself into Agent Memory.
+- **Why:** the SurrealDB prize asks for facts that replace old facts without overwriting them, answers
+  traced to their source, and memory shared by more than one agent. The hint giver and the coach also
+  get better when they know what the learner got wrong before.
+- **Pattern / trade-off:** a memory layer beside the system of record: the numbers stay in code and in
+  our tables, and the words and their history go to memory. It's one more service a turn can wait on
+  (at most 1.5 s per read), and a learner's notes now also go to SurrealDB Cloud.

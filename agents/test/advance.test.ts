@@ -188,8 +188,8 @@ describe("whole map (decision 16, level-5 decision)", () => {
 
   it("a test session goes from the prediction straight to the map, counts questions, and never changes mastery", async () => {
     const { call } = scripted([
-      ["fact_desk", { kind: "redirect", answer: "It's an economic phenomenon, hope that helps", questionType: "asks_for_structure" }],
-      ["fact_desk", { kind: "fact", answer: "Not by itself: that's one product.", questionType: "breaking_case" }],
+      ["fact_desk", { kind: "redirect", answer: "It's an economic phenomenon, hope that helps", questionType: "asks_for_structure", source: null }],
+      ["fact_desk", { kind: "fact", answer: "Not by itself: that's one product.", questionType: "breaking_case", source: null }],
       ["hint_giver", hintOutput("nudge", "What kind of thing happens to prices here?")],
       ["evaluator_full", {
         rubric: [

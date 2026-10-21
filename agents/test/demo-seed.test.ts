@@ -34,9 +34,9 @@ describe("demo seed", () => {
 
   it("the demo script produces the expected numbers: 6/8, gap +1, no hints, 3 questions / 2 testing", async () => {
     const answers: Record<string, unknown> = {
-      "If I call my API with curl, does CORS still block it?": { kind: "fact", answer: "No.", questionType: "breaking_case" },
-      "Does the server have to send a header for the browser to allow it?": { kind: "fact", answer: "Yes.", questionType: "what_it_needs" },
-      "Is CORS a kind of security feature?": { kind: "redirect", answer: "x", questionType: "asks_for_structure" },
+      "If I call my API with curl, does CORS still block it?": { kind: "fact", answer: "No.", questionType: "breaking_case", source: null },
+      "Does the server have to send a header for the browser to allow it?": { kind: "fact", answer: "Yes.", questionType: "what_it_needs", source: null },
+      "Is CORS a kind of security feature?": { kind: "redirect", answer: "x", questionType: "asks_for_structure", source: null },
     };
     const call: CallAgent = async (agent, input) => {
       if (agent === "fact_desk") return answers[(input as { question: string }).question];
