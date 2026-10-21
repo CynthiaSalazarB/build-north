@@ -5,10 +5,10 @@ import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { KeyUnit } from "../components/icons.tsx";
 import { Failure } from "../components/messages.tsx";
-import { Body, BrandTitle, Button, Footnote, Screen, Ui, useColors } from "../components/ui.tsx";
+import { Body, BrandTitle, Button, Footnote, KeyboardSafe, Screen, Ui, useColors } from "../components/ui.tsx";
 import { UpdateNotice } from "../components/update-notice.tsx";
 import { keysOf } from "../session/present.ts";
 import { clerkKey } from "../session/config.ts";
@@ -55,7 +55,7 @@ export default function StartScreen() {
 
   return (
     <Screen tone="day">
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardSafe>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <UpdateNotice />
           <View style={styles.intro}>
@@ -138,7 +138,7 @@ export default function StartScreen() {
           <Button label="Start Mapping" busy={starting} disabled={!concept.trim()} onPress={begin} />
           {clerkKey && <SignOut />}
         </View>
-      </KeyboardAvoidingView>
+      </KeyboardSafe>
       <ObserveInteractiveMarker />
     </Screen>
   );
@@ -172,7 +172,6 @@ function SignOut() {
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
   content: { paddingHorizontal: space.margin, paddingTop: space.xxl, paddingBottom: space.xl, gap: space.xl },
   intro: { gap: space.m },
   card: { borderRadius: radius.cardLarge, padding: space.l, gap: space.l },

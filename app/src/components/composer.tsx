@@ -62,7 +62,6 @@ function AnswerBar({ pending, help, onSend }: { pending: boolean; help: string |
           placeholder="Your answer"
           placeholderTextColor={c.placeholder}
           multiline
-          numberOfLines={1}
           editable={!pending}
           accessibilityLabel="Your answer"
           style={[styles.field, { color: c.onSurface, backgroundColor: c.surfaceContainer, borderColor: c.separator }]}
@@ -96,17 +95,18 @@ export function SendButton({ busy, disabled, onPress, label = "Send" }: { busy: 
 const styles = StyleSheet.create({
   bar: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m, gap: space.s },
   row: { flexDirection: "row", alignItems: "flex-end", gap: space.s },
+  // grows with the answer up to about four lines; on Android a custom line height or centering makes a
+  // multiline field show only its last line
   field: {
     ...type.ui,
-    lineHeight: 20,
     flex: 1,
     minHeight: size.button,
     maxHeight: 128,
     paddingHorizontal: space.margin,
-    paddingVertical: space.l,
+    paddingVertical: space.m,
     borderRadius: radius.button,
     borderWidth: StyleSheet.hairlineWidth,
-    textAlignVertical: "center",
+    textAlignVertical: "top",
   },
   send: { width: size.button, height: size.button, borderRadius: radius.button, alignItems: "center", justifyContent: "center" },
   disabled: { opacity: 0.45 },
