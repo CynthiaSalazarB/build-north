@@ -10,3 +10,4 @@
 | 2026-10-20 | update | context/hosting-setup | API locked until Clerk (#60): prod database, DEV_KEY, rate limit; Cynthia invited |
 | 2026-10-20 | update | index | decisions/ and raw/ removed after Cynthia's review on #57: decisions stay in DECISIONS.md, source documents get linked from their pages |
 | 2026-10-20 | update | context/hosting-setup | Render moves to main once #58 and #60 merge, with a Manual Deploy after each merge; service id left out |
+| 2026-10-20 | add | synthesis/plan-to-win | Plan to win, from a full read of the repo, the issues, the PRs and the Devpost pages; a proposal for Cynthia |
