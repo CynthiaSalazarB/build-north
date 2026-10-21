@@ -1,7 +1,7 @@
-// #36 done when: the whole-map evaluator scores the brief's inflation map and a blank map 0/8. The brief's
-// map is the demo's (fixtures/demo-seed.json). The issue says 7/8, written before the Oct 20 decision (the
-// bigger group is tested with "is a kind of"): "money" fails "inflation is a kind of money", so the map
-// now scores 6/8, the number the demo seed expects.
+// #36 done when: the whole-map evaluator scores the demo's map as the seed expects and a blank map 0/8. The
+// demo's map is the CORS map in fixtures/demo-seed.json, which replaced the brief's inflation map (P4 of the
+// plan on #76). It should score 6/8: "CORS is a kind of security feature" is true, but a closer group fits
+// in between (1), and its two types are split by different criteria (1).
 import { readFileSync } from "node:fs";
 import { AGENTS, DemoSeed, type Mentefacto, MOVE_LABEL, MOVE_ORDER } from "../src/index.ts";
 import { dollars, MODEL, runAgent } from "./run-agent.ts";
@@ -11,7 +11,7 @@ const { concept } = seed.session;
 const blank: Mentefacto = { concept, supraordinate: null, exclusion: [], isoordinate: [], infraordinate: [] };
 // quality per move, in MOVE_ORDER
 const CASES = [
-  { label: "the brief's map", map: seed.script.map, want: [0, 2, 2, 2] },
+  { label: "the demo's map", map: seed.script.map, want: [1, 2, 2, 1] },
   { label: "a blank map", map: blank, want: [0, 0, 0, 0] },
 ];
 

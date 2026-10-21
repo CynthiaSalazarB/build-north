@@ -25,14 +25,14 @@
     ]
   },
   "session": {
-    "id": "ses_demo_inflation",
+    "id": "ses_demo_cors",
     "user": "demo",
-    "concept": "inflation",
+    "concept": "CORS",
     "material": null,
     "mode": "learn",
     "turn": 2,
     "lastTurn": {
-      "sessionId": "ses_demo_inflation",
+      "sessionId": "ses_demo_cors",
       "turn": 2,
       "phase": "move",
       "move": null,
@@ -41,13 +41,13 @@
         {
           "agent": "app",
           "kind": "question",
-          "text": "Build the mentefacto for inflation. Ask me any facts you need."
+          "text": "Build the mentefacto for CORS. Ask me any facts you need."
         }
       ],
       "expects": "map",
       "scaffold": null,
       "mentefacto": {
-        "concept": "inflation",
+        "concept": "CORS",
         "supraordinate": null,
         "exclusion": [],
         "isoordinate": [],
@@ -74,7 +74,7 @@
       "infraordinate": 0
     },
     "mentefacto": {
-      "concept": "inflation",
+      "concept": "CORS",
       "supraordinate": null,
       "exclusion": [],
       "isoordinate": [],
@@ -94,44 +94,43 @@
   },
   "script": {
     "questions": [
-      "Is it when one thing gets more expensive, or everything?",
-      "If gas goes up, is that inflation?",
-      "Does it have to last a long time to count?",
-      "What is the bigger group that inflation belongs to?"
+      "If I call my API with curl, does CORS still block it?",
+      "Does the server have to send a header for the browser to allow it?",
+      "Is CORS a kind of security feature?"
     ],
     "map": {
-      "concept": "inflation",
+      "concept": "CORS",
       "supraordinate": {
-        "value": "money",
+        "value": "security feature",
         "note": null
       },
       "exclusion": [
         {
-          "value": "one product getting more expensive",
-          "note": "inflation is a rise across many goods, not one"
+          "value": "same-origin policy",
+          "note": "the same-origin policy blocks reading responses from other origins; CORS lets a server allow chosen origins"
         }
       ],
       "isoordinate": [
         {
-          "value": "prices rise across many goods and services",
+          "value": "the page requests a resource from another origin (a different scheme, domain or port)",
           "note": null
         },
         {
-          "value": "it keeps going over time",
+          "value": "the server answers with an Access-Control-Allow-Origin header that allows the page's origin",
           "note": null
         },
         {
-          "value": "the same money buys less",
+          "value": "the browser enforces it: without that header, the page can't read the response",
           "note": null
         }
       ],
       "infraordinate": [
         {
-          "value": "demand-pull inflation",
+          "value": "preflighted requests",
           "note": null
         },
         {
-          "value": "cost-push inflation",
+          "value": "requests with credentials",
           "note": null
         }
       ]
@@ -141,8 +140,8 @@
       "calibrationGap": 1,
       "hintsUsed": 0,
       "questions": {
-        "asked": 4,
-        "testing": 3
+        "asked": 3,
+        "testing": 2
       }
     }
   }
