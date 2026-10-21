@@ -45,7 +45,7 @@ export function ResultScreen({ concept, result, map, entries, notes = {}, onAgai
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.gapRow} accessible accessibilityLabel={`${gap.sign === "−" ? "minus " : ""}${gap.amount}. ${gap.sentence}`}>
           <Text style={[type.gap, styles.gapNumber, { color: ink }]}>{`${gap.sign ?? ""}${gap.amount}`}</Text>
-          <Body style={[styles.sentence, gap.over && { color: c.gap }]}>{gap.sentence}</Body>
+          <Body style={styles.sentence}>{gap.sentence}</Body>
         </View>
 
         <Card style={styles.assert}>
