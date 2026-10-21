@@ -1,187 +1,150 @@
-// The end of a session (round 6, #34): the guess and the score on one 0 to 8 scale, the gap as a number
-// and one sentence, each proven point casting into bronze one by one, the points per part, and one next
-// step. Every number comes from Turn.result, computed by code. After a whole map (level 5), each part
-// also shows what the evaluator said about it.
-import { MOVE_LABEL, type MoveId, type Result } from "@build-north/agents";
-import { useEffect, useState } from "react";
+// The end of a session (round 8, #34): the gap as a signed number and one sentence, the guess against the
+// score as a failed or passed assertion, the box opened (each fully proved face turned to glass), where the
+// gap came from part by part, the parts done alone, and the coach's next step. Every number comes from
+// Turn.result, computed by code. Your pair isn't here: it never reacts to a score.
+import { MOVE_ORDER, type Mentefacto, type MoveId, type Result } from "@build-north/agents";
+import { useEffect } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withTiming } from "react-native-reanimated";
-import Svg, { Defs, LinearGradient, Rect, Stop } from "react-native-svg";
 import { success } from "../haptics.ts";
-import { blocksOf, gapOf, stageOf, type Block } from "../session/present.ts";
-import { motion, palette, radius, size, space, type } from "../theme.ts";
-import { decorative, Icon } from "./icons.tsx";
-import { AloneTag, Body, Button, Footnote, PointDots, Screen, Ui } from "./ui.tsx";
+import { aloneOf, gapOf, missesOf, resultCornersOf } from "../session/present.ts";
+import type { Entry } from "../session/transcript.ts";
+import { box, space, type } from "../theme.ts";
+import { OpenBox } from "./box.tsx";
+import { Icon } from "./icons.tsx";
+import { Failure } from "./messages.tsx";
+import { SessionBar } from "./session-bar.tsx";
+import { Body, Button, Card, Label, Screen, useColors } from "./ui.tsx";
 
-const day = palette.day;
-const GAP = space.s;
+type Props = {
+  concept: string;
+  result: Result;
+  map: Mentefacto;
+  entries: readonly Entry[];
+  /** The whole-map evaluator's note per part, after level 5 or a self-test. */
+  notes?: Partial<Record<MoveId, string>>;
+  onAgain: () => void;
+  againBusy?: boolean;
+  againError?: string | null;
+  onDone: () => void;
+};
 
-type Props = { concept: string; result: Result; notes?: Partial<Record<MoveId, string>>; onDone: () => void };
-
-export function ResultScreen({ concept, result, notes = {}, onDone }: Props) {
+export function ResultScreen({ concept, result, map, entries, notes = {}, onAgain, againBusy, againError, onDone }: Props) {
+  const c = useColors();
   const gap = gapOf(result);
-  const ink = gap.over ? day.gap : day.onSurface;
+  const ink = gap.over ? c.gap : c.onSurface;
+  const misses = missesOf(result, entries, map, notes);
+  const alone = aloneOf(result);
   const leveledUp = result.masteryChanges.length > 0;
   useEffect(() => {
     if (leveledUp) success();
   }, [leveledUp]);
 
   return (
-    <Screen tone="day">
-      <View style={styles.bar}>
-        <View style={styles.side} />
-        <Ui strong style={styles.concept} numberOfLines={1}>
-          {concept}
-        </Ui>
-        <Button kind="tonal" label="Done" onPress={onDone} />
-      </View>
-
+    <Screen>
+      <SessionBar concept={concept} onClose={onDone} end={<Label dim>done</Label>} />
       <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.group}>
-          <Footnote strong dim>
-            Your guess vs. your score
-          </Footnote>
-          <View style={styles.gapRow} accessible accessibilityLabel={`${gap.sign === "−" ? "minus " : ""}${gap.amount}. ${gap.sentence}`}>
-            <View style={styles.hero}>
-              {gap.sign && <Icon name={gap.sign === "+" ? "plus" : "minus"} color={ink} size={40} />}
-              <Text style={[type.hero, styles.heroNumber, { color: ink }]}>{gap.amount}</Text>
-            </View>
-            <Body strong style={[styles.sentence, { color: ink }]}>
-              {gap.sentence}
-            </Body>
+        <View style={styles.gapRow} accessible accessibilityLabel={`${gap.sign === "−" ? "minus " : ""}${gap.amount}. ${gap.sentence}`}>
+          <Text style={[type.gap, styles.gapNumber, { color: ink }]}>{`${gap.sign ?? ""}${gap.amount}`}</Text>
+          <Body style={[styles.sentence, gap.over && { color: c.gap }]}>{gap.sentence}</Body>
+        </View>
+
+        <Card style={styles.assert}>
+          <Label dim>expect(proved).toBe(guess)</Label>
+          <AssertLine name="Expected:" value={result.predictedScore} />
+          <AssertLine name="Received:" value={result.score} />
+        </Card>
+
+        <View style={styles.opened}>
+          <OpenBox
+            corners={resultCornersOf(box.cornerOrder, result.predictedScore, result.score)}
+            alone={MOVE_ORDER.flatMap((move, i) => (result.rubric.find((row) => row.move === move)?.points === 2 ? [i] : []))}
+            width={132}
+            label={`The box with ${result.score} corners proved and ${Math.max(result.predictedScore - result.score, 0)} felt sure`}
+          />
+          <View style={styles.legend}>
+            <LegendRow kind="proved" text={`proved ${result.score}`} />
+            <LegendRow kind="felt" text={`felt sure ${result.predictedScore}`} />
+            <LegendRow kind="never" text={`never expected ${result.maxScore - result.predictedScore}`} />
           </View>
         </View>
 
-        <Scale predicted={result.predictedScore} score={result.score} max={result.maxScore} />
-
-        <View style={styles.list} accessibilityLabel="Points per part">
-          {result.rubric.map((row, i) => (
-            <View key={row.move} style={[styles.rowBox, i > 0 && styles.rowLine, !!notes[row.move] && styles.rowNoted]}>
-              <View style={styles.row}>
-                <Ui style={styles.part}>{MOVE_LABEL[row.move]}</Ui>
-                {row.points === 2 && <AloneTag />}
-                <PointDots points={row.points} />
+        {misses.length > 0 && (
+          <Card style={styles.why}>
+            <Label dim>where the gap came from</Label>
+            {misses.map((miss) => (
+              <View key={miss.move} style={styles.miss}>
+                <View style={styles.missHead}>
+                  <Body strong style={styles.flex}>
+                    {miss.label}
+                  </Body>
+                  <Label dim>{miss.meta}</Label>
+                </View>
+                {miss.detail && <Body dim>{miss.detail}</Body>}
               </View>
-              {notes[row.move] && <Footnote dim>{notes[row.move]}</Footnote>}
-            </View>
-          ))}
-        </View>
-
-        <Footnote dim>
-          {result.hintsUsed === 0 ? "You didn't use Help." : `You used Help ${result.hintsUsed} ${result.hintsUsed === 1 ? "time" : "times"}.`}
-        </Footnote>
-        {result.masteryChanges.map((change) => (
-          <Footnote key={change.move}>{`${MOVE_LABEL[change.move]} moved up to ${stageOf(change.to).name}.`}</Footnote>
-        ))}
-        {result.questions.asked > 0 && (
-          <Footnote dim>{`You asked ${result.questions.asked} ${result.questions.asked === 1 ? "question" : "questions"}, ${result.questions.testing} testing the idea.`}</Footnote>
+            ))}
+          </Card>
         )}
+
+        {alone.length > 0 && (
+          <View style={styles.alone}>
+            <Icon name="check" color={c.alone} size={16} />
+            <Label style={[styles.flex, { color: c.alone }]}>{`done alone: ${alone.join(", ")}`}</Label>
+          </View>
+        )}
+        {result.questions.asked > 0 && <Label dim>{`you asked ${result.questions.asked} ${result.questions.asked === 1 ? "question" : "questions"}, ${result.questions.testing} testing the idea`}</Label>}
+        <Body dim>Feeling surer than you can explain is normal. Explaining is how you find out.</Body>
         <Body>{result.coach.message}</Body>
+        {againError && <Failure message={againError} />}
       </ScrollView>
 
       <View style={styles.foot}>
-        <Button label="Start a New Map" onPress={onDone} />
+        <Button label={`Try ${concept} again`} busy={againBusy} onPress={onAgain} />
+        <Button kind="text" label="Map another concept" onPress={onDone} />
       </View>
     </Screen>
   );
 }
 
-/** The 0 to 8 scale: what you guessed above, what you scored below, the points cast in bronze. */
-function Scale({ predicted, score, max }: { predicted: number; score: number; max: number }) {
-  const [width, setWidth] = useState(0);
-  const span = (n: number) => (n > 0 && width > 0 ? ((width + GAP) * n) / max - GAP : 0);
-  const blocks = blocksOf(predicted, score, max);
-  const felt = predicted - score;
+function AssertLine({ name, value }: { name: string; value: number }) {
+  const c = useColors();
   return (
-    <View
-      style={styles.scale}
-      accessible
-      accessibilityLabel={`Guessed ${predicted} of ${max}, scored ${score} of ${max}.${felt > 0 ? ` ${felt} felt sure but didn't hold.` : ""}`}
-    >
-      <Bracket label={`Guessed ${predicted}`} width={span(predicted)} />
-      <View style={styles.blocks} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
-        {blocks.map((block, i) => (
-          <BlockView key={i} block={block} index={i} />
-        ))}
-      </View>
-      <Bracket label={`Scored ${score}`} width={span(score)} below />
-    </View>
+    <Text style={[type.code, { color: c.onSurfaceVariant }]}>
+      {`${name} `}
+      <Text style={{ color: c.onSurface, fontFamily: type.labelStrong.fontFamily }}>{value}</Text>
+    </Text>
   );
 }
 
-function Bracket({ label, width, below }: { label: string; width: number; below?: boolean }) {
-  const line = width > 0 && <View style={[styles.bracket, below ? styles.bracketBelow : styles.bracketAbove, { width }]} />;
+function LegendRow({ kind, text }: { kind: "proved" | "felt" | "never"; text: string }) {
+  const c = useColors();
+  const dot =
+    kind === "proved"
+      ? { backgroundColor: c.onSurface }
+      : kind === "felt"
+        ? { borderColor: c.gap, borderWidth: 2 }
+        : { borderColor: c.placeholder, borderWidth: 1.5, borderStyle: "dashed" as const };
   return (
-    <View style={[styles.bracketBox, { width: Math.max(width, 88) }]}>
-      {below && line}
-      <Footnote strong={below} dim={!below} style={styles.bracketLabel}>
-        {label}
-      </Footnote>
-      {!below && line}
-    </View>
-  );
-}
-
-/** A proven point starts as a shadow and casts into bronze, 90 ms after the one before it. */
-function BlockView({ block, index }: { block: Block; index: number }) {
-  const still = useReducedMotion();
-  const shadow = useSharedValue(block === "cast" && !still ? 1 : 0);
-  useEffect(() => {
-    if (block !== "cast" || still) return;
-    shadow.value = withDelay(motion.castDelay + index * motion.castStagger, withTiming(0, { duration: motion.cast, easing: Easing.out(Easing.ease) }));
-  }, [block, still, index, shadow]);
-  const look = useAnimatedStyle(() => ({ opacity: shadow.value }));
-
-  if (block !== "cast") return <View style={[styles.block, block === "shade" ? styles.shade : styles.empty]} />;
-  return (
-    <View style={styles.cast}>
-      <View style={styles.castFloor} />
-      <View style={styles.bronze}>
-        <Svg width="100%" height="100%" viewBox="0 0 10 48" preserveAspectRatio="none" {...decorative}>
-          <Defs>
-            <LinearGradient id={`bronze-${index}`} x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={day.primaryHigh} />
-              <Stop offset="0.42" stopColor={day.primary} />
-              <Stop offset="1" stopColor={day.primaryDeep} />
-            </LinearGradient>
-          </Defs>
-          <Rect width={10} height={48} fill={`url(#bronze-${index})`} />
-        </Svg>
-      </View>
-      <Animated.View style={[styles.block, styles.shadeOverlay, look]} pointerEvents="none" />
+    <View style={styles.legendRow}>
+      <View style={[styles.dot, dot]} />
+      <Label dim>{text}</Label>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  bar: { flexDirection: "row", alignItems: "center", gap: space.s, height: size.control, paddingHorizontal: space.margin, marginTop: space.s },
-  side: { width: 64 },
-  concept: { flex: 1, textAlign: "center", textTransform: "capitalize" },
-  content: { paddingHorizontal: space.margin, paddingTop: space.xl, paddingBottom: space.xl, gap: space.margin },
-  group: { gap: space.s },
-  gapRow: { flexDirection: "row", alignItems: "flex-end", gap: space.l },
-  hero: { flexDirection: "row", alignItems: "center" },
-  heroNumber: { fontVariant: ["lining-nums", "tabular-nums"] },
-  sentence: { flex: 1, maxWidth: 168, paddingBottom: space.s },
-  scale: { gap: space.s },
-  blocks: { flexDirection: "row", gap: GAP },
-  block: { flex: 1, height: 48, borderRadius: radius.block },
-  shade: { backgroundColor: day.shadowBlock, borderWidth: 1.5, borderStyle: "dashed", borderColor: day.gap },
-  empty: { borderWidth: 1.5, borderStyle: "dotted", borderColor: day.placeholder, opacity: 0.6 },
-  cast: { flex: 1, height: 48 },
-  castFloor: { position: "absolute", left: 1, right: 1, top: space.xs, bottom: -space.xs, borderRadius: radius.block, backgroundColor: day.shadowBlock },
-  bronze: { ...StyleSheet.absoluteFill, borderRadius: radius.block, overflow: "hidden" },
-  shadeOverlay: { ...StyleSheet.absoluteFill, backgroundColor: day.surface, borderWidth: 1.5, borderStyle: "dashed", borderColor: day.gap },
-  bracketBox: { gap: space.xs },
-  bracket: { height: space.s, borderColor: day.placeholder, borderLeftWidth: 1.5, borderRightWidth: 1.5 },
-  bracketAbove: { borderTopWidth: 1.5, borderTopLeftRadius: space.xs, borderTopRightRadius: space.xs },
-  bracketBelow: { borderBottomWidth: 1.5, borderBottomLeftRadius: space.xs, borderBottomRightRadius: space.xs },
-  bracketLabel: { textAlign: "center", alignSelf: "stretch" },
-  list: { backgroundColor: day.surfaceContainer, borderRadius: radius.card, overflow: "hidden" },
-  rowBox: { paddingHorizontal: space.l },
-  rowNoted: { paddingBottom: space.m },
-  row: { flexDirection: "row", alignItems: "center", gap: space.m, minHeight: 52 },
-  rowLine: { borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: day.separator },
-  part: { flex: 1 },
-  foot: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m },
+  content: { paddingHorizontal: space.margin, paddingTop: space.l, paddingBottom: space.xl, gap: space.l },
+  gapRow: { flexDirection: "row", alignItems: "center", gap: space.l },
+  gapNumber: { fontVariant: ["lining-nums", "tabular-nums"] },
+  sentence: { flex: 1 },
+  assert: { gap: space.xs },
+  opened: { flexDirection: "row", alignItems: "center", gap: space.l },
+  legend: { flex: 1, gap: space.s },
+  legendRow: { flexDirection: "row", alignItems: "center", gap: space.s },
+  dot: { width: 12, height: 12, borderRadius: 6 },
+  why: { gap: space.m },
+  miss: { gap: space.xs },
+  missHead: { flexDirection: "row", alignItems: "baseline", gap: space.s },
+  flex: { flex: 1 },
+  alone: { flexDirection: "row", alignItems: "center", gap: space.s },
+  foot: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m, gap: space.xs },
 });

@@ -1,29 +1,11 @@
-// Sign-in on the web build (#22): Clerk's prebuilt SignIn in the brand's colors and fonts, under round 6's
-// first launch line. The methods come from the Clerk dashboard. Android uses sign-in.tsx.
+// Sign-in on the web build (#22): Clerk's prebuilt SignIn in round 8's colors, under the start screen's
+// line. The methods come from the Clerk dashboard. Android uses sign-in.tsx.
 import type { Metadata } from "expo-router/server";
 import { SignIn } from "@clerk/expo/web";
 import { ScrollView, StyleSheet, View } from "react-native";
-import { Glow } from "../components/art.tsx";
-import { Body, BrandTitle, Footnote, Screen } from "../components/ui.tsx";
-import { palette, radius, space, systemFontStack } from "../theme.ts";
-
-const day = palette.day;
-
-const appearance = {
-  variables: {
-    colorPrimary: day.primary,
-    colorPrimaryForeground: day.onPrimary,
-    colorBackground: day.surfaceContainer,
-    colorForeground: day.onSurface,
-    colorMutedForeground: day.onSurfaceVariant,
-    colorNeutral: day.onSurface,
-    colorInput: day.surfaceContainer,
-    colorInputForeground: day.onSurface,
-    colorBorder: day.separator,
-    fontFamily: systemFontStack,
-    borderRadius: `${radius.control / 2}px`,
-  },
-} as const;
+import { Pair } from "../components/pair.tsx";
+import { Body, Label, Screen, Title, useColors } from "../components/ui.tsx";
+import { radius, space, systemFontStack } from "../theme.ts";
 
 /** The web page's title and description, in the static HTML, so a shared link previews well. */
 export function generateMetadata(): Metadata {
@@ -35,25 +17,43 @@ export function generateMetadata(): Metadata {
 }
 
 export default function SignInScreen() {
+  const c = useColors();
+  const appearance = {
+    variables: {
+      colorPrimary: c.primary,
+      colorPrimaryForeground: c.onPrimary,
+      colorBackground: c.surfaceContainer,
+      colorForeground: c.onSurface,
+      colorMutedForeground: c.onSurfaceVariant,
+      colorNeutral: c.onSurface,
+      colorInput: c.surfaceHigh,
+      colorInputForeground: c.onSurface,
+      colorBorder: c.outline,
+      fontFamily: systemFontStack,
+      borderRadius: `${radius.field}px`,
+    },
+  } as const;
   return (
-    <Screen tone="cave">
-      <Glow top="12%" />
+    <Screen>
       <ScrollView contentContainerStyle={styles.content}>
         <View style={styles.intro}>
-          <Footnote strong dim>
-            Step out of the shadows
-          </Footnote>
-          <BrandTitle splash />
-          <Body>Can you explain the code your AI wrote? Map a concept, answer real questions, and see how close your guess was.</Body>
-          <Footnote dim>Your tutor is an AI that asks questions and never hands you the answer.</Footnote>
+          <Label dim>$ reality-check</Label>
+          <View style={styles.head}>
+            <Pair look="asking" size={48} />
+            <Title style={styles.flex}>{"The code your AI wrote is a black box. Can you explain\u00a0it?"}</Title>
+          </View>
+          <Body dim>Pick a concept your agent wrote, guess your score, then open the box one part at a time.</Body>
         </View>
         <SignIn appearance={appearance} />
+        <Label dim>{"// your pair is an AI. it asks, you\u00a0explain."}</Label>
       </ScrollView>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { flexGrow: 1, alignItems: "center", justifyContent: "center", padding: space.margin, gap: space.xxl },
+  content: { flexGrow: 1, alignItems: "center", justifyContent: "center", padding: space.margin, gap: space.xl },
   intro: { gap: space.m, alignSelf: "stretch" },
+  head: { flexDirection: "row", alignItems: "flex-start", gap: space.m },
+  flex: { flex: 1 },
 });

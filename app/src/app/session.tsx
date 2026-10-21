@@ -1,11 +1,12 @@
-// The session (#6, #7, round 6): the guess in the cave, then the work in daylight (the conversation, the
-// one input the latest Turn asks for, or at level 5 the whole map with the fact desk), then the result.
-// A single route with no id in the path, so the web build stays static (decision 14, #27). Closing
-// saves: the start screen offers to resume.
-import type { Turn } from "@build-north/agents";
+// The session (#6, #7, round 8): the guess, then the work (the checks list, the part you're on, the one
+// input the latest Turn asks for, or at level 5 the whole map with the fact desk), then the result. A
+// single route with no id in the path, so the web build stays static (decision 14, #27). Closing saves:
+// the start screen offers to resume.
+import { MOVE_LABEL, type Turn } from "@build-north/agents";
 import { Redirect, useRouter } from "expo-router";
 import { useRef, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, View, type ScrollViewInstance } from "react-native";
+import { ChecksList } from "../components/checks.tsx";
 import { Composer } from "../components/composer.tsx";
 import { GuessScreen } from "../components/guess.tsx";
 import { MapCard } from "../components/map-card.tsx";
@@ -13,43 +14,55 @@ import { AppMessage, Failure, LearnerMessage, Thinking, useSlow } from "../compo
 import { ResultScreen } from "../components/result.tsx";
 import { SessionBar } from "../components/session-bar.tsx";
 import { WholeMapScreen } from "../components/whole-map.tsx";
-import { Body, Button, KeyboardSafe, Screen, StageChip, Ui } from "../components/ui.tsx";
-import { helpLabelOf, partNotesOf, sinceLastQuestion, waitingLineOf } from "../session/present.ts";
+import { Body, Button, Card, KeyboardSafe, Label, Screen, SheetTitle, useColors } from "../components/ui.tsx";
+import { checksOf, currentPartOf, eyebrowOf, helpLabelOf, partLabelOf, partNotesOf, sinceLastQuestion, waitingLineOf } from "../session/present.ts";
 import { useSession } from "../session/session-context.tsx";
-import type { SessionState } from "../session/transcript.ts";
-import { palette, radius, space } from "../theme.ts";
+import type { Entry, SessionState } from "../session/transcript.ts";
+import { radius, space } from "../theme.ts";
 
 export default function SessionScreen() {
   const router = useRouter();
-  const { state, send, retry, edit } = useSession();
+  const { state, send, retry, start, edit } = useSession();
+  const [again, setAgain] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null });
   const { turn } = state;
-  // The dawn plays once, between the guess and the first question.
-  const [dawnDone, setDawnDone] = useState(() => turn?.phase !== "predict");
   if (!turn) return <Redirect href="/" />;
 
   const close = () => (router.canGoBack() ? router.back() : router.replace("/"));
+  const home = () => router.replace("/");
 
-  if (turn.phase === "predict" || !dawnDone) {
+  if (turn.phase === "predict") {
     return (
       <GuessScreen
         turn={turn}
         pending={state.pending !== null}
         failure={state.failure}
-        onLock={(prediction) => {
-          setDawnDone(false);
-          send({ prediction });
-        }}
-        onRetry={() => {
-          setDawnDone(false);
-          retry();
-        }}
+        onLock={(prediction) => send({ prediction })}
+        onRetry={retry}
         onClose={close}
-        onDawnEnd={() => setDawnDone(true)}
       />
     );
   }
   if (turn.result && turn.expects === "none") {
-    return <ResultScreen concept={turn.mentefacto.concept} result={turn.result} notes={partNotesOf(turn.messages)} onDone={() => router.replace("/")} />;
+    const concept = turn.mentefacto.concept;
+    // a self-test is tried again as a self-test
+    const tryAgain = async () => {
+      setAgain({ busy: true, error: null });
+      const problem = await start({ concept, ...(state.mode === "test" ? { mode: state.mode } : {}) });
+      setAgain({ busy: false, error: problem });
+    };
+    return (
+      <ResultScreen
+        concept={concept}
+        result={turn.result}
+        map={turn.mentefacto}
+        entries={state.entries}
+        notes={partNotesOf(turn.messages)}
+        onAgain={() => void tryAgain()}
+        againBusy={again.busy}
+        againError={again.error}
+        onDone={home}
+      />
+    );
   }
   if (turn.expects === "map") {
     return <WholeMapScreen turn={turn} state={state} send={send} retry={retry} edit={edit} onClose={close} />;
@@ -65,14 +78,22 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   const exampleTop = useRef<number | null>(null);
   const [mapOpen, setMapOpen] = useState(false);
   const slow = useSlow(state.pending !== null);
-  // the guess and its question stay on the guess screen
-  const entries = state.entries.filter((e) => e.from !== "app" || e.phase !== "predict");
+  // the guess has its own screen; earlier parts are in the checks list
+  const entries = currentPartOf(state.entries.filter((e) => e.from !== "app" || e.phase !== "predict"));
+  const firstHint = entries.find((e) => e.from === "app" && e.message.kind === "hint")?.id;
   const { failure } = state;
   const saved = failure && "text" in failure.body ? " Your answer is saved." : "";
+  const done = turn.progress.movesDone;
+  const label = partLabelOf(turn);
 
   return (
-    <Screen tone="day">
-      <SessionBar turn={turn} onClose={onClose} onMap={() => setMapOpen(true)} />
+    <Screen>
+      <SessionBar
+        concept={turn.mentefacto.concept}
+        onClose={onClose}
+        progress={{ done, now: turn.phase === "move" ? done : null, label: label ?? `${done}/${turn.progress.movesTotal}` }}
+        onMap={() => setMapOpen(true)}
+      />
       <KeyboardSafe>
         <ScrollView
           ref={scroll}
@@ -85,34 +106,26 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
           }
           keyboardShouldPersistTaps="handled"
         >
-          {entries.map((entry) =>
-            entry.from === "app" ? (
-              <View key={entry.id} style={styles.entry}>
-                {entry.message.kind === "question" && entry.phase === "move" && entry.level && <StageChip level={entry.level} />}
-                <AppMessage message={entry.message} />
-              </View>
-            ) : entry.from === "map" ? (
-              <View
-                key={entry.id}
-                onLayout={(e) => {
-                  exampleTop.current = e.nativeEvent.layout.y;
-                  if (turn.phase === "example") scroll.current?.scrollTo({ y: exampleTop.current, animated: true });
-                }}
-              >
-                <MapCard map={entry.map} title={`Example: ${entry.map.concept}`} />
-              </View>
-            ) : (
-              <LearnerMessage key={entry.id} text={entry.text} />
-            ),
-          )}
+          <ChecksList checks={checksOf(turn, state.entries)} />
+          {entries.map((entry) => (
+            <EntryView
+              key={entry.id}
+              entry={entry}
+              firstHint={entry.id === firstHint}
+              onExampleLayout={(y) => {
+                exampleTop.current = y;
+                if (turn.phase === "example") scroll.current?.scrollTo({ y, animated: true });
+              }}
+            />
+          ))}
           {turn.phase === "move" && turn.scaffold && (
-            <View style={styles.scaffold}>
+            <Card style={styles.indent}>
               <Body>{`Already on your map: ${turn.scaffold.given.join(", ")}. ${turn.scaffold.blanks} more for you to find.`}</Body>
-            </View>
+            </Card>
           )}
-          {state.pending && <Thinking line={slow ? "Taking longer than usual…" : waitingLineOf(state.pending)} />}
+          {state.pending && <Thinking line={slow ? "taking longer than usual…" : waitingLineOf(state.pending)} />}
           {failure && (
-            <Failure message={`${failure.message}${saved}`}>{failure.retryable && <Button kind="tonal" label="Try Again" onPress={retry} />}</Failure>
+            <Failure message={`${failure.message}${saved}`}>{failure.retryable && <Button kind="secondary" label="Try again" onPress={retry} />}</Failure>
           )}
         </ScrollView>
         <Composer turn={turn} pending={state.pending !== null} helpLabel={helpLabelOf(sinceLastQuestion(state.entries))} onSend={send} />
@@ -122,18 +135,40 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   );
 }
 
-/** The map so far, in a half-height sheet over the session (the Greek key opens it). */
+/** One line of the part you're on: the tutor's question gets the part's name (or "before any help") above it. */
+function EntryView({ entry, firstHint, onExampleLayout }: { entry: Entry; firstHint: boolean; onExampleLayout: (y: number) => void }) {
+  if (entry.from === "learner") return <LearnerMessage text={entry.text} />;
+  if (entry.from === "map") {
+    return (
+      <View onLayout={(e) => onExampleLayout(e.nativeEvent.layout.y)}>
+        <MapCard map={entry.map} title={`example: ${entry.map.concept}`} />
+      </View>
+    );
+  }
+  if (entry.message.kind === "question") {
+    const { eyebrow, text } = eyebrowOf(entry.message.text);
+    const label = eyebrow ?? (entry.phase === "move" && entry.move ? MOVE_LABEL[entry.move] : null);
+    return <AppMessage message={{ ...entry.message, text }} label={label} />;
+  }
+  return <AppMessage message={entry.message} firstHint={firstHint} />;
+}
+
+/** The map so far, in a sheet over the session (the mini box opens it). */
 function MapSheet({ turn, open, onClose }: { turn: Turn; open: boolean; onClose: () => void }) {
+  const c = useColors();
   return (
     <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={styles.scrim} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close the map" />
-      <View style={styles.sheet}>
-        <View style={styles.grabber} />
+      <Pressable style={[styles.scrim, { backgroundColor: c.scrim }]} onPress={onClose} accessibilityRole="button" accessibilityLabel="Close the map" />
+      <View style={[styles.sheet, { backgroundColor: c.surfaceContainer }]}>
+        <View style={[styles.grabber, { backgroundColor: c.outline }]} />
         <View style={styles.sheetHead}>
-          <Ui strong>Your map</Ui>
-          <Button kind="tonal" label="Close" onPress={onClose} />
+          <View style={styles.flex}>
+            <SheetTitle>Your map</SheetTitle>
+            <Label dim>{turn.mentefacto.concept}</Label>
+          </View>
+          <Button kind="secondary" label="Close" onPress={onClose} />
         </View>
-        <MapCard map={turn.mentefacto} title={turn.mentefacto.concept} current={turn.phase === "move" ? turn.move : null} scaffold={turn.scaffold} />
+        <MapCard map={turn.mentefacto} title="so far" current={turn.phase === "move" ? turn.move : null} scaffold={turn.scaffold} />
       </View>
     </Modal>
   );
@@ -141,15 +176,13 @@ function MapSheet({ turn, open, onClose }: { turn: Turn; open: boolean; onClose:
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  transcript: { paddingHorizontal: space.margin, paddingTop: space.l, paddingBottom: space.xl, gap: space.l },
-  entry: { gap: space.m },
-  scaffold: { backgroundColor: palette.day.surfaceContainer, borderRadius: radius.card, padding: space.l },
-  scrim: { flex: 1, backgroundColor: palette.day.scrim },
+  transcript: { paddingHorizontal: space.margin, paddingTop: space.m, paddingBottom: space.xl, gap: space.l },
+  indent: { marginLeft: 40 + space.m },
+  scrim: { flex: 1 },
   sheet: {
-    backgroundColor: palette.day.surface,
     borderTopLeftRadius: radius.sheet,
     borderTopRightRadius: radius.sheet,
-    paddingHorizontal: space.l,
+    paddingHorizontal: space.margin,
     paddingTop: space.m,
     paddingBottom: space.xxl,
     gap: space.m,
@@ -157,6 +190,6 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     alignSelf: "center",
   },
-  grabber: { alignSelf: "center", width: 36, height: 4, borderRadius: 2, backgroundColor: palette.day.placeholder, opacity: 0.5 },
-  sheetHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  grabber: { alignSelf: "center", width: 36, height: 4, borderRadius: 2 },
+  sheetHead: { flexDirection: "row", alignItems: "center", gap: space.m },
 });

@@ -32,13 +32,11 @@ export const initialState: SessionState = { turn: null, entries: [], pending: nu
 export const startedWith = (turn: Turn, mode: SessionMode = "learn"): SessionState => received({ ...initialState, mode }, turn);
 
 /** The learner's side of the conversation, as it shows in the transcript. The guess has its own
- * screen and comes back on the result, so it isn't echoed. */
+ * screen and comes back on the result, and Help shows as the hint card it brings, so neither is echoed. */
 export function echoFor(body: TurnBody): string | null {
   if ("text" in body) return body.text;
   if ("question" in body) return body.question;
-  if ("prediction" in body) return null;
   if ("mentefacto" in body) return "Here's my map.";
-  if (body.action === "help") return "Help";
   return null;
 }
 

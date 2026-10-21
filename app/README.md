@@ -5,8 +5,10 @@ and the web. There's no iOS build: the team has no Apple Developer account (Oct 
 get the web build. Created with `create-expo-app` and its default template (disclose it on Devpost:
 templates are allowed if disclosed), with the template's demo screens, icons and splash replaced.
 
-The look is round 6, "Out of the Cave" (`docs/design/06-out-of-the-cave/` on #72): `src/theme.ts`
-holds its tokens, and screens take colors only from there.
+The look is round 8, "Open Box" (`docs/design/08-open-box/` on #72), in its Obsidian theme: `src/theme.ts`
+holds its tokens, and screens take colors only from there. Day and night follow the phone once
+`app.json` sets `userInterfaceStyle` to `automatic` (a native change); until then the app shows Obsidian's
+night mode.
 
 ## Run it
 
@@ -79,15 +81,16 @@ npx expo export --platform web && npx eas-cli@latest deploy --prod  # the web bu
 |---|---|
 | `src/app/` | The routes: `index.tsx` (start: concept + optional notes), `session.tsx` (the session) and `sign-in.tsx` / `sign-in.web.tsx` (#22). No id in a path, so the web build stays static |
 | `src/session/` | The session logic, no React: the two clients (`api-client.ts`, `fixture-client.ts`), what the transcript shows (`transcript.ts`), what the screens say (`present.ts`), and the tests |
-| `src/components/` | The guess (`guess.tsx`), the session's top bar, messages, the map card, the input for each `expects`, the result (`result.tsx`), the drawn cave (`art.tsx`) and icons |
-| `src/theme.ts` | Every color, font and size from round 6 (#14, #46) |
+| `src/components/` | The guess (`guess.tsx`), the session's top bar and checks list, messages, the map card, the input for each `expects`, the result (`result.tsx`), the box (`box.tsx`), your pair (`pair.tsx`) and icons |
+| `src/theme.ts` | Every color, font and size from round 8 "Open Box" (#14): the Obsidian and Cobalt palettes, each with a day and a night mode |
 
 ## Credits
 
-- The Acropolis, by Alex Azabache (Unsplash License), on the Android first-launch screen.
 - Newsreader, by Production Type (SIL Open Font License), from `@expo-google-fonts/newsreader`.
-- The laurel icon, by Lorc on game-icons.net (CC BY 3.0).
-- Drawn in code: the cave, the arch, the beam, the blocks, the Greek key, the icons and the mark.
+- Atkinson Hyperlegible Mono, by the Braille Institute (SIL Open Font License), from
+  `@expo-google-fonts/atkinson-hyperlegible-mono`.
+- Your pair, drawn with Maskot's engine (MIT) on the round 8 board.
+- Drawn in code: the box, the checks, the wave and the icons.
 
 ## Rules
 

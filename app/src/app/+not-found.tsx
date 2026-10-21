@@ -1,14 +1,15 @@
 // A link to a page that doesn't exist (a mistyped web address, an old link): say so, and offer the way in.
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
-import { Body, Button, Screen, Title } from "../components/ui.tsx";
+import { Body, Button, Label, Screen, Title } from "../components/ui.tsx";
 import { space } from "../theme.ts";
 
 export default function NotFoundScreen() {
   const router = useRouter();
   return (
-    <Screen tone="day">
+    <Screen>
       <View style={styles.content}>
+        <Label dim>404</Label>
         <Title>This page doesn't exist.</Title>
         <Body dim>The link may be old or mistyped.</Body>
         <Button label="Go to Reality Check" onPress={() => router.replace("/")} />
