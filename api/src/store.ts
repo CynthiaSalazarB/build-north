@@ -29,11 +29,12 @@ DEFINE TABLE IF NOT EXISTS agent_log SCHEMALESS;
 DEFINE FIELD OVERWRITE session ON agent_log TYPE record<session>;
 DEFINE FIELD OVERWRITE agent ON agent_log TYPE string;
 DEFINE FIELD OVERWRITE ms ON agent_log TYPE int;
+DEFINE FIELD OVERWRITE usd ON agent_log TYPE number;
 DEFINE FIELD OVERWRITE at ON agent_log TYPE datetime DEFAULT time::now() READONLY;
 DEFINE INDEX OVERWRITE agent_log_session ON agent_log FIELDS session;
 `;
 
-export type AgentLogEntry = { session: string; agent: string; input: unknown; output: unknown; ms: number };
+export type AgentLogEntry = { session: string; agent: string; input: unknown; output: unknown; ms: number; usd: number };
 
 export type Store = {
   createSession(user: string, input: NewSession): Promise<Session>;
@@ -149,9 +150,9 @@ export function createStore(db: Surreal): Store {
       );
     },
 
-    async logAgentCall({ session, agent, input, output, ms }) {
+    async logAgentCall({ session, agent, input, output, ms, usd }) {
       await one("CREATE agent_log CONTENT $entry RETURN NONE", {
-        entry: { session: sessionId(session), agent, input, output, ms: Math.round(ms) },
+        entry: { session: sessionId(session), agent, input, output, ms: Math.round(ms), usd },
       });
     },
 

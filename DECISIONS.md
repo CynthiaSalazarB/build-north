@@ -247,3 +247,16 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   frustrates, too much makes learning shallow. Explanatory feedback with help that fades sits in
   between. "Hints used" now means how many times the learner asked; retries are counted on their own,
   so getting it after a nudge still scores 1, not 2, and session 1 still scores 5/8.
+
+### 2026-10-20 · The next question is prepared while the answer is judged
+- **Decision:** at the learner's first answer (or first Help) of each part, the Questioner writes the
+  next part's question at the same time as the Evaluator judges the answer. It's saved in the session
+  and shown as soon as the part ends.
+- **Instead of:** waiting for the part to end and then calling the Questioner (two calls in a row,
+  ~4.5 s), or preparing the questions while the learner reads the planet example (only the first
+  session has it).
+- **Why:** to reduce latency. The turn that ends a part waits for one call instead of two, in every
+  session.
+- **Pattern / trade-off:** prefetching (two independent calls in parallel). The next question is
+  written from the map as it was before the answer being judged, so it can't build on what the
+  learner just found. If the early call fails, the part asks normally when it starts.

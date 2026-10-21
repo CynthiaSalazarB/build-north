@@ -25,7 +25,7 @@ const noDb: AppOptions = {
   checkDb: null,
   store: null,
   advance: advanceStub,
-  callAgent: callAgentStub,
+  callAgentFor: () => callAgentStub,
   userFromToken: null,
   devKey: KEY,
 };

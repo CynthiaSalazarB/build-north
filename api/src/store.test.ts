@@ -85,7 +85,7 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
 
   await t.test("deleting a user's data removes their sessions, logs and mastery, and nobody else's", async () => {
     const mine = await store.createSession("delete-me", { concept: "inflation", material: "notes", mode: "test" });
-    await store.logAgentCall({ session: mine.id, agent: "fact_desk", input: { q: 1 }, output: { a: 2 }, ms: 120.4 });
+    await store.logAgentCall({ session: mine.id, agent: "fact_desk", input: { q: 1 }, output: { a: 2 }, ms: 120.4, usd: 0.0123 });
     await store.saveMastery("delete-me", await store.getMastery("delete-me"));
     const theirs = await store.createSession("keep-me", { concept: "inflation", material: null, mode: "learn" });
 
