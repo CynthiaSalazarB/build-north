@@ -59,8 +59,9 @@ one too), and mastery stays at level 1. That way the app runs against an API wit
 one structured-output call, set up from Cynthia's registry in `@build-north/agents` (`AGENTS`, #2):
 the agent's system prompt, the user message its `render` writes from the input, its effort, and its
 Zod schemas. The reply is checked against the output schema. Every call writes an `agent_log` row
-with its milliseconds and its cost in dollars. An agent that isn't in the registry yet (the coach,
-#44) fails before any call.
+with its milliseconds and its cost in dollars. An agent that isn't in the registry fails before any
+call. When the coach's call fails (#44), the session still ends: `advance` writes fixed text from the
+result's numbers instead.
 
 | Variable | What it does |
 |---|---|
@@ -87,6 +88,24 @@ again at $0 after a restart; the account's own balance, with auto-reload off (#2
   database. At startup the store defines the `session`, `mastery` and `agent_log` tables from
   CONTRACTS.md section 4. They stay schemaless so the orchestrator's state can grow, but the fields
   the API relies on are typed, so a bad level or mode is refused instead of saved.
+
+## The demo profile
+
+```bash
+npm run seed:demo -w api -- <user id>
+```
+
+Loads Cynthia's demo profile ([`agents/fixtures/demo-seed.json`](../agents/fixtures/demo-seed.json),
+#32) for one user, through the same store the API reads: level 5 on all four moves, and the inflation
+session waiting at the whole map, with the prediction (7) already made. It prints the session's id.
+Running it again resets the mastery to the seed and adds a fresh waiting session; earlier sessions
+stay.
+
+- **The user id** is what the API keys rows by: the `x-dev-user` name until Clerk lands (#23), then
+  the demo account's Clerk user id.
+- **The database** is the one the `SURREAL_*` variables name. With the root `.env` that's `dev`. For
+  demo day, set `SURREAL_DATABASE=prod` in the shell for that one run (a variable set in the shell wins
+  over `.env`), with a user that can write to `prod`.
 
 ## Deploy on Render
 

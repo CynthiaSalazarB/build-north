@@ -1,8 +1,13 @@
 import assert from "node:assert/strict";
+import { once } from "node:events";
+import type { AddressInfo } from "node:net";
 import { test } from "node:test";
-import { Session as SessionSchema } from "@build-north/agents";
+import { DemoSeed, Session as SessionSchema, advance } from "@build-north/agents";
+import demoSeed from "@build-north/agents/fixtures/demo-seed.json" with { type: "json" };
 import { RecordId, Surreal } from "surrealdb";
 import { advanceStub, callAgentStub } from "./advance-stub.ts";
+import { createApp } from "./app.ts";
+import { loadDemoSeed } from "./demo-seed.ts";
 import { createStore, defineSchema } from "./store.ts";
 
 // Needs a real SurrealDB and a root user, for example a local container:
@@ -101,5 +106,27 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
       .collect<[{ sessions: number; mastery: number; logs: number }]>();
     assert.deepEqual(counts, { sessions: 0, mastery: 0, logs: 0 });
     assert.notEqual(await store.getSession("keep-me", theirs.id), null);
+  });
+
+  await t.test("the demo seed puts its user at level 5 on every move, with an inflation session the API carries on", async (st) => {
+    const seed = DemoSeed.parse(demoSeed);
+    const session = await loadDemoSeed(store, "demo");
+    assert.deepEqual(await store.getMastery("demo"), seed.mastery);
+    assert.deepEqual(await store.getSession("demo", session.id), session);
+
+    // what the app gets when the demo user signs in, then the presenter's first question
+    const fact = { kind: "fact", answer: "Broadly, prices across the economy.", questionType: "contrast" };
+    const server = createApp({ corsOrigins: [], checkDb: null, store, advance, callAgentFor: () => async () => fact, devKey: "k" }).listen(0);
+    st.after(() => server.close());
+    await once(server, "listening");
+    const api = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+    const headers = { "content-type": "application/json", "x-dev-user": "demo", "x-dev-key": "k" };
+    const mastery = await (await fetch(`${api}/me/mastery`, { headers })).json();
+    assert.deepEqual(mastery.moves.map((m: { level: number }) => m.level), [5, 5, 5, 5]);
+    const waiting = await (await fetch(`${api}/sessions/${session.id}`, { headers })).json();
+    assert.deepEqual(waiting, { ...seed.session.lastTurn, sessionId: session.id });
+    const body = JSON.stringify({ turn: waiting.turn, question: seed.script.questions[0] });
+    const next = await (await fetch(`${api}/sessions/${session.id}/turns`, { method: "POST", headers, body })).json();
+    assert.deepEqual([next.turn, next.expects, next.messages], [3, "map", [{ agent: "fact_desk", kind: "fact", text: fact.answer }]]);
   });
 });

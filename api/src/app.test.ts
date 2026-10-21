@@ -361,9 +361,7 @@ test("GET /me/mastery lists the four moves, and DELETE /me/data removes only the
   assert.equal((await call(`/sessions/${theirs.sessionId}`, "GET", "jonathan")).status, 200);
 });
 
-test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2 Helps, 5/8, an agent_log row per call", async (t) => {
-  // the coach joins the registry with #44; until then its call fails before Claude, and advance writes fixed text
-  t.mock.method(console, "error", () => {});
+test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2 Helps, 5/8, the coach's message, an agent_log row per call", async (t) => {
   const item = (value: string, note: string | null = null) => ({ value, note });
   const judged = (verdict: string, quality: number, accepted: ReturnType<typeof item>[], feedback: string, issue = "none") => ({
     verdict,
@@ -374,6 +372,7 @@ test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2
     feedback,
   });
   const hint = (text: string) => ({ step: "hint", text, revealed: null });
+  const coach = { message: "You found the bigger group and a real exclusion. 'What it needs' is next.", nextFocus: "isoordinate" };
   // What Claude answers, per agent and in order: session 1 from agents/test/advance.test.ts
   const replies: [keyof typeof AGENTS, unknown][] = [
     ["questioner", { question: "Democracy is one example of a bigger group. What group?", scaffold: null }],
@@ -390,6 +389,7 @@ test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2
     ["evaluator", judged("correct", 2, [item("free elections"), item("rights"), item("more than one party")], "Yes: free elections, rights and more than one party.")],
     ["evaluator", judged("partial", 1, [item("direct democracy")], "Direct democracy is one type, where people vote on laws themselves. Is that the only way it can work?")],
     ["evaluator", judged("correct", 2, [item("direct democracy"), item("representative democracy")], "Yes: direct and representative democracy.")],
+    ["coach", coach],
   ];
   const { callAgentFor, logged } = fakeClaude(replies);
   const url = await start(t, { ...withStore(), advance, callAgentFor });
@@ -423,17 +423,23 @@ test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2
   const { predictedScore, score, calibrationGap, hintsUsed, rubric } = latest.result;
   assert.deepEqual({ predictedScore, score, calibrationGap, hintsUsed }, { predictedScore: 7, score: 5, calibrationGap: 2, hintsUsed: 2 });
   assert.deepEqual(rubric.map((r: { points: number }) => r.points), [1, 2, 1, 1]);
-  assert.equal(typeof latest.result.coach.message, "string");
+  // the result carries the coach's words, and the coach's message closes the last Turn
+  assert.deepEqual(latest.result.coach, coach);
+  assert.deepEqual(latest.messages.at(-1), { agent: "coach", kind: "summary", text: coach.message });
   // one agent_log row per Claude call, each with its session and its cost
-  assert.equal(logged.length, 14);
+  assert.equal(logged.length, 15);
   assert.ok(logged.every((row) => row.session === latest.sessionId && row.usd > 0));
+  // the coach's agent_log row holds what it was sent: the final map, and the result its words complete
+  const sent = logged.at(-1)!;
+  const { result: numbers, ...rest } = sent.input as { result: object };
+  assert.equal(sent.agent, "coach");
+  assert.deepEqual(rest, { concept: "democracy", mentefacto: latest.mentefacto });
+  assert.deepEqual({ ...numbers, coach }, latest.result);
   const mastery = await (await fetch(`${url}/me/mastery`, { headers: as("leo") })).json();
   assert.deepEqual(mastery.moves.map((m: { level: number }) => m.level), [2, 3, 2, 3]);
 });
 
 test("a test session starts at level 5, { question } gets the fact desk's answer, { mentefacto } the whole-map evaluator's score, and mastery is unchanged", async (t) => {
-  // the coach joins the registry with #44; until then its call fails before Claude, and advance writes fixed text
-  t.mock.method(console, "error", () => {});
   const store = memoryStore();
   const before = await store.getMastery("leo");
   before.moves[1] = { move: "exclusion", level: 3, unassistedSuccesses: 1 };
@@ -444,6 +450,7 @@ test("a test session starts at level 5, { question } gets the fact desk's answer
     // the model's words give the bigger group away; the learner only ever sees the fixed redirect (decision 17)
     ["fact_desk", { kind: "redirect", answer: "It's a kind of system.", questionType: "asks_for_structure" }],
     ["evaluator_full", { rubric: MOVE_ORDER.map((move) => ({ move, quality: move === "isoordinate" ? 1 : 2, feedback: `Scripted ${move}.` })) }],
+    ["coach", { message: "Scripted coach.", nextFocus: "isoordinate" }],
   ];
   const claude = fakeClaude(replies);
   const url = await start(t, { ...noDb, store, advance, callAgentFor: claude.callAgentFor });
@@ -495,11 +502,34 @@ test("a test session starts at level 5, { question } gets the fact desk's answer
     MOVE_ORDER.map((move) => `${MOVE_LABEL[move]}: Scripted ${move}.`),
   );
   assert.equal(replies.length, 0);
-  // the fact desk's agent_log rows are the questions metric; the last row holds the map Claude scored
+  // the fact desk's agent_log rows are the questions metric; the evaluator's row holds the map Claude scored
   const id = first.sessionId;
-  assert.deepEqual(claude.logged.map((row) => [row.agent, row.session]), [["fact_desk", id], ["fact_desk", id], ["evaluator_full", id]]);
+  assert.deepEqual(
+    claude.logged.map((row) => [row.agent, row.session]),
+    [["fact_desk", id], ["fact_desk", id], ["evaluator_full", id], ["coach", id]],
+  );
   assert.deepEqual(claude.logged[2]!.input, { concept: "ecosystem", material: null, mentefacto });
   // the mastery from before the session, which the session never wrote
   assert.deepEqual(await (await fetch(`${url}/me/mastery`, { headers: as("leo") })).json(), before);
   assert.equal(masterySaves.mock.callCount(), 0);
+});
+
+test("when the coach call fails, the session still ends, with fixed text built from the numbers", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const claude = fakeClaude([
+    ["evaluator_full", { rubric: MOVE_ORDER.map((move) => ({ move, quality: move === "supraordinate" ? 0 : 2, feedback: "Scripted." })) }],
+    // off the coach's schema, so callAgent refuses it and advance falls back
+    ["coach", { message: 6, nextFocus: "the bigger group" }],
+  ]);
+  const url = await start(t, { ...withStore(), advance, callAgentFor: claude.callAgentFor });
+  const first = await (await post(url, { concept: "inflation", mode: "test" })).json();
+  const map = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 7 })).json();
+  const blank = { concept: "inflation", supraordinate: null, exclusion: [], isoordinate: [], infraordinate: [] };
+  const done = await (await answer(url, first.sessionId, { turn: map.turn, mentefacto: blank })).json();
+
+  const fixed = { message: 'You scored 6 of 8 and used 0 hints. Next, work on "Bigger group".', nextFocus: "supraordinate" };
+  assert.deepEqual([done.error, done.expects, done.result.score], [null, "none", 6]);
+  assert.deepEqual(done.result.coach, fixed);
+  assert.deepEqual(done.messages.at(-1), { agent: "coach", kind: "summary", text: fixed.message });
+  assert.deepEqual(await (await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") })).json(), done);
 });

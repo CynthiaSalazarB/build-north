@@ -49,6 +49,7 @@ npm run eval:questioner   # Claude asks level-2 and level-3 questions; checks no
 npm run eval:hint-giver   # the 4 hint steps on "a law" (#21: no answer before reveal) + a counterexample
 npm run eval:fact-desk    # 10 inflation questions, 5 asking for the structure (#25: 0 leaks, type 8/10)
 npm run eval:whole-map    # the whole-map evaluator on the brief's inflation map (6/8) and a blank map (0/8) (#36)
+npm run eval:coach        # the coach on 4 finished sessions (#44: no number it wasn't given, nextFocus a weakest part)
 npm run play:session      # the whole democracy session against Claude: transcript, score, seconds per turn
 npm run play:demo         # the demo's level-5 part against Claude: fact desk answers and the map's score
 ```
