@@ -40,6 +40,15 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "81c0b8ca-1a83-4620-a220-559022ef6aba"
+      }
+    },
+    "owner": "leo_atienza",
+    "updates": {
+      "url": "https://u.expo.dev/81c0b8ca-1a83-4620-a220-559022ef6aba"
     }
   }
 }
