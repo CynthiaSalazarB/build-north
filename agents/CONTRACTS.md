@@ -83,9 +83,11 @@ older than the session's latest, the API returns the latest `Turn` as it is and 
 `advance` again, so an answer resent after a timeout is judged once. The app disables Send while a
 call is pending.
 
-A body the latest `Turn` doesn't ask for gets `409`, and `advance` isn't called: a `turn` newer than
-the latest, a body other than the one `expects` names, Help before the moves, or any body once
-`expects` is `none` (the session is over).
+A body the latest `Turn` doesn't ask for gets `409` with the latest `Turn`, and `advance` isn't
+called: a `turn` newer than the latest, a body other than the one `expects` names, Help before the
+moves, or any body once `expects` is `none` (the session is over). Like a resent answer, the app
+draws whatever `Turn` comes back; the reason goes to the server log. Errors with no `Turn` to send
+back (a malformed body, a session that doesn't exist) answer `{ error }`.
 
 `prediction` is a whole number from 0 to 8. Before it, the app explains the task in one line and
 asks on the same scale as the score: "You'll build the map of democracy in 4 parts, 2 points each.

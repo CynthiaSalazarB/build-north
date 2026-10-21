@@ -160,33 +160,38 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       return;
     }
     const { turn, ...input } = parsed.data;
+    const latest = session.lastTurn;
     // Decision 18: an answer to an older Turn was judged already, so it gets the latest Turn back
     if (turn < session.turn) {
-      res.json(session.lastTurn);
+      res.json(latest);
       return;
     }
+    // CONTRACTS.md section 5: a 409 answers with the latest Turn too, so the app draws whatever /turns
+    // sends back. The reason goes to the server log.
+    const conflict = (reason: string) => {
+      console.warn(`409 for session ${session.id}: ${reason}`);
+      res.status(409).json(latest);
+    };
     if (turn > session.turn) {
-      res.status(409).json({ error: `Turn ${turn} doesn't exist yet; the latest is ${session.turn}` });
+      conflict(`Turn ${turn} doesn't exist yet; the latest is ${session.turn}`);
       return;
     }
     const sent = "action" in input ? input.action : (Object.keys(input)[0] ?? "");
-    const { expects } = session.lastTurn;
+    const { expects } = latest;
     const allowed = sent === "help" ? session.phase === "move" : ANSWERS[expects].includes(sent);
     if (!allowed) {
-      const error =
-        expects === "none" ? "This session is over" : sent === "help" ? "Help works during the moves" : `Turn ${turn} expects ${expects}, not ${sent}`;
-      res.status(409).json({ error });
+      conflict(expects === "none" ? "This session is over" : sent === "help" ? "Help works during the moves" : `Turn ${turn} expects ${expects}, not ${sent}`);
       return;
     }
     const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, input, callAgentFor(session.id)).catch(
       (error: unknown) => {
-        // CONTRACTS.md section 5: input that doesn't fit the phase changes nothing, and gets the latest Turn
-        if (error instanceof UnexpectedInput) return null;
+        // input that doesn't fit the phase changes nothing
+        if (error instanceof UnexpectedInput) return error;
         throw error;
       },
     );
-    if (!next) {
-      res.status(409).json(session.lastTurn);
+    if (next instanceof UnexpectedInput) {
+      conflict(next.message);
       return;
     }
     if (!(await who.store.saveSession(next.session, session.turn))) {

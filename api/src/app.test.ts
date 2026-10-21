@@ -204,6 +204,7 @@ test("a new session and its first Turn match the schemas in @build-north/agents"
 });
 
 test("/turns replays the session-1 fixture one Turn per answer, then the session is over", async (t) => {
+  const warned = t.mock.method(console, "warn", () => {});
   const url = await start(t, withStore());
   const first = await (await post(url, { concept: "democracy" })).json();
   // the fixture's Turns, numbered from 1 in this session
@@ -219,7 +220,8 @@ test("/turns replays the session-1 fixture one Turn per answer, then the session
   assert.equal(latest.expects, "none");
   const over = await answer(url, first.sessionId, { turn: latest.turn, action: "help" });
   assert.equal(over.status, 409);
-  assert.equal((await over.json()).error, "This session is over");
+  assert.deepEqual(await over.json(), latest);
+  assert.match(String(warned.mock.calls[0]?.arguments[0]), /This session is over/);
   assert.deepEqual(await (await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") })).json(), latest);
 });
 
@@ -264,24 +266,33 @@ test("two answers to the same Turn at once move the session on once", { timeout:
   assert.equal(latest.turn, 2);
 });
 
-test("/turns refuses a body the latest Turn doesn't ask for, and a Turn from the future", async (t) => {
+test("a body the latest Turn doesn't ask for, or a Turn from the future, gets a 409 with the latest Turn", async (t) => {
+  const warned = t.mock.method(console, "warn", () => {});
   const url = await start(t, withStore());
-  const { sessionId } = await (await post(url, { concept: "democracy" })).json(); // Turn 1 expects a prediction
+  const first = await (await post(url, { concept: "democracy" })).json(); // Turn 1 expects a prediction
   for (const body of [{ turn: 1, text: "A law?" }, { turn: 1, action: "continue" }, { turn: 2, prediction: 7 }]) {
-    const res = await answer(url, sessionId, body);
+    const res = await answer(url, first.sessionId, body);
     assert.equal(res.status, 409);
-    assert.equal(typeof (await res.json()).error, "string");
+    assert.deepEqual(await res.json(), first);
   }
-  assert.equal((await answer(url, sessionId, { turn: 1, prediction: 7 })).status, 200);
+  // the reason goes to the server log
+  assert.deepEqual(
+    warned.mock.calls.map((call) => String(call.arguments[0]).replace(/^409 for session \w+: /, "")),
+    ["Turn 1 expects prediction, not text", "Turn 1 expects prediction, not continue", "Turn 2 doesn't exist yet; the latest is 1"],
+  );
+  assert.equal((await answer(url, first.sessionId, { turn: 1, prediction: 7 })).status, 200);
 });
 
 test("Help works during the moves only", async (t) => {
+  const warned = t.mock.method(console, "warn", () => {});
   const url = await start(t, withStore());
-  const { sessionId } = await (await post(url, { concept: "democracy" })).json();
+  const first = await (await post(url, { concept: "democracy" })).json();
+  const { sessionId } = first;
   const help = (turn: number) => answer(url, sessionId, { turn, action: "help" });
   const refused = await help(1);
   assert.equal(refused.status, 409);
-  assert.equal((await refused.json()).error, "Help works during the moves");
+  assert.deepEqual(await refused.json(), first);
+  assert.match(String(warned.mock.calls[0]?.arguments[0]), /Help works during the moves/);
   // the prediction, the first attempt and the worked example come before the first move (Turn 4)
   for (const body of [{ turn: 1, prediction: 7 }, { turn: 2, text: "When people vote." }, { turn: 3, action: "continue" }]) {
     assert.equal((await answer(url, sessionId, body)).status, 200);
@@ -290,6 +301,7 @@ test("Help works during the moves only", async (t) => {
 });
 
 test("input that advance refuses for the phase changes nothing, and gets a 409 with the latest Turn", async (t) => {
+  const warned = t.mock.method(console, "warn", () => {});
   const refusing: Advance = (state, input, callAgent) =>
     "action" in input && input.action === "start" ? advanceStub(state, input, callAgent) : Promise.reject(new UnexpectedInput("not now"));
   const url = await start(t, { ...withStore(), advance: refusing });
@@ -297,6 +309,7 @@ test("input that advance refuses for the phase changes nothing, and gets a 409 w
   const res = await answer(url, first.sessionId, { turn: 1, prediction: 7 });
   assert.equal(res.status, 409);
   assert.deepEqual(await res.json(), first);
+  assert.match(String(warned.mock.calls[0]?.arguments[0]), /not now/);
   assert.deepEqual(await (await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") })).json(), first);
 });
 
