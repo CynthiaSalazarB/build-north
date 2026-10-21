@@ -59,8 +59,8 @@ one too), and mastery stays at level 1. That way the app runs against an API wit
 one structured-output call, set up from Cynthia's registry in `@build-north/agents` (`AGENTS`, #2):
 the agent's system prompt, the user message its `render` writes from the input, its effort, and its
 Zod schemas. The reply is checked against the output schema. Every call writes an `agent_log` row
-with its milliseconds and its cost in dollars. An agent that isn't in the registry yet (the
-whole-map evaluator, #36, and the coach, #44) fails before any call.
+with its milliseconds and its cost in dollars. An agent that isn't in the registry yet (the coach,
+#44) fails before any call.
 
 | Variable | What it does |
 |---|---|
