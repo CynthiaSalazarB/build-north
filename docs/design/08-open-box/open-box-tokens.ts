@@ -146,8 +146,8 @@ export const palette = {
 } as const;
 export type Theme = keyof typeof palette;
 
-/** The theme the app opens in. Obsidian is the second theme: switching is this one constant. */
-export const defaultTheme: Theme = "cobalt";
+/** The theme the app opens in. Cobalt is the second theme: switching is this one constant. */
+export const defaultTheme: Theme = "obsidian";
 export type Mode = "day" | "night";
 
 /** A part's state as a check run, in GitHub's words: queued, in progress, then how it ended. */

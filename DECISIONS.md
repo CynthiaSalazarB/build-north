@@ -264,8 +264,8 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 ### 2026-10-21 · The app's design is round 8, Open Box
 - **Decision:** the app uses round 8, Open Box (`docs/design/08-open-box/`), picked by Leo on Oct 21. It
   replaces round 6, Out of the Cave, which #81 first put in the app, and round 7's recommendation, 7F. The
-  app opens in the Cobalt theme (blue and white), and its day and night modes follow the phone's setting.
-  Obsidian (black and white) stays in the tokens as the second theme. Per #14, Cynthia approves the
+  app opens in the Obsidian theme (black and white), and its day and night modes follow the phone's
+  setting. Cobalt (blue and white) stays in the tokens as the second theme. Per #14, Cynthia approves the
   direction on #72.
 - **Instead of:** keeping round 6's cave and bronze, or moving to 7F (round 6's colors on a test run).
 - **Why:** the user is now CS students who build with coding agents. Round 8 is drawn from what they

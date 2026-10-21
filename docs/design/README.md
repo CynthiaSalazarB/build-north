@@ -50,7 +50,7 @@ same numbers, and a level-5 CORS profile.
   editor (dark) and a paper (light) palette, Material 3 sizes, springs and the check states. The other round 7
   directions keep their colors inside the board.
 - [`08-open-box/open-box-tokens.ts`](08-open-box/open-box-tokens.ts): the app's theme. The same roles for round 8,
-  with the two themes (Cobalt, the default, and Obsidian) each in a day and a night palette, the box's geometry and
+  with the two themes (Obsidian, the default, and Cobalt) each in a day and a night palette, the box's geometry and
   corner states, Material 3 sizes and springs. The pair's drawings are in [`08-open-box/pair/`](08-open-box/pair/).
 
 ## Image credits and licenses
