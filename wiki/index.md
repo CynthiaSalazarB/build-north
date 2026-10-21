@@ -2,7 +2,7 @@
 title: Project Wiki Index
 type: index
 updated: 2026-10-20
-total_pages: 3
+total_pages: 4
 ---
 
 # Build North project wiki
@@ -40,3 +40,4 @@ page under a Sources heading, the way the SurrealDB prize page does.
 | Page | Summary | Updated |
 |------|---------|---------|
 | [Plan to win](synthesis/plan-to-win.md) | Where the project stands on Oct 20, the Expo prize playbook (EAS Build, Update, Hosting, Workflows), each judging criterion, the days to Oct 29, owners, the cut list and the decisions to take | 2026-10-20 |
+| [Expo prize plan](synthesis/expo-prize-plan.md) | Best Use of Expo in full: what Expo rewards, the EAS setup with config, every judge's path (APK, TestFlight, web), native feel, SDK 58 features, the evidence, owners and risks | 2026-10-20 |

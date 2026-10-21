@@ -80,8 +80,11 @@ The ten things that matter most, in order:
 
 ## 4. The Expo prize playbook
 
-What Expo asks for: *"build it with Expo's React Native tooling. Use the SDK, ship with Build or
-Update, whichever fits your project. The platform should be doing real work in your stack."*
+The full version, with the config, the judge's path, TestFlight and the evidence, is
+**[expo-prize-plan.md](expo-prize-plan.md)**. This section is the summary.
+
+What Expo asks for: an app built with its React Native tooling that uses the SDK and ships with EAS
+Build or EAS Update, so the platform does real work in the stack.
 
 Our story: **one TypeScript codebase ships Reality Check to iOS, Android and the web through Expo, and
 shares its contracts (the Zod schemas in `@build-north/agents`) with the API through the npm
@@ -89,8 +92,8 @@ workspace. EAS builds it, updates it over the air, hosts the web build and ships
 phone is where learning happens; the web build is the judges' front door.
 
 **What the docs changed (checked Oct 20).** Expo Go for SDK 58 isn't in the App Store or Google Play
-yet: Expo says it reaches the stores "within a few weeks" of the SDK 58 release, and until then SDK 58
-projects need a development build. Since May 2026, Expo Go also only opens projects that belong to your own Expo
+yet: Expo expects it in the stores a few weeks after the SDK 58 release, and until then SDK 58 projects
+need a development build. Since May 2026, Expo Go also only opens projects that belong to your own Expo
 account or organization. So no judge or tester will run our app through Expo Go: every phone runs an
 EAS build. That puts EAS Build on the critical path for anything on a phone, and it's exactly the
 "ship with Build" the prize asks for. Staying on SDK 58 is right: the next store Expo Go supports only
@@ -108,7 +111,7 @@ they're out.
 |---|---|---|---|---|---|
 | E1 | An EAS project under a team Expo organization, set up from `app/` (in a monorepo, `eas.json` lives there): `eas init` (adds `owner` and `extra.eas.projectId`), `ios.bundleIdentifier` and `android.package` in `app.json`, an `eas.json` with `development`, `preview` and `production` profiles, and the `EXPO_PUBLIC_*` values (the API URL and the Clerk publishable key, never the dev key) as EAS environment variables | Everything below needs it | Leo | 1 h | Oct 21 morning |
 | E2 | **EAS Build**: first an Android development build (an APK with `expo-dev-client`), so the team can run SDK 58 on Android phones; then a `preview` build (APK, internal distribution: anyone with the link can install it) with an install link and a QR code in the README and on Devpost. Start each build early: the free queue can take over an hour. About six of our 15 builds cover it (development, two previews, production, spares). #4's done-when says Expo Go; on SDK 58 that has to be the development build. iOS: see 4.4 | "Ship with Build", and the only way onto a phone | Leo | 1 to 2 h with the queue | Oct 21, again at the freeze |
-| E3 | **EAS Update** (`eas update:configure`): `preview` and `production` channels, with the fingerprint runtime version that SDK 58 uses by default. Every merged app change ships as an update, and an installed build picks it up after a relaunch or two. On tester night, fixes go out over the air: count them for the write-up | "Ship with Update", and the best story we'll have | Leo | 45 min | Oct 21 |
+| E3 | **EAS Update** (`npx expo install expo-updates`, then `eas update:configure`): `preview` and `production` channels, with the `fingerprint` runtime policy so an update only reaches builds with the same native code. Every merged app change ships as an update (`eas update --channel preview --environment preview`), and an installed build picks it up after a relaunch or two. On tester night, fixes go out over the air: count them for the write-up | "Ship with Update", and the best story we'll have | Leo | 45 min | Oct 21 |
 | E4 | **The web build on EAS Hosting** (`npx expo export --platform web`, then `eas deploy --prod` for `name.expo.app`) instead of a Render Static Site. Keep `"output": "static"` in `app.json`, since SDK 58 defaults to server output when it's unset. Only the production address goes in the API's `CORS_ORIGIN`: each preview deploy gets a new address. The free limits (100,000 requests a month) are plenty | All three platforms ship through Expo, EAS Workflows can deploy it, and #27 hasn't started, so switching costs nothing. The API stays on Render. Needs a `DECISIONS.md` line: EAS Hosting was Render's plan B | Leo | 30 min | Oct 21 or 22 |
 | E5 | **The app's identity**: the brand icon (with an Android adaptive icon), the splash and the name. The template's Expo and React logos and blue splash go. Check the splash on a release build | A judge sees the icon before anything else | Jonathan or Leo | 1 h | Oct 22 |
 | E6 | **"How we used Expo"** in the README and on Devpost: the links, screenshots of the EAS dashboard (builds, updates, workflow runs, hosting deploys) and every Expo module with the job it does | The judges need evidence, and this is where they look | Leo, Kyle | 1 h | Oct 25 |
@@ -123,22 +126,25 @@ they're out.
 | E10 | **Demo Day on a real phone** running the `preview` build, mirrored to the screen: an Android phone, unless someone has an Apple account (4.4). The web build is the backup, and demo mode (the session-1 replay, no network) the last resort | Cynthia | rehearsal |
 | E11 | **Ten seconds in the video**: change one line, run `eas update`, relaunch, and the phone has the change. Update doing real work, on camera | Kyle, Leo | 0.5 h |
 | E12 | **Expo's office hours** on Discord, Wednesdays at 12 PM Pacific (3 PM Eastern), and Oct 21 is a Wednesday. Ask what evidence of real use they want to see. Expo's partner team is also in the Transferred Learnings Discord | Leo or Cynthia | 30 min |
+| E13 | **What SDK 58 just shipped, where it fits**: the 0 to 8 guess as a native Expo UI control, Expo Observe for startup times and crashes per release, and an "Update ready: restart" banner with `useUpdates()` | Jonathan, Leo | 2 to 3 h |
 
 ### 4.3 Only if we're ahead
 
-- E13. `@expo/ui` native controls (SwiftUI and Jetpack Compose, with universal components on the web),
-  for example the 0 to 8 picker.
 - E14. Dark mode with round 6's dark palette (`"userInterfaceStyle": "automatic"`).
 - E15. An iOS simulator build (free, no Apple account needed) if one of us has a Mac, to show the iOS
   app at Demo Day.
+- E16. An Android home screen widget (`expo-widgets`, new in SDK 58): "Resume inflation: 3 of 4 parts"
+  and each part's stage, progress only.
 
-### 4.4 iOS without a paid Apple account
+### 4.4 iPhones: TestFlight
 
 - Expo Go is no iOS path for us: no SDK 58 in the stores yet, and it only opens our own projects.
-- Ask in Discord tonight whether anyone has an Apple Developer Program membership. With one, an iOS
-  `preview` build goes on the team's iPhones (ad hoc, registered devices), and the presenter can demo
-  on an iPhone.
-- Without one, iPhone users get the web build, a Mac can run the simulator build (E15), and Android
+- The way to put the native app on judges' iPhones is a **TestFlight public link**. It needs an Apple
+  Developer Program membership (USD 99 a year; one of us enrolls as an individual, about a day to
+  confirm), then Apple's Beta App Review of the first build (Apple's general figure: half in 24 hours,
+  90% in 48). So the decision is tonight's (section 10). The steps, the reviewer login and what Apple
+  checks are in [expo-prize-plan.md](expo-prize-plan.md), Pillar 2.
+- Without it, iPhone users get the web build, a Mac can run the simulator build (E15), and Android
   gets the APK.
 
 ### 4.5 What not to do
@@ -233,8 +239,11 @@ they're out.
   networkless token check and the origin check. #75 picked the hosted sign-in because it works in Expo
   Go; now that phones run a development build anyway, a sign-in screen in our own design (Clerk's
   email-code flow) or Clerk's native components (beta, `@clerk/expo-native-components`) would look
-  better and show more of Clerk, if there's time. Optional: delete my data also deletes the Clerk user
-  (needs `CLERK_SECRET_KEY` on Render).
+  better and show more of Clerk, if there's time. Delete my data (#43) should also delete the Clerk
+  account, with `user.delete()` in the app after `DELETE /me/data`: Apple's guidelines ask for in-app
+  account deletion, so TestFlight needs it too. Mind the development instance's limits: 100 users, and
+  100 emails a calendar month. Ask Clerk support to raise the email limit, and keep the `+clerk_test`
+  fallback ready (an address with `+clerk_test` signs in with the code `424242`, no email sent).
 - **SurrealDB Agent Memory:** don't chase it by default. We use plain tables, and their judges want
   facts that supersede old ones, answers traced to a source, and memory shared by several agents.
   Agent Memory also needs access turned on for the Studio profile. Leo checks in ten minutes whether
@@ -251,8 +260,9 @@ Proposed owners; Cynthia confirms. Times are rough.
 - Leo: on #64, put `CLERK_JWT_KEY` in `.env.example` in place of `CLERK_SECRET_KEY`, as Cynthia asked,
   and push. Then Cynthia merges #64 and #73; the second one needs a small merge in `app.ts` and
   `server.ts`.
-- Everyone, in Discord: does anyone have an Apple Developer account? Who goes to Toronto on Oct 29?
-  Jonathan and Kyle: where your issues stand.
+- Everyone, in Discord: does anyone have an Apple Developer account, and if not, who enrolls tonight
+  for TestFlight (section 10, decision 8)? Who goes to Toronto on Oct 29? Jonathan and Kyle: where your
+  issues stand.
 - Cynthia: the decisions in section 10.
 
 ### Oct 21: the walking skeleton, and EAS
@@ -327,7 +337,7 @@ Proposed owners; Cynthia confirms. Times are rough.
 ## 9. The cut list, in order
 
 1. #42, the mastery screen (the demo uses the seeded profile).
-2. E13 to E15 (`@expo/ui`, dark mode, the iOS simulator build).
+2. E14 to E16 (dark mode, the iOS simulator build, the Android widget).
 3. SurrealDB Agent Memory.
 4. Round 6's photo-heavy screens (keep the colors, the font, the icon and the result blocks).
 5. Extra welcome steps.
@@ -348,6 +358,8 @@ Each one becomes a `DECISIONS.md` line once it's taken.
 6. Render Starter until Oct 30 (about $7). Each participant can claim $50 of Render credit through the
    form on the Devpost resources page.
 7. Whether to try Agent Memory (default: no).
+8. An Apple Developer Program membership for TestFlight (USD 99 a year), so judges' iPhones get the
+   native app. Tonight, since Apple takes about a day to confirm and then reviews the first build.
 
 ## 11. Risks
 
@@ -363,6 +375,7 @@ Each one becomes a `DECISIONS.md` line once it's taken.
 | The first native build fails: so far the app has only run on the web and in Node tests | Build on Oct 21, not Oct 24. It's also the first test of Clerk's Native API, secure storage and Zod on the phone's JavaScript engine |
 | The free build queue is slow (over 90 minutes at peak) | Start builds in the morning, ship JavaScript fixes as updates, and never leave the freeze build to the last hour |
 | A spent budget shows as "Too many requests" in the app | A clearer message for a `rate_limited` error that isn't retryable |
+| Clerk's development instance runs out of its 100 emails a month, so judges can't get a code | Ask Clerk support to raise the limit; the `+clerk_test` fallback in Devpost's testing notes |
 | More design rounds | No new rounds once the brand is picked |
 
 ## 12. Submission checklist
@@ -419,5 +432,7 @@ Sources:
 - Expo: [SDK 58 changelog](https://expo.dev/changelog/sdk-58) (Expo Go timing, office hours), [Expo Go loading changes, May 2026](https://expo.dev/changelog/expo-go-loading-changes-may-2026), [pricing](https://expo.dev/pricing)
 - EAS: [internal distribution](https://docs.expo.dev/build/internal-distribution/), [APKs](https://docs.expo.dev/build-reference/apk/), [simulator builds](https://docs.expo.dev/build-reference/simulators/), [EAS Update](https://docs.expo.dev/eas-update/getting-started/), [runtime versions](https://docs.expo.dev/eas-update/runtime-versions/), [EAS Hosting](https://docs.expo.dev/eas/hosting/get-started/), [Workflows syntax](https://docs.expo.dev/eas/workflows/syntax/), [pre-packaged jobs](https://docs.expo.dev/eas/workflows/pre-packaged-jobs/), [building from GitHub](https://docs.expo.dev/build/building-from-github/), [monorepos](https://docs.expo.dev/guides/monorepos/)
 - Expo Router [modals and form sheets](https://docs.expo.dev/router/advanced/modals)
+- Apple's TestFlight rules, Clerk's test logins and limits, and what Expo rewards: the sources in
+  [expo-prize-plan.md](expo-prize-plan.md)
 - Clerk [Expo quickstart](https://clerk.com/docs/expo/getting-started/quickstart)
 - SurrealDB [Agent Memory hosted quickstart](https://surrealdb.com/docs/agent-memory/quickstarts/hosted)
