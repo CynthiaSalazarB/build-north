@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { createContext, useContext, type ReactNode } from "react";
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
   Pressable,
   StyleSheet,
   Text,
@@ -14,7 +15,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import { SafeAreaView, type Edge } from "react-native-safe-area-context";
+import { SafeAreaView, useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
 import { stageOf } from "../session/present.ts";
 import { maxContentWidth, palette, radius, serif, size, space, stageColor, type, type Colors, type Tone } from "../theme.ts";
 import { Icon, Laurel, type IconName } from "./icons.tsx";
@@ -40,6 +41,18 @@ export function Screen({ tone = "day", edges = ["top", "bottom"], children }: { 
         <View style={styles.column}>{children}</View>
       </SafeAreaView>
     </ToneScope>
+  );
+}
+
+/** Keeps a screen's bottom input above the keyboard, inside a Screen. The app draws edge to edge (SDK 54
+ * and later), so Android no longer shrinks the window for the keyboard. React Native measures this view
+ * from its parent, the column below the status bar, so the top inset is the offset. */
+export function KeyboardSafe({ children }: { children: ReactNode }) {
+  const { top } = useSafeAreaInsets();
+  return (
+    <KeyboardAvoidingView style={styles.flex} behavior="padding" keyboardVerticalOffset={top}>
+      {children}
+    </KeyboardAvoidingView>
   );
 }
 
@@ -197,6 +210,7 @@ export function PointDots({ points, max = 2 }: { points: number; max?: number })
 
 const styles = StyleSheet.create({
   safe: { flex: 1 },
+  flex: { flex: 1 },
   column: { flex: 1, width: "100%", maxWidth: maxContentWidth, alignSelf: "center" },
   button: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.s },
   primary: { height: size.button, borderRadius: radius.button, paddingHorizontal: space.xl, alignSelf: "stretch" },

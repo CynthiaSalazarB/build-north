@@ -5,7 +5,7 @@
 import type { Turn } from "@build-north/agents";
 import { Redirect, useRouter } from "expo-router";
 import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, View, type ScrollViewInstance } from "react-native";
+import { Modal, Pressable, ScrollView, StyleSheet, View, type ScrollViewInstance } from "react-native";
 import { Composer } from "../components/composer.tsx";
 import { GuessScreen } from "../components/guess.tsx";
 import { MapCard } from "../components/map-card.tsx";
@@ -13,7 +13,7 @@ import { AppMessage, Failure, LearnerMessage, Thinking, useSlow } from "../compo
 import { ResultScreen } from "../components/result.tsx";
 import { SessionBar } from "../components/session-bar.tsx";
 import { WholeMapScreen } from "../components/whole-map.tsx";
-import { Body, Button, Screen, StageChip, Ui } from "../components/ui.tsx";
+import { Body, Button, KeyboardSafe, Screen, StageChip, Ui } from "../components/ui.tsx";
 import { helpLabelOf, partNotesOf, sinceLastQuestion, waitingLineOf } from "../session/present.ts";
 import { useSession } from "../session/session-context.tsx";
 import type { SessionState } from "../session/transcript.ts";
@@ -73,7 +73,7 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   return (
     <Screen tone="day">
       <SessionBar turn={turn} onClose={onClose} onMap={() => setMapOpen(true)} />
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardSafe>
         <ScrollView
           ref={scroll}
           style={styles.flex}
@@ -116,7 +116,7 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
           )}
         </ScrollView>
         <Composer turn={turn} pending={state.pending !== null} helpLabel={helpLabelOf(sinceLastQuestion(state.entries))} onSend={send} />
-      </KeyboardAvoidingView>
+      </KeyboardSafe>
       <MapSheet turn={turn} open={mapOpen} onClose={() => setMapOpen(false)} />
     </Screen>
   );

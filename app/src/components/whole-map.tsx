@@ -4,7 +4,7 @@
 // the whole-map evaluator. A self-test (the testers' pre-test and post-test) runs here from the start.
 import { MOVE_LABEL, MOVE_ORDER, type Item, type Mentefacto, type MoveId, type Turn } from "@build-north/agents";
 import { useRef, useState } from "react";
-import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance, type StyleProp, type ViewStyle } from "react-native";
+import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance, type StyleProp, type ViewStyle } from "react-native";
 import { filledOf, hintPartOf, itemsOf, partMeaningOf, waitingLineOf, wholeMapHelpLabelOf, withPart } from "../session/present.ts";
 import type { LearnerInput } from "../session/session-context.tsx";
 import type { Entry, SessionState } from "../session/transcript.ts";
@@ -12,7 +12,7 @@ import { palette, radius, size, space, type } from "../theme.ts";
 import { SendButton } from "./composer.tsx";
 import { Icon } from "./icons.tsx";
 import { AppMessage, Failure, LearnerMessage, Thinking, useSlow } from "./messages.tsx";
-import { Body, Button, CircleButton, Footnote, Screen, StageChip, Title, Ui, useColors } from "./ui.tsx";
+import { Body, Button, CircleButton, Footnote, KeyboardSafe, Screen, StageChip, Title, Ui, useColors } from "./ui.tsx";
 
 /** Rows a list part can hold in the editor. */
 const MAX_ITEMS = 6;
@@ -65,7 +65,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
         <Button compact label="Submit" busy={submitting} disabled={pending || filled === 0} hint="Send your map to be scored. The session ends." onPress={() => setConfirming(true)} />
       </View>
 
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardSafe>
         <ScrollView
           ref={scroll}
           style={styles.flex}
@@ -119,7 +119,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
           </View>
         </ScrollView>
         <AskBar concept={concept} pending={pending} asking={state.pending !== null && "question" in state.pending} onAsk={(question) => ask({ question })} />
-      </KeyboardAvoidingView>
+      </KeyboardSafe>
 
       {editing && (
         <PartEditor
@@ -259,7 +259,7 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
 
   return (
     <Modal visible transparent animationType="slide" onRequestClose={done}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
+      <KeyboardAvoidingView style={styles.flex} behavior="padding">
         <Pressable style={styles.scrim} onPress={done} accessibilityRole="button" accessibilityLabel="Save and close" />
         <View style={[styles.sheet, { backgroundColor: c.surface }]}>
           <View style={[styles.grabber, { backgroundColor: c.placeholder }]} />
