@@ -233,7 +233,6 @@ function AskBar({ concept, pending, asking, onAsk }: { concept: string; pending:
         placeholder={`Ask anything about ${concept}`}
         placeholderTextColor={c.placeholder}
         multiline
-        numberOfLines={1}
         maxLength={500}
         editable={!pending}
         accessibilityLabel="Your question for the fact desk"
@@ -377,17 +376,18 @@ const styles = StyleSheet.create({
   deskHead: { flexDirection: "row", alignItems: "center", gap: space.m },
   deskTitle: { flex: 1, gap: space.xs },
   askBar: { flexDirection: "row", alignItems: "flex-end", gap: space.s, paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m },
+  // the same field as the answer bar's (composer.tsx): it grows, and on Android a custom line height or
+  // centering makes a multiline field show only its last line
   field: {
     ...type.ui,
-    lineHeight: 20,
     flex: 1,
     minHeight: size.button,
     maxHeight: 128,
     paddingHorizontal: space.margin,
-    paddingVertical: space.l,
+    paddingVertical: space.m,
     borderRadius: radius.button,
     borderWidth: StyleSheet.hairlineWidth,
-    textAlignVertical: "center",
+    textAlignVertical: "top",
   },
   scrim: { flex: 1, backgroundColor: palette.day.scrim },
   sheet: {
