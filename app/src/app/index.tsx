@@ -1,5 +1,6 @@
 // The start screen (round 6, daylight): what the app does, a session to resume, and a new map: an idea,
 // and optionally the learner's own notes (pasted text only, up to 8,000 characters: decision 12).
+import type { Metadata } from "expo-router/server";
 import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
 import { useRouter } from "expo-router";
@@ -8,6 +9,7 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 import { KeyUnit } from "../components/icons.tsx";
 import { Failure } from "../components/messages.tsx";
 import { Body, BrandTitle, Button, Footnote, Screen, Ui, useColors } from "../components/ui.tsx";
+import { UpdateNotice } from "../components/update-notice.tsx";
 import { keysOf } from "../session/present.ts";
 import { clerkKey } from "../session/config.ts";
 import { useSession } from "../session/session-context.tsx";
@@ -17,6 +19,15 @@ const MAX_CONCEPT = 100;
 const MAX_NOTES = 8000;
 /** What coding agents put in student projects (the Oct 21 plan, section 2), to pick in one tap. */
 const CONCEPTS = ["JWT", "hashing", "database index", "cache", "REST API", "rate limiting", "environment variable", "CORS"] as const;
+
+/** The web page's title and description, in the static HTML, so a shared link previews well. */
+export function generateMetadata(): Metadata {
+  return {
+    title: "Reality Check: can you explain the code your AI wrote?",
+    description: "Map a concept from your project with an AI tutor that asks questions and never gives the answer, then see how close your guess was.",
+    openGraph: { title: "Reality Check: can you explain the code your AI wrote?", description: "Map a concept from your project with an AI tutor that asks questions and never gives the answer, then see how close your guess was." },
+  };
+}
 
 export default function StartScreen() {
   const router = useRouter();
@@ -46,6 +57,7 @@ export default function StartScreen() {
     <Screen tone="day">
       <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <UpdateNotice />
           <View style={styles.intro}>
             <BrandTitle />
             <Body>Can you explain the code your AI wrote? Pick a concept from your project, guess your score, then build its map yourself.</Body>

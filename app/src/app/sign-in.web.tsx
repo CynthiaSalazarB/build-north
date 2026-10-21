@@ -1,5 +1,6 @@
 // Sign-in on the web build (#22): Clerk's prebuilt SignIn in the brand's colors and fonts, under round 6's
 // first launch line. The methods come from the Clerk dashboard. Android uses sign-in.tsx.
+import type { Metadata } from "expo-router/server";
 import { SignIn } from "@clerk/expo/web";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { Glow } from "../components/art.tsx";
@@ -23,6 +24,15 @@ const appearance = {
     borderRadius: `${radius.control / 2}px`,
   },
 } as const;
+
+/** The web page's title and description, in the static HTML, so a shared link previews well. */
+export function generateMetadata(): Metadata {
+  return {
+    title: "Reality Check: can you explain the code your AI wrote?",
+    description: "Map a concept from your project with an AI tutor that asks questions and never gives the answer, then see how close your guess was.",
+    openGraph: { title: "Reality Check: can you explain the code your AI wrote?", description: "Map a concept from your project with an AI tutor that asks questions and never gives the answer, then see how close your guess was." },
+  };
+}
 
 export default function SignInScreen() {
   return (
