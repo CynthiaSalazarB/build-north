@@ -39,6 +39,15 @@ export async function runAgent<I, O>(agent: AgentDefinition<I, O>, rawInput: I):
   };
 }
 
+/** The entries whose concept was named after `--` (`npm run eval:fact-desk -- JWT CORS`), or every entry when
+ * none was. A name with no entry stops the run, so a typo can't pass on zero cases. */
+export function pick<T extends { concept: string }>(entries: T[]): T[] {
+  const names = process.argv.slice(2).map((name) => name.toLowerCase());
+  const unknown = names.filter((name) => !entries.some((e) => e.concept.toLowerCase() === name));
+  if (unknown.length) throw new Error(`no cases for ${unknown.join(", ")}; this script has ${entries.map((e) => e.concept).join(", ")}`);
+  return names.length ? entries.filter((e) => names.includes(e.concept.toLowerCase())) : entries;
+}
+
 /** Rough cost on Opus 5.5 ($4 in / $20 out per million tokens), for the summary line. */
 export function dollars(runs: { inputTokens: number; outputTokens: number }[]): string {
   const cost = runs.reduce((sum, r) => sum + (r.inputTokens * 4 + r.outputTokens * 20) / 1_000_000, 0);
