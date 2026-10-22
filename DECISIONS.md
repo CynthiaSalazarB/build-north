@@ -165,6 +165,7 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   cancels that out. None of the four appears in the prompts' test cases, so tuning can't inflate them.
 - **Pattern / trade-off:** counterbalancing. With 5 testers the halves are 3 and 2, so it reduces the
   bias, it doesn't remove it; the slide still calls this a pilot.
+- **Superseded** on 2026-10-21 by "Tester concepts are programming concepts".
 
 ### 2026-10-19 · Build-week scope cuts
 - **Decision:** sign-in by Clerk email code only; learner material is pasted text only (up to 8,000
@@ -260,6 +261,71 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** prefetching (two independent calls in parallel). The next question is
   written from the map as it was before the answer being judged, so it can't build on what the
   learner just found. If the early call fails, the part asks normally when it starts.
+
+### 2026-10-21 · The first group is programming students who build with AI agents
+- **Decision:** the first users, testers and pitch are programming students who build with AI coding
+  agents and can't explain the concepts behind what they built. The app stays open to any concept and
+  any learner: the focus is who we build the demo for, test with, sell to and talk about first.
+  Refines "Education first, but a thinking tool" (2026-10-18).
+- **Instead of:** education for any learner, high school students first, or critical thinking for
+  everyone.
+- **Why:** I have this problem myself, people in this group already describe it (a reel about it drew
+  about 200 comments, many with workarounds of their own), and I can reach testers in it this week.
+- **Pattern / trade-off:** a beachhead market: win one small group first, then reach the next groups
+  with the same product, one at a time (Moore, *Crossing the Chasm*). The persona is still defined by
+  how the learner thinks, not by age. The demo and tester
+  concepts change to programming ones, and high school becomes the next group, backed by research
+  (Bastani et al., 2025) instead of our own testers. Evidence in
+  [`wiki/context/evidence.md`](wiki/context/evidence.md).
+
+### 2026-10-21 · The pitch opens with the pain, not the method
+- **Decision:** the pitch, the README and Devpost open with the moment the learner feels (the agent's
+  code works, and someone asks them to explain it), then the method, then the vision last. Tagline:
+  "Build with AI. Understand the concepts yourself." It says "the concepts" because the app teaches
+  the concepts a project uses, not the project itself, which is a later layer. Closing line: "The help
+  fades. The understanding stays."
+- **Instead of:** opening with "We teach questioning, and concepts are the anchor", or with critical
+  thinking for every area of life; and closing with "Good technology should make you need it less",
+  which read as if losing users were the goal.
+- **Why:** office-hours feedback (Expo, Oct 20): getting people to be more curious is too broad, and
+  nobody wakes up wanting it. People act on a pain they feel; the method explains why the fix works.
+- **Pattern / trade-off:** positioning on the pain: say who it's for, the pain they feel, what the
+  product is, and what it does that the alternatives don't (Moore's positioning template). The philosophy moves to the end of the pitch and to the
+  [product thesis](wiki/synthesis/product-thesis.md), so anyone who only hears the opening hears a
+  narrower product.
+
+### 2026-10-21 · The demo runs on API, then CORS
+- **Decision:** session 1 of the demo, the live learning session with a hint and the prediction gap,
+  maps "API". The level-5 part runs on the CORS profile (#78). JWT stays in the list of tech concepts
+  next to API, for the evals and for learners to try. Replaces inflation.
+- **Instead of:** inflation, which doesn't match the first group; JWT for session 1, as the plan to win
+  (#76) proposed; or dependency injection, too hard to follow in a four-minute demo.
+- **Why:** almost every programmer, and every judge, has heard of an API, so the audience can follow
+  the map as it's built: a kind of software interface; it isn't a library, a server or a database; it
+  needs defined requests and responses and hides how the other side works; its types include web,
+  library and operating system APIs. It keeps the moment where a related answer fails the "is a kind
+  of" test ("a server": an API runs on one, but it isn't a kind of server). CORS is a concept coding
+  agents add to student projects and few students can explain, which suits level 5.
+- **Pattern / trade-off:** the demo matches the first group and starts from its most familiar concept.
+  Session 1 has to be written on API and rehearsed live with Claude (it was planned on JWT, so no
+  extra work), and "api" joins the measured concepts in `agents/test/prompts.test.ts`, next to the
+  list in #83.
+
+### 2026-10-21 · Tester concepts are programming concepts
+- **Decision:** the pre-test and post-test use "database index" and "rate limiting"; training uses
+  "hashing" and "environment variable". Half the testers take database index first and rate limiting
+  last, the other half the reverse. The testers come from the first group: classmates who code with
+  AI. From the plan to win (#76). Supersedes "Tester concepts and order" (2026-10-19).
+- **Instead of:** ecosystem, contract, metaphor and habit, from outside the first group; or general
+  programming concepts such as cache, compiler, loop and array, which coding agents don't add to a
+  project (loop and array are too basic to show a gap).
+- **Why:** testers should be measured on concepts coding agents put in their projects and they often
+  can't explain. The earlier rules stay: none of the four appears in the prompts (the `MEASURED` check
+  in `agents/test/prompts.test.ts`), none is a demo concept, and swapping the order cancels out a
+  concept that happens to be harder.
+- **Pattern / trade-off:** counterbalancing, as before. Hashing and database index are related (a hash
+  index is one type of database index), so training on hashing could help whoever takes database index
+  last; worth checking when reading the results. With 5 testers it is still a pilot.
 
 ### 2026-10-21 · The app's design is round 8, Open Box
 - **Decision:** the app uses round 8, Open Box (`docs/design/08-open-box/`), picked by Leo on Oct 21. It
