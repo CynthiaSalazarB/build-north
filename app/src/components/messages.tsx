@@ -34,7 +34,7 @@ function WithCode({ text, style }: { text: string; style: object }) {
         piece.code ? (
           // non-breaking spaces pad the chip, so a line never breaks inside it before the code
           <Text key={i} style={[type.inlineCode, styles.code, { backgroundColor: c.codeFill, borderColor: c.fieldEdge, color: c.onSurface }]}>
-            {` ${piece.text.replaceAll(" ", " ")} `}
+            {`\u00a0${piece.text.replaceAll(" ", "\u00a0")}\u00a0`}
           </Text>
         ) : (
           piece.text
