@@ -8,13 +8,14 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { css, useReducedMotion } from "react-native-reanimated";
 import { tick } from "../haptics.ts";
+import { POINTS_RULE } from "../session/present.ts";
 import type { Failure as CallFailure } from "../session/transcript.ts";
 import { motion, space, type } from "../theme.ts";
 import { PointSquare } from "./concept-map.tsx";
 import { Failure } from "./messages.tsx";
 import { SessionBar } from "./session-bar.tsx";
 import { SiteHeader } from "./site-header.tsx";
-import { Body, Button, easeOut, IconButton, Rise, Screen, Title, useColors, useMode, useWide } from "./ui.tsx";
+import { Body, Button, easeOut, IconButton, Label, Rise, Screen, Title, useColors, useMode, useWide } from "./ui.tsx";
 
 const MAX = 8;
 
@@ -114,6 +115,10 @@ function Guess({ guess, went, pending, onStep, footer }: GuessProps) {
             </View>
           ))}
         </View>
+        {/* how a part earns its points, the same line the result shows (decided Oct 22) */}
+        <Label dim style={styles.rule}>
+          {POINTS_RULE}
+        </Label>
         {footer && <View style={styles.footer}>{footer}</View>}
       </Rise>
     </ScrollView>
@@ -129,6 +134,7 @@ const styles = StyleSheet.create({
   digits: { fontVariant: ["lining-nums", "tabular-nums"] },
   points: { flexDirection: "row", justifyContent: "center", gap: space.l, marginTop: 26 },
   pair: { flexDirection: "row", gap: 6 },
+  rule: { marginTop: space.l, textAlign: "center" },
   footer: { marginTop: space.xxl, alignItems: "center" },
   centered: { alignSelf: "center" },
   foot: { paddingHorizontal: space.margin, paddingBottom: space.margin },
