@@ -2,20 +2,25 @@
 // label and two points. A part is a question in the dark ("?") until the learner's own words light it; the part
 // being asked glows amber, with the firefly's dashed line running to it; a revealed answer stays dim and dashed
 // (0 points); and the part that just lit gets an amber ring and six short sparks for 700 ms, like a bulb clicking
-// on. The layout follows the text, so long answers and narrow phones never overlap.
+// on. The layout follows the text, so long answers and narrow phones never overlap. The rows rise in once when the
+// map appears, a part eases into its new state, and the firefly's line draws itself to each new part.
 import type { MoveId } from "@build-north/agents";
-import { useEffect, useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type LayoutRectangle } from "react-native";
-import Animated, { useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
-import Svg, { Circle, Line } from "react-native-svg";
+import { useEffect, useId, useState, type ReactNode } from "react";
+import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type LayoutRectangle, type PressableStateCallbackType } from "react-native";
+import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import Svg, { Circle, Defs, Line, Mask, Path } from "react-native-svg";
 import type { PartView, Pip } from "../session/present.ts";
 import { firefly, map, motion, palette, parts as PARTS, radius, size, space, type } from "../theme.ts";
 import { decorative, PartIcon } from "./icons.tsx";
-import { useColors, useMode } from "./ui.tsx";
+import type { Box, Point } from "./trace.ts";
+import { useColors, useEntrance, useMode } from "./ui.tsx";
 
-type Box = { x: number; y: number; w: number; h: number };
 const boxOf = (l: LayoutRectangle, dx = 0, dy = 0): Box => ({ x: l.x + dx, y: l.y + dy, w: l.width, h: l.height });
 const sameLayout = (a: LayoutRectangle | undefined, b: LayoutRectangle) => !!a && a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
+
+/** Where everything sits, in the map's own coordinates: what the website layout needs to run the firefly's line in
+ * from beside the map. */
+export type MapGeometry = { parts: Record<MoveId, Box>; width: number; height: number };
 
 type Props = {
   concept: string;
@@ -25,13 +30,15 @@ type Props = {
   pulse?: string | number;
   /** Where the firefly sits, in the map's coordinates (below it): the dashed line runs from there to the part
    * being asked. */
-  leaderFrom?: { x: number; y: number } | null;
+  leaderFrom?: Point | null;
   /** Level 5 and the self-test: a tap on a part opens it for editing. */
   onPartPress?: (move: MoveId) => void;
+  onGeometry?: (geometry: MapGeometry) => void;
 };
 
-export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom = null, onPartPress }: Props) {
+export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom = null, onPartPress, onGeometry }: Props) {
   const c = useColors();
+  const entrance = useEntrance();
   const [width, setWidth] = useState(0);
   const [layouts, setLayouts] = useState<Record<string, LayoutRectangle>>({});
   const [ring, setRing] = useState<MoveId | null>(null);
@@ -56,6 +63,12 @@ export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom =
   const word = at.middle && at.column && at.word && boxOf(at.word, at.column.x, at.middle.y + at.column.y);
   const ready = top && left && right && bottom && word;
 
+  // the website layout draws the firefly's line itself, from beside the map, so it hears where the parts are
+  const geometry = ready ? JSON.stringify({ parts: { supraordinate: top, isoordinate: left, exclusion: right, infraordinate: bottom }, width, height: bottom.y + bottom.h }) : null;
+  useEffect(() => {
+    if (geometry && onGeometry) onGeometry(JSON.parse(geometry) as MapGeometry);
+  }, [geometry, onGeometry]);
+
   const view = (move: MoveId) => parts.find((p) => p.move === move)!;
   const lineOf = (state: PartView["state"]) =>
     state === "asked"
@@ -74,7 +87,7 @@ export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom =
       { move: "infraordinate" as const, x1: width / 2, y1: bottom.y, x2: width / 2, y2: word.y + word.h + 2 },
     ];
     // the firefly's line meets the asked part just below it; the bigger group's, at its lower-left corner
-    const anchors: Record<MoveId, { x: number; y: number }> = {
+    const anchors: Record<MoveId, Point> = {
       supraordinate: { x: top.x + 18, y: top.y + top.h + 6 },
       isoordinate: { x: left.x + left.w / 2, y: left.y + left.h + 6 },
       exclusion: { x: right.x + right.w / 2, y: right.y + right.h + 6 },
@@ -85,11 +98,14 @@ export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom =
     const height = Math.max(bottom.y + bottom.h, leaderFrom ? leaderFrom.y + 4 : 0);
     drawing = (
       <Svg width={width} height={height} style={styles.drawing} {...decorative}>
-        {to && leaderFrom && (
-          <>
-            <Line x1={leaderFrom.x} y1={leaderFrom.y} x2={to.x} y2={to.y} stroke={c.questionOutline} strokeWidth={firefly.leader.width} strokeDasharray={firefly.leader.dash} />
-            <Circle cx={to.x} cy={to.y} r={firefly.leader.dot} fill={c.questionOutline} />
-          </>
+        {to && leaderFrom && asked && (
+          <Trace
+            d={`M${leaderFrom.x} ${leaderFrom.y} L${to.x} ${to.y}`}
+            length={Math.hypot(to.x - leaderFrom.x, to.y - leaderFrom.y)}
+            end={to}
+            drawKey={asked.move}
+            color={c.questionOutline}
+          />
         )}
         {joins.map(({ move, x1, y1, x2, y2 }) => {
           const look = lineOf(view(move).state);
@@ -110,13 +126,17 @@ export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom =
 
   return (
     <View style={styles.map} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
-      {drawing}
+      {drawing && (
+        <Animated.View style={[StyleSheet.absoluteFill, entrance(3, "fade")]} pointerEvents="none">
+          {drawing}
+        </Animated.View>
+      )}
       {width > 0 && (
         <>
-          <View style={styles.row} onLayout={keep("top")}>
+          <Animated.View style={[styles.row, entrance(0)]} onLayout={keep("top")}>
             {part("supraordinate", middle)}
-          </View>
-          <View style={[styles.row, styles.middle]} onLayout={keep("middle")}>
+          </Animated.View>
+          <Animated.View style={[styles.row, styles.middle, entrance(1)]} onLayout={keep("middle")}>
             {part("isoordinate", side)}
             <View style={styles.column} onLayout={keep("column")}>
               <Text style={[type.concept, styles.concept, { color: c.onSurface }, sizeFor(concept)]} onLayout={keep("word")} numberOfLines={3} accessibilityRole="header">
@@ -124,10 +144,10 @@ export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom =
               </Text>
             </View>
             {part("exclusion", side)}
-          </View>
-          <View style={[styles.row, styles.bottom]} onLayout={keep("bottom")}>
+          </Animated.View>
+          <Animated.View style={[styles.row, styles.bottom, entrance(2)]} onLayout={keep("bottom")}>
             {part("infraordinate", middle)}
-          </View>
+          </Animated.View>
         </>
       )}
     </View>
@@ -140,6 +160,46 @@ function sizeFor(concept: string) {
   const fontSize = n <= 5 ? 30 : n <= 8 ? 22 : 17;
   return { fontSize, lineHeight: Math.round(fontSize * 1.2) };
 }
+
+const AnimatedPath = Animated.createAnimatedComponent(Path);
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
+
+/** A part or a point eases into its new state (amber when asked, warm light when lit) instead of snapping. */
+const ease = { transitionProperty: ["backgroundColor", "borderColor"], transitionDuration: motion.lightStep / 2 };
+
+/** The firefly's dashed amber line, drawn in from the firefly over 320 ms whenever it points somewhere new
+ * (`drawKey`), with the dot at the part. With Reduce Motion it is simply there. Goes inside an <Svg>. */
+export function Trace({ d, length, end, drawKey, color }: { d: string; length: number; end: Point; drawKey: string; color: string }) {
+  const still = useReducedMotion();
+  const id = useId().replace(/[^A-Za-z0-9_-]/g, "");
+  const drawn = useSharedValue(still ? 1 : 0);
+  const run = length + firefly.leader.dot * 2;
+  useEffect(() => {
+    if (still) {
+      drawn.value = 1;
+      return;
+    }
+    drawn.value = 0;
+    drawn.value = withTiming(1, { duration: motion.leader, easing: Easing.out(Easing.cubic) });
+  }, [drawKey, still, drawn]);
+  // the mask is a solid copy of the path, uncovered from the firefly's end
+  const reveal = useAnimatedProps(() => ({ strokeDashoffset: run * (1 - drawn.value) }));
+  const dot = useAnimatedProps(() => ({ opacity: drawn.value > 0.9 ? 1 : 0 }));
+  return (
+    <>
+      <Defs>
+        <Mask id={`${id}-draw`} maskUnits="userSpaceOnUse" x="0" y="0" width="100%" height="100%">
+          <AnimatedPath d={d} fill="none" stroke="white" strokeWidth={6} strokeDasharray={`${run} ${run}`} animatedProps={reveal} />
+        </Mask>
+      </Defs>
+      <Path d={d} fill="none" stroke={color} strokeWidth={firefly.leader.width} strokeDasharray={firefly.leader.dash} mask={`url(#${id}-draw)`} />
+      <AnimatedCircle cx={end.x} cy={end.y} r={firefly.leader.dot} fill={color} animatedProps={dot} />
+    </>
+  );
+}
+
+/** A Pressable's state; react-native-web adds hover to the press. */
+type Interaction = PressableStateCallbackType & { hovered?: boolean };
 
 type PartProps = { view: PartView; width: number; ring: boolean; onPress?: () => void; onLayout: (e: LayoutChangeEvent) => void };
 
@@ -156,11 +216,12 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
   const glow = ring ? "0 0 0 3px rgba(242, 184, 75, 0.6), 0 0 22px rgba(255, 236, 205, 0.45)" : look.glow;
   const points = view.pips ? `${view.pips.filter((p) => p === "earned").length} of 2 points` : "not scored yet";
   const said = view.text ?? (view.state === "asked" ? "being asked now" : "not answered yet");
-  const box = (
-    <View
+  const box = (hovered = false) => (
+    <Animated.View
       style={[
         styles.part,
-        { width, borderWidth: look.borderWidth, borderStyle: look.borderStyle as "solid" | "dashed", borderColor: look.borderColor, backgroundColor: look.backgroundColor },
+        ease,
+        { width, borderWidth: look.borderWidth, borderStyle: look.borderStyle as "solid" | "dashed", borderColor: hovered ? c.onSurfaceVariant : look.borderColor, backgroundColor: look.backgroundColor },
         glow ? { boxShadow: glow } : null,
       ]}
       onLayout={onPress ? undefined : onLayout}
@@ -188,9 +249,9 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
         <Text style={[type.partUnknown, { color: look.ink }]}>?</Text>
       )}
       {ring && <Sparks />}
-    </View>
+    </Animated.View>
   );
-  if (!onPress) return box;
+  if (!onPress) return box();
   return (
     <Pressable
       onPress={onPress}
@@ -200,7 +261,7 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
       accessibilityHint="Opens this part, so you can fill it in"
       style={({ pressed }) => pressed && styles.pressed}
     >
-      {box}
+      {({ hovered }: Interaction) => box(!!hovered)}
     </Pressable>
   );
 }
@@ -221,9 +282,10 @@ export function PointSquare({ pip, dark, big = false }: { pip: Pip; dark: boolea
   }[pip];
   const side = big ? 14 : size.point;
   return (
-    <View
+    <Animated.View
       style={[
         { width: side, height: side, borderRadius: big ? 3 : radius.point },
+        ease,
         look as object,
         pip === "claimed" && !dark ? { boxShadow: "0 0 10px rgba(242, 184, 75, 0.6)" } : null,
       ]}

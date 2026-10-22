@@ -5,7 +5,7 @@ import * as Updates from "expo-updates";
 import { useEffect } from "react";
 import { Platform, StyleSheet, View } from "react-native";
 import { space } from "../theme.ts";
-import { Body, Button, Card, Label } from "./ui.tsx";
+import { Body, Button, Card } from "./ui.tsx";
 
 export function UpdateNotice() {
   if (Platform.OS === "web" || !Updates.isEnabled) return null;
@@ -22,7 +22,6 @@ function Pending() {
   return (
     <Card style={styles.card}>
       <View style={styles.text} accessibilityRole="alert">
-        <Label dim>update ready</Label>
         <Body>A new version is ready.</Body>
       </View>
       <Button kind="secondary" label="Restart" onPress={() => void Updates.reloadAsync()} />
@@ -32,5 +31,5 @@ function Pending() {
 
 const styles = StyleSheet.create({
   card: { flexDirection: "row", alignItems: "center", gap: space.m },
-  text: { flex: 1, gap: space.xs },
+  text: { flex: 1 },
 });

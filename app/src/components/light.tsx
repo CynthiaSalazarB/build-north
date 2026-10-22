@@ -6,7 +6,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
 import Svg, { Defs, LinearGradient, Path, RadialGradient, Rect, Stop } from "react-native-svg";
-import { base, grid, lightFor, motion, palette, type LightStage } from "../theme.ts";
+import { base, grid, lightFor, lightReachMax, motion, palette, type LightStage } from "../theme.ts";
 import { decorative } from "./icons.tsx";
 
 /** An SVG stop takes its color and its opacity apart: "rgba(255, 210, 150, 0.5)" or "#fff4e0". */
@@ -29,8 +29,8 @@ function Stage({ stage, width, height }: { stage: LightStage; width: number; hei
   // ids are global on the web, and the screen under this one draws a light too
   const id = useId().replace(/[^A-Za-z0-9_-]/g, "");
   const colors = palette[stage.mode];
-  // CSS's "circle at 100% 0%" reaches the farthest corner, so the stops are percent of the diagonal
-  const reach = Math.hypot(width, height);
+  // CSS's "circle at 100% 0%" reaches the farthest corner, so the stops are percent of the diagonal (capped)
+  const reach = Math.min(Math.hypot(width, height), lightReachMax);
   return (
     <Svg width={width} height={height} style={StyleSheet.absoluteFill} {...decorative}>
       <Defs>

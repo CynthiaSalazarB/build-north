@@ -4,7 +4,7 @@
 // own screen (guess.tsx), and so does the whole map at level 5 (whole-map.tsx).
 import type { Turn } from "@build-north/agents";
 import { useState } from "react";
-import { StyleSheet, View } from "react-native";
+import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import type { LearnerInput } from "../session/session-context.tsx";
 import { space } from "../theme.ts";
 import { Button, PromptField, SendButton } from "./ui.tsx";
@@ -19,22 +19,25 @@ type Props = {
   /** A revealed answer waits to be read: the button opens the next question. */
   onNext: (() => void) | null;
   onSend: (input: LearnerInput) => void;
+  /** In the website layout's column, which sets its own edges. */
+  flush?: boolean;
 };
 
-export function Composer({ turn, pending, placeholder, moreHelp, onNext, onSend }: Props) {
+export function Composer({ turn, pending, placeholder, moreHelp, onNext, onSend, flush = false }: Props) {
+  const bar = [styles.bar, flush && styles.flush];
   if (onNext) {
     return (
-      <View style={styles.bar}>
+      <View style={bar}>
         <Button label="Next question" onPress={onNext} />
       </View>
     );
   }
   switch (turn.expects) {
     case "text":
-      return <AnswerBar pending={pending} placeholder={placeholder} moreHelp={turn.phase === "move" && moreHelp} onSend={onSend} />;
+      return <AnswerBar pending={pending} placeholder={placeholder} moreHelp={turn.phase === "move" && moreHelp} onSend={onSend} style={bar} />;
     case "continue":
       return (
-        <View style={styles.bar}>
+        <View style={bar}>
           <Button label="Continue" busy={pending} onPress={() => onSend({ action: "continue" })} />
         </View>
       );
@@ -46,7 +49,9 @@ export function Composer({ turn, pending, placeholder, moreHelp, onNext, onSend 
   }
 }
 
-function AnswerBar({ pending, placeholder, moreHelp, onSend }: { pending: boolean; placeholder: string; moreHelp: boolean; onSend: (input: LearnerInput) => void }) {
+type AnswerProps = { pending: boolean; placeholder: string; moreHelp: boolean; onSend: (input: LearnerInput) => void; style: StyleProp<ViewStyle> };
+
+function AnswerBar({ pending, placeholder, moreHelp, onSend, style }: AnswerProps) {
   const [text, setText] = useState("");
   const answer = text.trim();
   const submit = () => {
@@ -55,7 +60,7 @@ function AnswerBar({ pending, placeholder, moreHelp, onSend }: { pending: boolea
     setText("");
   };
   return (
-    <View style={[styles.bar, styles.row]}>
+    <View style={[style, styles.row]}>
       {moreHelp && <Button kind="hint" label="More help" disabled={pending} onPress={() => onSend({ action: "help" })} />}
       <PromptField
         value={text}
@@ -75,6 +80,7 @@ function AnswerBar({ pending, placeholder, moreHelp, onSend }: { pending: boolea
 
 const styles = StyleSheet.create({
   bar: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.margin },
+  flush: { paddingHorizontal: 0, paddingBottom: space.xl },
   row: { flexDirection: "row", alignItems: "flex-end", gap: space.s },
   flex: { flex: 1 },
   dim: { opacity: 0.55 },
