@@ -260,6 +260,8 @@ export const QuestionType = z.enum([
   "breaking_case",
   "what_it_needs",
   "asks_for_structure",
+  /** Not a question: an answer for a part of the map, typed in the chat instead of on the map. Not counted. */
+  "states_an_answer",
   "other",
 ]);
 export type QuestionType = z.infer<typeof QuestionType>;
@@ -288,6 +290,9 @@ export type FactDeskOutput = z.infer<typeof FactDeskOutput>;
 
 /** Decision 17: the only text a redirect may say. */
 export const FACT_DESK_REDIRECT = "That part is yours to decide. If you're stuck, tap Help (it costs a point).";
+/** The only text for an answer typed in the chat (`states_an_answer`, Oct 22): where answers go, never whether
+ *  this one is right. */
+export const FACT_DESK_ANSWER_REDIRECT = "That looks like an answer. Answers go on the map, and the whole map is scored when you submit. If you need a fact, ask me.";
 
 export const HintGiverInput = AgentContext.extend({
   step: HintStep,
