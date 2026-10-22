@@ -3,7 +3,7 @@ title: "SurrealDB sponsor prize: Agent Memory"
 type: context
 related: ["[[hosting-setup]]"]
 created: 2026-10-19
-updated: 2026-10-19
+updated: 2026-10-22
 ---
 
 As relayed by Leo on Oct 19 from SurrealDB's Build North participant pack. Not re-checked against the sources.
@@ -27,9 +27,20 @@ As relayed by Leo on Oct 19 from SurrealDB's Build North participant pack. Not r
   `POST $SPECTRON_URL/api/v1/$SPECTRON_CONTEXT_ID/facts`, read with `/query`.
 - SDKs: `@surrealdb/memory` (JS/TS) and `surrealdb[memory]` (Python).
 
-## Possible fit with Lumente (Leo's read, not a team decision)
+## Lumente and this prize
 
-**Decided Oct 22: we don't enter this prize** (`DECISIONS.md`). The fits below stay as ideas for later.
+**Decided Oct 22: we enter this prize** (reversing the same morning's skip; `DECISIONS.md`, #99). The
+design in five lines:
+
+- Facts are built in code from templates (`infer: "triples"`): a learner's level on each part, the latest
+  prediction gap, the Helps that cost the most. Never the learner's words.
+- One scope per learner, a salted hash of the Clerk id; Delete my data purges it.
+- The hint giver and the coach read up to 8 facts from earlier sessions and cite the ids they use;
+  `verifyCites` keeps only the ones they were given.
+- A level-up supersedes the old fact and keeps the history.
+- The learner sees it in the Memory sheet. Levels still come from code, so memory never changes a score.
+
+Leo's first read of the fit, from Oct 19:
 
 - Several agents already share one learner (questioner, evaluator, hint giver, fact desk, coach).
 - Mastery per move changes over time: each level-up is a new fact that replaces the old one, with the

@@ -151,11 +151,20 @@ demo's first concept is JWT, the kind of token Clerk issues, which gives the wri
 development instance allows 100 users and 100 emails a month, so we ask Clerk support to raise the
 email cap and keep the `+clerk_test` fallback in the testing notes.
 
+### SurrealDB Agent Memory
+
+We enter it after all (reversed Oct 22: the contract in #99, the agents side in #107 and #115, the build
+in #112). Memory keeps each learner's level on each part, their latest prediction gap and the Helps that
+cost them most, as facts code writes from templates, never the learner's words. The hint giver and the
+coach read up to 8 facts from earlier sessions and cite the ones they use, and the learner sees them in a
+Memory sheet. That answers the judges' three asks: a level-up replaces the old fact and keeps its
+history, a message traces back to the facts it cites, and more than one agent's work goes in and comes
+out. Levels still come from code, so memory never changes a score. Proposed (not decided yet): if it
+isn't working by Oct 24 noon, the flag stays off and the write-up doesn't claim it.
+
 ### What we skip
 
-We skip SurrealDB Agent Memory (decided Oct 22). We use plain tables, and its judges want facts that replace old ones,
-answers traced to a source and memory shared across agents. We'd only try it if the core is green on
-Oct 23. We skip Eon too: Era simulates companies for testing enterprise agents, which doesn't fit us.
+We skip Eon: Era simulates companies for testing enterprise agents, which doesn't fit us.
 
 ## 5. The changes for the new user
 
@@ -271,8 +280,7 @@ in the core loop (the guess, the fading help, the gap, level 5). Cut in this ord
 
 Not this week: TestFlight and any iOS build (no Apple account, decided Oct 21), glass and App Intents
 (iPhone only), a home screen that lists past maps (the API has no sessions list, and Resume covers the
-map in progress), a light theme (Lumente is dark by design: each screen lights up as points are proved), the Android widget, SurrealDB Agent Memory, and reading concepts from the
-student's repo.
+map in progress), a light theme (Lumente is dark by design: each screen lights up as points are proved), the Android widget, and reading concepts from the student's repo.
 
 Never cut: Claude live, the tech concepts in the demo, level 5, the result screen with the gap,
 sign-in, delete my data, EAS Build and Update, the web build, the five testers, the video.
@@ -294,8 +302,8 @@ Taken, each in `DECISIONS.md` or noted here:
    organization later from its settings.
 7. Toronto on Oct 29: Cynthia and Kyle go; Leo and Jonathan confirm.
 8. Sign-in by email code and Google (Cynthia, Oct 22).
-9. We don't enter the SurrealDB Agent Memory prize (Cynthia, Oct 22). Learner-habit memory is parked
-   in the Vision and Scope doc for later.
+9. We enter the SurrealDB Agent Memory prize after all (Cynthia, Oct 22, reversing the same morning's
+   skip): facts built in code, never the learner's words (#99, #107, #112; section 4).
 
 Still open:
 
@@ -332,7 +340,7 @@ Devpost's list, and what goes in each part:
 - The team: four names.
 - Disclosures: the `create-expo-app` default template on SDK 58, the AI tools we used (Claude and
   Claude Code), and that nothing was built before Build Week, once the team confirms it.
-- Categories: Best Overall, Best Use of Expo, Best Use of Clerk.
+- Categories: Best Overall, Best Use of Expo, Best Use of Clerk, Best Use of SurrealDB Agent Memory.
 - Rules we keep: everyone is 18 or older and lives in Canada, the repo, the video and the page go
   public, and every image has permission (the design boards use CC0, public-domain and Unsplash
   images).
@@ -384,7 +392,7 @@ the Devpost resources page and the plan limits from each service's pricing page,
 | Clerk's free development instance: 100 users and 100 emails a month | Our sign-in runs on it. We ask Clerk support to raise the email cap, and `+clerk_test` is the fallback |
 | Clerk: 50% off Clerk Pro ([link](https://clerk.com/startups?tag=Georgian)), the Clerk CLI and a Clerk skill for coding agents | We skip Pro this week, and use the CLI or the skill if the Clerk setup gets stuck |
 | SurrealDB Cloud's free plan: 512 MB, 0.25 vCPU, 1 GB of storage | Our database, with `dev` and `prod` |
-| SurrealDB: $50 in Agent Memory credit for each of us (code `BUILDNORTH50` in Studio) | Only if we try Agent Memory (section 4) |
+| SurrealDB: $50 in Agent Memory credit for each of us (code `BUILDNORTH50` in Studio) | For the memory build (#112, section 4) |
 | Era by Eon: free early access for every team | We skip it (section 4) |
 | Google Cloud for Startups: up to $350,000 in credits over two years for eligible startups | Not needed this week. An option to apply for if we keep going after Demo Day |
 | Help: the Transferred Learnings Discord with the Expo, Clerk and Eon teams, Expo's office hours (Wednesdays, 3 PM ET), SurrealDB's team in the Build North Discord, a Georgian office hour (#11), and the mentors | We ask Expo what evidence they want on Oct 21, and take the new pitch to a mentor or the Georgian office hour before Oct 24 |
