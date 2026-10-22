@@ -95,12 +95,17 @@ export const provedOf = (turn: Turn, entries: readonly Entry[]) => pointsOf(turn
 export const itemsOf = (map: Mentefacto, move: MoveId): Item[] =>
   move === "supraordinate" ? (map.supraordinate ? [map.supraordinate] : []) : map[move];
 
+/** A part's items in the learner's words, with "not" in front of what it isn't. */
+export function partItemsOf(map: Mentefacto, move: MoveId): string[] {
+  const values = itemsOf(map, move).map((item) => item.value.trim()).filter(Boolean);
+  if (move !== "exclusion") return values;
+  return values.map((value) => (/^not\b/i.test(value) ? value : `not ${value}`));
+}
+
 /** What a filled part shows: the learner's words, with "not" in front of what it isn't. */
 export function partTextOf(map: Mentefacto, move: MoveId): string | null {
-  const values = itemsOf(map, move).map((item) => item.value.trim()).filter(Boolean);
-  if (values.length === 0) return null;
-  if (move !== "exclusion") return values.join(", ");
-  return values.map((value) => (/^not\b/i.test(value) ? value : `not ${value}`)).join(", ");
+  const values = partItemsOf(map, move);
+  return values.length ? values.join(", ") : null;
 }
 
 export type PartState = "unasked" | "asked" | "lit" | "revealed";
@@ -175,6 +180,23 @@ export function resultPartsOf(result: Result, map: Mentefacto): PartView[] {
     const text = partTextOf(map, move);
     return { move, state: points === 0 && text ? "revealed" : text ? "lit" : "unasked", text, pips };
   });
+}
+
+/** One part of the result, the way the worked example reads: its points as the map shows them, the learner's
+ * words and the whole-map evaluator's note. */
+export type ResultStep = { move: MoveId; pips: [Pip, Pip]; points: number; items: string[]; note: string | null };
+
+/** The result part by part. Empty when there are no notes: a session at levels 1 to 4 already went through it
+ * part by part in the conversation. */
+export function resultStepsOf(result: Result, map: Mentefacto, notes: Partial<Record<MoveId, string>>): ResultStep[] {
+  if (!Object.values(notes).some(Boolean)) return [];
+  return resultPartsOf(result, map).map((part) => ({
+    move: part.move,
+    pips: part.pips ?? ["open", "open"],
+    points: result.rubric.find((r) => r.move === part.move)?.points ?? 0,
+    items: partItemsOf(map, part.move),
+    note: notes[part.move] || null,
+  }));
 }
 
 /** The part that just lit: the latest Turn finished a part (it names the move) without revealing it. */

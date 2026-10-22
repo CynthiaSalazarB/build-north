@@ -28,6 +28,7 @@ import {
   pointsOf,
   provedOf,
   resultPartsOf,
+  resultStepsOf,
   revealHoldOf,
   secretLineOf,
   waitingLineOf,
@@ -80,6 +81,19 @@ test("the result marks the points the guess claimed but didn't prove, first unpr
   );
   assert.equal(parts[1]!.text, "not dictatorship");
   assert.equal(parts[2]!.text, "free elections, rights, more than one party");
+});
+
+test("with the whole-map evaluator's notes, the result reads part by part: points as on the map, the words, the note", () => {
+  const last = turnAt(14);
+  const notes = { supraordinate: "Close group.", isoordinate: "One is missing." };
+  const steps = resultStepsOf(last.result!, last.mentefacto, notes);
+  assert.deepEqual(steps.map((s) => s.move), ["supraordinate", "exclusion", "isoordinate", "infraordinate"]);
+  assert.deepEqual(steps.map((s) => s.pips.join("+")), resultPartsOf(last.result!, last.mentefacto).map((p) => p.pips!.join("+")));
+  assert.deepEqual(steps[1]!.items, ["not dictatorship"]);
+  assert.deepEqual(steps[2]!.items, ["free elections", "rights", "more than one party"]);
+  assert.deepEqual([steps[0]!.note, steps[1]!.note], ["Close group.", null]);
+  // levels 1 to 4 have no notes: the conversation already went part by part
+  assert.deepEqual(resultStepsOf(last.result!, last.mentefacto, {}), []);
 });
 
 test("a revealed answer holds the next question until the learner has read it", () => {
