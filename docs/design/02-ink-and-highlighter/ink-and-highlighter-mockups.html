@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Ink &amp; Highlighter Mockups</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Atkinson+Hyperlegible:wght@400;700&family=Kalam:wght@400;700&display=swap">
+<style>
+/* Layout: a neutral board; phone frames sit side by side at true logical size (never scaled) and wrap on narrow screens. */
+:root {
+  --b-bg: #ecedf0; --b-ink: #22252e; --b-soft: #5d6270; --b-line: #d3d6de; --b-card: #f7f7f9;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --hand: "Kalam", "Comic Sans MS", cursive;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --b-bg: #191b21; --b-ink: #e9eaee; --b-soft: #a3a7b3; --b-line: #33363f; --b-card: #22252c; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --b-bg: #191b21; --b-ink: #e9eaee; --b-soft: #a3a7b3; --b-line: #33363f; --b-card: #22252c; color-scheme: dark; }
+*, *::before, *::after { box-sizing: border-box; }
+body { background: var(--b-bg); color: var(--b-ink); font: 400 16px/1.5 var(--body); }
+.board {
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 64px; display: grid; gap: 40px; max-width: 1800px; margin: 0 auto;
+}
+.board > header { display: grid; gap: 10px; max-width: 70ch; }
+.board h1 { font: 700 clamp(1.8rem, 4vw, 2.6rem)/1.1 var(--display); margin: 0; text-wrap: balance; }
+.board h2 { font: 700 1.4rem/1.2 var(--display); margin: 0; }
+.board p { margin: 0; }
+.eyebrow { font: 700 12px/1.2 var(--body); letter-spacing: .12em; text-transform: uppercase; color: var(--b-soft); }
+.soft { color: var(--b-soft); }
+.row { display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+.opt { display: grid; gap: 14px; width: 393px; max-width: 100%; }
+.opt.compact { width: 375px; }
+.opt figcaption { display: grid; gap: 4px; font-size: 15px; }
+.opt figcaption b { font-family: var(--display); font-size: 17px; }
+.opt figure { margin: 0; display: grid; gap: 14px; }
+.id { display: inline-block; font: 700 12px/1 var(--body); letter-spacing: .06em; padding: 5px 8px; border-radius: 6px; background: var(--b-ink); color: var(--b-bg); margin-right: 6px; }
+
+/* ---------- device frame ---------- */
+.mf { --w: 393px; --h: 852px; --top: 59px; --bottom: 34px; }
+.mf.compact { --w: 375px; --h: 667px; --top: 20px; --bottom: 0px; }
+.frame { width: var(--w); height: var(--h); flex: none; border-radius: 48px; overflow: hidden; position: relative; box-shadow: 0 0 0 10px #15161a, 0 18px 40px rgba(0,0,0,.25); }
+.mf.compact .frame { border-radius: 24px; }
+.frame-wrap { max-width: 100%; overflow-x: auto; padding: 12px; margin: -12px; }
+
+/* ---------- Ink & Highlighter tokens (values from theme/tokens.ts) ---------- */
+.scr {
+  --surface: #f8f9f6; --onSurface: #1f2e6e; --surfaceContainer: #ffffff; --onSurfaceVariant: #4a5580;
+  --primary: #1f2e6e; --onPrimary: #f8f9f6; --primaryContainer: #e3e7f4; --onPrimaryContainer: #1f2e6e;
+  --hintContainer: #ffd84d; --onHintContainer: #1f2e6e;
+  --gap: #b8471f; --gapContainer: #fbe3d8; --onGapContainer: #7a2c10;
+  --alone: #23744f; --aloneContainer: #dcf0e5; --onAloneContainer: #17503a;
+  --outline: #7a84a8; --outlineVariant: #d5d9e5; --grid: rgba(31, 46, 110, .06);
+  width: 100%; height: 100%; position: relative; display: flex; flex-direction: column;
+  background-color: var(--surface); color: var(--onSurface); font: 400 16px/1.45 var(--body);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  padding: var(--top) 24px var(--bottom);
+}
+.scr.dark {
+  --surface: #121625; --onSurface: #e6e9f5; --surfaceContainer: #1b2033; --onSurfaceVariant: #a8afcb;
+  --primary: #afbcff; --onPrimary: #121625; --primaryContainer: #2a3566; --onPrimaryContainer: #e0e5ff;
+  --hintContainer: #f2cb3d; --onHintContainer: #1b1f2e;
+  --gap: #ff9a73; --gapContainer: #4a2416; --onGapContainer: #ffd9ca;
+  --alone: #6fd3a6; --aloneContainer: #183b2d; --onAloneContainer: #c9f0dd;
+  --outline: #7e86a6; --outlineVariant: #343b55; --grid: rgba(175, 188, 255, .05);
+}
+.indicator { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: var(--onSurface); opacity: .35; }
+.island { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 124px; height: 36px; border-radius: 20px; background: #000; }
+.mf.compact .island { display: none; }
+
+/* three sizes per screen: label 12 · body 16 · display (26, or 88 for a hero number) */
+.lbl { font: 700 12px/1.3 var(--body); letter-spacing: .1em; text-transform: uppercase; color: var(--onSurfaceVariant); }
+.disp { font: 700 26px/1.15 var(--display); letter-spacing: -.01em; margin: 0; text-wrap: balance; }
+.hero { font: 700 88px/0.9 var(--display); letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
+.b { font-weight: 700; }
+.v { color: var(--onSurfaceVariant); }
+.hand { font-family: var(--hand); }
+.scr p { margin: 0; }
+
+.nav { height: 44px; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.icon-btn { width: 44px; height: 44px; margin-left: -10px; border: 0; background: none; color: var(--onSurface); display: grid; place-items: center; border-radius: 22px; cursor: pointer; }
+.icon-btn svg { width: 22px; height: 22px; }
+.body { flex: 1; display: flex; flex-direction: column; gap: 24px; min-height: 0; }
+.foot { display: grid; gap: 12px; padding-block: 16px 12px; }
+button { font: inherit; }
+.btn { height: 56px; border-radius: 16px; border: 0; font: 700 16px/1 var(--body); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: transform .12s ease-out; }
+.btn:active, .icon-btn:active, .step:active { transform: scale(.96); }
+.btn.primary { background: var(--primary); color: var(--onPrimary); box-shadow: 0 3px 0 rgba(10, 16, 48, .35); }
+.btn.ghost { background: transparent; color: var(--primary); height: 44px; }
+.btn.help { background: var(--hintContainer); color: var(--onHintContainer); height: 48px; padding: 0 16px; border-radius: 14px; }
+:focus-visible { outline: 3px solid var(--primary); outline-offset: 2px; }
+
+/* progress */
+.progress { display: flex; gap: 6px; flex: 1; max-width: 180px; }
+.progress span { flex: 1; height: 6px; border-radius: 3px; background: var(--outlineVariant); }
+.progress span.on { background: var(--primary); }
+
+/* map */
+.map { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: ". top ." "left mid right" ". bot ."; gap: 16px 10px; align-items: center; }
+.map svg.lines { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+.map svg.lines line { stroke: var(--primary); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.slot { position: relative; background: var(--surfaceContainer); border: 1.5px solid var(--primary); border-radius: 12px; padding: 10px 12px; display: grid; gap: 2px; min-width: 0; }
+.slot .lbl { font-size: 12px; }
+.slot.empty { border-style: dashed; border-color: var(--outline); background: var(--surface); color: var(--onSurfaceVariant); }
+.slot.concept { background: var(--primary); color: var(--onPrimary); border-color: var(--primary); text-align: center; font-weight: 700; padding: 12px 14px; }
+.slot.top { grid-area: top; } .slot.left { grid-area: left; } .slot.mid { grid-area: mid; } .slot.right { grid-area: right; } .slot.bot { grid-area: bot; }
+.slot .pts { font: 700 12px/1 var(--body); letter-spacing: .06em; color: var(--onSurfaceVariant); }
+.note-line { color: var(--onSurfaceVariant); }
+
+/* predict stepper */
+.stepper { display: flex; align-items: center; justify-content: center; gap: 28px; }
+.step { width: 56px; height: 56px; border-radius: 28px; border: 1.5px solid var(--primary); background: var(--surfaceContainer); color: var(--primary); display: grid; place-items: center; cursor: pointer; transition: transform .12s ease-out; }
+.step svg { width: 22px; height: 22px; }
+.ticks { display: flex; justify-content: center; gap: 8px; }
+.ticks i { width: 14px; height: 14px; border-radius: 7px; border: 2px solid var(--primary); }
+.ticks i.on { background: var(--primary); }
+
+/* chat */
+.thread { display: grid; gap: 16px; }
+.me { justify-self: end; max-width: 75%; background: var(--primaryContainer); color: var(--onPrimaryContainer); padding: 10px 14px; border-radius: 18px 18px 6px 18px; }
+.hint { background: var(--hintContainer); color: var(--onHintContainer); border-radius: 4px 16px 16px 16px; padding: 16px; display: grid; gap: 8px; transform: rotate(-.4deg); }
+.hint .lbl { color: var(--onHintContainer); }
+.pips { display: flex; gap: 6px; align-items: center; }
+.pips i { width: 10px; height: 10px; border-radius: 5px; border: 2px solid var(--onHintContainer); }
+.pips i.on { background: var(--onHintContainer); }
+.field { display: flex; gap: 10px; align-items: center; }
+.input { flex: 1; min-width: 0; height: 52px; border-radius: 14px; border: 1.5px solid var(--outline); background: var(--surfaceContainer); color: var(--onSurfaceVariant); display: flex; align-items: center; padding: 0 16px; }
+.send { width: 52px; height: 52px; border-radius: 14px; border: 0; background: var(--primary); color: var(--onPrimary); display: grid; place-items: center; flex: none; cursor: pointer; }
+.send svg { width: 22px; height: 22px; }
+.fact { display: grid; gap: 4px; }
+.fact .tag { justify-self: start; font: 700 12px/1 var(--body); letter-spacing: .08em; text-transform: uppercase; color: var(--onSurfaceVariant); }
+
+/* result */
+.bars { display: grid; gap: 10px; }
+.bar { display: grid; grid-template-columns: 76px 1fr 24px; gap: 10px; align-items: center; }
+.track { height: 16px; border-radius: 8px; background: var(--outlineVariant); position: relative; }
+.fill { position: absolute; inset: 0 auto 0 0; border-radius: 8px; }
+.fill.felt { border: 2px dashed var(--primary); background: transparent; }
+.fill.did { background: var(--primary); }
+.rubric { display: grid; border-top: 1px solid var(--outlineVariant); }
+.rubric div { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; min-height: 44px; border-bottom: 1px solid var(--outlineVariant); }
+.dots { display: flex; gap: 4px; }
+.dots i { width: 12px; height: 12px; border-radius: 6px; border: 2px solid var(--primary); }
+.dots i.on { background: var(--primary); }
+.alone { font: 700 12px/1 var(--body); letter-spacing: .06em; text-transform: uppercase; background: var(--aloneContainer); color: var(--onAloneContainer); padding: 6px 8px; border-radius: 999px; }
+.gapcol { color: var(--gap); }
+.coach { display: grid; gap: 4px; }
+
+.checks { background: var(--b-card); border: 1px solid var(--b-line); border-radius: 14px; padding: 20px; display: grid; gap: 14px; max-width: 900px; }
+.checks table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.checks th, .checks td { text-align: left; padding: 8px 10px 8px 0; border-bottom: 1px solid var(--b-line); vertical-align: top; }
+.checks td.n { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.table-wrap { overflow-x: auto; }
+@media (prefers-reduced-motion: reduce) { .btn, .step, .icon-btn { transition: none; } .hint { transform: none; } }
+</style>
+</head>
+<body>
+<main class="board">
+  <header>
+    <p class="eyebrow">Reality Check · Ink &amp; Highlighter · round 1</p>
+    <h1>Four screens of the democracy and inflation sessions</h1>
+    <p class="soft">True phone size (393 × 852 pt), real copy from our fixtures and contracts. Blue ink is the learner's thinking, yellow is always help, clay is the overconfidence gap, and green appears only when a part was done with no help.</p>
+  </header>
+
+  <section class="row" aria-label="Screens">
+
+    <figure class="opt" id="1A">
+      <div class="frame-wrap"><div class="mf"><div class="frame"><div class="scr">
+        <div class="island"></div>
+        <div class="nav">
+          <button class="icon-btn" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          <span class="lbl">New map</span>
+          <span style="width:34px"></span>
+        </div>
+        <div class="body">
+          <div class="map" aria-label="The four parts of the map, 2 points each">
+            <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="50" y1="50" x2="50" y2="8"/><line x1="50" y1="50" x2="8" y2="50"/><line x1="50" y1="50" x2="92" y2="50"/><line x1="50" y1="50" x2="50" y2="92"/></svg>
+            <div class="slot empty top"><span class="pts">2 PTS</span>Bigger group</div>
+            <div class="slot empty left"><span class="pts">2 PTS</span>What it needs</div>
+            <div class="slot concept mid">democracy</div>
+            <div class="slot empty right"><span class="pts">2 PTS</span>What it isn't</div>
+            <div class="slot empty bot"><span class="pts">2 PTS</span>Its types</div>
+          </div>
+          <div style="display:grid;gap:6px">
+            <p class="v">You'll build the map of democracy in 4 parts, 2 points each.</p>
+            <p class="b">How many of the 8 points do you think you'll get?</p>
+          </div>
+          <div class="stepper">
+            <button class="step" aria-label="One point fewer"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12h14"/></svg></button>
+            <div style="display:grid;justify-items:center;gap:4px"><span class="hero" aria-live="polite">7</span><span class="lbl">of 8 points</span></div>
+            <button class="step" aria-label="One point more"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></button>
+          </div>
+          <div class="ticks" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i class="on"></i><i></i></div>
+        </div>
+        <div class="foot">
+          <button class="btn primary">Lock in my guess</button>
+          <p class="v" style="text-align:center">At the end you'll see how close you were.</p>
+        </div>
+        <div class="indicator"></div>
+      </div></div></div></div>
+      <figcaption><span><span class="id">1A</span><b>Predict</b></span><span class="soft">The empty map shows the task before the guess, so the 0 to 8 scale makes sense. The guess is one big number with large − and + buttons.</span></figcaption>
+    </figure>
+
+    <figure class="opt" id="1B">
+      <div class="frame-wrap"><div class="mf"><div class="frame"><div class="scr">
+        <div class="island"></div>
+        <div class="nav">
+          <button class="icon-btn" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          <div class="progress" aria-label="Part 1 of 4"><span class="on"></span><span></span><span></span><span></span></div>
+          <span class="lbl">1 of 4</span>
+        </div>
+        <div class="body">
+          <div style="display:grid;gap:8px">
+            <span class="lbl">Bigger group · guided</span>
+            <h2 class="disp">Democracy is one example of a bigger group. What group?</h2>
+          </div>
+          <div class="thread">
+            <p class="me">A law?</p>
+            <p>Not quite. A law is a rule, and democracy isn't a rule.</p>
+            <div class="hint" role="note">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span class="lbl">Nudge</span><span class="pips" aria-label="Hint 1 of 4"><i class="on"></i><i></i><i></i><i></i></span></div>
+              <p class="b">Think of monarchy and dictatorship. What are all three examples of?</p>
+              <p>A hint caps this part at 1 point.</p>
+            </div>
+          </div>
+        </div>
+        <div class="foot">
+          <div class="field"><div class="input">Type your answer</div><button class="send" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+        </div>
+        <div class="indicator"></div>
+      </div></div></div></div>
+      <figcaption><span><span class="id">1B</span><b>A move with a hint</b></span><span class="soft">The hint sits on highlighter yellow, slightly crooked like a sticky note. The four pips are the hint ladder (nudge, hint, partial, reveal), and the cost is said up front.</span></figcaption>
+    </figure>
+
+    <figure class="opt" id="1C">
+      <div class="frame-wrap"><div class="mf"><div class="frame"><div class="scr">
+        <div class="island"></div>
+        <div class="nav">
+          <button class="icon-btn" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+          <span class="lbl">Level 5 · you ask</span>
+          <span class="lbl">2 asked</span>
+        </div>
+        <div class="body" style="gap:20px">
+          <div style="display:grid;gap:4px">
+            <h2 class="disp">Inflation</h2>
+            <p class="v">Build the map. Ask me any facts you need.</p>
+          </div>
+          <div class="map">
+            <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="50" y1="50" x2="50" y2="8"/><line x1="50" y1="50" x2="8" y2="50"/><line x1="50" y1="50" x2="92" y2="50"/><line x1="50" y1="50" x2="50" y2="92"/></svg>
+            <div class="slot top"><span class="lbl">Bigger group</span>Economic change</div>
+            <div class="slot empty left"><span class="lbl">What it needs</span>+ Add</div>
+            <div class="slot concept mid">inflation</div>
+            <div class="slot right"><span class="lbl">What it isn't</span>One product getting pricier<span class="hand note-line">only one price</span></div>
+            <div class="slot bot"><span class="lbl">Its types</span>Hyperinflation</div>
+          </div>
+          <div class="thread" style="gap:10px">
+            <p class="me">Is one product getting more expensive inflation?</p>
+            <div class="fact"><span class="tag">Fact</span><p>Not by itself: that's one product. It counts as inflation when the overall price level goes up.</p></div>
+          </div>
+        </div>
+        <div class="foot" style="gap:10px">
+          <div class="field"><div class="input">Ask a fact</div><button class="send" aria-label="Ask"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+          <div style="display:flex;gap:10px"><button class="btn help">Help · costs 1 pt</button><button class="btn primary" style="flex:1">Submit map</button></div>
+        </div>
+        <div class="indicator"></div>
+      </div></div></div></div>
+      <figcaption><span><span class="id">1C</span><b>Level 5: the learner asks</b></span><span class="soft">Same map layout as the predict screen, now filled in by the learner. The fact desk answers in plain text marked Fact. Help keeps the highlighter color and states its price.</span></figcaption>
+    </figure>
+
+    <figure class="opt" id="1D">
+      <div class="frame-wrap"><div class="mf"><div class="frame"><div class="scr">
+        <div class="island"></div>
+        <div class="nav">
+          <span class="lbl">Democracy · result</span>
+          <button class="btn ghost" style="margin-right:-12px;padding:0 12px">Done</button>
+        </div>
+        <div class="body" style="gap:22px">
+          <div style="display:grid;gap:6px">
+            <span class="lbl">How sure you felt vs. how you did</span>
+            <div style="display:flex;align-items:flex-end;gap:12px"><span class="hero gapcol">+2</span><span class="hand gapcol" style="padding-bottom:8px;line-height:1.2">you felt surer<br>than you were</span></div>
+          </div>
+          <div class="bars">
+            <div class="bar"><span>Felt sure</span><span class="track"><span class="fill felt" style="width:87.5%"></span></span><span class="b">7</span></div>
+            <div class="bar"><span>Scored</span><span class="track"><span class="fill did" style="width:62.5%"></span></span><span class="b">5</span></div>
+          </div>
+          <div class="rubric" aria-label="Points per part">
+            <div><span>Bigger group</span><span></span><span class="dots" aria-label="1 of 2"><i class="on"></i><i></i></span></div>
+            <div><span>What it isn't</span><span class="alone">Alone</span><span class="dots" aria-label="2 of 2"><i class="on"></i><i class="on"></i></span></div>
+            <div><span>What it needs</span><span></span><span class="dots" aria-label="1 of 2"><i class="on"></i><i></i></span></div>
+            <div><span>Its types</span><span></span><span class="dots" aria-label="1 of 2"><i class="on"></i><i></i></span></div>
+          </div>
+          <p class="hand" style="font-size:16px">You found the bigger group and a real exclusion. 'What it needs' is next.</p>
+        </div>
+        <div class="foot" style="gap:4px">
+          <button class="btn primary">Practice "what it needs"</button>
+          <button class="btn ghost">See my mastery map</button>
+        </div>
+        <div class="indicator"></div>
+      </div></div></div></div>
+      <figcaption><span><span class="id">1D</span><b>Result and the calibration gap</b></span><span class="soft">The gap is the hero, as a number and in words, not only a color. Felt sure is a dashed outline and Scored is solid ink, so the bars work in grayscale. "Alone" marks the one part done with no hint.</span></figcaption>
+    </figure>
+  </section>
+
+  <section style="display:grid;gap:16px">
+    <h2>Stress tests</h2>
+    <div class="row">
+      <figure class="opt compact" id="1E">
+        <div class="frame-wrap"><div class="mf compact"><div class="frame"><div class="scr">
+          <div class="nav">
+            <button class="icon-btn" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
+            <div class="progress" aria-label="Part 1 of 4"><span class="on"></span><span></span><span></span><span></span></div>
+            <span class="lbl">1 of 4</span>
+          </div>
+          <div class="body" style="gap:16px">
+            <div style="display:grid;gap:6px">
+              <span class="lbl">Bigger group · guided</span>
+              <h2 class="disp">Democracy is one example of a bigger group. What group?</h2>
+            </div>
+            <div class="thread" style="gap:12px">
+              <p class="me">A law?</p>
+              <p>Not quite. A law is a rule, and democracy isn't a rule.</p>
+              <div class="hint" role="note">
+                <div style="display:flex;justify-content:space-between;align-items:center"><span class="lbl">Nudge</span><span class="pips" aria-label="Hint 1 of 4"><i class="on"></i><i></i><i></i><i></i></span></div>
+                <p class="b">Think of monarchy and dictatorship. What are all three examples of?</p>
+                <p>A hint caps this part at 1 point.</p>
+              </div>
+            </div>
+          </div>
+          <div class="foot">
+            <div class="field"><div class="input">Type your answer</div><button class="send" aria-label="Send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg></button></div>
+          </div>
+        </div></div></div></div>
+        <figcaption><span><span class="id">1E</span><b>1B on a small phone</b></span><span class="soft">375 × 667 pt, the iPhone SE size. The hint and the answer field still fit without scrolling.</span></figcaption>
+      </figure>
+
+      <figure class="opt" id="1F">
+        <div class="frame-wrap"><div class="mf"><div class="frame"><div class="scr dark">
+          <div class="island"></div>
+          <div class="nav">
+            <span class="lbl">Democracy · result</span>
+            <button class="btn ghost" style="margin-right:-12px;padding:0 12px">Done</button>
+          </div>
+          <div class="body" style="gap:22px">
+            <div style="display:grid;gap:6px">
+              <span class="lbl">How sure you felt vs. how you did</span>
+              <div style="display:flex;align-items:flex-end;gap:12px"><span class="hero gapcol">+2</span><span class="hand gapcol" style="padding-bottom:8px;line-height:1.2">you felt surer<br>than you were</span></div>
+            </div>
+            <div class="bars">
+              <div class="bar"><span>Felt sure</span><span class="track"><span class="fill felt" style="width:87.5%"></span></span><span class="b">7</span></div>
+              <div class="bar"><span>Scored</span><span class="track"><span class="fill did" style="width:62.5%"></span></span><span class="b">5</span></div>
+            </div>
+            <div class="rubric" aria-label="Points per part">
+              <div><span>Bigger group</span><span></span><span class="dots" aria-label="1 of 2"><i class="on"></i><i></i></span></div>
+              <div><span>What it isn't</span><span class="alone">Alone</span><span class="dots" aria-label="2 of 2"><i class="on"></i><i class="on"></i></span></div>
+              <div><span>What it needs</span><span></span><span class="dots" aria-label="1 of 2"><i class="on"></i><i></i></span></div>
+              <div><span>Its types</span><span></span><span class="dots" aria-label="1 of 2"><i class="on"></i><i></i></span></div>
+            </div>
+            <p class="hand" style="font-size:16px">You found the bigger group and a real exclusion. 'What it needs' is next.</p>
+          </div>
+          <div class="foot" style="gap:4px">
+            <button class="btn primary">Practice "what it needs"</button>
+            <button class="btn ghost">See my mastery map</button>
+          </div>
+          <div class="indicator"></div>
+        </div></div></div></div>
+        <figcaption><span><span class="id">1F</span><b>1D in dark mode</b></span><span class="soft">Night paper: the same roles with lighter ink. Every pair still passes AA.</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="checks" aria-labelledby="contrast">
+    <h2 id="contrast">Contrast check</h2>
+    <p class="soft">Measured with the WCAG 2 formula on the token set the screens use, in both themes. 22 measurements from the tactile checker plus 11 pairs the screens combine (22 more across both themes). Every text and border pair passes AA. The weakest is the dashed border of an empty map slot.</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Pair</th><th>Used for</th><th>Light</th><th>Dark</th><th>Needs</th></tr></thead>
+      <tbody>
+        <tr><td>Ink on paper</td><td>Questions, the learner's lines</td><td class="n">11.87:1</td><td class="n">9.82:1</td><td class="n">4.5</td></tr>
+        <tr><td>Ink on card</td><td>Body text on the map slots</td><td class="n">12.54:1</td><td class="n">13.33:1</td><td class="n">4.5</td></tr>
+        <tr><td>Soft ink on paper</td><td>Secondary text</td><td class="n">6.85:1</td><td class="n">8.28:1</td><td class="n">4.5</td></tr>
+        <tr><td>Hint ink on highlighter</td><td>Hint text, Help button</td><td class="n">9.07:1</td><td class="n">10.44:1</td><td class="n">4.5</td></tr>
+        <tr><td>Clay on paper</td><td>The +2 gap (large text)</td><td class="n">5.02:1</td><td class="n">8.67:1</td><td class="n">3</td></tr>
+        <tr><td>"Alone" tag</td><td>Moss ink on its container</td><td class="n">7.86:1</td><td class="n">9.98:1</td><td class="n">4.5</td></tr>
+        <tr><td>Outline on paper</td><td>Empty slot border, input border</td><td class="n">3.49:1</td><td class="n">5.01:1</td><td class="n">3</td></tr>
+      </tbody>
+    </table></div>
+    <p><b>One rule from the check:</b> text on the highlighter must use the hint's own ink. In dark mode, normal ink on yellow is 1.30:1, unreadable. In light mode it only works by accident.</p>
+    <p class="soft">The light grey divider lines (1.33:1) are decorative separators, which WCAG 1.4.11 doesn't cover. Nothing depends on them.</p>
+  </section>
+</main>
+</body>
+</html>

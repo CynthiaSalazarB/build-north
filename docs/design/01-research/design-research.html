@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Reality Check Moodboard</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Kalam:wght@400;700&display=swap">
+<style>
+/* Layout: one reading column on graph paper; directions as side-by-side panels that stack on phones; references as a screenshot grid. */
+:root {
+  --paper: #f8f9f6;
+  --grid: rgba(31, 46, 110, 0.07);
+  --ink: #1b2442;
+  --ink-soft: #545c78;
+  --line: rgba(27, 36, 66, 0.14);
+  --surface: #ffffff;
+  --accent: #26389a;
+  --mark: #ffd84d;
+  --display: "Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body: "Atkinson Hyperlegible", "Segoe UI", system-ui, sans-serif;
+  --hand: "Kalam", "Comic Sans MS", cursive;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #12151f; --grid: rgba(160, 175, 255, 0.06); --ink: #e8eaf3; --ink-soft: #a3a9c2;
+    --line: rgba(232, 234, 243, 0.14); --surface: #1a1e2b; --accent: #9aa8ff; --mark: #f5cf45;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #12151f; --grid: rgba(160, 175, 255, 0.06); --ink: #e8eaf3; --ink-soft: #a3a9c2;
+  --line: rgba(232, 234, 243, 0.14); --surface: #1a1e2b; --accent: #9aa8ff; --mark: #f5cf45;
+  color-scheme: dark;
+}
+body {
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--grid) 1px, transparent 1px), linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 24px 24px;
+  color: var(--ink);
+  font: 400 1.0625rem/1.6 var(--body);
+}
+.wrap {
+  max-width: 1080px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 48px 72px;
+  display: grid; gap: 64px;
+}
+h1, h2, h3 { font-family: var(--display); font-weight: 700; line-height: 1.1; text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(2.2rem, 6vw, 3.6rem); letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.5rem, 3.4vw, 2.1rem); letter-spacing: -0.01em; }
+h3 { font-size: 1.25rem; }
+p { margin: 0; max-width: 65ch; }
+a { color: var(--accent); text-underline-offset: 3px; }
+a:focus-visible, summary:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; border-radius: 4px; }
+.eyebrow { font: 700 0.75rem/1.2 var(--body); letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-soft); }
+.note { font-family: var(--hand); color: var(--accent); font-size: 1.15rem; line-height: 1.35; }
+.mark { background: linear-gradient(transparent 55%, var(--mark) 55%); padding: 0 2px; color: inherit; }
+section { display: grid; gap: 24px; }
+.lede { font-size: 1.2rem; color: var(--ink-soft); }
+
+/* the brief */
+.brief { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; }
+.brief div { border-top: 2px solid var(--ink); padding-top: 12px; display: grid; gap: 6px; }
+.brief strong { font-family: var(--display); font-size: 1.05rem; }
+
+/* directions */
+.dirs { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; align-items: start; }
+.dir { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 24px; display: grid; gap: 18px; min-width: 0; }
+.dir.pick { border: 2px solid var(--accent); }
+.dir header { display: grid; gap: 6px; }
+.tag { justify-self: start; font: 700 0.72rem/1 var(--body); letter-spacing: 0.08em; text-transform: uppercase; background: var(--accent); color: var(--surface); padding: 6px 9px; border-radius: 999px; }
+.swatches { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.swatches li { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: start; }
+.chip { width: 40px; height: 40px; border-radius: 10px; border: 1px solid var(--line); }
+.swatches b { display: block; font-size: 0.95rem; }
+.swatches code { font-size: 0.8rem; color: var(--ink-soft); }
+.swatches span { display: block; font-size: 0.92rem; color: var(--ink-soft); line-height: 1.45; }
+
+/* the sample result card, drawn in each direction's own colors */
+.sample { border-radius: 16px; padding: 18px; display: grid; gap: 12px; font-family: var(--body); }
+.sample .q { font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; opacity: 0.75; }
+.bars { display: grid; gap: 8px; }
+.bar { display: grid; grid-template-columns: 72px 1fr 28px; gap: 10px; align-items: center; font-size: 0.85rem; }
+.track { height: 12px; border-radius: 6px; position: relative; overflow: hidden; }
+.fill { position: absolute; inset: 0 auto 0 0; border-radius: 6px; }
+.gap { font: 700 1.6rem/1 var(--display); }
+.pill { justify-self: start; font-size: 0.8rem; font-weight: 700; padding: 5px 10px; border-radius: 999px; }
+.small { font-size: 0.92rem; color: var(--ink-soft); }
+dl.fit { margin: 0; display: grid; gap: 8px; font-size: 0.95rem; }
+dl.fit dt { font-weight: 700; }
+dl.fit dd { margin: 0 0 4px; color: var(--ink-soft); }
+
+/* references */
+.refs { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 24px; }
+.ref { display: grid; gap: 10px; align-content: start; min-width: 0; }
+.ref h3 a { color: inherit; text-decoration-color: var(--line); }
+.take, .skip { font-size: 0.93rem; line-height: 1.45; }
+.take b, .skip b { font-weight: 700; }
+.skip { color: var(--ink-soft); }
+.also { display: grid; gap: 10px; padding-left: 1.1em; margin: 0; }
+
+/* evidence */
+.evidence { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+.evidence article { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px; display: grid; gap: 10px; }
+.sources { font-size: 0.9rem; color: var(--ink-soft); display: grid; gap: 6px; padding-left: 1.1em; margin: 0; }
+footer { border-top: 1px solid var(--line); padding-top: 20px; font-size: 0.9rem; color: var(--ink-soft); display: grid; gap: 8px; }
+@media (prefers-reduced-motion: no-preference) { .fill { transition: width 0.6s ease; } }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <header style="display:grid;gap:16px">
+    <p class="eyebrow">Build North · branding research · Oct 20</p>
+    <h1>What Reality Check should look like</h1>
+    <p class="lede">Research on the style that fits the app, three directions with a reason for every color, and the real apps and sites they come from. I recommend <span class="mark">Ink &amp; Highlighter</span>. Mockups come next, once we pick a direction.</p>
+    <p class="note">Cynthia's rule: every color needs a reason. Each swatch below says what it means in the app.</p>
+  </header>
+
+  <section aria-labelledby="brief">
+    <p class="eyebrow">What the style has to carry</p>
+    <h2 id="brief">The brief, from our own decisions</h2>
+    <div class="brief">
+      <div><strong>A thinking tool, not a study tool</strong><p class="small">The subject is the gym equipment; thinking is the muscle. It should feel like working something out, not cramming.</p></div>
+      <div><strong>The map is the hero</strong><p class="small">The learner builds a mentefacto: a diagram with four parts. That drawing is the most characteristic thing in the app.</p></div>
+      <div><strong>Honest about confidence</strong><p class="small">The calibration gap (felt sure vs. actually scored) has to read in one glance, without making people feel stupid.</p></div>
+      <div><strong>No streaks, no XP</strong><p class="small">Gamification is progression only: levels, a mastery map, and "you did this alone" moments. So no Duolingo-style reward candy.</p></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="dirs">
+    <p class="eyebrow">Three directions</p>
+    <h2 id="dirs">Pick one, then we mock it up</h2>
+    <p class="small">Each card shows the same end-of-session result, drawn in that direction's colors: predicted 7 of 8, scored 5, so the gap is +2 (overconfident).</p>
+    <div class="dirs">
+
+      <article class="dir pick">
+        <header>
+          <span class="tag">Recommended</span>
+          <h3>A · Ink &amp; Highlighter</h3>
+          <p class="small">A student's notebook: graph paper, blue ink, a yellow highlighter. The mentefacto is drawn on paper in class, so the app looks like the place where the thinking already happens.</p>
+        </header>
+        <ul class="swatches">
+          <li><span class="chip" style="background:#f8f9f6"></span><div><b>Graph paper</b> <code>#F8F9F6</code><span>The ground. A faint grid under the map invites the learner to draw on it. Cool white, not cream.</span></div></li>
+          <li><span class="chip" style="background:#1f2e6e"></span><div><b>Ink blue</b> <code>#1F2E6E</code><span>Questions and the learner's own lines. Blue cued exploratory, "approach" thinking in Mehta &amp; Zhu's 2009 study, which is the mode we want while people ask.</span></div></li>
+          <li><span class="chip" style="background:#ffd84d"></span><div><b>Highlighter</b> <code>#FFD84D</code><span>Hints and Help only. You highlight what you're unsure about, so yellow means "help is here, and it costs a point."</span></div></li>
+          <li><span class="chip" style="background:#d9653b"></span><div><b>Clay</b> <code>#D9653B</code><span>The overconfidence gap. Warm and serious without being an error red: red cued avoidance in the same study, and we want people to keep trying.</span></div></li>
+          <li><span class="chip" style="background:#2f8f68"></span><div><b>Moss</b> <code>#2F8F68</code><span>"You did this alone." Reserved for unassisted wins, so green stays rare and means something.</span></div></li>
+        </ul>
+        <div class="sample" style="background:#f8f9f6;color:#1f2e6e;border:1px solid #d9dce6;background-image:linear-gradient(rgba(31,46,110,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(31,46,110,.07) 1px,transparent 1px);background-size:16px 16px">
+          <span class="q">Democracy · your map</span>
+          <div class="bars">
+            <div class="bar"><span>Felt sure</span><span class="track" style="background:#e3e6f0"><span class="fill" style="width:87.5%;background:transparent;border:2px dashed #1f2e6e"></span></span><span>7</span></div>
+            <div class="bar"><span>Scored</span><span class="track" style="background:#e3e6f0"><span class="fill" style="width:62.5%;background:#1f2e6e"></span></span><span>5</span></div>
+          </div>
+          <span class="gap" style="color:#d9653b">+2 <span style="font:400 1rem/1 'Kalam',cursive">felt surer than you were</span></span>
+          <span class="pill" style="background:#ffd84d;color:#1f2e6e">4 hints used</span>
+        </div>
+        <dl class="fit">
+          <dt>Type</dt><dd>Bricolage Grotesque for headings, Atkinson Hyperlegible for reading (designed by the Braille Institute for legibility), Kalam for handwritten margin notes from the coach.</dd>
+          <dt>Why it wins</dt><dd>It comes from the subject itself, the meanings are roles in the app rather than color-psychology claims, and no other app in the references looks like it.</dd>
+          <dt>Watch out</dt><dd>Handwriting must stay a garnish: only short coach notes, never body text.</dd>
+        </dl>
+      </article>
+
+      <article class="dir">
+        <header>
+          <h3>B · Calm Instrument</h3>
+          <p class="small">A precise gauge for your own judgment. Dark, quiet, one number on screen at a time. Closest to Fatebook, the prediction-tracking tool.</p>
+        </header>
+        <ul class="swatches">
+          <li><span class="chip" style="background:#11161f"></span><div><b>Slate</b> <code>#11161F</code><span>The ground. Dark so the one number in focus is the only bright thing.</span></div></li>
+          <li><span class="chip" style="background:#6c7cff"></span><div><b>Signal indigo</b> <code>#6C7CFF</code><span>Measurement and trust: the reading on the gauge. The same family Fatebook uses for its prediction field.</span></div></li>
+          <li><span class="chip" style="background:#f2a93b"></span><div><b>Amber</b> <code>#F2A93B</code><span>The gap, like a warning light on an instrument panel: notice this, don't panic.</span></div></li>
+          <li><span class="chip" style="background:#e8ebf2"></span><div><b>Chalk</b> <code>#E8EBF2</code><span>Text. Soft white to keep long sessions easy on the eyes.</span></div></li>
+        </ul>
+        <div class="sample" style="background:#11161f;color:#e8ebf2">
+          <span class="q">Calibration</span>
+          <span class="gap" style="color:#f2a93b;font-size:2.6rem">+2</span>
+          <div class="bars">
+            <div class="bar"><span>Felt sure</span><span class="track" style="background:#232a38"><span class="fill" style="width:87.5%;background:#3b4570"></span></span><span>7</span></div>
+            <div class="bar"><span>Scored</span><span class="track" style="background:#232a38"><span class="fill" style="width:62.5%;background:#6c7cff"></span></span><span>5</span></div>
+          </div>
+          <span class="pill" style="background:#232a38;color:#e8ebf2">4 hints used</span>
+        </div>
+        <dl class="fit">
+          <dt>Why it could work</dt><dd>The calibration gap becomes the signature screen, and it looks serious to judges.</dd>
+          <dt>Watch out</dt><dd>Students in the Lahore survey linked dark grey and black with anxiety. It reads cold for a learning app, and dark screens wash out on demo-day projectors.</dd>
+        </dl>
+      </article>
+
+      <article class="dir">
+        <header>
+          <h3>C · Warm Coach</h3>
+          <p class="small">Friendly and soft, so being wrong feels safe. Rounded shapes, warm light, a coach who's on your side. Closest to Headspace.</p>
+        </header>
+        <ul class="swatches">
+          <li><span class="chip" style="background:#eef4ff"></span><div><b>Morning sky</b> <code>#EEF4FF</code><span>The ground. Cool and open, for calm focus (the survey's students preferred cool colors for learning spaces).</span></div></li>
+          <li><span class="chip" style="background:#0f5c63"></span><div><b>Deep teal</b> <code>#0F5C63</code><span>The coach's voice and the main actions. Steady and trustworthy.</span></div></li>
+          <li><span class="chip" style="background:#ff8a3d"></span><div><b>Sunrise</b> <code>#FF8A3D</code><span>Warm encouragement: the gap, framed as "next time" rather than a failure.</span></div></li>
+          <li><span class="chip" style="background:#ffe08a"></span><div><b>Butter</b> <code>#FFE08A</code><span>Hints, soft enough to feel like a nudge rather than a penalty.</span></div></li>
+        </ul>
+        <div class="sample" style="background:#eef4ff;color:#0f3d42;border-radius:24px">
+          <span class="q">Nice work</span>
+          <div class="bars">
+            <div class="bar"><span>Felt sure</span><span class="track" style="background:#d6e3f7;border-radius:99px"><span class="fill" style="width:87.5%;background:#9fc6c9;border-radius:99px"></span></span><span>7</span></div>
+            <div class="bar"><span>Scored</span><span class="track" style="background:#d6e3f7;border-radius:99px"><span class="fill" style="width:62.5%;background:#0f5c63;border-radius:99px"></span></span><span>5</span></div>
+          </div>
+          <span class="gap" style="color:#c55a12">+2 to close next time</span>
+          <span class="pill" style="background:#ffe08a;color:#0f3d42">4 hints used</span>
+        </div>
+        <dl class="fit">
+          <dt>Why it could work</dt><dd>It takes the sting out of the calibration gap, which is the moment most likely to put people off.</dd>
+          <dt>Watch out</dt><dd>It drifts toward a kids' app, and it looks like Headspace and Duolingo, so it is the least memorable of the three.</dd>
+        </dl>
+      </article>
+    </div>
+  </section>
+
+  <section aria-labelledby="refs">
+    <p class="eyebrow">Inspiration</p>
+    <h2 id="refs">What to take from each reference</h2>
+    <p class="small">One move to take from each site, and one to leave. Follow the links to see them: screenshots of other companies’ sites stay out of this public repo.</p>
+    <div class="refs">
+      <article class="ref">
+        <h3><a href="https://brilliant.org/">Brilliant</a></h3>
+        <p class="take"><b>Take:</b> the hero is a live diagram you can touch, not a photo. Our map can do the same job.</p>
+        <p class="skip"><b>Leave:</b> the "personal tutor" pitch. We're the opposite: the app asks, the learner works it out.</p>
+      </article>
+      <article class="ref">
+        <h3><a href="https://heptabase.com/">Heptabase</a></h3>
+        <p class="take"><b>Take:</b> "whiteboards and cards to clarify your thinking". The closest reference for the map-building screen.</p>
+        <p class="skip"><b>Leave:</b> the power-user density. Our map has four parts, not a whole knowledge base.</p>
+      </article>
+      <article class="ref">
+        <h3><a href="https://www.are.na/">Are.na</a></h3>
+        <p class="take"><b>Take:</b> text-first calm, one deep navy action, and a tone that respects curious people.</p>
+        <p class="skip"><b>Leave:</b> the near-total absence of color. A learner needs clear signals for hints and wins.</p>
+      </article>
+      <article class="ref">
+        <h3><a href="https://fatebook.io/">Fatebook</a></h3>
+        <p class="take"><b>Take:</b> the prediction is a plain, prominent field, the same job as our "how many of the 8 points?" screen.</p>
+        <p class="skip"><b>Leave:</b> percentages. We decided on points, so the guess and the score share one scale.</p>
+      </article>
+      <article class="ref">
+        <h3><a href="https://www.headspace.com/">Headspace</a></h3>
+        <p class="take"><b>Take:</b> warmth lowers the stakes. Its rounded character makes a hard thing feel safe.</p>
+        <p class="skip"><b>Leave:</b> the mascot. A character competes with the map for attention.</p>
+      </article>
+      <article class="ref">
+        <h3><a href="https://www.duolingo.com/">Duolingo</a></h3>
+        <p class="take"><b>Take:</b> chunky buttons with a solid bottom edge that feel pressable. Good for one-thumb use.</p>
+        <p class="skip"><b>Leave:</b> streaks, gems and the reward loop. We ruled out extrinsic rewards.</p>
+      </article>
+    </div>
+    <div style="display:grid;gap:10px">
+      <h3>Also worth a look (no screenshot)</h3>
+      <ul class="also">
+        <li><a href="https://apps.apple.com/us/app/grug/id6751649802">grug</a>, Apple Design Award 2026 for Delight and Fun. A hand-drawn, scribbled look applied everywhere. Proof that a committed sketch style can win, which supports direction A's handwritten notes.</li>
+        <li><a href="https://apps.apple.com/us/app/guitar-wiz-chords-tuner/id6740015002/">Guitar Wiz</a>, Apple Design Award 2026 for Inclusivity. Our bar for accessibility: never use color as the only signal, which is why the gap is a number and a label, not only a color.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section aria-labelledby="evidence">
+    <p class="eyebrow">Why these colors</p>
+    <h2 id="evidence">What the research supports, and what it doesn't</h2>
+    <div class="evidence">
+      <article>
+        <h3>Blue for open thinking, no red for "wrong"</h3>
+        <p class="small">Mehta and Zhu (<i>Science</i>, 2009), six studies with over 600 people: blue backgrounds doubled creative output in brainstorming, and red improved detail tasks like proofreading by up to 31%. Their explanation: red puts people in a cautious, avoidant mode, blue in an exploratory one.</p>
+        <p class="small">A later study replicated only the memory effect. So we use it as a reason, not a promise.</p>
+      </article>
+      <article>
+        <h3>Cool colors for learning, dark for anxiety</h3>
+        <p class="small">A 2024 survey of students at two universities in Lahore found cool colors (white, green, blue) preferred for learning spaces and linked with curiosity. Black and grey were linked with anxiety.</p>
+        <p class="small">It measures how students felt, not how much they learned.</p>
+      </article>
+      <article>
+        <h3>The strongest reason: one color, one job</h3>
+        <p class="small">Most color-psychology claims online are weak. What reliably helps is consistent coding: when yellow always means "help" and green always means "you did it alone," people learn the signals fast. Direction A is built on that.</p>
+      </article>
+    </div>
+  </section>
+
+  <footer>
+    <p>Not checked yet: color contrast for every pairing (the later rounds check it against WCAG), and font licenses beyond Google Fonts' open licenses.</p>
+    <p>Brilliant note: a third-party breakdown described Brilliant as near-black with a coral accent, but the live site on Oct 20 is light with a green button and blue diagrams. This board follows the live site.</p>
+    <ol class="sources">
+      <li><a href="https://www.sciencedaily.com/releases/2009/02/090205142143.htm">ScienceDaily: Blue boosts creativity, red enhances attention to detail (Mehta &amp; Zhu, 2009)</a></li>
+      <li><a href="https://journals.umt.edu.pk/index.php/jdt/article/view/5835">Impact of Color Psychology on Students' Perception in Learning Spaces (2024)</a></li>
+      <li><a href="https://www.apple.com/newsroom/2026/06/apple-reveals-winners-of-the-2026-apple-design-awards/">Apple Newsroom: 2026 Apple Design Award winners</a></li>
+      <li><a href="https://design.duolingo.com/identity/color">Duolingo design guidelines: color</a></li>
+      <li><a href="https://www.webdesignhot.com/design.md/headspace/">webdesignhot: Headspace design breakdown (third party)</a></li>
+    </ol>
+  </footer>
+</main>
+</body>
+</html>

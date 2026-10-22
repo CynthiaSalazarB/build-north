@@ -327,6 +327,22 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   index is one type of database index), so training on hashing could help whoever takes database index
   last; worth checking when reading the results. With 5 testers it is still a pilot.
 
+### 2026-10-21 · The app's design is round 8, Open Box
+- **Decision:** the app uses round 8, Open Box (`docs/design/08-open-box/`), picked by Leo on Oct 21. It
+  replaces round 6, Out of the Cave, which #81 first put in the app, and round 7's recommendation, 7F. The
+  app opens in the Obsidian theme (black and white), and its day and night modes follow the phone's
+  setting. Cobalt (blue and white) stays in the tokens as the second theme. Per #14, Cynthia approves the
+  direction on #72.
+- **Instead of:** keeping round 6's cave and bronze, or moving to 7F (round 6's colors on a test run).
+- **Why:** the user is now CS students who build with coding agents. Round 8 is drawn from what they
+  already read every day: a spec file, a list of checks, `Expected` and `Received`. The gap gets a picture
+  they get at a glance, a black box whose corners open as they prove points, and the pair keeps the tutor
+  friendly without ever reacting to the score.
+- **Pattern / trade-off:** colors by role. Screens read colors by name from one tokens file, so the second
+  theme is one constant, not a second set of screens. Round 6's dawn and bronze cast go; the box opening
+  on the result is now the session's one big moment.
+- **Superseded** on 2026-10-22 by "The app's design is Lumente (round 9)".
+
 ### 2026-10-22 · The app's design is Lumente (round 9)
 - **Decision:** one idea for the whole app: questions are the light. The map is four questions in the dark around
   the concept; a firefly tutor asks them, a dashed amber line runs from it to the part being asked, and it is Help;

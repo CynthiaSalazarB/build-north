@@ -1,0 +1,521 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Abstract Socratic Directions</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Libre+Caslon+Display&family=Libre+Franklin:wght@400;600;700&family=GFS+Didot&family=Karla:wght@400;600;700&family=Castoro:ital@0;1&family=Schibsted+Grotesk:wght@400;600;700&family=Forum&family=Albert+Sans:wght@400;600;700&family=Italiana&family=Red+Hat+Text:wght@400;600;700&family=STIX+Two+Text:ital,wght@0,500;0,700;1,500&family=Overpass:wght@400;600;700&display=swap">
+<style>
+/* Layout: neutral board; each direction is a band with notes and a source image, then two phone frames at true size (393 x 852 pt, never scaled). */
+:root {
+  --b-bg: #ecebe8; --b-ink: #24221f; --b-soft: #5f5b55; --b-line: #d4d1cb; --b-card: #f7f6f3;
+  --b-display: "Libre Caslon Display", Georgia, serif; --b-body: "Libre Franklin", "Segoe UI", system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --b-bg: #1a1917; --b-ink: #ebe8e2; --b-soft: #a9a49b; --b-line: #36332f; --b-card: #23211e; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --b-bg: #1a1917; --b-ink: #ebe8e2; --b-soft: #a9a49b; --b-line: #36332f; --b-card: #23211e; color-scheme: dark; }
+*, *::before, *::after { box-sizing: border-box; }
+body { background: var(--b-bg); color: var(--b-ink); font: 400 16px/1.5 var(--b-body); }
+.board { max-width: 1400px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 40px 72px; display: grid; gap: 56px; }
+.board p { margin: 0; }
+.board h1 { font: 400 clamp(2.1rem, 5vw, 3.4rem)/1.02 var(--b-display); margin: 0; text-wrap: balance; }
+.board h2 { font: 400 1.75rem/1.1 var(--b-display); margin: 0; }
+.eyebrow { font: 600 12px/1.2 var(--b-body); letter-spacing: .12em; text-transform: uppercase; color: var(--b-soft); }
+.soft { color: var(--b-soft); }
+.intro { display: grid; gap: 12px; max-width: 72ch; }
+.dir { display: grid; grid-template-columns: minmax(260px, 1fr) auto; gap: 28px 40px; align-items: start; border-top: 1px solid var(--b-line); padding-top: 32px; }
+@media (max-width: 1180px) { .dir { grid-template-columns: 1fr; } }
+.notes { display: grid; gap: 14px; min-width: 0; max-width: 60ch; }
+.notes .id { display: inline-block; font: 700 12px/1 var(--b-body); padding: 5px 8px; border-radius: 6px; background: var(--b-ink); color: var(--b-bg); margin-right: 8px; vertical-align: 4px; }
+.sw { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sw li { display: grid; grid-template-columns: 28px 1fr; gap: 10px; align-items: start; font-size: 14px; line-height: 1.4; }
+.sw i { width: 28px; height: 28px; border-radius: 8px; border: 1px solid var(--b-line); }
+.sw b { font-weight: 700; }
+.meta { font-size: 14px; color: var(--b-soft); }
+.src { display: grid; grid-template-columns: 96px 1fr; gap: 12px; align-items: start; font-size: 14px; color: var(--b-soft); margin: 0; }
+.src img { width: 96px; height: auto; border-radius: 6px; border: 1px solid var(--b-line); display: block; }
+.phones { display: flex; flex-wrap: wrap; gap: 28px; }
+.fw { max-width: 100%; overflow-x: auto; padding: 12px; margin: -12px; }
+
+/* ---------- device frame ---------- */
+.frame { width: 393px; height: 852px; flex: none; border-radius: 48px; overflow: hidden; position: relative; box-shadow: 0 0 0 10px #141311, 0 18px 40px rgba(0,0,0,.25); }
+.island { position: absolute; top: 11px; left: 50%; transform: translateX(-50%); width: 124px; height: 36px; border-radius: 20px; background: #000; z-index: 9; }
+.indicator { position: absolute; left: 50%; bottom: 8px; transform: translateX(-50%); width: 134px; height: 5px; border-radius: 3px; background: var(--ink); opacity: .4; z-index: 9; }
+.scr { position: relative; width: 100%; height: 100%; display: flex; flex-direction: column; background: var(--bg); color: var(--ink); font: 400 16px/1.45 var(--fb); padding: 59px 24px 34px; overflow: hidden; }
+.scr > * { position: relative; }
+.scr > .island, .scr > .indicator, .scr > .layer { position: absolute; }
+.layer { inset: 0; pointer-events: none; }
+.scr p { margin: 0; }
+.lbl { font: 600 12px/1.3 var(--fl); letter-spacing: .12em; text-transform: uppercase; color: var(--soft); }
+.btn { height: 56px; border-radius: var(--radius, 14px); border: 0; display: flex; align-items: center; justify-content: center; font: 700 16px/1 var(--fb); background: var(--primary); color: var(--onPrimary); cursor: pointer; width: 100%; transition: transform .12s ease-out; }
+.btn.ghost { background: transparent; color: var(--ink); height: 44px; width: auto; padding: 0 4px; }
+.btn:active { transform: scale(.96); }
+:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+.art { width: 100%; height: auto; display: block; overflow: visible; }
+.stack { margin-top: auto; display: grid; gap: 14px; }
+
+/* ---------- result screen ---------- */
+.res .top { height: 44px; display: flex; align-items: center; justify-content: space-between; }
+.res .body { flex: 1; display: flex; flex-direction: column; gap: 18px; padding-top: 8px; }
+.res .gaprow { display: flex; align-items: flex-end; gap: 14px; }
+.res .hero { font: 400 72px/0.9 var(--fd); color: var(--gap); letter-spacing: -.02em; font-variant-numeric: lining-nums tabular-nums; }
+/* display faces draw "+" as a hairline that reads as a minus; the body face's bold plus never does */
+.res .hero .plus { font: 700 0.8em/1 var(--fb); vertical-align: 0.06em; margin-right: 2px; }
+.res .heronote { color: var(--gap); padding-bottom: 8px; font-weight: 700; line-height: 1.25; }
+.viz { width: 100%; height: auto; display: block; overflow: visible; }
+.viz .t { font: 600 12px var(--fl); letter-spacing: .1em; text-transform: uppercase; fill: var(--soft); }
+.viz .n { font: 400 28px var(--fd); }
+.rub { display: grid; border-top: 1px solid var(--line); }
+.rub div { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; min-height: 44px; border-bottom: 1px solid var(--line); }
+.dots { display: flex; gap: 5px; }
+.dots i { width: 12px; height: 12px; border-radius: 6px; border: 2px solid var(--ink); }
+.dots i.on { background: var(--ink); }
+.alone { display: inline-flex; align-items: center; gap: 6px; font: 700 12px/1 var(--fl); letter-spacing: .08em; text-transform: uppercase; background: var(--aloneBg); color: var(--onAlone); padding: 5px 9px 5px 6px; border-radius: 999px; }
+.alone svg { width: 18px; height: 18px; }
+.res .foot { padding-top: 12px; }
+
+/* ---------- per-direction ---------- */
+.d-byrn .title { font: 400 50px/0.98 var(--fd); margin: 0; }
+.d-byrn .title .cap { color: var(--gap); }
+.d-byrn { --radius: 2px; }
+.d-byrn .art { overflow: hidden; }
+
+.d-pott .band { display: block; width: 100%; height: 26px; color: var(--ink); }
+.d-pott .title { font: 400 48px/1 var(--fd); margin: 0; }
+.d-pott .greek { font: 400 16px/1.2 var(--fd); letter-spacing: .28em; color: var(--ink); }
+.d-pott { --radius: 28px; }
+
+.d-cave .glow { background: radial-gradient(ellipse 70% 38% at 50% 20%, rgba(242, 215, 160, .30), transparent 70%); }
+.d-cave .mouth { position: absolute; top: 112px; left: 50%; width: 132px; height: 196px; transform: translateX(-50%); border-radius: 66px 66px 2px 2px; background: linear-gradient(#fffaf0, #f4dfb2 70%, #e9c98a); box-shadow: 0 0 70px 24px rgba(242, 215, 160, .28); }
+.d-cave .beam { position: absolute; top: 308px; left: 0; right: 0; bottom: 0; background: linear-gradient(rgba(242, 215, 160, .36), rgba(242, 215, 160, .05) 70%, transparent); clip-path: polygon(33% 0, 67% 0, 100% 100%, 0 100%); }
+.d-cave .you { position: absolute; top: 452px; left: 50%; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%; background: var(--bg); box-shadow: 0 0 0 2px rgba(15, 14, 17, .4); }
+.d-cave .shadow { position: absolute; top: 462px; left: 50%; width: 22px; height: 120px; margin-left: -11px; border-radius: 50%; background: radial-gradient(ellipse at top, rgba(15, 14, 17, .75), transparent 70%); }
+.d-cave .title { font: 400 54px/0.95 var(--fd); margin: 0; }
+.d-cave .title i { font-style: italic; }
+
+.d-verd canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+.d-verd .ring { position: absolute; left: 50%; top: 150px; width: 250px; height: 250px; margin-left: -125px; border: 1.5px solid var(--accent); border-radius: 50%; }
+.d-verd .ring::after { content: ""; position: absolute; inset: 14px; border: 1px solid var(--accent); border-radius: 50%; opacity: .6; }
+.d-verd .title { font: 400 44px/1 var(--fd); letter-spacing: .16em; text-transform: uppercase; margin: 0; text-align: center; }
+.d-verd .rule { width: 64px; height: 1.5px; background: var(--accent); margin: 0 auto; }
+
+.d-ioni .flutes { background: repeating-linear-gradient(90deg, transparent 0 16px, rgba(42, 38, 34, .07) 16px 18px, transparent 18px 22px, rgba(255, 255, 255, .5) 22px 23px); mask-image: linear-gradient(transparent, #000 30%, #000 60%, transparent); -webkit-mask-image: linear-gradient(transparent, #000 30%, #000 60%, transparent); }
+.d-ioni .title { font: 400 54px/1 var(--fd); margin: 0; letter-spacing: .02em; }
+
+.d-eule .title { font: 500 46px/1 var(--fd); margin: 0; }
+.d-eule .title i { font-style: italic; }
+
+.panel { background: var(--b-card); border: 1px solid var(--b-line); border-radius: 14px; padding: 20px; display: grid; gap: 10px; font-size: 14px; }
+.panel ul { margin: 0; padding-left: 1.1em; display: grid; gap: 4px; }
+.panel table { border-collapse: collapse; width: 100%; font-size: 14px; }
+.panel th, .panel td { text-align: left; padding: 7px 10px 7px 0; border-bottom: 1px solid var(--b-line); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.tw { overflow-x: auto; }
+@media (prefers-reduced-motion: reduce) { .btn { transition: none; } }
+</style>
+</head>
+<body>
+<script type="application/json" id="tokens">
+{
+  "byrn": { "name": "Byrne's Euclid", "bg": "#f4eedf", "surface": "#fbf7ec", "ink": "#1b1a17", "soft": "#57524a", "primary": "#1b1a17", "onPrimary": "#f4eedf", "hint": "#f2c230", "onHint": "#1b1a17", "gap": "#b8301c", "alone": "#1f4e9c", "aloneBg": "#dde5f3", "onAlone": "#173c78", "line": "#d8ccb4", "accent": "#1f4e9c",
+    "fd": "\"Libre Caslon Display\", Georgia, serif", "fb": "\"Libre Franklin\", system-ui, sans-serif", "fl": "\"Libre Franklin\", system-ui, sans-serif",
+    "viz": { "kind": "balance", "feltFill": "#f2c230", "feltStroke": "#1b1a17", "feltDash": false, "numFelt": "#1b1a17", "scoredFill": "#1f4e9c", "scoredStroke": "#1b1a17", "numScored": "#fbf7ec", "beam": "#1b1a17", "fulcrum": "#b8301c" } },
+  "pott": { "name": "Black-Figure", "bg": "#ecc9a6", "surface": "#f4dcc2", "ink": "#1c1410", "soft": "#57392a", "primary": "#1c1410", "onPrimary": "#f4dcc2", "hint": "#f0b43e", "onHint": "#1c1410", "gap": "#8a2c15", "alone": "#4f5a22", "aloneBg": "#e3e2c0", "onAlone": "#383f16", "line": "#c9a585", "accent": "#c9622f",
+    "fd": "\"GFS Didot\", Georgia, serif", "fb": "Karla, system-ui, sans-serif", "fl": "Karla, system-ui, sans-serif",
+    "viz": { "kind": "amphorae", "glaze": "#1c1410", "fill": "#c9622f" } },
+  "cave": { "name": "Plato's Cave", "bg": "#0f0e11", "surface": "#1a181d", "ink": "#eee8de", "soft": "#aaa298", "primary": "#f4e7c8", "onPrimary": "#19140c", "hint": "#e9b44c", "onHint": "#19140c", "gap": "#ef8d6c", "alone": "#bcc78e", "aloneBg": "#2c3020", "onAlone": "#dfe7bd", "line": "#34313a", "accent": "#f2d7a0",
+    "fd": "Castoro, Georgia, serif", "fb": "\"Schibsted Grotesk\", system-ui, sans-serif", "fl": "\"Schibsted Grotesk\", system-ui, sans-serif",
+    "viz": { "kind": "balance", "feltFill": "#2a2730", "feltStroke": "#aaa298", "feltDash": true, "numFelt": "#eee8de", "scoredFill": "#f4e7c8", "scoredStroke": "#f4e7c8", "numScored": "#19140c", "beam": "#eee8de", "fulcrum": "#aaa298" } },
+  "verd": { "name": "Verde & Gold", "bg": "#12201b", "surface": "#1b2c25", "ink": "#ece7da", "soft": "#b0b8aa", "primary": "#ece7da", "onPrimary": "#12201b", "hint": "#d8b36a", "onHint": "#16130a", "gap": "#ee8f6e", "alone": "#cbd991", "aloneBg": "#2b3a23", "onAlone": "#dde9bb", "line": "#2f4239", "accent": "#c9a457",
+    "fd": "Forum, Georgia, serif", "fb": "\"Albert Sans\", system-ui, sans-serif", "fl": "\"Albert Sans\", system-ui, sans-serif",
+    "viz": { "kind": "balance", "feltFill": "#1b2c25", "feltStroke": "#c9a457", "feltDash": true, "numFelt": "#ece7da", "scoredFill": "#c9a457", "scoredStroke": "#c9a457", "numScored": "#16130a", "beam": "#c9a457", "fulcrum": "#c9a457" } },
+  "ioni": { "name": "Ionic Order", "bg": "#efeae0", "surface": "#f8f4ec", "ink": "#2a2622", "soft": "#615a51", "primary": "#2a2622", "onPrimary": "#f6f1e7", "hint": "#e3ae45", "onHint": "#2a2622", "gap": "#a4402a", "alone": "#566430", "aloneBg": "#e2e5cc", "onAlone": "#3c4520", "line": "#d6cdbd", "accent": "#e3ae45",
+    "fd": "Italiana, Georgia, serif", "fb": "\"Red Hat Text\", system-ui, sans-serif", "fl": "\"Red Hat Text\", system-ui, sans-serif",
+    "viz": { "kind": "balance", "feltFill": "#f8f4ec", "feltStroke": "#2a2622", "feltDash": true, "numFelt": "#2a2622", "scoredFill": "#2a2622", "scoredStroke": "#2a2622", "numScored": "#f6f1e7", "beam": "#2a2622", "fulcrum": "#e3ae45" } },
+  "eule": { "name": "Euler Circles", "bg": "#f6f2ea", "surface": "#fdfaf4", "ink": "#1e1c1a", "soft": "#5a554e", "primary": "#2c3570", "onPrimary": "#f6f2ea", "hint": "#e9b949", "onHint": "#1e1c1a", "gap": "#a63e26", "alone": "#4e5d24", "aloneBg": "#e2e7cc", "onAlone": "#39441a", "line": "#dcd4c6", "accent": "#2c3570",
+    "fd": "\"STIX Two Text\", Georgia, serif", "fb": "Overpass, system-ui, sans-serif", "fl": "Overpass, system-ui, sans-serif",
+    "viz": { "kind": "euler" } }
+}
+</script>
+
+<main class="board">
+  <header class="intro">
+    <p class="eyebrow">Reality Check · branding round 3 · abstract</p>
+    <h1>Six abstract Socratic directions</h1>
+    <p class="soft">No statues this time. Every picture is drawn in code from something real in the Socratic world: Euclid's diagrams, Greek pottery, Plato's cave, green marble, the Ionic column and Euler's logic circles. Each direction shows a splash screen and the democracy result (felt 7 of 8, scored 5), and each draws the calibration gap its own way.</p>
+    <p class="soft">The meanings stay fixed across all six: yellow or ochre is always hints and Help, red or terracotta is always the overconfidence gap, and one earned color marks a part done with no help.</p>
+  </header>
+
+  <section class="dir d-byrn" data-dir="byrn" aria-labelledby="h3a">
+    <div class="notes">
+      <h2 id="h3a"><span class="id">3A</span>Byrne's Euclid</h2>
+      <p>Oliver Byrne's 1847 Euclid swapped letters for colored shapes, made, as its title page says, "for the greater ease of learners." Primary red, yellow and blue on cream, with heavy black lines. The splash draws Euclid's first proposition: two circles that build a triangle.</p>
+      <ul class="sw" data-swatches></ul>
+      <p class="meta">Calibration: two weights on a beam, each disc's area equal to its points. Type: Libre Caslon Display (Byrne was set in Caslon) · Libre Franklin.</p>
+      <figure class="src"><img src="images/byrne-euclid-1847-title-page.jpg" alt="Title page of Byrne's 1847 Euclid with a colored diagram of the Pythagorean theorem"><figcaption>Source: Byrne, <i>The First Six Books of the Elements of Euclid</i>, 1847 (public domain).</figcaption></figure>
+    </div>
+    <div class="phones">
+      <div class="fw"><div class="frame"><div class="island"></div><div class="scr" data-splash="byrn">
+        <svg class="art" data-art="byrne" viewBox="0 0 345 330" style="margin-top:64px" role="img" aria-label="Euclid's first proposition: two circles and the equilateral triangle they construct, in red, yellow and blue"></svg>
+        <div class="stack">
+          <span class="lbl">Proposition I</span>
+          <h3 class="title"><span class="cap">R</span>eality Check</h3>
+          <p>Learn to question what you think you know.</p>
+          <button class="btn">Start a map</button>
+        </div>
+        <div class="indicator"></div>
+      </div></div></div>
+      <div class="fw"><div class="frame"><div class="scr res" data-result></div></div></div>
+    </div>
+  </section>
+
+  <section class="dir d-pott" data-dir="pott" aria-labelledby="h3b">
+    <div class="notes">
+      <h2 id="h3b"><span class="id">3B</span>Black-Figure</h2>
+      <p>Athenian pottery: black glaze on orange clay, meander bands, and the amphora. Prize amphorae, filled with olive oil, went to winners at the Panathenaic Games, so the jar is our reward symbol. The label is the Delphic maxim ΓΝΩΘΙ ΣΑΥΤΟΝ, "know thyself."</p>
+      <ul class="sw" data-swatches></ul>
+      <p class="meta">Calibration: two jars filled to 7 and 5 of 8. The dashed line shows how full you thought it was. Type: GFS Didot (from the Greek Font Society, with real Greek letters) · Karla.</p>
+      <figure class="src"><img src="images/panathenaic-prize-amphora.jpg" alt="Black-figure Panathenaic prize amphora with runners"><figcaption>Source: Panathenaic prize amphora, The Met (CC0).</figcaption></figure>
+    </div>
+    <div class="phones">
+      <div class="fw"><div class="frame"><div class="island"></div><div class="scr" data-splash="pott">
+        <svg class="band" data-art="meander" viewBox="0 0 345 26" preserveAspectRatio="none" style="margin-top:16px" aria-hidden="true"></svg>
+        <svg class="art" data-art="amphora" viewBox="0 0 345 330" style="margin-top:22px" role="img" aria-label="An amphora in black glaze with an orange clay panel and a meander band"></svg>
+        <div class="stack">
+          <span class="greek">ΓΝΩΘΙ ΣΑΥΤΟΝ</span>
+          <h3 class="title">Reality Check</h3>
+          <p>Learn to question what you think you know.</p>
+          <button class="btn">Start a map</button>
+        </div>
+        <div class="indicator"></div>
+      </div></div></div>
+      <div class="fw"><div class="frame"><div class="scr res" data-result><svg class="band" data-art="meander" viewBox="0 0 345 26" preserveAspectRatio="none" style="height:14px;margin:4px 0 0" aria-hidden="true"></svg></div></div></div>
+    </div>
+  </section>
+
+  <section class="dir d-cave" data-dir="cave" aria-labelledby="h3c">
+    <div class="notes">
+      <h2 id="h3c"><span class="id">3C</span>Plato's Cave</h2>
+      <p>From Plato's <i>Republic</i>, Book VII: prisoners take shadows for the real thing until one walks out into the daylight. The app is that walk. The splash is the cave mouth, a beam of light, and you, casting a shadow.</p>
+      <ul class="sw" data-swatches></ul>
+      <p class="meta">Calibration: what you felt is the shadow (dashed and dark), and what you scored is the real thing in the light. Type: Castoro · Schibsted Grotesk.</p>
+    </div>
+    <div class="phones">
+      <div class="fw"><div class="frame"><div class="island"></div><div class="scr" data-splash="cave">
+        <div class="layer glow"></div><div class="layer"><div class="mouth"></div><div class="beam"></div><div class="shadow"></div><div class="you"></div></div>
+        <div class="stack">
+          <span class="lbl">Step out of the shadows</span>
+          <h3 class="title">Reality <i>Check</i></h3>
+          <p>Learn to question what you think you know.</p>
+          <button class="btn">Start a map</button>
+        </div>
+        <div class="indicator"></div>
+      </div></div></div>
+      <div class="fw"><div class="frame"><div class="scr res" data-result><div class="layer glow"></div></div></div></div>
+    </div>
+  </section>
+
+  <section class="dir d-verd" data-dir="verd" aria-labelledby="h3d">
+    <div class="notes">
+      <h2 id="h3d"><span class="id">3D</span>Verde &amp; Gold</h2>
+      <p>Verde antico, the green stone from Thessaly that Romans and Byzantines used for columns. The veins are generated, so no two screens repeat, with fine gold rings like an inlaid floor. Rich, calm, and unlike any education app.</p>
+      <ul class="sw" data-swatches></ul>
+      <p class="meta">Calibration: a gold beam, with the felt-sure weight as an empty dashed ring. Type: Forum (Roman capitals) · Albert Sans.</p>
+    </div>
+    <div class="phones">
+      <div class="fw"><div class="frame"><div class="island"></div><div class="scr" data-splash="verd">
+        <canvas class="layer" data-marble="1" width="393" height="852" aria-hidden="true"></canvas>
+        <div class="layer"><div class="ring"></div></div>
+        <div class="stack" style="gap:18px">
+          <h3 class="title">Reality<br>Check</h3>
+          <div class="rule"></div>
+          <p style="text-align:center">Learn to question what you think you know.</p>
+          <button class="btn">Start a map</button>
+        </div>
+        <div class="indicator"></div>
+      </div></div></div>
+      <div class="fw"><div class="frame"><div class="scr res" data-result><canvas class="layer" data-marble="0.86" width="393" height="852" aria-hidden="true"></canvas></div></div></div>
+    </div>
+  </section>
+
+  <section class="dir d-ioni" data-dir="ioni" aria-labelledby="h3e">
+    <div class="notes">
+      <h2 id="h3e"><span class="id">3E</span>Ionic Order</h2>
+      <p>The top of an Ionic column: two scrolls (volutes) that spiral inward, over a fluted shaft. Limestone, ink and a touch of gold leaf in each scroll's eye. The spiral fits the app: each question turns you closer to the center of a concept.</p>
+      <ul class="sw" data-swatches></ul>
+      <p class="meta">Calibration: a beam on a gold fulcrum, felt-sure as a dashed outline, scored as solid ink. Type: Italiana · Red Hat Text.</p>
+    </div>
+    <div class="phones">
+      <div class="fw"><div class="frame"><div class="island"></div><div class="scr" data-splash="ioni">
+        <div class="layer flutes"></div>
+        <svg class="art" data-art="ionic" viewBox="0 0 345 340" style="margin-top:20px" role="img" aria-label="An Ionic capital: two inward spirals over a fluted column"></svg>
+        <div class="stack">
+          <span class="lbl">A thinking tool</span>
+          <h3 class="title">Reality Check</h3>
+          <p>Learn to question what you think you know.</p>
+          <button class="btn">Start a map</button>
+        </div>
+        <div class="indicator"></div>
+      </div></div></div>
+      <div class="fw"><div class="frame"><div class="scr res" data-result></div></div></div>
+    </div>
+  </section>
+
+  <section class="dir d-eule" data-dir="eule" aria-labelledby="h3f">
+    <div class="notes">
+      <h2 id="h3f"><span class="id">3F</span>Euler Circles</h2>
+      <p>Leonhard Euler drew circles like these in 1768 to teach logic, and they map our four moves exactly. The splash is the worked example: planet sits inside opaque celestial bodies (the bigger group), with rocky and giant planets as its types, and star outside (what it isn't).</p>
+      <ul class="sw" data-swatches></ul>
+      <p class="meta">Calibration: a circle of what you felt sure of, around a circle of what you scored. The hatched ring is the gap. Type: STIX Two Text (made for math) · Overpass.</p>
+    </div>
+    <div class="phones">
+      <div class="fw"><div class="frame"><div class="island"></div><div class="scr" data-splash="eule">
+        <svg class="art" data-art="euler" viewBox="0 0 345 350" style="margin-top:60px" role="img" aria-label="Euler diagram: planet inside opaque celestial bodies, rocky and giant inside planet, star outside"></svg>
+        <div class="stack">
+          <span class="lbl">Know a concept by its edges</span>
+          <h3 class="title">Reality <i>Check</i></h3>
+          <p>Learn to question what you think you know.</p>
+          <button class="btn">Start a map</button>
+        </div>
+        <div class="indicator"></div>
+      </div></div></div>
+      <div class="fw"><div class="frame"><div class="scr res" data-result></div></div></div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="hc">
+    <h2 id="hc">Contrast check</h2>
+    <p class="soft">WCAG 2 ratios for the text pairs each direction uses, computed from the same token data that colors the screens. AA needs 4.5:1 for text.</p>
+    <div class="tw"><table><thead><tr><th>Direction</th><th>Text</th><th>Soft text</th><th>Button</th><th>Hint</th><th>Gap</th><th>Alone tag</th><th>Numbers on weights</th></tr></thead><tbody id="ctab"></tbody></table></div>
+  </section>
+
+  <section class="panel" aria-labelledby="hcr">
+    <h2 id="hcr">Sources and credits</h2>
+    <ul>
+      <li>Every picture on the phone screens is drawn in code for this board: no stock or AI images.</li>
+      <li>Oliver Byrne, <i>The First Six Books of the Elements of Euclid</i>, 1847, title page (public domain, via Wikimedia Commons).</li>
+      <li>Terracotta Panathenaic prize amphora, The Metropolitan Museum of Art (CC0, via Wikimedia Commons).</li>
+      <li>Laurel icon in the "Alone" tag: game-icons.net by Lorc (CC BY 3.0).</li>
+    </ul>
+  </section>
+</main>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <path id="laurel-path" fill="currentColor" d="M234.7 18.05c-21 .2-38.8 2.5-62 10.2-4.1 2-8.2 4.1-12.2 6.2.8 5.26 3.2 10.77 5.5 14.7-4.9 4.2-9.6 8.4-14.1 12.8-3.7-5.5-6.6-11.4-8.3-17.4-14.2 9.2-27.7 19.6-40.1 31.4 1.9 9.5 9.2 18.21 15.2 24.15-3.7 5.2-7.2 10.4-10.5 15.7-8.22-7.2-15.12-15.5-19.32-24.65C74.97 108.1 61.92 126 53.08 142.3c5.29 13 19.01 22.7 29.8 28.4-2 6.1-3.7 12.2-5.1 18.4-13.5-6.4-26.3-15.7-34.5-26.6-8.7 20.1-14.7 40.7-18.2 61.4 9.63 15.5 30.57 22.9 46 25.9.1 6.4.4 12.8.9 19.2-17.79-2.7-37.26-9.6-49.9-20.4-1.6 22.3-.5 44.5 3.4 66.2 15.25 13.7 41.14 15.3 58.6 13.7 2 6.1 4.1 12.2 6.5 18.1-18.61 4.5-43.29 1.1-59.3-6.2 6.6 23.7 16.4 46.4 29.2 67.4 19.33 8.6 44.52 3.6 61.72-2.5 3.7 5.3 7.6 10.5 11.6 15.5-17.8 9.5-39.9 11.5-57.52 10.1 12.3 16.3 26.62 31.2 42.72 44.4 4.9 1.1 10.5 1.1 16.7.3 11.7-1.7 25.2-7 37.9-14.7 16.7 13.5 34.9 24.7 54.1 33.1l7.5-17.2c-16-6.9-31.3-16.2-45.6-27.3 13.3-10.9 24.3-24 30.2-36.5 4.7-9.7 6.3-18.4 4.5-26.3-10.7-5.7-20.6-12.5-29.5-20.3-7.8 20.8-26.4 36.1-43.5 46-4-4.9-7.9-9.9-11.6-15 16.8-9.8 39.9-27.5 39.1-47.1-8.9-10.3-16.6-21.8-22.9-34.1-12 14-30.7 22.5-46.5 26.7-2.4-5.8-4.6-11.6-6.6-17.6 16.8-5.2 37.9-13 44.1-29.7-4.3-11.5-7.5-23.6-9.7-36-13.8 8.4-32 11.1-46.32 10.9-.6-6.2-1-12.4-1.2-18.7 15.52-.6 33.92-2.5 44.92-14.3-.8-12.6-.5-25.5.9-38.5-13.4 2.8-29 .3-40.42-3.2 1.3-6 2.9-12.1 4.8-18.1 12.82 3.2 27.12 6.7 38.82.8 2.7-13.6 6.7-27.3 12-40.8-9.9-1.8-20.2-6.3-27.7-10.7 3.3-5.3 6.8-10.5 10.5-15.7 8.1 4.2 16.3 8.8 25.2 8.4 5.7-11.6 12.3-22.65 19.5-32.75-5.1-2.7-10-6.4-14.4-10.6 4.4-4.3 9.1-8.5 13.9-12.7 3.8 3.54 8 6.18 12.3 8.2 15.9-18.6 35.9-36.23 49-53.8zm38.4 0c15.4 20.75 33.8 35.63 48.9 53.7 4.6-1.76 9.1-5.23 12.3-8.1 4.9 4.2 9.5 8.4 13.9 12.7-4.4 4.2-9.2 7.9-14.4 10.6 7.3 10.1 13.9 21.05 19.6 32.65 9-.1 18.4-4.4 25.2-8.4 3.7 5.2 7.2 10.4 10.4 15.7-8.8 5.9-18.2 9.6-27.6 10.7 5.3 13.5 9.3 27.2 12 40.8 12.3 5.4 27.3 2.7 38.7-.8 1.9 6 3.5 12.1 4.9 18.1-14.2 3.4-27.3 6.2-40.4 3.3 1.4 12.9 1.6 25.8.8 38.5 11.4 12.3 30.2 14.4 44.9 14.2-.2 6.3-.5 12.5-1.2 18.7-17.1-.5-32.8-2.5-46.3-10.9-2.1 12.4-5.3 24.5-9.6 36.1 8.2 17.4 27.8 25.3 44.1 29.6-2 6-4.2 11.8-6.6 17.6-18.5-5.6-34.9-13-46.6-26.7-6.3 12.4-13.9 23.8-22.9 34.1 1.5 22.4 22.4 37.8 39.2 47.1-3.7 5.1-7.6 10.1-11.6 15-19-11.8-36.6-25.8-43.5-46-9 7.8-18.8 14.6-29.6 20.3-1.8 7.9-.1 16.6 4.5 26.3 6 12.5 17 25.6 30.3 36.5-14.3 11.1-29.6 20.4-45.6 27.3l7.4 17.2c19.3-8.4 37.4-19.6 54.1-33.2 12.7 7.8 26.2 13.1 38 14.8 6.2.8 11.8.8 16.7-.3 16.1-13.2 30.4-28.1 42.7-44.4-18 1.7-37.9-2.3-56.5-9.7-.3-.1-.7-.3-1.1-.4 4.1-5 7.9-10.2 11.7-15.5 18.2 7.8 43.7 11.7 61.6 2.5 12.8-21 22.6-43.7 29.2-67.4-.4.2-.8.4-1.2.5-20.5 6.4-40.1 7.6-58.1 5.7 2.4-5.9 4.5-12 6.5-18 19.1 1.7 45.2.1 58.6-13.8 3.9-21.7 5.1-43.9 3.4-66.2-14.4 10.7-34.9 17.9-49.9 20.4.5-6.4.9-12.8 1-19.2 16.8-4.8 37.9-10 45.9-25.9-3.5-20.7-9.5-41.3-18.2-61.4-9.4 11.6-23.1 21-34.4 26.5-1.5-6.1-3.2-12.2-5.2-18.3 12-7.4 25.1-15.3 29.9-28.4-10.1-18.7-22.2-35.8-35.9-51.05-4.2 9.05-11.1 17.45-19.2 24.65-3.3-5.3-6.8-10.5-10.6-15.7 6.2-7.17 14.2-14.71 15.2-24.15-12.4-11.8-25.8-22.2-40-31.4-1.8 6-4.7 11.9-8.3 17.4-4.5-4.4-9.2-8.6-14.1-12.8 2.7-4.82 4.7-9.62 5.4-14.7-4-2.1-8.1-4.2-12.2-6.2-24.7-8.2-43.3-10.3-66.2-10.2z"/>
+</defs></svg>
+
+<script>
+(() => {
+  const T = JSON.parse(document.getElementById('tokens').textContent);
+  const NS = 'http://www.w3.org/2000/svg';
+  const lum = (h) => { const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const f = (n) => n.toFixed(1);
+
+  // ---------- splash art ----------
+  function byrne(svg, t) {
+    const A = [100, 235], B = [245, 235], r = 145, C = [172.5, 235 - r * Math.sqrt(3) / 2];
+    svg.innerHTML =
+      `<circle cx="${A[0]}" cy="${A[1]}" r="${r}" fill="none" stroke="${t.ink}" stroke-width="2"/>` +
+      `<circle cx="${B[0]}" cy="${B[1]}" r="${r}" fill="none" stroke="${t.ink}" stroke-width="2"/>` +
+      `<polygon points="${A} ${B} ${C}" fill="${t.hint}"/>` +
+      `<line x1="${A[0]}" y1="${A[1]}" x2="${B[0]}" y2="${B[1]}" stroke="${t.gap}" stroke-width="8" stroke-linecap="round"/>` +
+      `<line x1="${A[0]}" y1="${A[1]}" x2="${C[0]}" y2="${f(C[1])}" stroke="${t.alone}" stroke-width="8" stroke-linecap="round"/>` +
+      `<line x1="${B[0]}" y1="${B[1]}" x2="${C[0]}" y2="${f(C[1])}" stroke="${t.ink}" stroke-width="8" stroke-linecap="round"/>` +
+      [A, B, C].map(([x, y]) => `<circle cx="${x}" cy="${f(y)}" r="5" fill="${t.ink}"/>`).join('');
+  }
+
+  // Greek key, one 26-wide unit repeated across the band
+  function meander(svg, t) {
+    const unit = 'M0 23 H22 V3 H4 V17 H16 V9 H10';
+    let d = '';
+    for (let x = 0; x < 345; x += 26) d += `<path d="${unit}" transform="translate(${x} 0)"/>`;
+    svg.innerHTML = `<line x1="0" y1="1" x2="345" y2="1"/><line x1="0" y1="25" x2="345" y2="25"/><g>${d}</g>`;
+    svg.setAttribute('fill', 'none'); svg.setAttribute('stroke', t.ink); svg.setAttribute('stroke-width', '2');
+  }
+
+  // amphora outline from a half profile, smoothed with Catmull-Rom curves
+  const PROFILE = [[26, 0], [20, 10], [17, 40], [22, 58], [62, 92], [78, 138], [72, 188], [46, 236], [22, 260], [30, 274], [33, 286]];
+  function smooth(pts) {
+    let d = '';
+    for (let i = 0; i < pts.length - 1; i++) {
+      const p0 = pts[i - 1] || pts[i], p1 = pts[i], p2 = pts[i + 1], p3 = pts[i + 2] || p2;
+      const c1 = [p1[0] + (p2[0] - p0[0]) / 6, p1[1] + (p2[1] - p0[1]) / 6], c2 = [p2[0] - (p3[0] - p1[0]) / 6, p2[1] - (p3[1] - p1[1]) / 6];
+      d += ` C${f(c1[0])} ${f(c1[1])} ${f(c2[0])} ${f(c2[1])} ${f(p2[0])} ${f(p2[1])}`;
+    }
+    return d;
+  }
+  function amphoraPath(cx, top, s) {
+    const R = PROFILE.map(([x, y]) => [cx + x * s, top + y * s]);
+    const L = PROFILE.map(([x, y]) => [cx - x * s, top + y * s]).reverse();
+    return `M${f(L[L.length - 1][0])} ${f(top)} L${f(R[0][0])} ${f(R[0][1])}` + smooth(R) + ` L${f(L[0][0])} ${f(L[0][1])}` + smooth(L) + ' Z';
+  }
+  function handles(cx, top, s, stroke) {
+    const h = (k) => `<path d="M${f(cx + k * 17 * s)} ${f(top + 16 * s)} C${f(cx + k * 60 * s)} ${f(top + 2 * s)} ${f(cx + k * 72 * s)} ${f(top + 52 * s)} ${f(cx + k * 56 * s)} ${f(top + 90 * s)}" fill="none" stroke="${stroke}" stroke-width="${f(7 * s)}" stroke-linecap="round"/>`;
+    return h(1) + h(-1);
+  }
+  let uid = 0;
+  function amphora(svg, t) {
+    const cx = 172.5, top = 8, s = 1.1, id = 'amp' + uid++;
+    const d = amphoraPath(cx, top, s);
+    let key = '';
+    for (let x = cx - 90; x < cx + 90; x += 20) key += `<path d="M${x} ${top + 158 * s} h16 v-14 h-12 v9 h7 v-5" fill="none" stroke="${t.ink}" stroke-width="2.2"/>`;
+    svg.innerHTML =
+      `<defs><clipPath id="${id}"><path d="${d}"/></clipPath></defs>` + handles(cx, top, s, t.ink) +
+      `<path d="${d}" fill="${t.ink}"/>` +
+      `<g clip-path="url(#${id})"><rect x="0" y="${top + 96 * s}" width="345" height="${80 * s}" fill="${t.accent}"/>` +
+      `<rect x="0" y="${top + 24 * s}" width="345" height="${22 * s}" fill="${t.accent}"/>` +
+      `<line x1="0" y1="${top + 108 * s}" x2="345" y2="${top + 108 * s}" stroke="${t.ink}" stroke-width="2"/>${key}` +
+      `<line x1="0" y1="${top + 246 * s}" x2="345" y2="${top + 246 * s}" stroke="${t.accent}" stroke-width="3"/></g>`;
+  }
+
+  // Ionic capital: two logarithmic spirals over a fluted shaft
+  function spiral(cx, cy, R, dir) {
+    const tmax = 3.3 * Math.PI, b = Math.log(R / 6) / tmax;
+    let d = '';
+    for (let th = 0; th <= tmax; th += 0.06) {
+      const r = R * Math.exp(-b * th);
+      d += (d ? ' L' : 'M') + f(cx + dir * r * Math.sin(th)) + ' ' + f(cy - r * Math.cos(th));
+    }
+    return d;
+  }
+  function ionic(svg, t) {
+    const cy = 112, R = 46, cl = 70, cr = 275;
+    let flutes = '';
+    for (let x = 96; x <= 249; x += 17) flutes += `<line x1="${x}" y1="176" x2="${x}" y2="340"/>`;
+    svg.innerHTML =
+      `<g fill="none" stroke="${t.ink}" stroke-width="2.2" stroke-linecap="round">` +
+      `<rect x="18" y="38" width="309" height="16" fill="${t.surface}"/>` +
+      `<path d="M${cl} ${cy - R} H${cr}"/><path d="M${cl + 10} ${cy - R + 10} H${cr - 10}"/>` +
+      `<path d="${spiral(cl, cy, R, -1)}"/><path d="${spiral(cr, cy, R, 1)}"/>` +
+      `<path d="M${cl + 26} ${cy + 18} Q172.5 ${cy + 64} ${cr - 26} ${cy + 18}"/>` +
+      `<rect x="88" y="166" width="169" height="10" fill="${t.surface}"/>` +
+      `<g stroke-width="1.6">${flutes}</g><line x1="88" y1="176" x2="88" y2="340"/><line x1="257" y1="176" x2="257" y2="340"/></g>` +
+      `<circle cx="${cl}" cy="${cy}" r="7" fill="${t.accent}"/><circle cx="${cr}" cy="${cy}" r="7" fill="${t.accent}"/>`;
+  }
+
+  function euler(svg, t) {
+    svg.innerHTML =
+      `<circle cx="160" cy="200" r="140" fill="${t.primary}" fill-opacity=".07" stroke="${t.primary}" stroke-width="2"/>` +
+      `<circle cx="150" cy="215" r="82" fill="${t.hint}" fill-opacity=".85" style="mix-blend-mode:multiply"/>` +
+      `<circle cx="118" cy="238" r="30" fill="${t.alone}" fill-opacity=".55" style="mix-blend-mode:multiply"/>` +
+      `<circle cx="182" cy="234" r="34" fill="${t.alone}" fill-opacity=".35" style="mix-blend-mode:multiply"/>` +
+      `<circle cx="300" cy="62" r="34" fill="none" stroke="${t.ink}" stroke-width="1.6" stroke-dasharray="5 5"/>` +
+      `<g font-family="${t.fd.replace(/"/g, '&quot;')}" font-style="italic" font-size="16" fill="${t.ink}" text-anchor="middle">` +
+      `<text x="160" y="102">opaque celestial bodies</text><text x="150" y="174">planet</text>` +
+      `<text x="118" y="243">rocky</text><text x="182" y="239">giant</text><text x="300" y="67">star</text></g>`;
+  }
+
+  // generated marble: value noise, warped into veins
+  function marble(canvas, t, veil) {
+    const W = canvas.width, H = canvas.height, ctx = canvas.getContext('2d'), img = ctx.createImageData(W, H);
+    const hash = (i, j) => { let h = (i * 374761393 + j * 668265263) | 0; h = Math.imul(h ^ (h >>> 13), 1274126177); return ((h ^ (h >>> 16)) >>> 0) / 4294967295; };
+    const sm = (x) => x * x * (3 - 2 * x);
+    const noise = (x, y) => { const i = Math.floor(x), j = Math.floor(y), u = sm(x - i), v = sm(y - j); const a = hash(i, j), b = hash(i + 1, j), c = hash(i, j + 1), d = hash(i + 1, j + 1); return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v; };
+    const fbm = (x, y) => { let s = 0, a = 0.5; for (let k = 0; k < 5; k++) { s += a * noise(x, y); x *= 2; y *= 2; a *= 0.5; } return s; };
+    const hex = (h) => [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16));
+    const base = hex(t.bg), vein = [74, 112, 92], gold = hex(t.accent);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+      const nx = x / 140, ny = y / 140, w = fbm(nx * 0.8, ny * 0.8);
+      const ridge = Math.abs(Math.sin((nx * 0.9 + ny * 0.55 + w * 3.4) * 2.3));
+      const m = 0.82 + 0.36 * fbm(nx * 2 + 7, ny * 2 + 3);
+      let c = base.map((v) => v * m);
+      if (ridge < 0.14) { const k = (1 - ridge / 0.14) ** 2; c = c.map((v, i) => v + (vein[i] - v) * k * 0.8); }
+      if (ridge < 0.022) { const k = 1 - ridge / 0.022; c = c.map((v, i) => v + (gold[i] - v) * k * 0.75); }
+      if (veil) c = c.map((v, i) => v + (base[i] - v) * veil);
+      const o = (y * W + x) * 4; img.data[o] = c[0]; img.data[o + 1] = c[1]; img.data[o + 2] = c[2]; img.data[o + 3] = 255;
+    }
+    ctx.putImageData(img, 0, 0);
+  }
+
+  // ---------- calibration visuals (felt 7, scored 5, out of 8) ----------
+  function balance(t, felt, scored) {
+    const v = t.viz, gap = felt - scored, a = Math.max(-14, Math.min(14, gap * 5)) * Math.PI / 180;
+    const px = 160, py = 122, L = 118, k = 44 / Math.sqrt(8);
+    const ux = Math.cos(a), uy = -Math.sin(a), nx = -Math.sin(a), ny = -Math.cos(a);
+    const disc = (tpos, n, fill, stroke, dash, num, label, lx) => {
+      const r = k * Math.sqrt(n), cx = px + tpos * L * ux + r * nx, cy = py + tpos * L * uy + r * ny;
+      return `<circle cx="${f(cx)}" cy="${f(cy)}" r="${f(r)}" fill="${fill}" stroke="${stroke}" stroke-width="2" ${dash ? 'stroke-dasharray="6 5"' : ''}/>` +
+        `<text class="n" x="${f(cx)}" y="${f(cy + 10)}" text-anchor="middle" fill="${num}">${n}</text>` +
+        `<text class="t" x="${lx}" y="196" text-anchor="middle">${label}</text>`;
+    };
+    return `<svg class="viz" viewBox="0 0 320 204" role="img" aria-label="A balance: the felt-sure weight (${felt}) outweighs the scored weight (${scored}) by ${gap}.">` +
+      `<line x1="${f(px - L * ux)}" y1="${f(py - L * uy)}" x2="${f(px + L * ux)}" y2="${f(py + L * uy)}" stroke="${v.beam}" stroke-width="4" stroke-linecap="round"/>` +
+      `<polygon points="${px},${py} ${px - 20},${py + 50} ${px + 20},${py + 50}" fill="${v.fulcrum}"/>` +
+      `<line x1="${px - 42}" y1="${py + 50}" x2="${px + 42}" y2="${py + 50}" stroke="${v.beam}" stroke-width="2"/>` +
+      disc(-0.8, felt, v.feltFill, v.feltStroke, v.feltDash, v.numFelt, 'Felt sure', 62) +
+      disc(0.8, scored, v.scoredFill, v.scoredStroke, false, v.numScored, 'Scored', 258) + `</svg>`;
+  }
+
+  function amphorae(t, felt, scored) {
+    const v = t.viz, s = 0.6, top = 8, y0 = top + 58 * s, y1 = top + 286 * s, lvl = (n) => y1 - (y1 - y0) * (n / 8);
+    const jar = (cx, n, op, id) => {
+      const d = amphoraPath(cx, top, s);
+      return `<defs><clipPath id="${id}"><path d="${d}"/></clipPath></defs>` + handles(cx, top, s, v.glaze) +
+        `<path d="${d}" fill="${t.surface}"/><rect x="${cx - 60}" y="${f(lvl(n))}" width="120" height="${f(y1 - lvl(n))}" fill="${v.fill}" fill-opacity="${op}" clip-path="url(#${id})"/>` +
+        `<path d="${d}" fill="none" stroke="${v.glaze}" stroke-width="3"/>`;
+    };
+    const a = 'jf' + uid++, b = 'js' + uid++;
+    return `<svg class="viz" viewBox="0 0 320 204" role="img" aria-label="Two jars: felt sure filled to ${felt} of 8, scored filled to ${scored} of 8. The dashed line marks the ${felt} level.">` +
+      jar(84, felt, 0.45, a) + jar(236, scored, 1, b) +
+      `<line x1="40" y1="${f(lvl(felt))}" x2="296" y2="${f(lvl(felt))}" stroke="${t.gap}" stroke-width="2" stroke-dasharray="6 5"/>` +
+      `<path d="M300 ${f(lvl(felt))} h8 V${f(lvl(scored))} h-8" fill="none" stroke="${t.gap}" stroke-width="2"/>` +
+      `<text class="t" x="84" y="198" text-anchor="middle">Felt sure · ${felt}</text><text class="t" x="236" y="198" text-anchor="middle">Scored · ${scored}</text></svg>`;
+  }
+
+  function eulerGap(t, felt, scored) {
+    const k = 92 / Math.sqrt(8), Rf = k * Math.sqrt(felt), Rs = k * Math.sqrt(scored), id = 'hatch' + uid++, cx = 100, cy = 102;
+    return `<svg class="viz" viewBox="0 0 320 204" role="img" aria-label="Two circles: what you felt sure of (${felt}) around what you scored (${scored}). The ring between them is the gap of ${felt - scored}.">` +
+      `<defs><pattern id="${id}" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><line x1="0" y1="0" x2="0" y2="7" stroke="${t.gap}" stroke-width="2.4"/></pattern></defs>` +
+      `<circle cx="${cx}" cy="${cy}" r="${f(Rf)}" fill="url(#${id})" stroke="${t.ink}" stroke-width="2" stroke-dasharray="6 5"/>` +
+      `<circle cx="${cx}" cy="${cy}" r="${f(Rs)}" fill="${t.primary}"/>` +
+      `<text class="n" x="${cx}" y="${cy + 10}" text-anchor="middle" fill="${t.onPrimary}">${scored}</text>` +
+      `<g transform="translate(210 54)"><circle cx="10" cy="0" r="9" fill="none" stroke="${t.ink}" stroke-width="2" stroke-dasharray="4 3"/><text class="t" x="28" y="5">Felt · ${felt}</text>` +
+      `<circle cx="10" cy="40" r="9" fill="${t.primary}"/><text class="t" x="28" y="45">Scored · ${scored}</text>` +
+      `<circle cx="10" cy="80" r="9" fill="url(#${id})" stroke="${t.gap}" stroke-width="1"/><text class="t" x="28" y="85">Gap · ${felt - scored}</text></g></svg>`;
+  }
+
+  const VIZ = { balance, amphorae, euler: eulerGap };
+  const RESULT = (t) => `
+    <div class="island"></div>
+    <div class="top"><span class="lbl">Democracy · result</span><button class="btn ghost">Done</button></div>
+    <div class="body">
+      <div style="display:grid;gap:4px">
+        <span class="lbl">How sure you felt vs. how you did</span>
+        <div class="gaprow"><span class="hero"><span class="plus">+</span>2</span><span class="heronote">you felt surer<br>than you were</span></div>
+      </div>
+      ${VIZ[t.viz.kind](t, 7, 5)}
+      <div class="rub" aria-label="Points per part">
+        <div><span>Bigger group</span><span></span><span class="dots" aria-label="1 of 2"><i class="on"></i><i></i></span></div>
+        <div><span>What it isn’t</span><span class="alone"><svg viewBox="0 0 512 512" aria-hidden="true"><use href="#laurel-path"/></svg>Alone</span><span class="dots" aria-label="2 of 2"><i class="on"></i><i class="on"></i></span></div>
+        <div><span>What it needs</span><span></span><span class="dots" aria-label="1 of 2"><i class="on"></i><i></i></span></div>
+        <div><span>Its types</span><span></span><span class="dots" aria-label="1 of 2"><i class="on"></i><i></i></span></div>
+      </div>
+      <p>You found the bigger group and a real exclusion. ‘What it needs’ is next.</p>
+    </div>
+    <div class="foot"><button class="btn">Practice “what it needs”</button></div>
+    <div class="indicator"></div>`;
+
+  const ART = { byrne, meander, amphora, ionic, euler };
+  const ROLES = [['bg', 'Ground'], ['ink', 'Ink: questions and the learner’s lines'], ['primary', 'Main action'], ['hint', 'Hints and Help'], ['gap', 'The overconfidence gap'], ['alone', 'Done with no help']];
+  const rows = [];
+  document.querySelectorAll('[data-dir]').forEach((sec) => {
+    const t = T[sec.dataset.dir];
+    for (const k of ['bg', 'surface', 'ink', 'soft', 'primary', 'onPrimary', 'hint', 'onHint', 'gap', 'alone', 'aloneBg', 'onAlone', 'line', 'accent', 'fd', 'fb', 'fl']) sec.style.setProperty('--' + k, t[k]);
+    sec.querySelectorAll('[data-result]').forEach((r) => r.insertAdjacentHTML('beforeend', RESULT(t)));
+    sec.querySelectorAll('[data-art]').forEach((svg) => ART[svg.dataset.art](svg, t));
+    sec.querySelectorAll('canvas[data-marble]').forEach((c) => { const veil = parseFloat(c.dataset.marble); marble(c, t, veil < 1 ? veil : 0); });
+    sec.querySelector('[data-swatches]').innerHTML = ROLES.map(([k, label]) => `<li><i style="background:${t[k]}"></i><span><b>${t[k].toUpperCase()}</b> ${label}</span></li>`).join('');
+    const c = (fg, bg) => { const r = ratio(fg, bg); return `<td>${r >= 4.5 ? '' : '✗ '}${r.toFixed(2)}:1</td>`; };
+    const v = t.viz, nums = v.kind === 'balance' ? Math.min(ratio(v.numFelt, v.feltFill), ratio(v.numScored, v.scoredFill)) : ratio(t.onPrimary, t.primary);
+    rows.push(`<tr><td>${t.name}</td>${c(t.ink, t.bg)}${c(t.soft, t.bg)}${c(t.onPrimary, t.primary)}${c(t.onHint, t.hint)}${c(t.gap, t.bg)}${c(t.onAlone, t.aloneBg)}<td>${nums >= 3 ? '' : '✗ '}${nums.toFixed(2)}:1</td></tr>`);
+  });
+  document.getElementById('ctab').innerHTML = rows.join('');
+})();
+</script>
+</body>
+</html>

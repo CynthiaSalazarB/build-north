@@ -1,0 +1,845 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Out of the Cave</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,200..800;1,6..72,200..800&display=swap">
+<style>
+:root {
+  --b-bg: #e6e0d5; --b-ink: #1e1712; --b-soft: #4e443a; --b-line: #cec4b4; --b-card: #f2ede4; --bezel: #0e0b09;
+  --cave: #14100c; --cave-2: #221b15; --cave-ink: #ece3d3; --cave-soft: #b1a28e; --cave-line: #3a3028; --cave-dash: #8c7d6a; --shade: #2e251d; --slab: #f1e8d8;
+  --plaster: #efe5d3; --cell-day: #faf6ee; --umber: #1e1712; --umber-soft: #4e443a; --umber-faint: #74685b; --sep-day: #dccfba;
+  --lamp: #1a1511; --cell-lamp: #27201a; --lamp-ink: #ece3d3; --lamp-soft: #b8ab98; --lamp-faint: #958978; --sep-lamp: #3a3129;
+  --bronze: #7a4a22; --bronze-hi: #a8703f; --bronze-deep: #4e2e14; --on-bronze: #fbf4e8;
+  --bronze-lit: #c98c4f; --bronze-lit-hi: #e2ad72; --bronze-lit-deep: #8a5a2c; --on-bronze-lit: #1a1108;
+  --gold: #e9b04a; --hint-bg: #f3dfb0; --on-hint: #3a2a0e; --hint-icon: #94600f; --hint-bg-dark: #3a2d15; --on-hint-dark: #f3dfb0;
+  --gap: #9a3820; --gap-lit: #ee8b6a;
+  --patina: #2f6a5b; --patina-tag: #d6e7df; --on-patina-tag: #1f4a3f; --patina-tag-dark: #213a33; --on-patina-tag-dark: #cfe5dc;
+  --clay: #7a6555; --clay-hi: #9a8473; --clay-deep: #5e4c3f; --white: #ffffff;
+  --gilt-rgb: 201 162 90; --sky-1: #fff6e3; --sky-2: #f3d9a4; --beam: 243 217 164; --deep-shadow: 8 6 4;
+  --shade-day: rgb(30 23 18 / .12); --shade-lamp: rgb(0 0 0 / .32);
+  --glass-light: rgb(255 252 245 / .62); --glass-dark: rgb(38 32 26 / .58); --glass-edge-light: rgb(255 255 255 / .75); --glass-edge-dark: rgb(255 255 255 / .16);
+  --serif: "Newsreader", "Iowan Old Style", "Palatino Linotype", Georgia, serif;
+  --sans: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { --b-bg: #17130f; --b-ink: #ede5d8; --b-soft: #b8ab98; --b-line: #362e26; --b-card: #211b16; color-scheme: dark; }
+}
+:root[data-theme="dark"] { --b-bg: #17130f; --b-ink: #ede5d8; --b-soft: #b8ab98; --b-line: #362e26; --b-card: #211b16; color-scheme: dark; }
+
+*, *::before, *::after { box-sizing: border-box; }
+.board, .sec, .intro, .sec-head, .panel, .opt, .kit > article { grid-template-columns: minmax(0, 1fr); }
+body { background: var(--b-bg); color: var(--b-ink); font: 400 17px/1.55 var(--serif); }
+.board { max-width: 1340px; margin: 0 auto; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); padding-block: 48px 80px; display: grid; gap: 72px; }
+.board p { margin: 0; }
+.board h1 { font: 400 clamp(2.8rem, 7.5vw, 5.4rem)/0.95 var(--serif); letter-spacing: -.015em; margin: 0; text-wrap: balance; }
+.board h1 i, .board h2 i { font-style: italic; }
+.board h2 { font: 400 clamp(1.8rem, 3.6vw, 2.6rem)/1.06 var(--serif); margin: 0; text-wrap: balance; }
+.eyebrow { font: 600 13px/1.2 var(--sans); color: var(--b-soft); }
+.soft { color: var(--b-soft); }
+.intro { display: grid; gap: 16px; max-width: 64ch; }
+.lede { font-size: 1.3rem; line-height: 1.45; }
+.sec { display: grid; gap: 24px; }
+.sec-head { display: grid; gap: 8px; max-width: 70ch; }
+.rowhead { font: 400 1.6rem/1.2 var(--serif); margin: 0; }
+.phones { display: flex; flex-wrap: wrap; gap: 40px 28px; }
+.opt { display: grid; gap: 12px; width: 393px; max-width: 100%; margin: 0; align-content: start; }
+.opt figcaption { font: 600 15px/1.4 var(--sans); color: var(--b-ink); }
+.opt figcaption span { font-weight: 400; color: var(--b-soft); }
+.fw { max-width: calc(100% + 24px); overflow-x: auto; padding: 12px; margin: -12px; }
+.replay { justify-self: start; font: 600 15px/1 var(--sans); color: var(--b-ink); background: var(--b-card); border: 1px solid var(--b-line); border-radius: 22px; padding: 0 16px; height: 44px; cursor: pointer; }
+.replay:focus-visible { outline: 3px solid var(--b-ink); outline-offset: 2px; }
+
+.frame { width: 393px; height: 852px; flex: none; border-radius: 48px; overflow: hidden; position: relative; box-shadow: 0 0 0 10px var(--bezel), 0 18px 40px rgb(0 0 0 / .28); }
+.frame.compact { width: 375px; height: 667px; border-radius: 24px; }
+.island { position: absolute; top: 11px; left: 50%; width: 124px; height: 36px; margin-left: -62px; border-radius: 20px; background: var(--bezel); z-index: 9; }
+.indicator { position: absolute; left: 50%; bottom: 8px; width: 134px; height: 5px; margin-left: -67px; border-radius: 3px; background: var(--ink); opacity: .4; z-index: 9; }
+
+.cave { --bg: var(--cave); --cell: var(--cave-2); --ink: var(--cave-ink); --soft: var(--cave-soft); --faint: var(--cave-dash); --sep: var(--cave-line); --primary: var(--slab); --on-primary: var(--umber); --glass: var(--glass-dark); --glass-edge: var(--glass-edge-dark); --check: var(--bronze-lit); }
+.day { --bg: var(--plaster); --cell: var(--cell-day); --ink: var(--umber); --soft: var(--umber-soft); --faint: var(--umber-faint); --sep: var(--sep-day); --primary: var(--bronze); --on-primary: var(--on-bronze); --block: var(--bronze); --block-hi: var(--bronze-hi); --block-deep: var(--bronze-deep); --hint-c: var(--hint-bg); --on-hint-c: var(--on-hint); --hint-i: var(--hint-icon); --gapc: var(--gap); --tag: var(--patina-tag); --on-tag: var(--on-patina-tag); --glass: var(--glass-light); --glass-edge: var(--glass-edge-light); --check: var(--bronze); --shade-fill: var(--shade-day); }
+.lamp { --bg: var(--lamp); --cell: var(--cell-lamp); --ink: var(--lamp-ink); --soft: var(--lamp-soft); --faint: var(--lamp-faint); --sep: var(--sep-lamp); --primary: var(--bronze-lit); --on-primary: var(--on-bronze-lit); --block: var(--bronze-lit); --block-hi: var(--bronze-lit-hi); --block-deep: var(--bronze-lit-deep); --hint-c: var(--hint-bg-dark); --on-hint-c: var(--on-hint-dark); --hint-i: var(--gold); --gapc: var(--gap-lit); --tag: var(--patina-tag-dark); --on-tag: var(--on-patina-tag-dark); --glass: var(--glass-dark); --glass-edge: var(--glass-edge-dark); --check: var(--bronze-lit); --shade-fill: var(--shade-lamp); }
+
+.scr { position: relative; isolation: isolate; width: 100%; height: 100%; display: flex; flex-direction: column; gap: 16px; background: var(--bg); color: var(--ink); font: 400 17px/26px var(--serif); padding: 59px 20px 34px; overflow: hidden; }
+.compact .scr { padding: 20px 20px 16px; }
+.scr > * { position: relative; }
+.scr > .layer, .scr > .island, .scr > .indicator, .scr > .sheet { position: absolute; }
+.layer { inset: 0; pointer-events: none; }
+.scr p { margin: 0; }
+button { font: inherit; color: inherit; }
+.t-splash { font: 400 48px/52px var(--serif); letter-spacing: -.01em; margin: 0; }
+.t-large { font: 500 34px/41px var(--serif); letter-spacing: -.01em; margin: 0; }
+.t-title { font: 400 28px/34px var(--serif); margin: 0; text-wrap: balance; }
+.t-hero { font: 400 88px/80px var(--serif); letter-spacing: -.02em; font-variant-numeric: lining-nums tabular-nums; }
+.t-hero .plus { font-weight: 700; font-size: .6em; font-variation-settings: "opsz" 14; vertical-align: .18em; margin-right: 2px; }
+.t-ui { font: 400 17px/22px var(--sans); }
+.t-head { font: 600 17px/22px var(--sans); }
+.t-foot { font: 400 13px/18px var(--sans); }
+.q, .t-title i, .t-splash i { font-style: italic; }
+.b { font-weight: 600; }
+.dim { color: var(--soft); }
+.grow { flex: 1; display: flex; flex-direction: column; gap: 16px; min-height: 0; }
+.foot { display: grid; gap: 8px; flex: none; }
+
+.bar { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; height: 44px; flex: none; }
+.bar.wide { grid-template-columns: auto 1fr auto; }
+.bar > :nth-child(2) { justify-self: center; text-align: center; }
+.bar > :nth-child(3) { justify-self: end; }
+.glass { background: var(--glass); -webkit-backdrop-filter: blur(20px) saturate(170%); backdrop-filter: blur(20px) saturate(170%); box-shadow: inset 0 0 0 .5px var(--glass-edge), 0 8px 24px rgb(0 0 0 / .12); color: var(--ink); }
+.circle { width: 44px; height: 44px; border-radius: 22px; display: grid; place-items: center; border: 0; padding: 0; cursor: pointer; flex: none; transition: transform .12s ease-out; }
+.circle svg { width: 20px; height: 20px; }
+.pill { height: 44px; border-radius: 22px; padding: 0 16px; border: 0; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; font: 600 17px/22px var(--sans); cursor: pointer; transition: transform .12s ease-out; }
+.pill svg { width: 18px; height: 18px; }
+.pill.primary { background: var(--primary); color: var(--on-primary); }
+
+.btn { height: 52px; border-radius: 26px; border: 0; white-space: nowrap; font: 600 17px/22px var(--sans); display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 0 24px; cursor: pointer; transition: transform .12s ease-out; }
+.btn.primary { background: var(--primary); color: var(--on-primary); }
+.btn.plain { background: transparent; color: var(--ink); height: 44px; }
+.btn.hint { background: var(--hint-c); color: var(--on-hint-c); height: 44px; border-radius: 22px; width: auto; padding: 0 16px 0 12px; justify-self: start; }
+.btn.hint svg { width: 20px; height: 20px; color: var(--hint-i); }
+.btn.tonal { background: var(--cell); color: var(--ink); height: 44px; border-radius: 22px; width: auto; padding: 0 20px; box-shadow: inset 0 0 0 1px var(--sep); justify-self: start; }
+.btn:active, .circle:active, .pill:active, .step:active, .send:active { transform: scale(.96); }
+.scr :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+
+.composer { display: flex; gap: 8px; align-items: center; }
+.composer .field { flex: 1; min-width: 0; height: 52px; border-radius: 26px; display: flex; align-items: center; padding: 0 20px; color: var(--faint); font: 400 17px/22px var(--sans); }
+.send { width: 52px; height: 52px; border-radius: 26px; border: 0; background: var(--primary); color: var(--on-primary); display: grid; place-items: center; flex: none; cursor: pointer; transition: transform .12s ease-out; }
+.send svg { width: 22px; height: 22px; }
+.send:disabled { opacity: .45; cursor: default; }
+.spin { width: 20px; height: 20px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: spin .8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.glow { background: radial-gradient(ellipse 72% 40% at 50% 27%, rgb(var(--beam) / .2), transparent 72%); }
+.art .window { position: absolute; top: 104px; left: 50%; width: 188px; height: 268px; margin-left: -94px; border-radius: 94px 94px 4px 4px; overflow: hidden; box-shadow: 0 0 84px 26px rgb(var(--beam) / .25); outline: 1px solid rgb(var(--gilt-rgb) / .65); outline-offset: 8px; }
+.art .window img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 30%; display: block; }
+.art .beam { position: absolute; top: 372px; left: 0; right: 0; bottom: 0; background: linear-gradient(rgb(var(--beam) / .28), rgb(var(--beam) / .07) 65%, rgb(var(--beam) / 0)); clip-path: polygon(26% 0, 74% 0, 100% 100%, 0 100%); }
+.art .you { position: absolute; top: 420px; left: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: var(--cave); box-shadow: 0 0 0 2px rgb(var(--beam) / .45); }
+.art .you-shadow { position: absolute; top: 428px; left: 50%; width: 22px; height: 116px; margin-left: -11px; border-radius: 50%; background: radial-gradient(ellipse at top, rgb(var(--deep-shadow) / .85), transparent 70%); }
+.stack { margin-top: auto; display: grid; gap: 12px; }
+
+.onb .arched { position: absolute; top: 60px; left: 12px; right: 12px; bottom: 40px; border-radius: 184px 184px 4px 4px; overflow: hidden; border: 1px solid rgb(var(--gilt-rgb) / .85); }
+.onb .arched img { width: 100%; height: 100%; object-fit: cover; object-position: 60% 30%; display: block; }
+.onb .arched::before { content: ""; position: absolute; inset: 0; background: linear-gradient(rgb(20 16 12 / 0) 36%, rgb(20 16 12 / .9) 52%, var(--cave) 64%); }
+.onb .arched::after { content: ""; position: absolute; inset: 4px; border: 1px solid rgb(var(--gilt-rgb) / .4); border-radius: 180px 180px 2px 2px; }
+.onb .skip { position: absolute; top: 59px; right: 20px; }
+.onb .stack { padding: 0 12px 12px; }
+
+.stepper { display: flex; align-items: center; justify-content: center; gap: 24px; }
+.step { width: 56px; height: 56px; border-radius: 28px; border: 1.5px solid var(--ink); background: var(--cell); color: var(--ink); display: grid; place-items: center; cursor: pointer; transition: transform .12s ease-out; flex: none; }
+.step svg { width: 22px; height: 22px; }
+.step:disabled { opacity: .35; cursor: default; }
+.door { position: relative; width: 128px; height: 164px; border-radius: 64px 64px 4px 4px; background: linear-gradient(var(--sky-1), var(--sky-2)); box-shadow: 0 0 64px 18px rgb(var(--beam) / .22); display: grid; align-content: end; justify-items: center; gap: 4px; padding-bottom: 16px; color: var(--umber); flex: none; }
+.door .t-foot { color: var(--umber-soft); }
+.door::after { content: ""; position: absolute; top: 100%; left: 50%; width: 393px; margin-left: -196.5px; height: 440px; background: linear-gradient(rgb(var(--beam) / .16), rgb(var(--beam) / 0) 85%); clip-path: polygon(33.7% 0, 66.3% 0, 100% 100%, 0 100%); z-index: -1; pointer-events: none; }
+.blocks { display: grid; grid-template-columns: repeat(8, 1fr); gap: 8px; }
+.blk { position: relative; height: 48px; border-radius: 8px; }
+.blk.shade { background: var(--shade); border: 1.5px dashed var(--cave-dash); }
+.day .blk.shade, .lamp .blk.shade { background: var(--shade-fill); border-color: var(--gapc); }
+.blk.empty { border: 1.5px dotted var(--faint); opacity: .6; }
+.blk.cast { background: linear-gradient(var(--block-hi), var(--block) 42%, var(--block-deep)); box-shadow: 0 4px 0 -1px var(--shade-fill); }
+.blk.cast::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: var(--bg); border: 1.5px dashed var(--gapc); opacity: 0; }
+.reveal.play .blk.cast::after { animation: cast .28s ease-out both; animation-delay: calc(var(--i) * 90ms + 250ms); }
+@keyframes cast { from { opacity: 1; } to { opacity: 0; } }
+
+.after { position: absolute; inset: 0; opacity: 0; pointer-events: none; transition: opacity .2s ease-out; }
+.dawn-frame .door { transition: transform .7s cubic-bezier(.65, 0, .35, 1); }
+.dawn-frame .door > * { transition: opacity .15s ease-out; }
+.dawn-frame .fade { transition: opacity .2s ease-out; }
+.dawn-frame.dawn .door { transform: scale(13); }
+.dawn-frame.dawn .door > *, .dawn-frame.dawn .fade { opacity: 0; }
+.dawn-frame.dawn .after { opacity: 1; pointer-events: auto; transition: opacity .3s ease-out .55s; }
+
+.keys { display: flex; gap: 4px; color: var(--soft); }
+.keys svg { width: 26px; height: 16px; }
+.keys .done { color: var(--primary); }
+.keys .now { color: var(--ink); }
+.keys .todo { opacity: .35; }
+.chip { align-self: flex-start; display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 12px 0 8px; border-radius: 14px; font: 600 13px/18px var(--sans); color: var(--white); }
+.chip i { width: 8px; height: 8px; border-radius: 4px; background: currentColor; }
+.chip.clay { background: var(--clay); }
+.chip.patina { background: var(--patina); }
+.me { align-self: flex-end; justify-self: end; max-width: 80%; background: var(--cell); padding: 8px 16px; border-radius: 20px 20px 4px 20px; box-shadow: inset 0 0 0 1px var(--sep); }
+.hint-card { background: var(--hint-c); color: var(--on-hint-c); border-radius: 20px; padding: 16px; display: grid; gap: 8px; }
+.hint-card .head { display: flex; align-items: center; justify-content: space-between; }
+.hint-card .lab { display: inline-flex; align-items: center; gap: 6px; font: 600 13px/18px var(--sans); }
+.hint-card .lab svg { width: 18px; height: 18px; color: var(--hint-i); }
+.pips { display: flex; gap: 4px; }
+.pips i { width: 8px; height: 8px; border-radius: 4px; border: 1.5px solid currentColor; }
+.pips i.on { background: currentColor; }
+.typing { align-self: flex-start; display: flex; align-items: center; gap: 12px; }
+.typing .dots { display: inline-flex; gap: 4px; padding: 12px 16px; border-radius: 20px 20px 20px 4px; background: var(--cell); box-shadow: inset 0 0 0 1px var(--sep); }
+.typing .dots i { width: 8px; height: 8px; border-radius: 4px; background: var(--soft); animation: dot 1.2s ease-in-out infinite; }
+.typing .dots i:nth-child(2) { animation-delay: .2s; }
+.typing .dots i:nth-child(3) { animation-delay: .4s; }
+@keyframes dot { 0%, 80%, 100% { opacity: .3; } 40% { opacity: 1; } }
+.err { display: grid; grid-template-columns: 20px 1fr; gap: 8px 12px; align-items: start; }
+.err svg { width: 20px; height: 20px; margin-top: 1px; color: var(--soft); }
+.err .btn { grid-column: 2; }
+
+.list { background: var(--cell); border-radius: 20px; overflow: hidden; flex: none; }
+.row { position: relative; display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 12px; min-height: 60px; padding: 8px 16px; }
+.row + .row::before { content: ""; position: absolute; top: 0; left: 60px; right: 0; height: 1px; background: var(--sep); }
+.row .txt { display: grid; min-width: 0; }
+.row .chev { width: 14px; height: 14px; color: var(--faint); }
+.ghead { font: 400 13px/18px var(--sans); color: var(--soft); padding: 0 16px; margin-bottom: -8px; }
+.ico { width: 32px; height: 32px; border-radius: 8px; overflow: hidden; display: grid; place-items: center; flex: none; }
+.ico img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ico.dot { width: 20px; height: 20px; border-radius: 10px; margin: 0 6px; }
+.mini { display: flex; gap: 2px; }
+.mini i { width: 5px; height: 16px; border-radius: 2px; }
+.card { background: var(--cell); border-radius: 24px; padding: 16px; display: grid; gap: 16px; flex: none; }
+.card .top { display: flex; gap: 16px; align-items: center; }
+.thumb { width: 52px; height: 68px; border-radius: 26px 26px 4px 4px; overflow: hidden; flex: none; outline: 1px solid rgb(var(--gilt-rgb) / .8); outline-offset: 2px; background: var(--cave); }
+.thumb img { width: 100%; height: 100%; object-fit: cover; object-position: 44% 14%; transform: scale(1.7); transform-origin: 44% 22%; display: block; }
+.card .btn { height: 44px; border-radius: 22px; }
+
+.map { position: relative; display: grid; grid-template-columns: 1fr auto 1fr; grid-template-areas: "top top top" "left mid right" "bot bot bot"; gap: 12px 8px; align-items: center; }
+.map .lines { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: -1; }
+.map .lines line { stroke: var(--faint); stroke-width: 1.5; vector-effect: non-scaling-stroke; }
+.node { background: var(--cell); border-radius: 16px; padding: 8px 12px; min-height: 44px; display: grid; min-width: 0; box-shadow: inset 0 0 0 1px var(--sep); }
+.node .v { font: 400 17px/22px var(--serif); }
+.node.empty { background: var(--bg); box-shadow: none; border: 1.5px dashed var(--faint); color: var(--soft); }
+.node.top, .node.bot { justify-self: center; min-width: 176px; text-align: center; }
+.node.top { grid-area: top; } .node.left { grid-area: left; } .node.right { grid-area: right; } .node.bot { grid-area: bot; }
+.node.mid { grid-area: mid; background: var(--primary); color: var(--on-primary); box-shadow: none; border-radius: 40px 40px 8px 8px; padding: 20px 12px 8px; text-align: center; font: 600 17px/22px var(--serif); }
+.clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.sheet { left: 8px; right: 8px; bottom: 8px; height: 404px; border-radius: 40px; background: var(--cell); box-shadow: 0 -2px 24px rgb(0 0 0 / .14); padding: 12px 16px 26px; display: flex; flex-direction: column; gap: 12px; z-index: 2; }
+.grabber { width: 36px; height: 5px; border-radius: 3px; background: var(--faint); opacity: .5; align-self: center; flex: none; }
+.sheet .composer .field { background: var(--bg); box-shadow: inset 0 0 0 1px var(--sep); }
+
+.scale { display: grid; gap: 8px; }
+.brk { display: grid; gap: 4px; width: calc((100% + 8px) * var(--n, 7) / 8 - 8px); text-align: center; }
+.brk i { height: 8px; border: 1.5px solid var(--faint); border-bottom: 0; border-radius: 4px 4px 0 0; }
+.brk.bot i { border-top: 0; border-bottom: 1.5px solid var(--faint); border-radius: 0 0 4px 4px; order: -1; }
+.gaprow { display: flex; align-items: flex-end; gap: 16px; }
+.gaprow .t-hero { color: var(--gapc); }
+.gaprow p { color: var(--gapc); padding-bottom: 8px; max-width: 168px; }
+.dots { display: flex; gap: 4px; }
+.dots i { width: 12px; height: 12px; border-radius: 6px; border: 2px solid var(--primary); }
+.dots i.on { background: var(--primary); }
+.alone { display: inline-flex; align-items: center; gap: 4px; height: 24px; padding: 0 8px 0 6px; border-radius: 12px; font: 600 13px/18px var(--sans); background: var(--tag); color: var(--on-tag); }
+.alone svg { width: 14px; height: 14px; }
+
+.stages { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+.stages li { display: grid; justify-items: center; gap: 4px; color: var(--soft); min-width: 0; }
+.stages .a { width: 100%; height: 84px; border-radius: 32px 32px 4px 4px; overflow: hidden; }
+.stages .a img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 28%; display: block; }
+.stages .sketch { border: 1.5px dashed var(--faint); }
+.stages .clay { background: radial-gradient(circle at 34% 28%, var(--clay-hi), var(--clay) 58%, var(--clay-deep)); }
+.seg { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; }
+.seg i { height: 8px; border-radius: 4px; border: 1.5px dashed var(--sep); }
+.seg i[class] { border-style: solid; }
+.seg i.s1 { border-color: var(--faint); }
+.seg i.s2 { background: var(--clay); border-color: var(--clay); }
+.seg i.s3 { background: var(--white); border-color: var(--ink); }
+.seg i.s4 { background: var(--block); border-color: var(--block); }
+.seg i.s5 { background: var(--patina); border-color: var(--patina); }
+.prow { display: grid; grid-template-columns: 1fr auto; gap: 8px 12px; align-items: center; padding: 12px 16px; position: relative; }
+.prow + .prow::before { content: ""; position: absolute; top: 0; left: 16px; right: 0; height: 1px; background: var(--sep); }
+.note { background: var(--cell); border-radius: 20px; padding: 12px 16px; }
+
+.kit { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); gap: 20px; align-items: start; }
+.kit > article { background: var(--b-card); border: 1px solid var(--b-line); border-radius: 20px; padding: 24px; display: grid; gap: 16px; align-content: start; min-width: 0; }
+.kit h3 { font: 600 13px/1.2 var(--sans); color: var(--b-soft); margin: 0; }
+.kit .name { font: 400 2.6rem/1 var(--serif); letter-spacing: -.01em; }
+.kit .name i { font-style: italic; }
+.icons { display: flex; align-items: end; gap: 16px; flex-wrap: wrap; }
+.icon { width: 120px; height: 120px; border-radius: 27px; background: var(--cave); display: grid; place-items: end center; overflow: hidden; flex: none; }
+.icon.sm { width: 60px; height: 60px; border-radius: 14px; }
+.icon .a { width: 72px; height: 94px; border-radius: 36px 36px 2px 2px; background: linear-gradient(var(--sky-1), var(--sky-2)); box-shadow: 0 0 34px 8px rgb(var(--beam) / .3); display: grid; place-items: center; padding-top: 16px; color: var(--umber); --check: var(--bronze); }
+.icon.sm .a { width: 36px; height: 47px; border-radius: 18px 18px 1px 1px; padding-top: 8px; box-shadow: 0 0 17px 4px rgb(var(--beam) / .3); }
+.icon .a svg { width: 40px; height: 47px; }
+.icon.sm .a svg { width: 20px; height: 24px; }
+.lockup { display: flex; align-items: center; gap: 12px; font: 500 26px/1 var(--serif); padding: 16px 20px; border-radius: 12px; }
+.lockup i { font-style: italic; }
+.lockup svg { width: 26px; height: 31px; flex: none; }
+.lockup.on-cave { background: var(--cave); color: var(--cave-ink); --check: var(--bronze-lit); }
+.lockup.on-plaster { background: var(--plaster); color: var(--umber); --check: var(--bronze); }
+.swatches { display: grid; gap: 12px; }
+.swatch { display: grid; grid-template-columns: 52px 1fr; gap: 12px; align-items: center; font: 400 15px/1.35 var(--sans); }
+.swatch i { width: 52px; height: 52px; border-radius: 12px; box-shadow: inset 0 0 0 1px var(--b-line); }
+.swatch.sm { grid-template-columns: 32px 1fr; }
+.swatch.sm i { width: 32px; height: 32px; border-radius: 8px; }
+.swatch b { font-weight: 600; font-variant-numeric: tabular-nums; }
+.spec { display: grid; gap: 12px; }
+.spec .big { font: 400 56px/1 var(--serif); letter-spacing: -.01em; }
+.spec .mid { font: italic 400 28px/1.2 var(--serif); }
+.spec .ui { font: 600 17px/1.3 var(--sans); }
+.spec .lab { font: 400 13px/1.3 var(--sans); color: var(--b-soft); }
+.small { font: 400 15px/1.5 var(--sans); }
+code { font: 500 .86em/1.4 ui-monospace, "Cascadia Mono", Consolas, monospace; overflow-wrap: anywhere; }
+.panel { background: var(--b-card); border: 1px solid var(--b-line); border-radius: 20px; padding: 24px; display: grid; gap: 16px; font: 400 15px/1.5 var(--sans); }
+.panel h2 { font-family: var(--serif); }
+.panel ul { margin: 0; padding-left: 1.1em; display: grid; gap: 8px; }
+.panel a { color: inherit; text-underline-offset: 2px; }
+.tw { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font: 400 15px/1.45 var(--sans); }
+th, td { text-align: left; padding: 12px 16px 12px 0; border-bottom: 1px solid var(--b-line); vertical-align: top; font-variant-numeric: tabular-nums; }
+th { font: 600 13px/1.2 var(--sans); color: var(--b-soft); }
+td.nw, th.nw { white-space: nowrap; }
+td b { font-weight: 600; }
+.sw { display: inline-block; width: 16px; height: 16px; border-radius: 4px; vertical-align: -2px; margin-right: 8px; box-shadow: inset 0 0 0 1px var(--b-line); }
+.sw.shadow-sw { background: var(--shade-day); outline: 1.5px dashed var(--gap); outline-offset: -1.5px; }
+.stages-legend { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+.stages-legend span { display: inline-flex; align-items: center; gap: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  .btn, .step, .circle, .pill, .send { transition: none; }
+  .dawn-frame.dawn .door { transform: none; }
+  .dawn-frame.dawn .after { transition: opacity .15s linear; }
+  .reveal.play .blk.cast::after { animation: none; }
+  .typing .dots i, .spin { animation: none; }
+  .typing .dots i { opacity: .7; }
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <symbol id="mark" viewBox="0 0 36 42"><path d="M9 13C9 7 13.5 4 18.5 4 24 4 28 7.5 28 12.5c0 5.5-5 7.5-7.5 10-1.5 1.5-2 3-2 5.5" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round"/><path d="M11.5 33.5l4.5 4.5 9.5-9.5" fill="none" style="stroke:var(--check)" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4.4" fill="currentColor"/><path d="M12 2.8v2.4M12 18.8v2.4M2.8 12h2.4M18.8 12h2.4M5.5 5.5l1.7 1.7M16.8 16.8l1.7 1.7M5.5 18.5l1.7-1.7M16.8 7.2l1.7-1.7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="key" viewBox="0 0 26 16"><path d="M1 15V1h24v14H8V6h10v5" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="x" viewBox="0 0 24 24"><path d="M7 7l10 10M17 7L7 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="M14.5 5.5L8 12l6.5 6.5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="up" viewBox="0 0 24 24"><path d="M12 19V5M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></symbol>
+  <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="minus" viewBox="0 0 24 24"><path d="M5 12h14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/></symbol>
+  <symbol id="person" viewBox="0 0 24 24"><circle cx="12" cy="8.5" r="3.6" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M5 19.5c1.2-3.4 4-5 7-5s5.8 1.6 7 5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></symbol>
+  <symbol id="alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M12 7.5v5.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="16.3" r="1.2" fill="currentColor"/></symbol>
+  <symbol id="laurel" viewBox="0 0 512 512"><path fill="currentColor" d="M234.7 18.05c-21 .2-38.8 2.5-62 10.2-4.1 2-8.2 4.1-12.2 6.2.8 5.26 3.2 10.77 5.5 14.7-4.9 4.2-9.6 8.4-14.1 12.8-3.7-5.5-6.6-11.4-8.3-17.4-14.2 9.2-27.7 19.6-40.1 31.4 1.9 9.5 9.2 18.21 15.2 24.15-3.7 5.2-7.2 10.4-10.5 15.7-8.22-7.2-15.12-15.5-19.32-24.65C74.97 108.1 61.92 126 53.08 142.3c5.29 13 19.01 22.7 29.8 28.4-2 6.1-3.7 12.2-5.1 18.4-13.5-6.4-26.3-15.7-34.5-26.6-8.7 20.1-14.7 40.7-18.2 61.4 9.63 15.5 30.57 22.9 46 25.9.1 6.4.4 12.8.9 19.2-17.79-2.7-37.26-9.6-49.9-20.4-1.6 22.3-.5 44.5 3.4 66.2 15.25 13.7 41.14 15.3 58.6 13.7 2 6.1 4.1 12.2 6.5 18.1-18.61 4.5-43.29 1.1-59.3-6.2 6.6 23.7 16.4 46.4 29.2 67.4 19.33 8.6 44.52 3.6 61.72-2.5 3.7 5.3 7.6 10.5 11.6 15.5-17.8 9.5-39.9 11.5-57.52 10.1 12.3 16.3 26.62 31.2 42.72 44.4 4.9 1.1 10.5 1.1 16.7.3 11.7-1.7 25.2-7 37.9-14.7 16.7 13.5 34.9 24.7 54.1 33.1l7.5-17.2c-16-6.9-31.3-16.2-45.6-27.3 13.3-10.9 24.3-24 30.2-36.5 4.7-9.7 6.3-18.4 4.5-26.3-10.7-5.7-20.6-12.5-29.5-20.3-7.8 20.8-26.4 36.1-43.5 46-4-4.9-7.9-9.9-11.6-15 16.8-9.8 39.9-27.5 39.1-47.1-8.9-10.3-16.6-21.8-22.9-34.1-12 14-30.7 22.5-46.5 26.7-2.4-5.8-4.6-11.6-6.6-17.6 16.8-5.2 37.9-13 44.1-29.7-4.3-11.5-7.5-23.6-9.7-36-13.8 8.4-32 11.1-46.32 10.9-.6-6.2-1-12.4-1.2-18.7 15.52-.6 33.92-2.5 44.92-14.3-.8-12.6-.5-25.5.9-38.5-13.4 2.8-29 .3-40.42-3.2 1.3-6 2.9-12.1 4.8-18.1 12.82 3.2 27.12 6.7 38.82.8 2.7-13.6 6.7-27.3 12-40.8-9.9-1.8-20.2-6.3-27.7-10.7 3.3-5.3 6.8-10.5 10.5-15.7 8.1 4.2 16.3 8.8 25.2 8.4 5.7-11.6 12.3-22.65 19.5-32.75-5.1-2.7-10-6.4-14.4-10.6 4.4-4.3 9.1-8.5 13.9-12.7 3.8 3.54 8 6.18 12.3 8.2 15.9-18.6 35.9-36.23 49-53.8zm38.4 0c15.4 20.75 33.8 35.63 48.9 53.7 4.6-1.76 9.1-5.23 12.3-8.1 4.9 4.2 9.5 8.4 13.9 12.7-4.4 4.2-9.2 7.9-14.4 10.6 7.3 10.1 13.9 21.05 19.6 32.65 9-.1 18.4-4.4 25.2-8.4 3.7 5.2 7.2 10.4 10.4 15.7-8.8 5.9-18.2 9.6-27.6 10.7 5.3 13.5 9.3 27.2 12 40.8 12.3 5.4 27.3 2.7 38.7-.8 1.9 6 3.5 12.1 4.9 18.1-14.2 3.4-27.3 6.2-40.4 3.3 1.4 12.9 1.6 25.8.8 38.5 11.4 12.3 30.2 14.4 44.9 14.2-.2 6.3-.5 12.5-1.2 18.7-17.1-.5-32.8-2.5-46.3-10.9-2.1 12.4-5.3 24.5-9.6 36.1 8.2 17.4 27.8 25.3 44.1 29.6-2 6-4.2 11.8-6.6 17.6-18.5-5.6-34.9-13-46.6-26.7-6.3 12.4-13.9 23.8-22.9 34.1 1.5 22.4 22.4 37.8 39.2 47.1-3.7 5.1-7.6 10.1-11.6 15-19-11.8-36.6-25.8-43.5-46-9 7.8-18.8 14.6-29.6 20.3-1.8 7.9-.1 16.6 4.5 26.3 6 12.5 17 25.6 30.3 36.5-14.3 11.1-29.6 20.4-45.6 27.3l7.4 17.2c19.3-8.4 37.4-19.6 54.1-33.2 12.7 7.8 26.2 13.1 38 14.8 6.2.8 11.8.8 16.7-.3 16.1-13.2 30.4-28.1 42.7-44.4-18 1.7-37.9-2.3-56.5-9.7-.3-.1-.7-.3-1.1-.4 4.1-5 7.9-10.2 11.7-15.5 18.2 7.8 43.7 11.7 61.6 2.5 12.8-21 22.6-43.7 29.2-67.4-.4.2-.8.4-1.2.5-20.5 6.4-40.1 7.6-58.1 5.7 2.4-5.9 4.5-12 6.5-18 19.1 1.7 45.2.1 58.6-13.8 3.9-21.7 5.1-43.9 3.4-66.2-14.4 10.7-34.9 17.9-49.9 20.4.5-6.4.9-12.8 1-19.2 16.8-4.8 37.9-10 45.9-25.9-3.5-20.7-9.5-41.3-18.2-61.4-9.4 11.6-23.1 21-34.4 26.5-1.5-6.1-3.2-12.2-5.2-18.3 12-7.4 25.1-15.3 29.9-28.4-10.1-18.7-22.2-35.8-35.9-51.05-4.2 9.05-11.1 17.45-19.2 24.65-3.3-5.3-6.8-10.5-10.6-15.7 6.2-7.17 14.2-14.71 15.2-24.15-12.4-11.8-25.8-22.2-40-31.4-1.8 6-4.7 11.9-8.3 17.4-4.5-4.4-9.2-8.6-14.1-12.8 2.7-4.82 4.7-9.62 5.4-14.7-4-2.1-8.1-4.2-12.2-6.2-24.7-8.2-43.3-10.3-66.2-10.2z"/></symbol>
+</defs></svg>
+
+<main class="board">
+  <header class="intro">
+    <p class="eyebrow">Reality Check · round 6 · version 2</p>
+    <h1>Out of the <i>Cave</i></h1>
+    <p class="lede">Every session walks out of Plato's cave: it starts in the dark with what you feel sure of and ends in daylight with what you could prove. This version follows Apple's design principles and the research on reading comfort, navigation and learning.</p>
+  </header>
+
+  <section class="sec" aria-labelledby="h-screens">
+    <div class="sec-head">
+      <p class="eyebrow">The screens</p>
+      <h2 id="h-screens">From the first launch to level 5</h2>
+    </div>
+
+    <h3 class="rowhead">First launch</h3>
+    <div class="phones">
+      <figure class="opt">
+        <div class="fw"><div class="frame"><div class="scr cave">
+          <div class="island"></div>
+          <div class="layer glow"></div>
+          <div class="layer art">
+            <div class="beam"></div>
+            <div class="window"><img src="images/acropolis-columns.jpg" alt="The Acropolis in bright daylight, seen through the cave mouth"></div>
+            <div class="you-shadow"></div><div class="you"></div>
+          </div>
+          <div class="stack">
+            <span class="t-foot b dim">Step out of the shadows</span>
+            <h3 class="t-splash">Reality <i>Check</i></h3>
+            <p>Feeling sure isn't knowing. Map an idea, answer real questions, and see how close your guess was.</p>
+            <div class="foot" style="margin-top:8px">
+              <button class="btn primary">Get Started</button>
+              <button class="btn plain">I Have an Account</button>
+            </div>
+          </div>
+          <div class="indicator"></div>
+        </div></div></div>
+        <figcaption>Splash</figcaption>
+      </figure>
+
+      <figure class="opt">
+        <div class="fw"><div class="frame"><div class="scr cave onb">
+          <div class="island"></div>
+          <div class="layer arched"><img src="images/david-death-of-socrates-detail.jpg" alt="Detail of David's painting: Socrates seated, one finger raised, reaching for the cup"></div>
+          <button class="pill glass skip">Skip</button>
+          <div class="stack">
+            <span class="t-foot dim">Jacques-Louis David, The Death of Socrates, 1787</span>
+            <h3 class="t-large">Socrates taught by asking.</h3>
+            <p>Your tutor works the same way. It's an AI that asks questions and never hands you the answer.</p>
+            <div class="foot" style="margin-top:8px">
+              <button class="btn primary">Start with Democracy</button>
+              <button class="btn plain">Pick Another Idea</button>
+            </div>
+          </div>
+          <div class="indicator"></div>
+        </div></div></div>
+        <figcaption>Welcome</figcaption>
+      </figure>
+
+      <figure class="opt">
+        <div class="fw"><div class="frame dawn-frame" id="dawn-frame">
+          <div class="scr cave">
+            <div class="island"></div>
+            <div class="layer glow fade"></div>
+            <div class="bar fade"><button class="circle glass" aria-label="Close"><svg aria-hidden="true"><use href="#x"/></svg></button><span class="t-head">Democracy</span><span></span></div>
+            <div class="grow" style="justify-content:center;gap:24px">
+              <div class="fade" style="display:grid;gap:4px">
+                <p class="dim">You'll build the map of democracy in 4 parts, 2 points each.</p>
+                <p class="b">How many of the 8 points do you think you'll get?</p>
+              </div>
+              <div class="stepper">
+                <button class="step fade" data-step="-1" aria-label="One point fewer"><svg aria-hidden="true"><use href="#minus"/></svg></button>
+                <div class="door"><span class="t-hero" data-guess aria-live="polite">7</span><span class="t-foot">of 8 points</span></div>
+                <button class="step fade" data-step="1" aria-label="One point more"><svg aria-hidden="true"><use href="#plus"/></svg></button>
+              </div>
+              <div class="blocks fade" data-blocks role="img" aria-label="Your guess: 7 of 8"><i class="blk shade"></i><i class="blk shade"></i><i class="blk shade"></i><i class="blk shade"></i><i class="blk shade"></i><i class="blk shade"></i><i class="blk shade"></i><i class="blk empty"></i></div>
+              <p class="t-foot dim fade" style="text-align:center">You'll see how close you were at the end.</p>
+            </div>
+            <div class="foot fade"><button class="btn primary" data-lock>Lock In My Guess</button></div>
+            <div class="indicator fade"></div>
+          </div>
+          <div class="scr day after" inert aria-hidden="true">
+            <div class="island"></div>
+            <div class="bar"><button class="circle glass" aria-label="Close"><svg aria-hidden="true"><use href="#x"/></svg></button><span class="keys" aria-label="Map not started"><svg class="todo"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg></span><span></span></div>
+            <div class="grow">
+              <span class="t-foot b dim">Before any help</span>
+              <h3 class="t-title q">In your own words, what is democracy?</h3>
+              <p class="t-foot dim">A sentence or two is enough.</p>
+            </div>
+            <div class="composer"><div class="field glass">Your answer</div><button class="send" aria-label="Send"><svg aria-hidden="true"><use href="#up"/></svg></button></div>
+            <div class="indicator"></div>
+          </div>
+        </div></div>
+        <button class="replay" type="button" data-replay hidden>Back to the Guess</button>
+        <figcaption>Your guess <span>· tap Lock In My Guess</span></figcaption>
+      </figure>
+    </div>
+
+    <h3 class="rowhead">Home and progress</h3>
+    <div class="phones">
+      <figure class="opt">
+        <div class="fw"><div class="frame"><div class="scr day">
+          <div class="island"></div>
+          <div class="bar wide"><span></span><span></span><span style="display:flex;gap:8px"><button class="pill glass"><svg aria-hidden="true"><use href="#plus"/></svg>New Map</button><button class="circle glass" aria-label="Account and settings"><svg aria-hidden="true"><use href="#person"/></svg></button></span></div>
+          <h3 class="t-large">Your Maps</h3>
+          <div class="card">
+            <div class="top">
+              <div class="thumb"><img src="images/socrates-bust-long-room.jpg" alt=""></div>
+              <div style="display:grid;gap:4px">
+                <span class="t-head" style="font-family:var(--serif)">Inflation</span>
+                <span class="t-foot dim">3 of 4 parts filled · you ask</span>
+                <span class="keys" aria-label="3 of 4 parts"><svg class="done"><use href="#key"/></svg><svg class="done"><use href="#key"/></svg><svg class="done"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg></span>
+              </div>
+            </div>
+            <button class="btn primary">Resume</button>
+          </div>
+          <p class="ghead">Up Next</p>
+          <div class="list">
+            <div class="row"><span class="ico dot" style="background:var(--clay)"></span><span class="txt"><span class="t-head">What it needs</span><span class="t-foot dim">Your tutor's pick after Democracy</span></span><svg class="chev" aria-hidden="true"><use href="#chev"/></svg></div>
+            <div class="row"><span class="ico dot" style="background:var(--white);box-shadow:inset 0 0 0 1.5px var(--ink)"></span><span class="txt"><span class="t-head">Bigger group</span><span class="t-foot dim">Revisit: 1 of 2 points last time</span></span><svg class="chev" aria-hidden="true"><use href="#chev"/></svg></div>
+          </div>
+          <p class="ghead">Recent</p>
+          <div class="list">
+            <div class="row"><span class="ico"><img src="images/acropolis-columns.jpg" alt=""></span><span class="txt"><span class="t-head">Democracy</span><span class="t-foot dim">Scored 5 of 8 · guessed 7</span></span><svg class="chev" aria-hidden="true"><use href="#chev"/></svg></div>
+            <div class="row"><span class="ico"><span class="mini" aria-hidden="true"><i style="background:var(--white);box-shadow:inset 0 0 0 1px var(--ink)"></i><i style="background:var(--white);box-shadow:inset 0 0 0 1px var(--ink)"></i><i style="background:var(--clay)"></i><i style="background:var(--white);box-shadow:inset 0 0 0 1px var(--ink)"></i></span></span><span class="txt"><span class="t-head">Progress</span><span class="t-foot dim">3 parts at Plaster, 1 at Clay</span></span><svg class="chev" aria-hidden="true"><use href="#chev"/></svg></div>
+          </div>
+          <div class="indicator"></div>
+        </div></div></div>
+        <figcaption>Home</figcaption>
+      </figure>
+
+      <figure class="opt">
+        <div class="fw"><div class="frame"><div class="scr lamp">
+          <div class="island"></div>
+          <div class="bar wide"><span></span><span></span><span style="display:flex;gap:8px"><button class="pill glass"><svg aria-hidden="true"><use href="#plus"/></svg>New Map</button><button class="circle glass" aria-label="Account and settings"><svg aria-hidden="true"><use href="#person"/></svg></button></span></div>
+          <h3 class="t-large">Your Maps</h3>
+          <div class="card">
+            <div class="top">
+              <div class="thumb"><img src="images/socrates-bust-long-room.jpg" alt=""></div>
+              <div style="display:grid;gap:4px">
+                <span class="t-head" style="font-family:var(--serif)">Inflation</span>
+                <span class="t-foot dim">3 of 4 parts filled · you ask</span>
+                <span class="keys" aria-label="3 of 4 parts"><svg class="done"><use href="#key"/></svg><svg class="done"><use href="#key"/></svg><svg class="done"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg></span>
+              </div>
+            </div>
+            <button class="btn primary">Resume</button>
+          </div>
+          <p class="ghead">Up Next</p>
+          <div class="list">
+            <div class="row"><span class="ico dot" style="background:var(--clay)"></span><span class="txt"><span class="t-head">What it needs</span><span class="t-foot dim">Your tutor's pick after Democracy</span></span><svg class="chev" aria-hidden="true"><use href="#chev"/></svg></div>
+            <div class="row"><span class="ico dot" style="background:var(--white)"></span><span class="txt"><span class="t-head">Bigger group</span><span class="t-foot dim">Revisit: 1 of 2 points last time</span></span><svg class="chev" aria-hidden="true"><use href="#chev"/></svg></div>
+          </div>
+          <p class="ghead">Recent</p>
+          <div class="list">
+            <div class="row"><span class="ico"><img src="images/acropolis-columns.jpg" alt=""></span><span class="txt"><span class="t-head">Democracy</span><span class="t-foot dim">Scored 5 of 8 · guessed 7</span></span><svg class="chev" aria-hidden="true"><use href="#chev"/></svg></div>
+            <div class="row"><span class="ico"><span class="mini" aria-hidden="true"><i style="background:var(--white)"></i><i style="background:var(--white)"></i><i style="background:var(--clay)"></i><i style="background:var(--white)"></i></span></span><span class="txt"><span class="t-head">Progress</span><span class="t-foot dim">3 parts at Plaster, 1 at Clay</span></span><svg class="chev" aria-hidden="true"><use href="#chev"/></svg></div>
+          </div>
+          <div class="indicator"></div>
+        </div></div></div>
+        <figcaption>Home <span>· dark mode</span></figcaption>
+      </figure>
+
+      <figure class="opt">
+        <div class="fw"><div class="frame"><div class="scr day">
+          <div class="island"></div>
+          <div class="bar"><button class="circle glass" aria-label="Back to Your Maps"><svg aria-hidden="true"><use href="#back"/></svg></button><span></span><span></span></div>
+          <h3 class="t-large">Progress</h3>
+          <ol class="stages" aria-label="The five stages">
+            <li><span class="a sketch"></span><span class="t-foot">Sketch</span></li>
+            <li><span class="a clay"></span><span class="t-foot">Clay</span></li>
+            <li><span class="a"><img src="images/thinker-plaster-1903.jpg" alt="The Thinker in white plaster"></span><span class="t-foot">Plaster</span></li>
+            <li><span class="a"><img src="images/thinker-bronze-met.jpg" alt="The Thinker in bronze"></span><span class="t-foot">Bronze</span></li>
+            <li><span class="a"><img src="images/thinker-patina-1901.jpg" alt="The Thinker in bronze with green patina"></span><span class="t-foot">Patina</span></li>
+          </ol>
+          <p>A part moves up a stage each time you finish it with at most one retry or hint.</p>
+          <div class="list">
+            <div class="prow"><span class="t-ui">Bigger group</span><span class="t-foot b">Plaster</span><span class="seg" aria-label="Stage 3 of 5"><i class="s1"></i><i class="s2"></i><i class="s3"></i><i></i><i></i></span></div>
+            <div class="prow"><span class="t-ui" style="display:flex;gap:8px;align-items:center">What it isn't <span class="alone"><svg aria-hidden="true"><use href="#laurel"/></svg>1 alone</span></span><span class="t-foot b">Plaster</span><span class="seg" aria-label="Stage 3 of 5"><i class="s1"></i><i class="s2"></i><i class="s3"></i><i></i><i></i></span></div>
+            <div class="prow"><span class="t-ui">What it needs</span><span class="t-foot b">Clay</span><span class="seg" aria-label="Stage 2 of 5"><i class="s1"></i><i class="s2"></i><i></i><i></i><i></i></span></div>
+            <div class="prow"><span class="t-ui">Its types</span><span class="t-foot b">Plaster</span><span class="seg" aria-label="Stage 3 of 5"><i class="s1"></i><i class="s2"></i><i class="s3"></i><i></i><i></i></span></div>
+          </div>
+          <p class="note t-foot dim">At Bronze, a wrong answer no longer gets a free nudge. Hints are still there, for a point.</p>
+          <div class="indicator"></div>
+        </div></div></div>
+        <figcaption>Progress</figcaption>
+      </figure>
+    </div>
+
+    <h3 class="rowhead">A question</h3>
+    <div class="phones">
+      <figure class="opt">
+        <div class="fw"><div class="frame"><div class="scr day">
+          <div class="island"></div>
+          <div class="bar"><button class="circle glass" aria-label="Close and save"><svg aria-hidden="true"><use href="#x"/></svg></button><span class="keys" aria-label="Part 1 of 4"><svg class="now"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg></span><span class="t-foot dim">1 of 4</span></div>
+          <div class="grow">
+            <span class="chip clay"><i></i>Clay · Guided</span>
+            <h3 class="t-title q">Democracy is one example of a bigger group. What group?</h3>
+            <p class="me">A law?</p>
+            <p>Not quite: a law is one rule, and democracy isn't a rule. <i>So what kind of thing is it?</i></p>
+            <div class="hint-card" role="note">
+              <div class="head"><span class="lab"><svg aria-hidden="true"><use href="#sun"/></svg>Hint 1 of 3</span><span class="pips" aria-hidden="true"><i class="on"></i><i></i><i></i></span></div>
+              <p class="q">Think of monarchy and dictatorship. What are all three examples of?</p>
+              <p class="t-foot">This part can now score 1 point at most.</p>
+            </div>
+          </div>
+          <div class="foot">
+            <button class="btn hint"><svg aria-hidden="true"><use href="#sun"/></svg>More Help</button>
+            <div class="composer"><div class="field glass">Your answer</div><button class="send" aria-label="Send"><svg aria-hidden="true"><use href="#up"/></svg></button></div>
+          </div>
+          <div class="indicator"></div>
+        </div></div></div>
+        <figcaption>A question with a hint</figcaption>
+      </figure>
+
+      <figure class="opt">
+        <div class="fw"><div class="frame"><div class="scr day">
+          <div class="island"></div>
+          <div class="bar"><button class="circle glass" aria-label="Close and save"><svg aria-hidden="true"><use href="#x"/></svg></button><span class="keys" aria-label="Part 1 of 4"><svg class="now"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg></span><span class="t-foot dim">1 of 4</span></div>
+          <div class="grow">
+            <h3 class="t-title q">Democracy is one example of a bigger group. What group?</h3>
+            <p class="me">A law?</p>
+            <p>Not quite: a law is one rule, and democracy isn't a rule. <i>So what kind of thing is it?</i></p>
+            <div class="hint-card" role="note">
+              <div class="head"><span class="lab"><svg aria-hidden="true"><use href="#sun"/></svg>Hint 1 of 3</span><span class="pips" aria-hidden="true"><i class="on"></i><i></i><i></i></span></div>
+              <p class="q">Think of monarchy and dictatorship. What are all three examples of?</p>
+            </div>
+            <p class="me">Forms of government.</p>
+            <div class="typing" role="status"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="t-foot dim">Checking your answer…</span></div>
+          </div>
+          <div class="foot">
+            <div class="composer"><div class="field glass">Your answer</div><button class="send" aria-label="Sending" disabled><span class="spin" aria-hidden="true"></span></button></div>
+          </div>
+          <div class="indicator"></div>
+        </div></div></div>
+        <figcaption>Checking an answer</figcaption>
+      </figure>
+
+      <figure class="opt">
+        <div class="fw"><div class="frame"><div class="scr lamp">
+          <div class="island"></div>
+          <div class="bar"><button class="circle glass" aria-label="Close and save"><svg aria-hidden="true"><use href="#x"/></svg></button><span class="keys" aria-label="Part 1 of 4"><svg class="now"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg></span><span class="t-foot dim">1 of 4</span></div>
+          <div class="grow">
+            <h3 class="t-title q">Democracy is one example of a bigger group. What group?</h3>
+            <p class="me">A law?</p>
+            <p>Not quite: a law is one rule, and democracy isn't a rule. <i>So what kind of thing is it?</i></p>
+            <div class="hint-card" role="note">
+              <div class="head"><span class="lab"><svg aria-hidden="true"><use href="#sun"/></svg>Hint 1 of 3</span><span class="pips" aria-hidden="true"><i class="on"></i><i></i><i></i></span></div>
+              <p class="q">Think of monarchy and dictatorship. What are all three examples of?</p>
+            </div>
+            <p class="me">Forms of government.</p>
+            <div class="err" role="alert"><svg aria-hidden="true"><use href="#alert"/></svg><p class="t-ui">Couldn't reach your tutor. Your answer is saved.</p><button class="btn tonal">Try Again</button></div>
+          </div>
+          <div class="foot">
+            <div class="composer"><div class="field glass">Your answer</div><button class="send" aria-label="Send"><svg aria-hidden="true"><use href="#up"/></svg></button></div>
+          </div>
+          <div class="indicator"></div>
+        </div></div></div>
+        <figcaption>Can't reach the tutor <span>· dark mode</span></figcaption>
+      </figure>
+    </div>
+
+    <h3 class="rowhead">The end of a session, and level 5</h3>
+    <div class="phones">
+      <figure class="opt">
+        <div class="fw"><div class="frame"><div class="scr day reveal play" id="result">
+          <div class="island"></div>
+          <div class="bar wide"><span></span><span class="t-head">Democracy</span><button class="pill glass">Done</button></div>
+          <div class="grow" style="gap:20px">
+            <div style="display:grid;gap:8px">
+              <span class="t-foot b dim">Your guess vs. your score</span>
+              <div class="gaprow"><span class="t-hero"><span class="plus">+</span>2</span><p class="b">You felt 2 points surer than you were.</p></div>
+            </div>
+            <div class="scale" role="img" aria-label="Guessed 7 of 8, scored 5 of 8. 5 points cast in bronze, 2 that felt sure but didn't hold.">
+              <div class="brk"><span class="t-foot dim">Guessed 7</span><i></i></div>
+              <div class="blocks"><i class="blk cast" style="--i:0"></i><i class="blk cast" style="--i:1"></i><i class="blk cast" style="--i:2"></i><i class="blk cast" style="--i:3"></i><i class="blk cast" style="--i:4"></i><i class="blk shade"></i><i class="blk shade"></i><i class="blk empty"></i></div>
+              <div class="brk bot" style="--n:5"><span class="t-foot b">Scored 5</span><i></i></div>
+            </div>
+            <div class="list" aria-label="Points per part">
+              <div class="row" style="grid-template-columns:1fr auto auto"><span class="t-ui">Bigger group</span><span></span><span class="dots" aria-label="1 of 2"><i class="on"></i><i></i></span></div>
+              <div class="row" style="grid-template-columns:1fr auto auto"><span class="t-ui">What it isn't</span><span class="alone"><svg aria-hidden="true"><use href="#laurel"/></svg>Alone</span><span class="dots" aria-label="2 of 2"><i class="on"></i><i class="on"></i></span></div>
+              <div class="row" style="grid-template-columns:1fr auto auto"><span class="t-ui">What it needs</span><span></span><span class="dots" aria-label="1 of 2"><i class="on"></i><i></i></span></div>
+              <div class="row" style="grid-template-columns:1fr auto auto"><span class="t-ui">Its types</span><span></span><span class="dots" aria-label="1 of 2"><i class="on"></i><i></i></span></div>
+            </div>
+            <p>You found the bigger group and a real exclusion. 'What it needs' is next.</p>
+          </div>
+          <div class="foot"><button class="btn primary">Practice What It Needs</button></div>
+          <div class="indicator"></div>
+        </div></div></div>
+        <button class="replay" type="button" data-replay-result>Replay</button>
+        <figcaption>Result</figcaption>
+      </figure>
+
+      <figure class="opt">
+        <div class="fw"><div class="frame"><div class="scr day">
+          <div class="island"></div>
+          <div class="bar wide"><button class="circle glass" aria-label="Close and save"><svg aria-hidden="true"><use href="#x"/></svg></button><span class="chip patina" style="align-self:center"><i></i>Patina · You Ask</span><button class="pill primary">Submit</button></div>
+          <div style="display:grid">
+            <h3 class="t-title">Inflation</h3>
+            <span class="t-foot dim">3 of 4 parts filled</span>
+          </div>
+          <div class="map">
+            <svg class="lines" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><line x1="50" y1="50" x2="50" y2="8"/><line x1="50" y1="50" x2="8" y2="50"/><line x1="50" y1="50" x2="92" y2="50"/><line x1="50" y1="50" x2="50" y2="92"/></svg>
+            <div class="node top empty"><span class="t-foot">Bigger group</span><span class="t-ui">Add</span></div>
+            <div class="node left"><span class="t-foot dim">What it needs · 3</span><span class="v clamp">Prices rise across many goods</span></div>
+            <div class="node mid">inflation</div>
+            <div class="node right"><span class="t-foot dim">What it isn't</span><span class="v clamp">One product getting pricier</span></div>
+            <div class="node bot"><span class="t-foot dim">Its types · 2</span><span class="v">Demand-pull, cost-push</span></div>
+          </div>
+          <div class="sheet">
+            <span class="grabber"></span>
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px">
+              <div style="display:grid"><span class="t-head">Ask a Fact</span><span class="t-foot dim">Facts only. Your tutor won't fill in the map.</span></div>
+              <button class="btn hint"><svg aria-hidden="true"><use href="#sun"/></svg>Help · −1 pt</button>
+            </div>
+            <div style="display:grid;gap:12px">
+              <p class="me">If gas goes up, is that inflation?</p>
+              <div style="display:grid;gap:4px"><span class="t-foot b dim">Fact</span><p>Not by itself: that's one product. It counts as inflation when the overall price level goes up.</p></div>
+            </div>
+            <div class="composer" style="margin-top:auto"><div class="field">Ask anything about inflation</div><button class="send" aria-label="Ask"><svg aria-hidden="true"><use href="#up"/></svg></button></div>
+          </div>
+          <div class="indicator"></div>
+        </div></div></div>
+        <figcaption>Level 5</figcaption>
+      </figure>
+
+      <figure class="opt">
+        <div class="fw"><div class="frame compact"><div class="scr day">
+          <div class="bar"><button class="circle glass" aria-label="Close and save"><svg aria-hidden="true"><use href="#x"/></svg></button><span class="keys" aria-label="Part 1 of 4"><svg class="now"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg><svg class="todo"><use href="#key"/></svg></span><span class="t-foot dim">1 of 4</span></div>
+          <div class="grow" style="gap:12px">
+            <span class="chip clay"><i></i>Clay · Guided</span>
+            <h3 class="t-title q">Democracy is one example of a bigger group. What group?</h3>
+            <p class="me">A law?</p>
+            <p>Not quite: a law is one rule, and democracy isn't a rule. <i>So what kind of thing is it?</i></p>
+          </div>
+          <div class="foot">
+            <button class="btn hint"><svg aria-hidden="true"><use href="#sun"/></svg>Help · −1 pt</button>
+            <div class="composer"><div class="field glass">Your answer</div><button class="send" aria-label="Send"><svg aria-hidden="true"><use href="#up"/></svg></button></div>
+          </div>
+        </div></div></div>
+        <figcaption>A question <span>· small phone, 375 × 667</span></figcaption>
+      </figure>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-applied">
+    <div class="sec-head">
+      <p class="eyebrow">Research</p>
+      <h2 id="h-applied">What the research changed</h2>
+    </div>
+    <div class="panel">
+      <div class="tw"><table>
+        <thead><tr><th>Principle</th><th>What changed</th><th class="nw">Source</th></tr></thead>
+        <tbody>
+          <tr><td><b>Agency</b>: a guided flow should be easy to leave</td><td>Every session screen has Close, and closing saves your answers.</td><td class="nw"><a href="https://developer.apple.com/design/human-interface-guidelines/design-principles">Apple HIG</a></td></tr>
+          <tr><td><b>Responsibility</b>: be clear about what the product does</td><td>The welcome says the tutor is an AI that never hands over the answer.</td><td class="nw"><a href="https://developer.apple.com/design/human-interface-guidelines/design-principles">Apple HIG</a></td></tr>
+          <tr><td><b>Liquid Glass</b>: controls float above content; brand color stays in content</td><td>Close, Skip, Done and the answer box are glass. Bronze marks only the main action.</td><td class="nw"><a href="https://developer.apple.com/design/human-interface-guidelines/materials">Apple HIG</a></td></tr>
+          <tr><td><b>Typography</b>: 17 pt text, no light weights, a brand face for headlines and the system face for controls</td><td>Newsreader for titles, questions and the conversation, at 17 pt with roomy lines. Buttons, labels and lists use the phone's own font.</td><td class="nw"><a href="https://developer.apple.com/design/human-interface-guidelines/typography">Apple HIG</a></td></tr>
+          <tr><td><b>Harmony</b>: capsules and nested corners</td><td>Capsule buttons, and every inner corner is the outer corner minus the padding.</td><td class="nw"><a href="https://developer.apple.com/videos/play/wwdc2025/356/">WWDC25</a></td></tr>
+          <tr><td><b>Contrast</b>: aim for 7:1 for small text</td><td>Secondary text darkened to 7.6:1. Hints moved from bright gold to a soft container.</td><td class="nw"><a href="https://developer.apple.com/design/human-interface-guidelines/dark-mode">Apple HIG</a></td></tr>
+          <tr><td><b>Dark mode</b>: dark grey, never black; muted accents</td><td>Dark mode uses warm umber grey and a muted gold for hints.</td><td class="nw"><a href="https://m2.material.io/design/color/dark-theme.html">Material</a></td></tr>
+          <tr><td><b>Response times</b>: anything over a second needs a moving indicator and a reason</td><td>"Checking your answer…" with moving dots while the tutor replies, and Send waits.</td><td class="nw"><a href="https://www.nngroup.com/articles/progress-indicators/">NN/g</a></td></tr>
+          <tr><td><b>Errors</b>: say what happened where it happened, keep the input, offer a fix</td><td>A failed reply shows under your answer, keeps it, and offers Try Again. No red: terracotta only means the gap.</td><td class="nw"><a href="https://www.nngroup.com/articles/error-message-guidelines/">NN/g</a></td></tr>
+          <tr><td><b>Navigation</b>: tab bars are for 3 to 5 peer sections</td><td>A home screen instead of a tab bar, with Progress one tap away and settings in the corner.</td><td class="nw"><a href="https://m3.material.io/components/navigation-bar/guidelines">Material</a></td></tr>
+          <tr><td><b>Goal-gradient, Zeigarnik</b>: visible progress and unfinished work pull people back</td><td>The Greek key shows the parts all session, and Home leads with Resume.</td><td class="nw"><a href="https://lawsofux.com/goal-gradient-effect/">Laws of UX</a></td></tr>
+          <tr><td><b>Progressive disclosure</b>: one main thing per screen</td><td>At level 5 the map fills the screen and the fact desk is a half-height sheet.</td><td class="nw"><a href="https://www.nngroup.com/articles/progressive-disclosure/">NN/g</a></td></tr>
+          <tr><td><b>Help with a visible price</b>: learners try first, see the cost, and choose</td><td>The cost is on the Help button, and hints never open on their own.</td><td class="nw"><a href="https://link.springer.com/article/10.1007/s10648-007-9049-0">Koedinger &amp; Aleven</a></td></tr>
+          <tr><td><b>Competence</b>: levels need clear criteria</td><td>Progress says what moves a part up a stage.</td><td class="nw"><a href="https://www.selfdeterminationtheory.org/SDT/documents/2001_DeciKoestnerRyan.pdf">Deci et al.</a></td></tr>
+          <tr><td><b>Peak-end</b>: the ending shapes the memory</td><td>The result casts each point into bronze one by one, then gives one next step.</td><td class="nw"><a href="https://lawsofux.com/peak-end-rule/">Laws of UX</a></td></tr>
+          <tr><td><b>Onboarding</b>: teach by doing</td><td>One skippable welcome. Hints and level 5 explain themselves when they first appear.</td><td class="nw"><a href="https://developer.apple.com/design/human-interface-guidelines/onboarding">Apple HIG</a></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-kit">
+    <div class="sec-head">
+      <p class="eyebrow">For #14</p>
+      <h2 id="h-kit">The brand kit</h2>
+    </div>
+    <div class="kit">
+      <article>
+        <h3>Name</h3>
+        <p class="name">Reality <i>Check</i></p>
+        <p class="small soft">Plato's prisoners took shadows for reality. A reality check is the walk out.</p>
+      </article>
+      <article>
+        <h3>Logo</h3>
+        <div class="icons">
+          <div class="icon" role="img" aria-label="App icon: a question mark standing in a lit arch on a dark ground"><span class="a"><svg aria-hidden="true"><use href="#mark"/></svg></span></div>
+          <div class="icon sm" role="img" aria-label="The app icon at small size"><span class="a"><svg aria-hidden="true"><use href="#mark"/></svg></span></div>
+        </div>
+        <div class="lockup on-cave"><svg aria-hidden="true"><use href="#mark"/></svg>Reality <i>Check</i></div>
+        <div class="lockup on-plaster"><svg aria-hidden="true"><use href="#mark"/></svg>Reality <i>Check</i></div>
+        <p class="small soft">A question mark standing in the cave mouth. Its dot is a bronze check.</p>
+      </article>
+      <article>
+        <h3>Brand colors</h3>
+        <div class="swatches">
+          <div class="swatch"><i style="background:var(--cave)"></i><span><b>#14100C Cave</b><br>What you haven't checked yet</span></div>
+          <div class="swatch"><i style="background:var(--plaster)"></i><span><b>#EFE5D3 Plaster</b><br>Where the work happens</span></div>
+          <div class="swatch"><i style="background:var(--bronze)"></i><span><b>#7A4A22 Bronze</b><br>What you proved, and the main button</span></div>
+        </div>
+        <h3>Meaning colors</h3>
+        <div class="swatches">
+          <div class="swatch sm"><i style="background:var(--gold)"></i><span><b>#E9B04A Lamp</b> · hints and Help</span></div>
+          <div class="swatch sm"><i style="background:var(--gap)"></i><span><b>#9A3820 Terracotta</b> · the overconfidence gap</span></div>
+          <div class="swatch sm"><i style="background:var(--patina)"></i><span><b>#2F6A5B Patina</b> · done alone, and level 5</span></div>
+        </div>
+      </article>
+      <article>
+        <h3>Font</h3>
+        <div class="spec">
+          <span class="big">Reality <i>Check</i></span>
+          <span class="mid">What looks close to democracy but isn't one?</span>
+          <span>Newsreader carries the voice: titles, questions and the conversation.</span>
+          <span class="ui">Lock In My Guess</span>
+          <span class="lab">Buttons, labels and lists use the phone's own font</span>
+        </div>
+        <p class="small soft">Newsreader by Production Type, made for long reading on screens, from <code>@expo-google-fonts/newsreader</code>. The system font is SF Pro on iPhone and Roboto on Android, so it costs nothing to load.</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="sec" aria-labelledby="h-mean">
+    <div class="sec-head">
+      <p class="eyebrow">One meaning per color</p>
+      <h2 id="h-mean">What every color and shape means</h2>
+    </div>
+    <div class="panel">
+      <div class="tw"><table>
+        <thead><tr><th>Color or shape</th><th>It means</th><th>Where</th></tr></thead>
+        <tbody>
+          <tr><td class="nw"><i class="sw" style="background:var(--cave)"></i>The cave</td><td>What you haven't checked yet</td><td>Splash, welcome, the guess</td></tr>
+          <tr><td class="nw"><i class="sw" style="background:var(--plaster)"></i>Daylight</td><td>Where you work it out</td><td>Home, every question, the result</td></tr>
+          <tr><td class="nw"><i class="sw shadow-sw"></i>A shadow</td><td>A point you feel sure of but haven't proven</td><td>The guess, the result</td></tr>
+          <tr><td class="nw"><i class="sw" style="background:var(--bronze)"></i>Bronze</td><td>A point you proved, and the main button</td><td>The result, buttons, the map's center</td></tr>
+          <tr><td class="nw"><i class="sw" style="background:var(--hint-bg)"></i>Lamp and the sun</td><td>Hints and Help, which cost a point</td><td>Hint cards and buttons</td></tr>
+          <tr><td class="nw"><i class="sw" style="background:var(--gap)"></i>Terracotta</td><td>The overconfidence gap, and nothing else</td><td>The result</td></tr>
+          <tr><td class="nw"><i class="sw" style="background:var(--patina)"></i>Patina and the laurel</td><td>Done with no help, and level 5</td><td>Result, progress, level 5</td></tr>
+          <tr><td class="nw">Glass</td><td>A control floating above the content</td><td>Close, Skip, Done, the answer box</td></tr>
+          <tr><td class="nw">The arch</td><td>The way out of the cave. Every photo sits in one.</td><td>Splash, welcome, the guess, home, progress, the icon</td></tr>
+          <tr><td class="nw"><i>Italic</i></td><td>A question being asked</td><td>Every question the tutor asks</td></tr>
+          <tr><td class="nw">The Greek key</td><td>How much of the map is built</td><td>The top of every question, home</td></tr>
+        </tbody>
+      </table></div>
+      <div style="display:grid;gap:8px">
+        <p class="b">Five stages, five levels</p>
+        <div class="stages-legend">
+          <span><i class="sw" style="background:transparent;outline:1.5px dashed var(--b-soft);outline-offset:-1.5px"></i>1 Sketch: watch</span>
+          <span><i class="sw" style="background:var(--clay)"></i>2 Clay: guided</span>
+          <span><i class="sw" style="background:var(--white)"></i>3 Plaster: complete</span>
+          <span><i class="sw" style="background:var(--bronze)"></i>4 Bronze: named only</span>
+          <span><i class="sw" style="background:var(--patina)"></i>5 Patina: alone, you ask</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-contrast">
+    <h2 id="h-contrast">Contrast check</h2>
+    <p class="soft">WCAG 2 ratios for every color pair the screens use, computed in this page. Text needs 4.5:1 and graphics 3:1; secondary text aims for Apple's 7:1.</p>
+    <div class="tw"><table><thead><tr><th>Pair</th><th class="nw">Ratio</th><th class="nw">Needs</th><th></th></tr></thead><tbody id="ctab"></tbody></table></div>
+  </section>
+
+  <section class="panel" aria-labelledby="h-credits">
+    <h2 id="h-credits">Sources and credits</h2>
+    <ul>
+      <li>The Acropolis by Alex Azabache, and the Socrates bust in the Long Room, Trinity College Dublin, by Jameson Berrios (Unsplash License).</li>
+      <li>Jacques-Louis David, <i>The Death of Socrates</i>, 1787, The Metropolitan Museum of Art (public domain, via Wikimedia Commons).</li>
+      <li>Auguste Rodin, <i>The Thinker</i>: bronze cast by Alexis Rudier, The Met (CC0); the 1903 plaster, photographed by Joe deSousa (CC0); the 1901 cast with patina, National Gallery of Art (CC0).</li>
+      <li>Laurel icon: game-icons.net by Lorc (CC BY 3.0). Newsreader: Production Type, SIL Open Font License.</li>
+      <li>Drawn in code: the cave, the beam, the arches, the shadows and bronze blocks, the Greek key, the icons and the mark.</li>
+    </ul>
+  </section>
+</main>
+
+<script>
+(() => {
+  const lum = (h) => { const c = [1, 3, 5].map((i) => parseInt(h.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4)); return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+  const css = getComputedStyle(document.documentElement);
+  const v = (name) => css.getPropertyValue('--' + name).trim();
+  const PAIRS = [
+    ['cave-ink', 'cave', 4.5, 'Text in the cave'], ['cave-soft', 'cave', 7, 'Secondary text in the cave'], ['umber', 'slab', 4.5, 'Button text on the daylight button'],
+    ['umber-soft', 'sky-2', 4.5, 'Label in the lit arch'], ['cave-dash', 'cave', 3, 'Shadow outline in the cave'],
+    ['umber', 'plaster', 7, 'Text in daylight'], ['umber-soft', 'plaster', 7, 'Secondary text in daylight'], ['umber-soft', 'cell-day', 7, 'Secondary text on cards'], ['umber-faint', 'cell-day', 4.5, 'Placeholder text'],
+    ['on-bronze', 'bronze', 4.5, 'Button text on bronze'], ['on-hint', 'hint-bg', 7, 'Hint text'], ['hint-icon', 'hint-bg', 3, 'Sun icon on a hint'], ['gap', 'plaster', 4.5, 'The gap number and sentence'],
+    ['white', 'clay', 4.5, 'Clay chip'], ['white', 'patina', 4.5, 'Patina chip'], ['on-patina-tag', 'patina-tag', 7, 'Alone tag'],
+    ['bronze', 'plaster', 3, 'Bronze block'], ['gap', 'plaster', 3, 'Shadow outline in daylight'],
+    ['lamp-ink', 'lamp', 7, 'Text in dark mode'], ['lamp-soft', 'lamp', 7, 'Secondary text in dark mode'], ['lamp-soft', 'cell-lamp', 7, 'Secondary text on dark cards'], ['lamp-faint', 'cell-lamp', 4.5, 'Placeholder text in dark mode'],
+    ['on-bronze-lit', 'bronze-lit', 4.5, 'Button text on lit bronze'], ['on-hint-dark', 'hint-bg-dark', 7, 'Hint text in dark mode'], ['gold', 'hint-bg-dark', 3, 'Sun icon in dark mode'],
+    ['gap-lit', 'lamp', 4.5, 'The gap in dark mode'], ['on-patina-tag-dark', 'patina-tag-dark', 7, 'Alone tag in dark mode'], ['bronze-lit', 'lamp', 3, 'Bronze block in dark mode'],
+  ];
+  document.getElementById('ctab').innerHTML = PAIRS.map(([fg, bg, floor, use]) => {
+    const r = ratio(v(fg), v(bg));
+    return `<tr><td>${use}</td><td class="nw">${r.toFixed(2)}:1</td><td class="nw">${floor}:1</td><td>${r >= floor ? 'Pass' : 'Fail'}</td></tr>`;
+  }).join('');
+
+  const frame = document.getElementById('dawn-frame');
+  const hero = frame.querySelector('[data-guess]');
+  const blocks = frame.querySelector('[data-blocks]');
+  const [minus, plus] = frame.querySelectorAll('[data-step]');
+  const after = frame.querySelector('.after');
+  const predict = frame.querySelector('.scr');
+  const replay = document.querySelector('[data-replay]');
+  let guess = 7;
+  const draw = () => {
+    hero.textContent = guess;
+    blocks.innerHTML = Array.from({ length: 8 }, (_, i) => `<i class="blk ${i < guess ? 'shade' : 'empty'}"></i>`).join('');
+    blocks.setAttribute('aria-label', `Your guess: ${guess} of 8`);
+    minus.disabled = guess === 0;
+    plus.disabled = guess === 8;
+  };
+  [minus, plus].forEach((b) => b.addEventListener('click', () => { guess = Math.max(0, Math.min(8, guess + Number(b.dataset.step))); draw(); }));
+  const setDawn = (on) => {
+    frame.classList.toggle('dawn', on);
+    after.inert = !on; after.setAttribute('aria-hidden', String(!on));
+    predict.inert = on; predict.setAttribute('aria-hidden', String(on));
+    replay.hidden = !on;
+  };
+  frame.querySelector('[data-lock]').addEventListener('click', () => setDawn(true));
+  replay.addEventListener('click', () => { setDawn(false); frame.querySelector('[data-lock]').focus(); });
+
+  const result = document.getElementById('result');
+  document.querySelector('[data-replay-result]').addEventListener('click', () => {
+    result.classList.remove('play');
+    void result.offsetWidth;
+    result.classList.add('play');
+  });
+})();
+</script>
+</body>
+</html>
