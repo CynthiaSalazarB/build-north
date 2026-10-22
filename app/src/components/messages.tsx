@@ -94,12 +94,13 @@ export function Aside({ text }: { text: string }) {
 }
 
 /** The evaluator's word on an answer that didn't light the part: a free nudge at levels 2 and 3, a plain "not
- * yet" after that. `capNote` says the part can now light 1 point at most (said once per part). */
-export function Nudge({ text, capNote }: { text: string; capNote: boolean }) {
+ * yet" after that. `capNote` says the part can now light 1 point at most (said once per part). `tag` replaces
+ * the head: "almost" for the word that comes with a follow-up question, which isn't a retry. */
+export function Nudge({ text, capNote, tag }: { text: string; capNote: boolean; tag?: string }) {
   const c = useColors();
   return (
     <View style={useIndent()}>
-      <Tag style={{ color: c.question }}>{text.trim().endsWith("?") ? "nudge · free" : "not yet"}</Tag>
+      <Tag style={{ color: c.question }}>{tag ?? (text.trim().endsWith("?") ? "nudge · free" : "not yet")}</Tag>
       <Reply style={styles.replyText}>{text}</Reply>
       {capNote && <Label dim style={styles.note}>this part can now light 1 point at most</Label>}
     </View>

@@ -29,6 +29,7 @@ import {
   exampleStepsOf,
   eyebrowOf,
   helpOf,
+  isFollowUpFeedback,
   isReveal,
   justLitOf,
   partNotesOf,
@@ -296,15 +297,17 @@ type ConversationProps = {
   onAskLayout: (y: number) => void;
 };
 
-/** The part on screen: the firefly's question, then the answers, nudges, hints, a revealed answer and facts after
- * it. What came before the question (the last part's feedback and its name) isn't repeated: the map shows how
- * that part ended, as the board does. Each line rises in once, when it arrives. */
+/** The part on screen: the firefly's question, then the answers, nudges, hints, a revealed answer, facts and the
+ * firefly's follow-up questions after it. What came before the question (the last part's feedback and its name)
+ * isn't repeated: the map shows how that part ended, as the board does. Each line rises in once, when it arrives. */
 function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, onHelp, onAskLayout }: ConversationProps) {
   const entrance = useEntrance();
   const asked = entries.findIndex((e) => e.from === "app" && e.message.kind === "question");
   const hints = entries.filter((e) => e.from === "app" && e.message.kind === "hint" && e.message.hintStep !== "reveal").map((e) => e.id);
-  // the cap note goes with the first nudge or hint of the part, once
-  const capAt = entries.findIndex((e, i) => i > asked && e.from === "app" && (e.message.kind === "feedback" || (e.message.kind === "hint" && e.message.hintStep !== "reveal")));
+  // the cap note goes with the first retry's nudge or the first hint of the part, once
+  const capAt = entries.findIndex(
+    (e, i) => i > asked && e.from === "app" && ((e.message.kind === "feedback" && !isFollowUpFeedback(entries, i)) || (e.message.kind === "hint" && e.message.hintStep !== "reveal")),
+  );
   const active = !held && turn.phase === "move";
   // the worked example's lines show as four steps, drawn where its first line is
   const thinking = entries.flatMap((e) => (e.from === "app" && e.message.kind === "example" && e.message.agent !== "app" ? [e] : []));
@@ -316,6 +319,8 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
     const { message } = entry;
     if (message.kind === "question") {
       const { eyebrow, text } = eyebrowOf(message.text);
+      // the part's first question carries Help, the firefly; a follow-up is the firefly asking again
+      if (i !== asked) return <Ask text={text} eyebrow={eyebrow} firefly={{ state: "asks", tag: null }} fireflyAfter={fireflyAfter} />;
       // Help is the firefly during a part; while an answer is checked it says so
       const firefly = pending
         ? { state: "asks" as const, tag: "checking", busy: true }
@@ -334,7 +339,7 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
     if (asked >= 0 && i < asked) return null;
     switch (message.kind) {
       case "feedback":
-        return <Nudge text={message.text} capNote={i === capAt} />;
+        return <Nudge text={message.text} capNote={i === capAt} tag={isFollowUpFeedback(entries, i) ? "almost" : undefined} />;
       case "hint":
         return isReveal(entry) ? <Revealed text={message.text} /> : <HintCard message={message} n={hints.indexOf(entry.id) + 1} capNote={i === capAt} />;
       case "example":
