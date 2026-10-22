@@ -42,6 +42,10 @@ const night = {
   controlFill: "rgba(0, 0, 0, 0.35)",
   fieldEdge: "rgba(255, 240, 225, 0.16)",
   codeFill: "rgba(0, 0, 0, 0.45)",
+  // Start's code: the concept's line tinted amber, the lines around it dim
+  codeLine: "rgba(242, 184, 75, 0.1)",
+  codeDim: "rgba(244, 239, 232, 0.4)",
+  codeGutter: "#7d7469",
   bubble: "rgba(255, 240, 225, 0.1)",
   bubbleEdge: "rgba(255, 240, 225, 0.2)",
   guessNumber: "#f6c96e",
@@ -84,6 +88,9 @@ const day: Colors = {
   controlFill: "rgba(255, 255, 255, 0.35)",
   fieldEdge: "rgba(23, 22, 26, 0.16)",
   codeFill: "rgba(255, 255, 255, 0.5)",
+  codeLine: "rgba(242, 184, 75, 0.18)",
+  codeDim: "rgba(23, 22, 26, 0.45)",
+  codeGutter: "#6b6259",
   bubble: "rgba(23, 22, 26, 0.06)",
   bubbleEdge: "rgba(23, 22, 26, 0.14)",
   guessNumber: "#8a5a06",
@@ -114,6 +121,10 @@ export const light = [
 export type LightStage = (typeof light)[number];
 
 export const lightFor = (points: number): LightStage => light[Math.max(0, Math.min(8, Math.round(points)))]!;
+
+/** The light reaches the farthest corner, but no farther than this: on a wide screen the stops would otherwise
+ *  stretch over the words on the left, which sit in the dark the contrast was checked against. */
+export const lightReachMax = 1300;
 
 /** A faint graph-paper grid over every screen: 1px lines every 24px, stronger every 96px. */
 export const grid = { minor: 24, major: 96, offset: { x: 13, y: 9 } } as const;
@@ -177,6 +188,8 @@ export const mono = {
 
 export const type = {
   wordmark: { fontFamily: serif.regular, fontSize: 24, lineHeight: 32 },
+  /** The website layout's headline: Start's and the landing page's question. */
+  display: { fontFamily: serif.medium, fontSize: 44, lineHeight: 52 },
   title: { fontFamily: serif.medium, fontSize: 30, lineHeight: 36 },
   question: { fontFamily: serif.medium, fontSize: 22, lineHeight: 30 },
   /** The tutor's other lines: a nudge, a revealed part, "You ask now". */
@@ -190,6 +203,8 @@ export const type = {
   body: { fontFamily: serif.regular, fontSize: 18, lineHeight: 26 },
   bubble: { fontFamily: serif.regular, fontSize: 17, lineHeight: 24 },
   ui: { fontFamily: sans.regular, fontSize: 15, lineHeight: 22 },
+  /** The website layout's line under a headline. */
+  lead: { fontFamily: sans.regular, fontSize: 18, lineHeight: 28 },
   input: { fontFamily: sans.regular, fontSize: 16, lineHeight: 22 },
   button: { fontFamily: sans.semibold, fontSize: 16, lineHeight: 22 },
   pill: { fontFamily: sans.semibold, fontSize: 17, lineHeight: 22 },
@@ -204,11 +219,18 @@ export const space = { xs: 4, s: 8, m: 12, l: 16, margin: 20, xl: 24, xxl: 32 } 
 export const radius = { part: 8, chip: 8, bubble: 10, card: 10, field: 12, button: 12, iconButton: 12, point: 2, sheet: 20 } as const;
 export const size = { touch: 48, button: 56, iconButton: 44, firefly: 40, point: 9, hitSlop: 4 } as const;
 /** Milliseconds. The light changes one stage per proved point over 700 ms, and the just-lit sparks last 700 ms.
- *  Nothing else moves: no blinking, no pulsing. With Reduce Motion on, the light still changes (it is the score)
- *  but without the crossfade, and the sparks are skipped. */
-export const motion = { press: 120, feedback: 150, lightStep: 700, justLit: 700, sheet: 240 } as const;
+ *  Everything else moves once and briefly: a screen's blocks rise 12 px into place 60 ms apart, a new line of the
+ *  conversation rises in, the firefly's line draws to the part it asks about, and controls answer hover and
+ *  press. Nothing loops, blinks or pulses. With Reduce Motion on, the light still changes (it is the score) but
+ *  without the crossfade, and the sparks, entrances and drawing are skipped. */
+export const motion = { press: 120, feedback: 150, hover: 150, lightStep: 700, justLit: 700, sheet: 240, enter: 280, stagger: 60, rise: 12, leader: 320, typing: 18 } as const;
 
-/** Phone-first: on the web the same column is centered at this width (decision 14). */
+/** From this width the app lays out as a website: a header, the words on the left and the map on the right,
+ *  where the light falls. Below it, the phone layout. */
+export const wideFrom = 1000;
+export const page = { max: 1320, gutter: 40, gap: 64, words: 480, header: 72, map: 600 } as const;
+
+/** The phone layout's column, centered on a tablet or a narrow window. */
 export const maxContentWidth = 520;
 
 /** The interface font on the web, before Atkinson Hyperlegible Next loads (Clerk's form uses it too). */

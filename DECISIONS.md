@@ -338,3 +338,24 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   numbers already exist in the session.
 - **Pattern / trade-off:** the server owns the score and the app only draws it (one source of truth). One
   more field in every Turn; the session-1 and demo-seed fixtures carry it too.
+
+### 2026-10-22 · From 1,000 px the web build is laid out as a website
+- **Decision:** from 1,000 px wide, the web build has a header (the wordmark, the session's concept, the
+  screen's actions) and two columns: the words on the left, 480 px wide, and the map or the code on the
+  right, where the light falls. The firefly's dashed line runs from the firefly, at the edge of the words,
+  down the gap and into the part it asks about. Start and the signed-out landing page put the question and
+  the choices (or the sign-in) on the left, and the code with the empty map on the right. Sheets become
+  dialogs, controls answer hover, Enter sends an answer and Shift+Enter starts a new line. Below 1,000 px,
+  and on Android, the phone layout stays as the board draws it. Leo's call; supersedes the "same layout
+  centered" part of "Build-week scope cuts" (2026-10-19).
+- **Instead of:** the phone column centered on a laptop, which reads as a phone app in a browser; a wider
+  centered stage; or a question card floating beside each part.
+- **Why:** the judges and most testers open the web build on a laptop, and a wide screen can keep the map
+  and the conversation in view together. Keeping the words on the left keeps text out of the light's bright
+  corner, where light ink would fail contrast at 3 and 4 points.
+- **Pattern / trade-off:** one codebase with a width breakpoint, and the lesson-left, work-right split of
+  coding courses (boot.dev, Exercism's editor). Each screen now has a phone branch and a website branch to
+  keep in step. On a big screen the light reaches at most 1,300 px from its corner, so it lights the map,
+  not the words. Motion is one-shot (blocks rise in, a part eases into its new state, the line draws
+  itself, the guess rolls, Start's code line types itself in); nothing loops, blinks or pulses, and Reduce
+  Motion leaves only the light.

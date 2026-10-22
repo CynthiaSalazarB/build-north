@@ -12,20 +12,60 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
   type AccessibilityRole,
   type LayoutChangeEvent,
+  type PressableStateCallbackType,
   type StyleProp,
+  type TextInputKeyPressEvent,
   type TextInputProps,
+  type TextInputSubmitEditingEvent,
   type TextStyle,
   type ViewStyle,
 } from "react-native";
+import Animated, { css, cubicBezier, useReducedMotion, type CSSAnimationProperties } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
-import { lightFor, maxContentWidth, palette, radius, size, space, type, type Colors, type Mode } from "../theme.ts";
+import { isWeb, lightFor, maxContentWidth, motion, page, palette, radius, size, space, type, wideFrom, type Colors, type Mode } from "../theme.ts";
 import { Icon, type IconName } from "./icons.tsx";
 import { Light } from "./light.tsx";
 
 const LightContext = createContext(0);
+
+/** The website layout: a header, and the words beside the map. Below `wideFrom`, the phone layout. */
+export function useWide(): boolean {
+  return useWindowDimensions().width >= wideFrom;
+}
+
+/** A Pressable's state; react-native-web adds hover and focus to the press. */
+type Interaction = PressableStateCallbackType & { hovered?: boolean; focused?: boolean };
+
+/** On the web a control eases between rest, hover and press instead of snapping (react-native-web passes these
+ * style properties through to CSS; React Native's own types don't list them). */
+const easeOnWeb = isWeb
+  ? (({ transitionProperty: "transform, background-color, border-color, box-shadow, opacity", transitionDuration: `${motion.hover}ms`, transitionTimingFunction: "cubic-bezier(0.2, 0, 0, 1)" }) as unknown as ViewStyle)
+  : null;
+
+/** Entrances are CSS animations (Reanimated's on a phone, the browser's own on the web), which run once when a
+ * block mounts and leave its layout alone. */
+const riseIn = css.keyframes({ from: { opacity: 0, transform: [{ translateY: motion.rise }] }, to: { opacity: 1, transform: [{ translateY: 0 }] } });
+const fadeIn = css.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } });
+export const easeOut = cubicBezier(0.16, 1, 0.3, 1);
+
+/** The style that brings a block in when it mounts, `order` steps (60 ms each) after the screen's first: rising
+ * 12 px, or only fading for a drawing. Nothing with Reduce Motion: the block is simply there. */
+export function useEntrance(): (order?: number, kind?: "rise" | "fade") => CSSAnimationProperties | null {
+  const still = useReducedMotion();
+  return (order = 0, kind = "rise") =>
+    still
+      ? null
+      : { animationName: kind === "rise" ? riseIn : fadeIn, animationDuration: motion.enter, animationDelay: order * motion.stagger, animationTimingFunction: easeOut, animationFillMode: "backwards" };
+}
+
+export function Rise({ order = 0, style, children }: { order?: number; style?: StyleProp<ViewStyle>; children: ReactNode }) {
+  const entrance = useEntrance();
+  return <Animated.View style={[style, entrance(order)]}>{children}</Animated.View>;
+}
 
 /** Dark (0 to 4 points) or lit (5 to 8): the light of the screen this is drawn on. */
 export function useMode(): Mode {
@@ -37,17 +77,19 @@ export function useColors(): Colors {
   return palette[useMode()];
 }
 
-/** A phone-width column over the light, centered on wider screens (decision 14). `light` is the points proved:
- * the session's light grows with them; Start, sign-in and errors stay at 0. */
+/** A screen over the light: a phone-width column, centered on a tablet or a narrow window; from `wideFrom`, a page
+ * up to `page.max` wide. `light` is the points proved: the session's light grows with them; Start, sign-in and
+ * errors stay at 0. */
 export function Screen({ light = 0, edges = ["top", "bottom"], children }: { light?: number; edges?: Edge[]; children: ReactNode }) {
   const mode = lightFor(light).mode;
+  const wide = useWide();
   return (
     <LightContext.Provider value={light}>
       <View style={styles.flex}>
         <Light points={light} />
         <SafeAreaView style={styles.flex} edges={edges}>
           <StatusBar style={mode === "night" ? "light" : "dark"} />
-          <View style={styles.column}>{children}</View>
+          <View style={[styles.column, { maxWidth: wide ? page.max : maxContentWidth }]}>{children}</View>
         </SafeAreaView>
       </View>
     </LightContext.Provider>
@@ -99,19 +141,24 @@ type ButtonProps = {
   busy?: boolean;
   /** Read out instead of the label, when the label alone isn't clear. */
   hint?: string;
+  /** A main action sized to its label instead of the full width: the website layout's buttons. */
+  fit?: boolean;
+  /** An opaque secondary button, for the header, where the light's corner would wash out a see-through one. */
+  solid?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
-/** The main action is a full-width 56 px button in warm light (dark ink once the screen is lit). Secondary and
- * "More help" are outlines that size to their label; text buttons have no box. */
-export function Button({ label, onPress, kind = "primary", disabled, busy, hint, style }: ButtonProps) {
+/** The main action is a 56 px button in warm light (dark ink once the screen is lit), full width on a phone.
+ * Secondary and "More help" are outlines that size to their label; text buttons have no box. On the web each
+ * answers hover: the main action glows, an outline firms up, a text button underlines. */
+export function Button({ label, onPress, kind = "primary", disabled, busy, hint, fit = false, solid = false, style }: ButtonProps) {
   const c = useColors();
   const off = disabled || busy;
   const look = {
-    primary: { box: [styles.full, { backgroundColor: c.primary }], ink: c.onPrimary },
-    secondary: { box: [styles.small, { backgroundColor: c.controlFill, borderColor: c.outline, borderWidth: 1 }], ink: c.onSurface },
-    text: { box: [styles.textButton], ink: c.onSurface },
-    hint: { box: [styles.small, { backgroundColor: c.controlFill, borderColor: "rgba(242, 184, 75, 0.6)", borderWidth: 1 }], ink: c.question },
+    primary: { box: [fit ? styles.fit : styles.full, { backgroundColor: c.primary }], ink: c.onPrimary, hover: { boxShadow: c.litShadow } },
+    secondary: { box: [styles.small, { backgroundColor: solid ? c.surfaceContainer : c.controlFill, borderColor: c.outline, borderWidth: 1 }], ink: c.onSurface, hover: { borderColor: c.onSurfaceVariant } },
+    text: { box: [styles.textButton], ink: c.onSurface, hover: null },
+    hint: { box: [styles.small, { backgroundColor: c.controlFill, borderColor: "rgba(242, 184, 75, 0.6)", borderWidth: 1 }], ink: c.question, hover: { borderColor: c.firefly } },
   }[kind];
   return (
     <Pressable
@@ -122,15 +169,25 @@ export function Button({ label, onPress, kind = "primary", disabled, busy, hint,
       disabled={off}
       onPress={onPress}
       hitSlop={kind === "primary" ? undefined : size.hitSlop}
-      style={({ pressed }) => [styles.button, look.box, off && styles.disabled, pressed && !off && styles.pressed, style]}
+      style={({ pressed, hovered }: Interaction) => [
+        styles.button,
+        look.box,
+        easeOnWeb,
+        off && styles.disabled,
+        hovered && !off && [styles.lift, look.hover],
+        pressed && !off && styles.pressed,
+        style,
+      ]}
     >
-      {busy ? (
-        <ActivityIndicator color={look.ink} />
-      ) : (
-        <Text style={[type.button, kind === "hint" && styles.hintLabel, { color: look.ink }]} numberOfLines={1}>
-          {label}
-        </Text>
-      )}
+      {({ hovered }: Interaction) =>
+        busy ? (
+          <ActivityIndicator color={look.ink} />
+        ) : (
+          <Text style={[type.button, kind === "hint" && styles.hintLabel, kind === "text" && hovered && !off && styles.underline, { color: look.ink }]} numberOfLines={1}>
+            {label}
+          </Text>
+        )
+      }
     </Pressable>
   );
 }
@@ -146,10 +203,11 @@ export function IconButton({ icon, label, onPress, disabled, big = false }: { ic
       disabled={disabled}
       onPress={onPress}
       hitSlop={size.hitSlop}
-      style={({ pressed }) => [
+      style={({ pressed, hovered }: Interaction) => [
         styles.iconButton,
         big && styles.bigIcon,
-        { backgroundColor: c.controlFill, borderColor: c.outline },
+        { backgroundColor: c.controlFill, borderColor: hovered && !disabled ? c.onSurfaceVariant : c.outline },
+        easeOnWeb,
         disabled && styles.faint,
         pressed && !disabled && styles.pressed,
       ]}
@@ -168,9 +226,11 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
       accessibilityLabel={label}
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={({ pressed }) => [
+      style={({ pressed, hovered }: Interaction) => [
         styles.chip,
-        selected ? { backgroundColor: "rgba(242, 184, 75, 0.16)", borderColor: c.firefly } : { backgroundColor: c.controlFill, borderColor: c.outline },
+        selected ? { backgroundColor: "rgba(242, 184, 75, 0.16)", borderColor: c.firefly } : { backgroundColor: c.controlFill, borderColor: hovered ? c.onSurfaceVariant : c.outline },
+        easeOnWeb,
+        hovered && !selected && styles.lift,
         pressed && styles.pressed,
       ]}
     >
@@ -197,7 +257,21 @@ export function PromptField({ end, style, glow = false, onFocus, onBlur, ...inpu
   const [width, setWidth] = useState(0);
   // the whole field shows focus, so the browser's own ring around the inner text area goes
   const [focused, setFocused] = useState(false);
-  const web = Platform.OS === "web" && input.multiline ? { rows: webRows(input.value ?? "", width), onLayout: (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width) } : null;
+  const web =
+    Platform.OS === "web" && input.multiline
+      ? {
+          rows: webRows(input.value ?? "", width),
+          onLayout: (e: LayoutChangeEvent) => setWidth(e.nativeEvent.layout.width),
+          // a web text area takes Enter as a new line and never submits (react-native-web ignores
+          // submitBehavior), so Enter sends, as in a chat, and Shift+Enter or a word being composed doesn't
+          onKeyPress: (e: TextInputKeyPressEvent) => {
+            const key = e as unknown as { key: string; shiftKey: boolean; nativeEvent: { isComposing?: boolean }; preventDefault: () => void };
+            if (key.key !== "Enter" || key.shiftKey || key.nativeEvent.isComposing || !input.onSubmitEditing) return;
+            key.preventDefault();
+            input.onSubmitEditing(e as unknown as TextInputSubmitEditingEvent);
+          },
+        }
+      : null;
   const edge = glow ? { borderColor: c.firefly, borderWidth: 1.5, boxShadow: "0 0 18px rgba(242, 184, 75, 0.25)" } : { borderColor: focused ? c.outline : c.fieldEdge, borderWidth: 1 };
   return (
     <View style={[styles.field, { backgroundColor: c.surfaceContainer }, edge, style]}>
@@ -240,16 +314,31 @@ export function SendButton({ busy, disabled, onPress, label = "Send", amber = fa
   );
 }
 
-/** A sheet that rises over the screen, with a scrim that closes it. */
+/** A sheet that rises over the screen, with a scrim that closes it; in the website layout, a dialog in the middle
+ * that fades in. Escape closes either on the web. */
 export function Sheet({ open, onClose, label, children }: { open: boolean; onClose: () => void; label: string; children: ReactNode }) {
   const c = useColors();
+  const wide = useWide();
+  const scrim = <Pressable style={[wide ? StyleSheet.absoluteFill : styles.flex, { backgroundColor: c.scrim }]} onPress={onClose} accessibilityRole="button" accessibilityLabel={`Close ${label}`} />;
+  const panel = [wide ? styles.dialog : styles.sheet, { backgroundColor: c.surfaceContainer, borderColor: c.fieldEdge }];
   return (
-    <Modal visible={open} transparent animationType="slide" onRequestClose={onClose}>
-      <Pressable style={[styles.flex, { backgroundColor: c.scrim }]} onPress={onClose} accessibilityRole="button" accessibilityLabel={`Close ${label}`} />
-      <View style={[styles.sheet, { backgroundColor: c.surfaceContainer, borderColor: c.fieldEdge }]} accessibilityViewIsModal>
-        <View style={[styles.grabber, { backgroundColor: c.outline }]} />
-        {children}
-      </View>
+    <Modal visible={open} transparent animationType={wide ? "fade" : "slide"} onRequestClose={onClose}>
+      {wide ? (
+        <View style={[styles.flex, styles.center]}>
+          {scrim}
+          <View style={panel} accessibilityViewIsModal>
+            {children}
+          </View>
+        </View>
+      ) : (
+        <>
+          {scrim}
+          <View style={panel} accessibilityViewIsModal>
+            <View style={[styles.grabber, { backgroundColor: c.outline }]} />
+            {children}
+          </View>
+        </>
+      )}
     </Modal>
   );
 }
@@ -259,12 +348,16 @@ const styles = StyleSheet.create({
   column: { flex: 1, width: "100%", maxWidth: maxContentWidth, alignSelf: "center" },
   button: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.s },
   full: { height: size.button, borderRadius: radius.button, paddingHorizontal: space.xl, alignSelf: "stretch" },
+  fit: { height: size.button, borderRadius: radius.button, paddingHorizontal: space.xxl, minWidth: 200, alignSelf: "flex-start" },
   small: { height: size.touch, borderRadius: radius.button, paddingHorizontal: 14, alignSelf: "flex-start" },
   textButton: { height: size.touch, paddingHorizontal: space.l, alignSelf: "center" },
   hintLabel: { fontSize: 15 },
+  underline: { textDecorationLine: "underline" },
   disabled: { opacity: 0.45 },
   faint: { opacity: 0.35 },
+  lift: { transform: [{ translateY: -1 }] },
   pressed: { transform: [{ scale: 0.97 }] },
+  center: { alignItems: "center", justifyContent: "center", padding: space.xl },
   iconButton: { width: size.iconButton, height: size.iconButton, borderRadius: radius.iconButton, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   bigIcon: { width: size.button, height: size.button },
   chip: { height: size.iconButton, borderRadius: radius.chip, borderWidth: 1, paddingHorizontal: 14, justifyContent: "center" },
@@ -289,4 +382,5 @@ const styles = StyleSheet.create({
     alignSelf: "center",
   },
   grabber: { alignSelf: "center", width: 36, height: 4, borderRadius: 2 },
+  dialog: { borderRadius: radius.sheet, borderWidth: 1, padding: space.xxl, gap: space.m, width: "100%", maxWidth: 560, maxHeight: "90%" },
 });

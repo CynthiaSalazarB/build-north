@@ -3,7 +3,7 @@
 // answer (0 points), a fact, and the learner's answers on the right. The learner sees what kind of message it is,
 // never which agent wrote it.
 import type { Message } from "@build-north/agents";
-import { useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { hintCardOf, inlineCodeOf } from "../session/present.ts";
 import { radius, size, space, type } from "../theme.ts";
@@ -14,6 +14,11 @@ import { Body, Label, Reply, Tag, useColors, useMode } from "./ui.tsx";
 /** The firefly's column is 44 wide and the question starts 14 after it, so replies line up with the question. */
 const COLUMN = size.iconButton;
 const INDENT = COLUMN + 14;
+
+/** In the website layout the firefly sits after its question, so replies start at the edge, not past a firefly. */
+const Flush = createContext(false);
+export const FlushReplies = Flush.Provider;
+const useIndent = () => (useContext(Flush) ? null : styles.indent);
 
 type FireflyProps = {
   state: FireflyState;
@@ -44,8 +49,9 @@ function WithCode({ text, style }: { text: string; style: object }) {
   );
 }
 
-/** The firefly's question, with the firefly beside it. `eyebrow` is a short label over it ("before any help"). */
-export function Ask({ text, eyebrow = null, firefly }: { text: string; eyebrow?: string | null; firefly: FireflyProps }) {
+/** The firefly's question, with the firefly beside it. `eyebrow` is a short label over it ("before any help").
+ * In the website layout the firefly sits after the question, next to the map its line runs to (`fireflyAfter`). */
+export function Ask({ text, eyebrow = null, firefly, fireflyAfter = false }: { text: string; eyebrow?: string | null; firefly: FireflyProps; fireflyAfter?: boolean }) {
   const c = useColors();
   const drawing = (
     <>
@@ -54,7 +60,7 @@ export function Ask({ text, eyebrow = null, firefly }: { text: string; eyebrow?:
     </>
   );
   return (
-    <View style={styles.ask}>
+    <View style={[styles.ask, fireflyAfter && styles.reverse]}>
       {firefly.onPress && !firefly.busy ? (
         <Pressable accessibilityRole="button" accessibilityLabel={firefly.label ?? "Help"} onPress={firefly.onPress} hitSlop={size.hitSlop} style={({ pressed }) => [styles.firefly, pressed && styles.pressed]}>
           {drawing}
@@ -75,7 +81,7 @@ export function Ask({ text, eyebrow = null, firefly }: { text: string; eyebrow?:
 /** A line the firefly said earlier in this part (the feedback on the last part, the move's name), set quietly. */
 export function Aside({ text }: { text: string }) {
   return (
-    <View style={styles.indent}>
+    <View style={useIndent()}>
       <Body dim style={type.bubble}>
         {text}
       </Body>
@@ -88,7 +94,7 @@ export function Aside({ text }: { text: string }) {
 export function Nudge({ text, capNote }: { text: string; capNote: boolean }) {
   const c = useColors();
   return (
-    <View style={styles.indent}>
+    <View style={useIndent()}>
       <Tag style={{ color: c.question }}>{text.trim().endsWith("?") ? "nudge · free" : "not yet"}</Tag>
       <Reply style={styles.replyText}>{text}</Reply>
       {capNote && <Label dim style={styles.note}>this part can now light 1 point at most</Label>}
@@ -136,11 +142,11 @@ export function Revealed({ text }: { text: string }) {
   );
 }
 
-/** A fact desk answer: facts only, or the redirect when a question fishes for the map. */
+/** A fact desk answer: facts only, or the redirect when a question fishes for the map (which says so itself). */
 export function FactCard({ kind, text }: { kind: "fact" | "redirect"; text: string }) {
   return (
     <View style={styles.fact}>
-      <Tag dim>{kind}</Tag>
+      {kind === "fact" && <Tag dim>fact</Tag>}
       <Body>{text}</Body>
     </View>
   );
@@ -182,7 +188,7 @@ export function useSlow(waiting: boolean): boolean {
 /** While the firefly checks: screen readers hear what is happening; after 10 s everyone sees it. */
 export function Waiting({ line, slow }: { line: string; slow: boolean }) {
   return (
-    <View role="status" accessibilityLiveRegion="polite" accessibilityLabel={slow ? `${line} Taking longer than usual.` : line} style={styles.indent}>
+    <View role="status" accessibilityLiveRegion="polite" accessibilityLabel={slow ? `${line} Taking longer than usual.` : line} style={useIndent()}>
       {slow && <Label dim>taking longer than usual…</Label>}
     </View>
   );
@@ -204,6 +210,7 @@ export function Failure({ message, children }: { message: string; children?: Rea
 
 const styles = StyleSheet.create({
   ask: { flexDirection: "row", alignItems: "flex-start", gap: 14 },
+  reverse: { flexDirection: "row-reverse" },
   firefly: { width: COLUMN, alignItems: "center", gap: 2 },
   fireflyTag: { textAlign: "center" },
   askText: { flex: 1, gap: space.xs, paddingTop: 2 },

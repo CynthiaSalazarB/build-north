@@ -14,13 +14,19 @@ import { Button, Screen, Title } from "../components/ui.tsx";
 import type { SessionClient } from "../session/client.ts";
 import { clerkKey, createClient } from "../session/config.ts";
 import { SessionProvider } from "../session/session-context.tsx";
-import { base, space } from "../theme.ts";
+import { base, brand, space } from "../theme.ts";
 
 // The splash stays up until the fonts and Clerk are ready, so the first frame is already in its own fonts.
 void SplashScreen.preventAutoHideAsync();
 
 // Without a Clerk key, everyone counts as signed in and API calls carry the dev headers (local dev).
 const devClient = createClient();
+
+/** Clerk's sign-in (on the web) names the app and skips its "Welcome back! Please sign in to continue". */
+const localization = {
+  signIn: { start: { title: `Sign in to ${brand.name}`, titleCombined: `Sign in to ${brand.name}`, subtitle: "", subtitleCombined: "" } },
+  signUp: { start: { title: `Join ${brand.name}`, titleCombined: `Join ${brand.name}`, subtitle: "", subtitleCombined: "" } },
+};
 
 // Expo Observe records launch times and crashes on phone release builds (it does nothing on the web)
 export default ObserveRoot.wrap(RootLayout);
@@ -56,7 +62,7 @@ function RootLayout() {
   return (
     <SafeAreaProvider>
       {clerkKey ? (
-        <ClerkProvider publishableKey={clerkKey} tokenCache={tokenCache}>
+        <ClerkProvider publishableKey={clerkKey} tokenCache={tokenCache} localization={localization}>
           <ClerkApp />
         </ClerkProvider>
       ) : (
@@ -96,5 +102,5 @@ function App({ client, signedIn, clerk }: { client: SessionClient; signedIn: boo
 }
 
 const styles = StyleSheet.create({
-  error: { flex: 1, justifyContent: "center", gap: space.xl, paddingHorizontal: space.margin },
+  error: { flex: 1, justifyContent: "center", gap: space.xl, paddingHorizontal: space.margin, width: "100%", maxWidth: 560, alignSelf: "center" },
 });

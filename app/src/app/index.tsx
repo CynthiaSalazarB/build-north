@@ -3,38 +3,39 @@
 // learner's notes (pasted text only, up to 8,000 characters: decision 12). "Ask your AI what to map" gives a
 // prompt to paste into a coding agent, so the concepts come from the learner's own project; notes that look like a
 // key or a password never leave the phone. "Test myself" starts a self-test instead: the whole map alone, the
-// testers' pre-test and post-test.
+// testers' pre-test and post-test. In the website layout the choices are a column on the left and the code and
+// the map stand on the right.
 import type { SessionMode } from "@build-north/agents";
 import type { Metadata } from "expo-router/server";
 import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Platform, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
-import { ConceptMap } from "../components/concept-map.tsx";
-import { Firefly } from "../components/firefly.tsx";
+import { CodePreview } from "../components/code-preview.tsx";
 import { Failure } from "../components/messages.tsx";
-import { Body, Button, Card, Chip, KeyboardSafe, Label, PromptField, Screen, Sheet, Small, Title, useColors } from "../components/ui.tsx";
+import { SiteHeader } from "../components/site-header.tsx";
+import { Body, Button, Card, Chip, KeyboardSafe, Label, PromptField, Rise, Screen, Sheet, Small, Title, useColors, useWide } from "../components/ui.tsx";
 import { UpdateNotice } from "../components/update-notice.tsx";
-import { AI_PROMPT, CONCEPTS, editorLinesOf, filledOf, secretLineOf, type PartView } from "../session/present.ts";
+import { AI_PROMPT, CONCEPTS, filledOf, secretLineOf } from "../session/present.ts";
 import { clerkKey } from "../session/config.ts";
 import { useSession } from "../session/session-context.tsx";
-import { brand, editor, radius, space, type } from "../theme.ts";
+import { brand, page, radius, size, space, type } from "../theme.ts";
 
 const MAX_CONCEPT = 100;
 const MAX_NOTES = 8000;
-const EMPTY: PartView[] = (["supraordinate", "exclusion", "isoordinate", "infraordinate"] as const).map((move) => ({ move, state: "unasked", text: null, pips: ["open", "open"] }));
 
 /** The web page's title and description, in the static HTML, so a shared link previews well. */
 export function generateMetadata(): Metadata {
   const title = `${brand.name}: can you explain the code your AI wrote?`;
-  const description = "Pick a concept from your project. A firefly asks questions and never hands you the answer; each answer in your own words brings more light.";
+  const description = "Pick a concept from your project. An AI tutor asks questions and never hands you the answer; each answer in your own words brings more light.";
   return { title, description, openGraph: { title, description } };
 }
 
 export default function StartScreen() {
   const router = useRouter();
   const c = useColors();
+  const wide = useWide();
   const { start, offline, state } = useSession();
   const [concept, setConcept] = useState<string>(offline ? "democracy" : "API");
   const [notes, setNotes] = useState("");
@@ -61,121 +62,141 @@ export default function StartScreen() {
     else router.push("/session");
   };
 
+  const startButton = <Button label={name ? `Start with ${name}` : "Pick a concept"} fit={wide} busy={starting === "learn"} disabled={!name || secret || starting !== null} onPress={() => void begin("learn")} />;
+  const testButton = !offline && (
+    <Button
+      kind={wide ? "secondary" : "text"}
+      label="Test myself"
+      hint="The whole map on your own, with only the facts. Your levels don't change."
+      busy={starting === "test"}
+      disabled={!name || secret || starting !== null}
+      onPress={() => void begin("test")}
+      style={wide && styles.tall}
+    />
+  );
+  // the choices, in the order both layouts read them
+  const choices = (
+    <>
+      {unfinished && (
+        <Rise order={1}>
+          <Card style={styles.resume}>
+            <View style={styles.resumeHead}>
+              <Body style={styles.flex} numberOfLines={1}>
+                {unfinished.mentefacto.concept}
+              </Body>
+              <Label dim>{`${done} of ${unfinished.progress.movesTotal} parts`}</Label>
+            </View>
+            <Button kind="secondary" label="Resume" onPress={() => router.push("/session")} />
+          </Card>
+        </Rise>
+      )}
+      {offline && <Label dim>Demo mode: a recorded session, no API</Label>}
+      <Rise order={2} style={styles.chips}>
+        {CONCEPTS.map((chip) => (
+          <Chip key={chip} label={chip} selected={picked === chip} onPress={() => setConcept(chip)} />
+        ))}
+      </Rise>
+      <Rise order={3}>
+        <PromptField
+          value={picked ? "" : concept}
+          onChangeText={setConcept}
+          maxLength={MAX_CONCEPT}
+          placeholder="Or type your own"
+          autoCapitalize="none"
+          accessibilityLabel="A concept to map"
+          returnKeyType="go"
+          onSubmitEditing={() => void begin("learn")}
+        />
+      </Rise>
+      <Rise order={4} style={styles.extras}>
+        {!notesOpen && <Button kind="text" label="Add your notes" hint="Optional: paste text the firefly can draw on" onPress={() => setNotesOpen(true)} style={styles.left} />}
+        <Button kind="text" label="Ask your AI what to map" hint="A prompt for your coding agent, so you map concepts from your own project" onPress={() => setAskOpen(true)} style={styles.left} />
+      </Rise>
+      {notesOpen && (
+        <View style={styles.notesGroup}>
+          <Label dim>your notes</Label>
+          <TextInput
+            value={notes}
+            onChangeText={setNotes}
+            maxLength={MAX_NOTES}
+            placeholder="Paste your AI's answer, or text from your class"
+            placeholderTextColor={c.placeholder}
+            multiline
+            accessibilityLabel="Your notes"
+            style={[styles.notes, { color: c.onSurface, backgroundColor: c.surfaceContainer, borderColor: secret ? c.gap : c.fieldEdge }]}
+          />
+          <Label dim style={styles.count}>{`${notes.length.toLocaleString("en-US")} / 8,000`}</Label>
+          {secret && <Failure message={`Line ${secretLine} looks like it has a key, a token or a password. Take it out before you start: your notes go to the AI tutor.`} />}
+        </View>
+      )}
+      {error && <Failure message={error} />}
+    </>
+  );
+  const sheet = (
+    <AskYourAi
+      open={askOpen}
+      onClose={() => setAskOpen(false)}
+      onPaste={() => {
+        setAskOpen(false);
+        setNotesOpen(true);
+      }}
+    />
+  );
+
+  if (wide) {
+    return (
+      <Screen>
+        <SiteHeader end={clerkKey && <SignOut solid />} />
+        <View style={styles.split}>
+          <ScrollView style={styles.words} contentContainerStyle={styles.wordsContent} keyboardShouldPersistTaps="handled">
+            <Rise>
+              <Text style={[type.display, { color: c.onSurface }]} accessibilityRole="header">
+                Can you explain the code your AI wrote?
+              </Text>
+            </Rise>
+            {choices}
+            <Rise order={5} style={styles.actions}>
+              {startButton}
+              {testButton}
+            </Rise>
+          </ScrollView>
+          <View style={styles.stage}>
+            <Rise order={2} style={styles.spot}>
+              <CodePreview concept={name} />
+            </Rise>
+          </View>
+        </View>
+        {sheet}
+        <ObserveInteractiveMarker />
+      </Screen>
+    );
+  }
+
   return (
     <Screen>
       <KeyboardSafe>
         <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
           <UpdateNotice />
-          <Text style={[type.wordmark, { color: c.onSurface }]} accessibilityRole="header">
-            {brand.name}
-          </Text>
-
-          <View style={[styles.editor, { backgroundColor: c.codeFill, borderColor: c.fieldEdge }]} accessible accessibilityLabel={`Code from your project that uses ${name || "a concept"}`}>
-            {editorLinesOf(name).map((line) => (
-              <View key={line.n} style={[styles.line, line.current && { backgroundColor: "rgba(242, 184, 75, 0.1)" }]}>
-                <Text style={[type.code, styles.gutter, { color: line.current ? c.question : "#7d7469" }]}>{line.n}</Text>
-                <Text style={[type.code, styles.code, { color: line.current ? c.question : "rgba(244, 239, 232, 0.4)" }]} numberOfLines={1}>
-                  {line.text}
-                </Text>
-                {line.current && <View style={[styles.cursor, { backgroundColor: c.firefly }]} />}
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.map} accessible={false} importantForAccessibility="no-hide-descendants">
-            <ConceptMap concept={name || "?"} parts={EMPTY} />
-            <View style={styles.firefly}>
-              <Firefly state="asks" />
-            </View>
-          </View>
-
-          <View style={styles.intro}>
-            <Title>Can you explain the code your AI wrote?</Title>
-            <Small dim>A firefly asks. You explain. It never hands you the answer.</Small>
-          </View>
-
-          {unfinished && (
-            <Card style={styles.resume}>
-              <View style={styles.resumeHead}>
-                <Body style={styles.flex} numberOfLines={1}>
-                  {unfinished.mentefacto.concept}
-                </Body>
-                <Label dim>{`${done} of ${unfinished.progress.movesTotal} parts`}</Label>
-              </View>
-              <Button kind="secondary" label="Resume" onPress={() => router.push("/session")} />
-            </Card>
-          )}
-
-          {offline && <Label dim>demo mode: no API is set, so this replays the democracy session</Label>}
-
-          <View style={styles.chips}>
-            {CONCEPTS.map((chip) => (
-              <Chip key={chip} label={chip} selected={picked === chip} onPress={() => setConcept(chip)} />
-            ))}
-          </View>
-
-          <PromptField
-            value={picked ? "" : concept}
-            onChangeText={setConcept}
-            maxLength={MAX_CONCEPT}
-            placeholder="Or type your own"
-            autoCapitalize="none"
-            accessibilityLabel="A concept to map"
-            returnKeyType="go"
-            onSubmitEditing={() => void begin("learn")}
-          />
-
-          <View style={styles.extras}>
-            {!notesOpen && <Button kind="text" label="Add your notes" hint="Optional: paste text the firefly can draw on" onPress={() => setNotesOpen(true)} style={styles.left} />}
-            <Button kind="text" label="Ask your AI what to map" hint="A prompt for your coding agent, so you map concepts from your own project" onPress={() => setAskOpen(true)} style={styles.left} />
-          </View>
-
-          {notesOpen && (
-            <View style={styles.notesGroup}>
-              <Label dim>your notes</Label>
-              <TextInput
-                value={notes}
-                onChangeText={setNotes}
-                maxLength={MAX_NOTES}
-                placeholder="Paste your AI's answer, or text from your class"
-                placeholderTextColor={c.placeholder}
-                multiline
-                accessibilityLabel="Your notes"
-                style={[styles.notes, { color: c.onSurface, backgroundColor: c.surfaceContainer, borderColor: secret ? c.gap : c.fieldEdge }]}
-              />
-              <Label dim style={styles.count}>{`${notes.length.toLocaleString("en-US")} / 8,000`}</Label>
-              {secret && <Failure message={`Line ${secretLine} looks like it has a key, a token or a password. Take it out before you start: your notes go to the AI tutor.`} />}
-            </View>
-          )}
-
-          {error && <Failure message={error} />}
-        </ScrollView>
-
-        <View style={styles.foot}>
-          <Button label={name ? `Start with ${name}` : "Pick a concept"} busy={starting === "learn"} disabled={!name || secret || starting !== null} onPress={() => void begin("learn")} />
-          <View style={styles.footRow}>
-            {!offline && (
-              <Button
-                kind="text"
-                label="Test myself"
-                hint="The whole map on your own, with only the facts. Your levels don't change."
-                busy={starting === "test"}
-                disabled={!name || secret || starting !== null}
-                onPress={() => void begin("test")}
-              />
-            )}
+          <View style={styles.top}>
+            <Text style={[type.wordmark, { color: c.onSurface }]} accessibilityRole="header">
+              {brand.name}
+            </Text>
             {clerkKey && <SignOut />}
           </View>
+          <Rise>
+            <CodePreview concept={name} />
+          </Rise>
+          <Rise order={1}>
+            <Title>Can you explain the code your AI wrote?</Title>
+          </Rise>
+          {choices}
+        </ScrollView>
+        <View style={styles.foot}>
+          {startButton}
+          {testButton && <View style={styles.footRow}>{testButton}</View>}
         </View>
       </KeyboardSafe>
-      <AskYourAi
-        open={askOpen}
-        onClose={() => setAskOpen(false)}
-        onPaste={() => {
-          setAskOpen(false);
-          setNotesOpen(true);
-        }}
-      />
+      {sheet}
       <ObserveInteractiveMarker />
     </Screen>
   );
@@ -196,7 +217,7 @@ function AskYourAi({ open, onClose, onPaste }: { open: boolean; onClose: () => v
   return (
     <Sheet open={open} onClose={onClose} label="the prompt">
       <Title style={styles.sheetTitle}>Ask your AI what to map</Title>
-      <Small dim>Paste this into Claude Code, Cursor or Copilot inside your project. Then paste its answer into your notes and pick a concept from it.</Small>
+      <Small dim>Paste this into Claude Code, Cursor or Copilot inside your project, then paste its answer into your notes.</Small>
       <View style={[styles.prompt, { backgroundColor: c.codeFill, borderColor: c.fieldEdge }]}>
         <Text selectable style={[type.label, styles.promptText, { color: c.onSurface }]}>
           {AI_PROMPT}
@@ -209,21 +230,15 @@ function AskYourAi({ open, onClose, onPaste }: { open: boolean; onClose: () => v
 }
 
 // Only rendered with Clerk on (#22), since useAuth needs the ClerkProvider in the root layout
-function SignOut() {
+function SignOut({ solid = false }: { solid?: boolean }): ReactNode {
   const { signOut } = useAuth();
-  return <Button kind="text" label="Sign out" onPress={() => void signOut()} />;
+  return <Button kind={solid ? "secondary" : "text"} solid={solid} label="Sign out" onPress={() => void signOut()} style={!solid && styles.signOut} />;
 }
 
 const styles = StyleSheet.create({
-  content: { paddingHorizontal: space.margin, paddingTop: 22, paddingBottom: space.xl, gap: space.l },
-  editor: { borderRadius: editor.radius, borderWidth: 1, paddingVertical: 10, overflow: "hidden" },
-  line: { flexDirection: "row", alignItems: "center" },
-  gutter: { width: editor.gutter, paddingRight: space.m, textAlign: "right" },
-  code: { flexShrink: 1 },
-  cursor: { width: 8, height: 17, marginLeft: 2 },
-  map: { paddingHorizontal: 26 },
-  firefly: { position: "absolute", left: 40, top: 6 },
-  intro: { gap: space.s },
+  content: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.xl, gap: space.l },
+  top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: size.touch },
+  signOut: { paddingHorizontal: 0 },
   flex: { flex: 1 },
   resume: { gap: space.m },
   resumeHead: { flexDirection: "row", alignItems: "center", gap: space.m },
@@ -235,8 +250,15 @@ const styles = StyleSheet.create({
   notes: { fontFamily: type.input.fontFamily, fontSize: type.input.fontSize, minHeight: 140, paddingHorizontal: space.l, paddingVertical: space.m, borderRadius: radius.field, borderWidth: 1, textAlignVertical: "top" },
   count: { alignSelf: "flex-end" },
   foot: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m, gap: space.xs },
-  footRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: space.xl },
+  footRow: { flexDirection: "row", justifyContent: "center" },
   sheetTitle: { fontSize: 24, lineHeight: 30 },
   prompt: { borderRadius: radius.field, borderWidth: 1, padding: space.l },
   promptText: { lineHeight: 18 },
+  split: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },
+  words: { width: page.words, flexGrow: 0 },
+  wordsContent: { flexGrow: 1, justifyContent: "center", paddingTop: space.xxl, paddingBottom: page.header, gap: space.xl },
+  actions: { flexDirection: "row", alignItems: "center", gap: space.m, marginTop: space.s },
+  tall: { height: 56 },
+  stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: page.header },
+  spot: { width: "100%", maxWidth: page.map },
 });
