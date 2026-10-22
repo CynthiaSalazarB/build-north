@@ -8,8 +8,8 @@ import type { Mentefacto, MoveId, Result } from "@build-north/agents";
 import { useEffect } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { success } from "../haptics.ts";
-import { gapOf, resultPartsOf } from "../session/present.ts";
-import { page, parts as PARTS, space, type } from "../theme.ts";
+import { gapOf, resultPartsOf, resultStepsOf, type ResultStep } from "../session/present.ts";
+import { page, parts as PARTS, radius, space, type } from "../theme.ts";
 import { ConceptMap, PointSquare } from "./concept-map.tsx";
 import { Firefly } from "./firefly.tsx";
 import { Failure } from "./messages.tsx";
@@ -51,7 +51,7 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
   const lit = useMode() === "day";
   const gap = gapOf(result);
   const missed = Math.max(0, result.predictedScore - result.score);
-  const noted = Object.entries(notes).filter(([, note]) => note);
+  const steps = resultStepsOf(result, map, notes);
 
   const figure = (
     <View style={styles.map}>
@@ -88,24 +88,21 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
           <Label dim>{`you asked ${result.questions.asked} ${result.questions.asked === 1 ? "question" : "questions"}, ${result.questions.testing} testing the idea`}</Label>
         )}
       </Rise>
-      <Rise order={3}>
-        <Body>Feeling surer than you can explain is normal. Explaining is how you find out.</Body>
-      </Rise>
-      {noted.length > 0 && (
-        <Rise order={4} style={styles.notes}>
-          {/* the whole-map evaluator's note on each part, under the part's name */}
-          {noted.map(([move, note]) => (
-            <View key={move} style={styles.note}>
-              <Tag dim>{PARTS[move as MoveId].label}</Tag>
-              <Body dim>{note}</Body>
-            </View>
-          ))}
+      {/* only for a guess above the score: that's the feeling it names */}
+      {gap.over && (
+        <Rise order={3}>
+          <Body>Feeling surer than you can explain is normal. Explaining is how you find out.</Body>
+        </Rise>
+      )}
+      {steps.length > 0 && (
+        <Rise order={4}>
+          <ResultSteps steps={steps} dark={lit} />
         </Rise>
       )}
       {/* the coach's words arrive a moment after the numbers; screen readers hear them when they do */}
       <View role="status" accessibilityLiveRegion="polite">
-        <Rise key={result.coach ? "coach" : "waiting"} order={5} style={styles.coach}>
-          <Tag dim>for next time</Tag>
+        <Rise key={result.coach ? "coach" : "waiting"} order={5} style={[styles.coach, { borderLeftColor: c.question }]}>
+          <Tag style={{ color: c.question }}>for next time</Tag>
           {result.coach ? (
             <Body>{result.coach.message}</Body>
           ) : coachFailure ? (
@@ -155,6 +152,44 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
   );
 }
 
+/** The whole-map evaluator's notes, part by part, the way the worked example reads: the part's name and its
+ * points as on the map, the learner's words, then the note, dim. */
+function ResultSteps({ steps, dark }: { steps: ResultStep[]; dark: boolean }) {
+  const c = useColors();
+  return (
+    <View style={styles.steps}>
+      {steps.map((step, i) => (
+        <View key={step.move} style={[styles.step, { borderLeftColor: c.partEdge }]}>
+          <View style={styles.stepHead} accessible accessibilityLabel={`${PARTS[step.move].label}: ${step.points} of 2 points`}>
+            <Tag style={{ color: c.question }}>{`${i + 1} · ${PARTS[step.move].label}`}</Tag>
+            <View style={styles.pips}>
+              {step.pips.map((pip, k) => (
+                <PointSquare key={k} pip={pip} dark={dark} />
+              ))}
+            </View>
+          </View>
+          {step.items.length > 0 ? (
+            <View style={styles.items}>
+              {step.items.map((item) => (
+                <View key={item} style={[styles.item, { borderColor: c.partEdge, backgroundColor: c.partFill }]}>
+                  <Text style={[type.ui, { color: c.onSurface }]}>{item}</Text>
+                </View>
+              ))}
+            </View>
+          ) : (
+            <Label dim>left empty</Label>
+          )}
+          {step.note && (
+            <Body dim style={type.bubble}>
+              {step.note}
+            </Body>
+          )}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   content: { paddingHorizontal: space.margin, paddingTop: 18, paddingBottom: space.xl, gap: space.l },
   gapRow: { flexDirection: "row", alignItems: "center", gap: 14 },
@@ -165,9 +200,13 @@ const styles = StyleSheet.create({
   facts: { gap: space.l },
   legend: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space.l, rowGap: 6 },
   legendRow: { flexDirection: "row", alignItems: "center", gap: 6 },
-  notes: { gap: space.m },
-  note: { gap: 2 },
-  coach: { gap: 2 },
+  steps: { gap: space.xl },
+  step: { gap: space.s, borderLeftWidth: 2, paddingLeft: space.l },
+  stepHead: { flexDirection: "row", alignItems: "center", gap: space.s },
+  pips: { flexDirection: "row", gap: space.xs },
+  items: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
+  item: { paddingVertical: 6, paddingHorizontal: 10, borderWidth: 1, borderRadius: radius.chip },
+  coach: { gap: space.xs, borderLeftWidth: 2, paddingLeft: space.l },
   foot: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m, gap: space.xs },
   split: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },
   words: { width: page.words, flexGrow: 0 },
