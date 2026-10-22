@@ -2,6 +2,7 @@
 // Expo Go. The Clerk dashboard decides the methods it offers. The look comes with the brand kit (#14);
 // the web build uses sign-in.web.tsx instead.
 import { useHostedAuth } from "@clerk/expo/hosted-auth";
+import { ObserveInteractiveMarker } from "expo-observe";
 import { useState } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { Body, Button, Screen, Title } from "../components/ui.tsx";
@@ -32,6 +33,7 @@ export default function SignInScreen() {
         <Button label="Sign in" busy={busy} onPress={signIn} />
         {error && <Text style={styles.error}>{error}</Text>}
       </View>
+      <ObserveInteractiveMarker />
     </Screen>
   );
 }

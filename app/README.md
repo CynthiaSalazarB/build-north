@@ -47,8 +47,26 @@ signs in and the app works as before.
 ```bash
 npm test -w app             # the session logic under Node: fixture replay, API client, transcript
 npm run typecheck -w app
-npm run export:web -w app   # the static web build in app/dist (Render Static Site, #27)
+npm run export:web -w app   # the static web build in app/dist
 ```
+
+## Builds and updates (EAS)
+
+The EAS project is `@leo_atienza/reality-check`, and it moves to the team's Expo organization later.
+Run these from `app/`:
+
+```bash
+npx eas-cli@latest build --platform android --profile development   # the dev client, for our own phones
+npx eas-cli@latest build --platform android --profile preview       # the APK testers and judges install
+npx eas-cli@latest update --channel preview --environment preview --platform android --message "what changed"
+npx expo export --platform web && npx eas-cli@latest deploy --prod  # the web build on EAS Hosting
+```
+
+- `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` come from the EAS environments, not
+  `app/.env`.
+- The free plan has 15 Android builds a month. JavaScript changes go out as updates, and a new APK is
+  only for a native change (the Preview build workflow checks the fingerprint first).
+- Every build, update and deploy goes in `docs/expo-log.md`, for the "How we used Expo" write-up.
 
 ## Where things are
 

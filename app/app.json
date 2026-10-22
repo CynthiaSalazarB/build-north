@@ -10,7 +10,11 @@
     "ios": {
       "icon": "./assets/expo.icon"
     },
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
     "android": {
+      "package": "ca.buildnorth.realitycheck",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -40,6 +44,15 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "81c0b8ca-1a83-4620-a220-559022ef6aba"
+      }
+    },
+    "owner": "leo_atienza",
+    "updates": {
+      "url": "https://u.expo.dev/81c0b8ca-1a83-4620-a220-559022ef6aba"
     }
   }
 }
