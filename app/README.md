@@ -61,7 +61,7 @@ npm run export:web -w app   # the static web build in app/dist
 
 ## Builds and updates (EAS)
 
-The EAS project is `@leo_atienza/reality-check`, and it moves to the team's Expo organization later.
+The EAS project is `@lumente/reality-check`, in the team's Expo organization (Leo is Owner, Cynthia Admin).
 Run these from `app/`:
 
 ```bash
