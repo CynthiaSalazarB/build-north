@@ -107,8 +107,8 @@ session waiting at the whole map, with the prediction (7) already made. It print
 Running it again resets the mastery to the seed and adds a fresh waiting session; earlier sessions
 stay.
 
-- **The user id** is what the API keys rows by: the `x-dev-user` name until Clerk lands (#23), then
-  the demo account's Clerk user id.
+- **The user id** is what the API keys rows by: the demo account's Clerk user id (its `sub`, now that
+  Clerk is in, #23), or an `x-dev-user` name for local work.
 - **The database** is the one the `SURREAL_*` variables name. With the root `.env` that's `dev`. For
   demo day, set `SURREAL_DATABASE=prod` in the shell for that one run (a variable set in the shell wins
   over `.env`), with a user that can write to `prod`.
