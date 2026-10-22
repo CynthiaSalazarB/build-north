@@ -1,0 +1,21 @@
+# Every merge to main reaches the phones (an update on the preview channel) and the web (EAS Hosting).
+# The push trigger needs the Expo GitHub app on the repo; `eas workflow:run .eas/workflows/ship.yml`
+# runs it by hand until then.
+name: Ship
+on:
+  push:
+    branches: ['main']
+jobs:
+  update:
+    name: Update the preview channel
+    type: update
+    environment: preview
+    params:
+      channel: preview
+      platform: android
+  deploy_web:
+    name: Deploy the web build
+    type: deploy
+    environment: production
+    params:
+      prod: true

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { generateKeyPairSync, sign, type KeyObject } from "node:crypto";
 import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import { test, type TestContext } from "node:test";
@@ -19,6 +20,7 @@ import {
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { createApp, type AppOptions } from "./app.ts";
+import { clerkUserFromToken } from "./clerk.ts";
 import { createCallAgent, type SendToClaude } from "./call-agent.ts";
 import { initialSession, type AgentLogEntry, type Store } from "./store.ts";
 
@@ -30,6 +32,7 @@ const noDb: AppOptions = {
   store: null,
   advance: advanceStub,
   callAgentFor: () => callAgentStub,
+  userFromToken: null,
   devKey: KEY,
 };
 const as = (user: string, key = KEY) => ({ "x-dev-user": user, "x-dev-key": key });
@@ -83,6 +86,18 @@ const answer = (url: string, id: string, body: unknown, headers: Record<string, 
     body: JSON.stringify(body),
   });
 
+// A stand-in Clerk instance: its key pair, and session tokens signed the way Clerk signs them (RS256)
+const clerk = generateKeyPairSync("rsa", { modulusLength: 2048 });
+const jwtKey = clerk.publicKey.export({ type: "spki", format: "pem" }).toString();
+const encode = (part: object) => Buffer.from(JSON.stringify(part)).toString("base64url");
+function sessionToken(claims: Record<string, unknown> = {}, key: KeyObject = clerk.privateKey) {
+  const now = Math.floor(Date.now() / 1000);
+  const unsigned = `${encode({ alg: "RS256", typ: "JWT", kid: "ins_test" })}.${encode({ sub: "user_2leo", sid: "sess_1", iat: now, nbf: now - 5, exp: now + 60, ...claims })}`;
+  return `${unsigned}.${sign("sha256", Buffer.from(unsigned), key).toString("base64url")}`;
+}
+const bearer = (token: string) => ({ authorization: `Bearer ${token}` });
+const withClerk = (): AppOptions => ({ ...withStore(), userFromToken: clerkUserFromToken({ jwtKey, authorizedParties: [WEB] }) });
+
 async function start(t: TestContext, options: AppOptions): Promise<string> {
   const server = createApp(options).listen(0);
   t.after(() => server.close());
@@ -119,15 +134,15 @@ test("CORS allows the configured origins only", async (t) => {
   assert.equal(other.headers.get("access-control-allow-origin"), null);
 });
 
-test("CORS lets the web build send the dev headers with every method", async (t) => {
+test("CORS lets the web build send the sign-in headers with every method", async (t) => {
   const res = await fetch(`${await start(t, noDb)}/me/data`, {
     method: "OPTIONS",
-    headers: { origin: WEB, "access-control-request-method": "DELETE", "access-control-request-headers": "content-type,x-dev-user,x-dev-key" },
+    headers: { origin: WEB, "access-control-request-method": "DELETE", "access-control-request-headers": "authorization,content-type,x-dev-user,x-dev-key" },
   });
   assert.equal(res.status, 204);
   assert.equal(res.headers.get("access-control-allow-origin"), WEB);
   assert.match(res.headers.get("access-control-allow-methods") ?? "", /DELETE/);
-  assert.match(res.headers.get("access-control-allow-headers") ?? "", /x-dev-key/);
+  assert.match(res.headers.get("access-control-allow-headers") ?? "", /authorization.*x-dev-key/);
 });
 
 test("GET /health/db is 503 without SurrealDB", async (t) => {
@@ -359,6 +374,40 @@ test("GET /me/mastery lists the four moves, and DELETE /me/data removes only the
   assert.deepEqual(await levels(), [1, 1, 1, 1]);
   assert.equal((await call(`/sessions/${mine.sessionId}`)).status, 404);
   assert.equal((await call(`/sessions/${theirs.sessionId}`, "GET", "jonathan")).status, 200);
+});
+
+test("a Clerk session token signs the caller in, and their rows are keyed by the Clerk user id", async (t) => {
+  const store = memoryStore();
+  const url = await start(t, { ...withClerk(), store });
+  // the web build's token names its origin; the native app's names none
+  const res = await post(url, { concept: "democracy" }, bearer(sessionToken({ azp: WEB })));
+  assert.equal(res.status, 201);
+  const { sessionId } = await res.json();
+  assert.notEqual(await store.getSession("user_2leo", sessionId), null);
+  assert.equal((await fetch(`${url}/me/mastery`, { headers: bearer(sessionToken()) })).status, 200);
+});
+
+test("an expired, forged or foreign token gets 401, and never falls back to the dev headers", async (t) => {
+  t.mock.method(console, "warn", () => {});
+  const url = await start(t, withClerk());
+  const now = Math.floor(Date.now() / 1000);
+  const tokens = [
+    sessionToken({ iat: now - 180, nbf: now - 180, exp: now - 120 }),
+    sessionToken({}, generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey),
+    sessionToken({ azp: "https://elsewhere.example" }),
+    "not-a-token",
+  ];
+  for (const token of tokens) {
+    assert.equal((await post(url, { concept: "democracy" }, { ...as("leo"), ...bearer(token) })).status, 401, token.slice(0, 20));
+  }
+});
+
+test("in production only a Clerk token gets in, and without CLERK_JWT_KEY no token does", async (t) => {
+  const production = await start(t, { ...withClerk(), devKey: null });
+  assert.equal((await post(production, { concept: "democracy" }, bearer(sessionToken()))).status, 201);
+  assert.equal((await post(production, { concept: "democracy" })).status, 401);
+  const noClerk = await start(t, withStore());
+  assert.equal((await post(noClerk, { concept: "democracy" }, bearer(sessionToken()))).status, 401);
 });
 
 test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2 Helps, 5/8, an agent_log row per call", async (t) => {
