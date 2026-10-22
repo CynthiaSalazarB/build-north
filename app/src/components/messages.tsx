@@ -1,98 +1,162 @@
-// One line of the conversation (round 8 "Open Box"): the tutor's question is italic beside your pair, its
-// replies are plain serif text, a hint is an amber card that says what it costs, a fact is a labeled card,
-// and your answers sit on the right. The learner sees what kind of message it is, never which agent wrote it.
+// One line of the conversation under the map (round 9 "Lumente"): the firefly's question beside it (tapping the
+// firefly is Help), a free nudge after a wrong answer, an amber hint card that says what it costs, a revealed
+// answer (0 points), a fact, and the learner's answers on the right. The learner sees what kind of message it is,
+// never which agent wrote it.
 import type { Message } from "@build-north/agents";
 import { useEffect, useState, type ReactNode } from "react";
-import { StyleSheet, Text, View } from "react-native";
-import Animated, { Easing, useAnimatedStyle, useReducedMotion, useSharedValue, withRepeat, withTiming } from "react-native-reanimated";
-import Svg, { Line, Path } from "react-native-svg";
-import { hintCardOf, splitTrailingQuestion } from "../session/present.ts";
-import { motion, radius, serif, space, type } from "../theme.ts";
-import { decorative, Icon } from "./icons.tsx";
-import { Pair } from "./pair.tsx";
-import { Body, Label, Question, useColors } from "./ui.tsx";
+import { Pressable, StyleSheet, Text, View } from "react-native";
+import { hintCardOf, inlineCodeOf } from "../session/present.ts";
+import { radius, size, space, type } from "../theme.ts";
+import { Firefly, type FireflyState } from "./firefly.tsx";
+import { Icon } from "./icons.tsx";
+import { Body, Label, Reply, Tag, useColors, useMode } from "./ui.tsx";
 
-/** `label` goes over a question (the part, or "before any help"); `firstHint` puts the price on a hint card. */
-export function AppMessage({ message, label, firstHint = false }: { message: Message; label?: string | null; firstHint?: boolean }) {
-  switch (message.kind) {
-    case "question":
-      return <Ask label={label ?? null} text={message.text} />;
-    case "hint":
-      return <HintCard message={message} first={firstHint} />;
-    case "fact":
-    case "redirect":
-      return <FactCard kind={message.kind} text={message.text} />;
-    default:
-      return <Reply text={message.text} />;
-  }
+/** The firefly's column is 44 wide and the question starts 14 after it, so replies line up with the question. */
+const COLUMN = size.iconButton;
+const INDENT = COLUMN + 14;
+
+type FireflyProps = {
+  state: FireflyState;
+  /** Under the firefly: "help −1", "help" or "checking". */
+  tag: string | null;
+  /** Tapping the firefly is Help; without `onPress` it only asks. */
+  onPress?: () => void;
+  label?: string;
+  busy?: boolean;
+};
+
+/** A question with its code in mono chips, as the board sets it. */
+function WithCode({ text, style }: { text: string; style: object }) {
+  const c = useColors();
+  return (
+    <Text style={[style, { color: c.onSurface }]}>
+      {inlineCodeOf(text).map((piece, i) =>
+        piece.code ? (
+          <Text key={i} style={[type.inlineCode, styles.code, { backgroundColor: c.codeFill, borderColor: c.fieldEdge, color: c.onSurface }]}>
+            {` ${piece.text} `}
+          </Text>
+        ) : (
+          piece.text
+        ),
+      )}
+    </Text>
+  );
 }
 
-/** The tutor's question, beside your pair. */
-export function Ask({ label, text, pairSide = "left" }: { label: string | null; text: string; pairSide?: "left" | "right" }) {
+/** The firefly's question, with the firefly beside it. `eyebrow` is a short label over it ("before any help"). */
+export function Ask({ text, eyebrow = null, firefly }: { text: string; eyebrow?: string | null; firefly: FireflyProps }) {
+  const c = useColors();
+  const drawing = (
+    <>
+      <Firefly state={firefly.state} />
+      {firefly.tag && <Text style={[type.tag, styles.fireflyTag, { color: c.question }]}>{firefly.tag}</Text>}
+    </>
+  );
   return (
-    <View style={[styles.ask, pairSide === "right" && styles.askRight]}>
-      <Pair look="asking" size={40} />
+    <View style={styles.ask}>
+      {firefly.onPress && !firefly.busy ? (
+        <Pressable accessibilityRole="button" accessibilityLabel={firefly.label ?? "Help"} onPress={firefly.onPress} hitSlop={size.hitSlop} style={({ pressed }) => [styles.firefly, pressed && styles.pressed]}>
+          {drawing}
+        </Pressable>
+      ) : (
+        <View style={styles.firefly} role={firefly.busy ? "status" : undefined} accessibilityLabel={firefly.busy ? "Checking your answer" : undefined}>
+          {drawing}
+        </View>
+      )}
       <View style={styles.askText}>
-        {label && (
-          <Label dim style={[styles.lower, pairSide === "right" && styles.end]}>
-            {label}
-          </Label>
-        )}
-        <Question style={pairSide === "right" ? styles.end : undefined}>{text}</Question>
+        {eyebrow && <Tag style={{ color: c.question }}>{eyebrow}</Tag>}
+        <WithCode text={text} style={type.question} />
       </View>
     </View>
   );
 }
 
-/** A reply that ends in a question sets the question in italic, as the tutor asks it. */
-function Reply({ text }: { text: string }) {
-  const { statement, question } = splitTrailingQuestion(text);
+/** A line the firefly said earlier in this part (the feedback on the last part, the move's name), set quietly. */
+export function Aside({ text }: { text: string }) {
   return (
     <View style={styles.indent}>
-      <Body>
-        {statement}
-        {statement && question ? " " : ""}
-        {question && <Text style={{ fontFamily: serif.italic }}>{question}</Text>}
+      <Body dim style={type.bubble}>
+        {text}
       </Body>
     </View>
   );
 }
 
-function HintCard({ message, first }: { message: Message; first: boolean }) {
+/** The evaluator's word on an answer that didn't light the part: a free nudge at levels 2 and 3, a plain "not
+ * yet" after that. `capNote` says the part can now light 1 point at most (said once per part). */
+export function Nudge({ text, capNote }: { text: string; capNote: boolean }) {
   const c = useColors();
-  const card = hintCardOf(message.hintStep, first);
   return (
-    <View
-      style={[styles.indent, styles.card, { backgroundColor: c.hintContainer, borderColor: c.hintOutline }]}
-      accessibilityRole="summary"
-      accessibilityLabel={`${card.title}. ${message.text} ${card.note}`}
-    >
+    <View style={styles.indent}>
+      <Tag style={{ color: c.question }}>{text.trim().endsWith("?") ? "nudge · free" : "not yet"}</Tag>
+      <Reply style={styles.replyText}>{text}</Reply>
+      {capNote && <Label dim style={styles.note}>this part can now light 1 point at most</Label>}
+    </View>
+  );
+}
+
+/** A hint: amber, the firefly's light. Its head says which of the three it is (`n`) and, on a part's first, its price. */
+export function HintCard({ message, n, capNote }: { message: Message; n: number; capNote: boolean }) {
+  const c = useColors();
+  const card = hintCardOf(n, n === 1);
+  return (
+    <View style={[styles.hint, { backgroundColor: c.hintContainer }]} role="note" accessibilityLabel={`${card.title}. ${message.text}${capNote ? ` ${card.note}` : ""}`}>
       <View style={styles.hintHead}>
-        <Icon name="bulb" color={c.hint} size={16} />
-        <Text style={[type.labelStrong, { color: c.hint }]}>{card.title}</Text>
+        <Text style={[type.label, { color: c.hint }]}>{card.title}</Text>
+        <View style={styles.hintSteps}>
+          {[1, 2, 3].map((n) => (
+            <View key={n} style={[styles.step, n <= card.filled ? { backgroundColor: c.hint } : { borderColor: c.hint, borderWidth: 1 }]} />
+          ))}
+        </View>
       </View>
-      <Text style={[type.body, { color: c.onHintContainer }]}>{message.text}</Text>
-      <Text style={[type.label, { color: c.hint }]}>{card.note}</Text>
+      <Text style={[type.body, styles.hintText, { color: c.onHintContainer }]}>{message.text}</Text>
+      {capNote && <Text style={[type.label, styles.note, { color: c.hintNote }]}>{card.note}</Text>}
+    </View>
+  );
+}
+
+/** "It's a form of government." becomes "…keep going: it's a form of government." (an acronym keeps its case). */
+const lowerFirst = (text: string) => (/^[A-Z][a-z]/.test(text) ? text.charAt(0).toLowerCase() + text.slice(1) : text);
+
+/** The answer Help revealed once the hints ran out: it goes on the map dim and dashed, for 0 points. */
+export function Revealed({ text }: { text: string }) {
+  return (
+    <View style={styles.ask}>
+      <View style={styles.firefly}>
+        <Firefly state="asks" />
+      </View>
+      <View style={styles.askText}>
+        <Reply>{`Here's this part, so you can keep going: ${lowerFirst(text.trim())}`}</Reply>
+        <Label dim style={styles.note}>shown · 0 points</Label>
+      </View>
     </View>
   );
 }
 
 /** A fact desk answer: facts only, or the redirect when a question fishes for the map. */
 export function FactCard({ kind, text }: { kind: "fact" | "redirect"; text: string }) {
-  const c = useColors();
   return (
-    <View style={[styles.card, { backgroundColor: c.surfaceHigh, borderColor: c.outline }]}>
-      <Label dim>{kind}</Label>
+    <View style={styles.fact}>
+      <Tag dim>{kind}</Tag>
       <Body>{text}</Body>
     </View>
   );
 }
 
-export function LearnerMessage({ text }: { text: string }) {
+/** What the learner wrote, on the right. At level 5 their questions glow amber: the light is theirs now. */
+export function LearnerMessage({ text, asking = false }: { text: string; asking?: boolean }) {
   const c = useColors();
+  const night = useMode() === "night";
+  if (asking) {
+    return (
+      <View style={[styles.learner, styles.asking, { borderColor: c.firefly }]}>
+        <Text style={[type.input, { color: night ? "#f8e3b6" : c.question }]}>{text}</Text>
+      </View>
+    );
+  }
   return (
-    <View style={[styles.learner, { backgroundColor: c.surfaceHigh }]}>
-      <Body>{text}</Body>
+    <View style={[styles.learner, { backgroundColor: c.bubble, borderColor: c.bubbleEdge }]}>
+      <Text style={[type.bubble, { color: c.onSurface }]}>{text}</Text>
     </View>
   );
 }
@@ -112,45 +176,11 @@ export function useSlow(waiting: boolean): boolean {
   return slow;
 }
 
-const WAVE = { length: 20, height: 10 };
-const wavePath = (width: number) => {
-  let d = `M0 ${WAVE.height / 2}`;
-  for (let x = 0; x < width + WAVE.length; x += WAVE.length) d += ` q5 -4 10 0 t10 0`;
-  return d;
-};
-
-/** While the tutor answers: a wave moving along a progress line, and what is happening. With Reduce Motion
- * the wave stands still. */
-export function Thinking({ line }: { line: string }) {
-  const c = useColors();
-  const still = useReducedMotion();
-  const shift = useSharedValue(0);
-  const [width, setWidth] = useState(0);
-  const waveWidth = Math.round(width * 0.52);
-  useEffect(() => {
-    if (still) return;
-    shift.value = withRepeat(withTiming(-WAVE.length, { duration: motion.wave / 2, easing: Easing.linear }), -1);
-  }, [still, shift]);
-  const flow = useAnimatedStyle(() => ({ transform: [{ translateX: shift.value }] }));
+/** While the firefly checks: screen readers hear what is happening; after 10 s everyone sees it. */
+export function Waiting({ line, slow }: { line: string; slow: boolean }) {
   return (
-    <View style={styles.thinking} role="status" accessibilityLiveRegion="polite" accessibilityLabel={line}>
-      <View style={styles.bar} onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
-        {width > 0 && (
-          <>
-            <View style={[styles.waveClip, { width: waveWidth }]}>
-              <Animated.View style={flow}>
-                <Svg width={waveWidth + WAVE.length} height={WAVE.height} {...decorative}>
-                  <Path d={wavePath(waveWidth)} fill="none" stroke={c.primary} strokeWidth={4} strokeLinecap="round" />
-                </Svg>
-              </Animated.View>
-            </View>
-            <Svg width={width - waveWidth - space.m} height={WAVE.height} style={styles.track} {...decorative}>
-              <Line x1={2} y1={WAVE.height / 2} x2={width - waveWidth - space.m - 2} y2={WAVE.height / 2} stroke={c.outline} strokeWidth={4} strokeLinecap="round" />
-            </Svg>
-          </>
-        )}
-      </View>
-      <Label dim>{line}</Label>
+    <View role="status" accessibilityLiveRegion="polite" accessibilityLabel={slow ? `${line} Taking longer than usual.` : line} style={styles.indent}>
+      {slow && <Label dim>taking longer than usual…</Label>}
     </View>
   );
 }
@@ -160,7 +190,7 @@ export function Failure({ message, children }: { message: string; children?: Rea
   const c = useColors();
   return (
     <View style={styles.failure} accessibilityRole="alert">
-      <Icon name="alert" color={c.onSurfaceVariant} />
+      <Icon name="alert" color={c.onSurfaceVariant} size={22} />
       <View style={styles.failureBody}>
         <Body>{message}</Body>
         {children}
@@ -170,20 +200,23 @@ export function Failure({ message, children }: { message: string; children?: Rea
 }
 
 const styles = StyleSheet.create({
-  ask: { flexDirection: "row", alignItems: "flex-start", gap: space.m },
-  askRight: { flexDirection: "row-reverse" },
-  askText: { flex: 1, gap: space.xs },
-  lower: { textTransform: "lowercase" },
-  end: { textAlign: "right" },
-  // replies and hints line up with the question's text, past the pair
-  indent: { marginLeft: 40 + space.m },
-  card: { borderRadius: radius.card, borderWidth: StyleSheet.hairlineWidth, padding: space.l, gap: space.s },
-  hintHead: { flexDirection: "row", alignItems: "center", gap: space.s },
-  learner: { alignSelf: "flex-end", maxWidth: "82%", paddingVertical: space.m, paddingHorizontal: space.l, borderRadius: radius.bubble },
-  thinking: { gap: space.s },
-  bar: { flexDirection: "row", alignItems: "center", height: WAVE.height },
-  waveClip: { overflow: "hidden", height: WAVE.height },
-  track: { marginLeft: space.m },
+  ask: { flexDirection: "row", alignItems: "flex-start", gap: 14 },
+  firefly: { width: COLUMN, alignItems: "center", gap: 2 },
+  fireflyTag: { textAlign: "center" },
+  askText: { flex: 1, gap: space.xs, paddingTop: 2 },
+  code: { borderRadius: 4, borderWidth: 1, overflow: "hidden" },
+  indent: { marginLeft: INDENT },
+  replyText: { marginTop: 2 },
+  note: { marginTop: 6 },
+  hint: { borderRadius: radius.card, paddingVertical: 14, paddingHorizontal: space.l, boxShadow: "0 0 26px rgba(242, 184, 75, 0.4)" },
+  hintHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  hintSteps: { flexDirection: "row", gap: space.xs },
+  step: { width: 7, height: 7, borderRadius: radius.point },
+  hintText: { marginTop: 6, lineHeight: 25 },
+  fact: { maxWidth: "88%", gap: 2 },
+  learner: { alignSelf: "flex-end", maxWidth: "78%", paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderRadius: radius.bubble, borderBottomRightRadius: 2 },
+  asking: { maxWidth: "82%", backgroundColor: "rgba(242, 184, 75, 0.1)", boxShadow: "0 0 14px rgba(242, 184, 75, 0.18)" },
   failure: { flexDirection: "row", alignItems: "flex-start", gap: space.m },
   failureBody: { flex: 1, gap: space.s },
+  pressed: { opacity: 0.8 },
 });

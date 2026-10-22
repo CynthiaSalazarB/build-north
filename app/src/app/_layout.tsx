@@ -1,6 +1,7 @@
 import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { AtkinsonHyperlegibleMono_400Regular, AtkinsonHyperlegibleMono_600SemiBold } from "@expo-google-fonts/atkinson-hyperlegible-mono";
+import { AtkinsonHyperlegibleNext_400Regular, AtkinsonHyperlegibleNext_600SemiBold } from "@expo-google-fonts/atkinson-hyperlegible-next";
 import { Newsreader_400Regular, Newsreader_400Regular_Italic, Newsreader_500Medium, useFonts } from "@expo-google-fonts/newsreader";
 import { ObserveRoot } from "expo-observe";
 import { Stack, type ErrorBoundaryProps } from "expo-router";
@@ -9,11 +10,11 @@ import { useEffect, useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Failure } from "../components/messages.tsx";
-import { Button, Screen, Title, useColors } from "../components/ui.tsx";
+import { Button, Screen, Title } from "../components/ui.tsx";
 import type { SessionClient } from "../session/client.ts";
 import { clerkKey, createClient } from "../session/config.ts";
 import { SessionProvider } from "../session/session-context.tsx";
-import { space } from "../theme.ts";
+import { base, space } from "../theme.ts";
 
 // The splash stays up until the fonts and Clerk are ready, so the first frame is already in its own fonts.
 void SplashScreen.preventAutoHideAsync();
@@ -45,6 +46,8 @@ function RootLayout() {
     Newsreader_400Regular,
     Newsreader_400Regular_Italic,
     Newsreader_500Medium,
+    AtkinsonHyperlegibleNext_400Regular,
+    AtkinsonHyperlegibleNext_600SemiBold,
     AtkinsonHyperlegibleMono_400Regular,
     AtkinsonHyperlegibleMono_600SemiBold,
   });
@@ -73,13 +76,12 @@ function ClerkApp() {
 }
 
 function App({ client, signedIn, clerk }: { client: SessionClient; signedIn: boolean; clerk: boolean }) {
-  const c = useColors();
   useEffect(() => {
     void SplashScreen.hideAsync();
   }, []);
   return (
     <SessionProvider client={client}>
-      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: c.surface } }}>
+      <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: base.bottom } }}>
         <Stack.Protected guard={signedIn}>
           <Stack.Screen name="index" />
           {/* a session rises from the start screen */}
