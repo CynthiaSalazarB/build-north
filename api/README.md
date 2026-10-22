@@ -127,9 +127,9 @@ Render dashboard → **New → Web Service**:
 | Start command | `node api/src/server.ts` |
 | Health check path | `/health` (under Advanced) |
 | Instance type | Free while building (it sleeps after 15 min idle and takes about a minute to wake). Starter from Oct 22, per `DECISIONS.md` |
-| Environment | `CORS_ORIGIN`, the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `CLERK_JWT_KEY` (#23), `DEV_KEY` (Render's Generate button), `NODE_ENV=development` until the app signs in with Clerk (#22, #23), and `ANTHROPIC_API_KEY` with `AGENT_BUDGET_USD` for Claude calls (#10) |
+| Environment | `CORS_ORIGIN` (comma-separated: the Expo dev server and every web build's address, since a web build's Clerk token must come from one of them), the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `CLERK_JWT_KEY` (#23), and `ANTHROPIC_API_KEY` with `AGENT_BUDGET_USD` for Claude calls (#10) |
 
 The Node version comes from [`../.node-version`](../.node-version). Render sets `PORT` itself, and
-also sets `NODE_ENV=production` unless the service sets its own. That would refuse `x-dev-user` on the
-public URL before Clerk exists, so the service sets `NODE_ENV=development` for now. Delete that
-variable when Clerk lands (#23).
+also sets `NODE_ENV=production` unless the service sets its own, which turns `x-dev-user` off on the
+public URL. Since Oct 22 the service sets no `NODE_ENV`, so every caller signs in with Clerk (#22, #23);
+a `DEV_KEY` left on Render does nothing there.
