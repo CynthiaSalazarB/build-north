@@ -105,13 +105,13 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
       {/* the coach's words arrive a moment after the numbers; screen readers hear them when they do */}
       <View role="status" accessibilityLiveRegion="polite">
         <Rise key={result.coach ? "coach" : "waiting"} order={5} style={styles.coach}>
-          <Tag dim>next</Tag>
+          <Tag dim>for next time</Tag>
           {result.coach ? (
             <Body>{result.coach.message}</Body>
           ) : coachFailure ? (
             <Failure message={coachFailure}>{onRetryCoach && <Button kind="secondary" label="Try again" onPress={onRetryCoach} />}</Failure>
           ) : (
-            <Body dim>Writing your next step…</Body>
+            <Body dim>Reading your map…</Body>
           )}
         </Rise>
       </View>

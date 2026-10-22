@@ -487,7 +487,7 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 ### 2026-10-22 · The result shows first; the coach's words come right after
 - **Decision:** a session ends in two Turns. The last answer's Turn shows the result (every number is
   code's) with `result.coach: null` and `expects: "continue"`; the app sends `continue` at once, with no
-  button, and the next Turn brings the coach's message. The result screen says "Writing your next step…"
+  button, and the next Turn brings the coach's message. The result screen says "Reading your map…"
   until it arrives, and Try again if the call fails. If the coach itself fails, its Turn carries the fixed
   text built from the numbers, as before.
 - **Instead of:** a faster model for the coach, or the API running the coach in the background while the
