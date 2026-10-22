@@ -1,9 +1,10 @@
 import { type HintGiverInput as HintGiverInputType, HintGiverInput, HintGiverOutput } from "../contracts.ts";
-import { renderContext, systemPrompt } from "./shared.ts";
+import { MEMORY, renderContext, renderMemory, systemPrompt } from "./shared.ts";
 
 // The hint giver words the step code already chose (CONTRACTS.md section 3: nudge → hint → partial →
 // reveal). Code decides how much help; this agent only decides the words. Check yourself has no
-// Challenger: a counterexample is one of the hints this agent can give (decision 3).
+// Challenger: a counterexample is one of the hints this agent can give (decision 3). With memory on, it can
+// aim the help with what earlier sessions left, and cites the facts it used; memory never changes the step.
 
 export const HINT_GIVER_SYSTEM = systemPrompt({
   role: "You are the Hint giver in a learning app that teaches people to question, anchored in concepts.",
@@ -28,15 +29,20 @@ difference), a counterexample often works best at nudge or hint: a case that fit
 learner said but isn't the concept. For planet's characteristics, if the learner said "it orbits a
 star": "Pluto orbits a star too. Is Pluto a planet? What's missing?"
 
-Before reveal, the text never contains the answer, or any item the learner still has to find.`,
+Before reveal, the text never contains the answer, or any item the learner still has to find.
+
+${MEMORY} Memory never changes the step: code chose it. If a fact helps aim the help (they found this
+part alone before, or it cost them Help last time), lean on it in a few words: "You found this part
+alone last time. How did you look for it then?"`,
   output:
-    "`step`: the step you were given. `text`: under 30 words; a question unless the step is reveal. `revealed`: the Item at reveal, null at every other step.",
+    "`step`: the step you were given. `text`: under 30 words; a question unless the step is reveal. `revealed`: the Item at reveal, null at every other step. `cites`: the ids of the <memory> facts the help relies on, or an empty list.",
 });
 
 export function renderHintGiver(input: HintGiverInputType): string {
   const { step, lastAnswer, issue, ...ctx } = input;
   return [
     renderContext(ctx),
+    ...renderMemory(ctx.memory),
     `<last_answer><learner_answer>${lastAnswer}</learner_answer></last_answer>`,
     `<issue>${issue}</issue>`,
     `<step>${step}</step>`,

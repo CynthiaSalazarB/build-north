@@ -310,8 +310,14 @@ export const WorkedExample = z.strictObject({
 });
 export type WorkedExample = z.infer<typeof WorkedExample>;
 
-/** The coach writes `result.coach`, so it receives the result without it. */
-export const CoachInput = z.strictObject({ concept: z.string(), mentefacto: Mentefacto, result: Result.omit({ coach: true }) });
+/** The coach writes `result.coach`, so it receives the result without it. `memory` is what earlier sessions
+ *  left, so the message can compare with last time; absent when memory is off, empty or late. */
+export const CoachInput = z.strictObject({
+  concept: z.string(),
+  mentefacto: Mentefacto,
+  result: Result.omit({ coach: true }),
+  memory: LearnerMemory.optional(),
+});
 export type CoachInput = z.infer<typeof CoachInput>;
 export const CoachOutput = z.strictObject({
   message: z.string(),

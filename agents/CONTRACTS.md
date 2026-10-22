@@ -70,7 +70,8 @@ from one IP; past that the API answers `429`.
 | `POST` | `/sessions/:id/turns` | one of `{ prediction }`, `{ text }`, `{ question }`, `{ mentefacto }`, `{ action: "help" }`, `{ action: "continue" }` | `Turn` |
 | `GET` | `/sessions/:id` | | latest `Turn` (resume after the app reloads) |
 | `GET` | `/me/mastery` | | `Mastery` |
-| `DELETE` | `/me/data` | | `204`, deletes sessions, logs and mastery (the delete button) |
+| `GET` | `/me/memory` | | `MemoryView` (the Memory sheet; see [Memory](#memory-what-earlier-sessions-left)) |
+| `DELETE` | `/me/data` | | `204`, deletes sessions, logs and mastery, and purges the learner's memory (the delete button) |
 | `GET` | `/health` | | `{ ok: true }` |
 
 One endpoint moves a session forward: `/turns`. The app sends the body the last `Turn`'s `expects`
@@ -217,8 +218,46 @@ type AgentContext = {
   level: Level;
   mentefacto: Mentefacto;                          // built so far
   recent: { from: "app" | "learner"; text: string }[];   // this move's exchanges only
+  memory?: { facts: MemoryFact[] };                // hint giver only: see Memory, below
 };
 ```
+
+### Memory: what earlier sessions left
+
+With SurrealDB Agent Memory on, the API reads what earlier sessions left about this learner and concept
+and passes it to two agents: the hint giver (in `AgentContext.memory`) and the coach (`CoachInput.memory`).
+No other agent gets it.
+
+```ts
+type MemoryFact = {
+  id: string;            // what `cites` points at
+  text: string;          // one line from a template: "Level 3 on infraordinate for planet, since Oct 22."
+  concept: string;
+  move?: MoveId;         // facts about one move; absent on whole-map facts (the gap)
+  level?: Level;
+  since: string;         // ISO 8601: when the fact became current
+  supersedes?: string;   // the fact this one replaced; memory keeps the history
+  writtenBy: AgentName;
+  sessionId: string;
+  turn?: number;
+};
+```
+
+- **Code writes every fact from a template.** The learner's words never go in, so a fact is never an
+  answer and never instructions. The learner's scope is a salted hash of their Clerk id.
+- **Earlier sessions only, at most 8 facts:** the current level per move, the latest gap, and the Helps
+  that cost the most. This session's numbers are already in the agent's own input.
+- **Memory never changes a number.** Levels, hint steps and points still come from code (section 3);
+  memory only remembers them, so if it's wrong, stale or deleted, no score changes.
+- **Optional end to end.** Off by default behind a flag. When it's off, empty, or slower than 1.5 s, the
+  API calls the agent without it, and the user message is the same as before memory existed.
+- **`cites`:** the hint giver's and the coach's outputs carry the ids of the facts their text relies on.
+  The API keeps only ids it passed in and logs the rest.
+
+`GET /me/memory` returns `MemoryView`, what the app's Memory sheet shows: per concept and move, the
+level now and its history (level, since, until, source, which agent wrote it, how many times other
+agents read it), and the latest whole-map gap beside the one before. The shapes are in
+`agents/src/contracts.ts` (section 2b) and `agents/fixtures/memory-view.json`.
 
 ### Questioner: asks the plain question for the learner's level
 
@@ -311,7 +350,8 @@ In: `AgentContext & { step: HintStep; lastAnswer: string; issue: string }`
 ```
 
 Called only when the learner taps Help. `revealed` is filled only at `reveal`: the `Item` that goes into
-the mentefacto, with 0 points.
+the mentefacto, with 0 points. With memory on, `cites` lists the facts the help leans on ("You found this
+part alone last time. How did you look for it then?"); memory never changes the step.
 
 A hint can be a counterexample when the answer is incomplete: "North Korea holds elections. Is it a
 democracy? What's missing?" That is the hint giver's job; Check yourself has no Challenger agent.
@@ -334,15 +374,17 @@ fail on demo day. The shape below is the fixture's shape.
 
 ### Coach: the end-of-session message
 
-In: `{ concept, mentefacto, result }` with every number already computed by code; `result` comes without
-its `coach` field, since that's what the coach writes.
+In: `{ concept, mentefacto, result, memory? }` with every number already computed by code; `result` comes
+without its `coach` field, since that's what the coach writes.
 
 ```json
-{ "message": "You found the bigger group and a real exclusion. 'What it needs' is next.",
-  "nextFocus": "isoordinate" }
+{ "message": "You found the bigger group and a real exclusion, and your guess was closer than last time. 'What it needs' is next.",
+  "nextFocus": "isoordinate",
+  "cites": ["attr_gap"] }
 ```
 
-The coach never computes or states a number it wasn't given. Naming a move after it's found
+The coach never computes or states a number it wasn't given. With memory on, it can compare this session
+with the last in words, only from a fact in `memory`, and cites that fact. Naming a move after it's found
 ("That's called the supraordinate class. You found it.") is fixed text from code.
 
 ### Not in this version
@@ -419,7 +461,12 @@ with `error` set. What `callAgent` throws carries `code` and `retryable`, the tw
 | `session` | id, user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, recent, retries, lastIssue, nextQuestion, questions, moveLog, result, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat; `hintsPerMove` starts with all four moves at 0, `retries` at 0, `lastIssue` at `"none"`, `nextQuestion` at null |
 | `agent_log` | session, agent, input, output, ms, usd, at | append-only; debugging, the testers' numbers (fact desk rows are the questions metric) and what a session costs |
 
-`DELETE /me/data` removes all three for the user.
+With the memory flag on, SurrealDB Agent Memory keeps one scope per learner (a salted hash of the Clerk
+id) holding the facts in [Memory](#memory-what-earlier-sessions-left): each with its source, the agent that
+wrote it, the fact it superseded and who read it. It's a copy for the agents and the Memory sheet; the
+tables above stay the record.
+
+`DELETE /me/data` removes all three for the user and purges their memory scope.
 
 ---
 

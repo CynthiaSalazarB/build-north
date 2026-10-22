@@ -146,6 +146,46 @@ describe("agent prompts", () => {
     expect(() => output.parse({ message: "Next.", nextFocus: "What it needs" })).toThrow();
   });
 
+  // Memory as the API passes it: facts code wrote from templates, each with the id a message can cite.
+  const fact = (id: string, text: string) => ({ id, text, concept: "planet", since: "2026-10-22T18:40:05Z", writtenBy: "evaluator" as const, sessionId: "ses_1" });
+  const memory = {
+    facts: [
+      { ...fact("attr_gap", "Predicted 7, scored 4 on planet: 3 too many."), writtenBy: "coach" as const },
+      { ...fact("attr_sup", "Level 2 on supraordinate for planet, since Oct 22."), move: "supraordinate" as const, level: 2 as const },
+    ],
+  };
+
+  it("the coach and the hint giver get memory's facts by id after their data, and nothing when memory is off", () => {
+    const block = ["<memory>", "- attr_gap: Predicted 7, scored 4 on planet: 3 too many.", "- attr_sup: Level 2 on supraordinate for planet, since Oct 22.", "</memory>"].join("\n");
+    const coach = AGENTS.coach.render({ ...coachInput, memory });
+    expect(coach).toContain(`</result>\n${block}\n\nWrite the last message.`);
+    expect(AGENTS.coach.render({ ...coachInput, memory: { facts: [] } })).toBe(AGENTS.coach.render(coachInput));
+
+    const hintInput = {
+      concept: "planet",
+      material: null,
+      move: "supraordinate" as const,
+      level: 2 as const,
+      mentefacto: empty("planet"),
+      recent: [],
+      step: "hint" as const,
+      lastAnswer: "the solar system",
+      issue: "not_a_class" as const,
+    };
+    expect(AGENTS.hint_giver.render({ ...hintInput, memory })).toContain(`</this_move_so_far>\n${block}\n<last_answer>`);
+    expect(AGENTS.hint_giver.render(hintInput)).not.toContain("<memory>");
+  });
+
+  it("only the coach and the hint giver are told about memory, and both answer with the facts they cite", () => {
+    for (const agent of [AGENTS.coach, AGENTS.hint_giver]) {
+      expect(agent.system).toContain("<memory>, when it's there");
+      expect(agent.system).toContain("`cites`");
+    }
+    for (const agent of [AGENTS.questioner, AGENTS.evaluator, AGENTS.evaluator_full, AGENTS.fact_desk]) expect(agent.system).not.toContain("<memory>");
+    expect(() => AGENTS.coach.input.parse({ ...coachInput, memory })).not.toThrow();
+    expect(AGENTS.coach.output.parse({ message: "Closer than last time.", nextFocus: null, cites: ["attr_gap"] }).cites).toEqual(["attr_gap"]);
+  });
+
   it("render refuses an input that doesn't match the agent's schema", () => {
     expect(() => AGENTS.questioner.input.parse({ concept: "planet" })).toThrow();
   });
