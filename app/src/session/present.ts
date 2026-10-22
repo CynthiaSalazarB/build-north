@@ -111,7 +111,8 @@ export function partTextOf(map: Mentefacto, move: MoveId): string | null {
 export type PartState = "unasked" | "asked" | "lit" | "revealed";
 export type Pip = "earned" | "open" | "capped" | "claimed" | "missed";
 /** `pips` is null where nothing is scored yet: the whole map at level 5, until it's submitted. */
-export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] | null };
+/** `badge` is a short line under the part's words: on the result, a part that moved up a level. */
+export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] | null; badge?: string | null };
 
 const pipsFor = (points: number, capped = false): [Pip, Pip] => [points >= 1 ? "earned" : "open", points >= 2 ? "earned" : capped ? "capped" : "open"];
 
@@ -178,7 +179,10 @@ export function resultPartsOf(result: Result, map: Mentefacto): PartView[] {
       return "missed";
     }) as [Pip, Pip];
     const text = partTextOf(map, move);
-    return { move, state: points === 0 && text ? "revealed" : text ? "lit" : "unasked", text, pips };
+    // the part moved up a level this session (CONTRACTS.md section 3): the help on it fades next time
+    const up = result.masteryChanges.find((c) => c.move === move && c.to > c.from);
+    const badge = up ? (up.to === 5 ? "you can do this alone now" : "less help next time") : null;
+    return { move, state: points === 0 && text ? "revealed" : text ? "lit" : "unasked", text, pips, badge };
   });
 }
 
@@ -252,13 +256,18 @@ export function waitingLineOf(body: TurnBody | null): string {
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-/** The calibration gap as the result shows it: a signed number and one sentence, never a failure. */
-export function gapOf(result: Pick<Result, "calibrationGap">): { sign: "+" | "−" | null; amount: number; sentence: string; over: boolean } {
+/** The calibration gap as the result shows it (decided Oct 22): in words with its direction, under the guess
+ * and the score side by side, never as a bare signed number a learner could read as a grade. `note` is the
+ * line under it; `over` is a guess above the score. */
+export function gapOf(result: Pick<Result, "calibrationGap">): { headline: string; note: string | null; over: boolean } {
   const gap = result.calibrationGap;
-  if (gap > 0) return { sign: "+", amount: gap, sentence: `You felt ${plural(gap, "point")} surer than you were.`, over: true };
-  if (gap < 0) return { sign: "−", amount: -gap, sentence: `You did ${plural(-gap, "point")} better than you felt.`, over: false };
-  return { sign: null, amount: 0, sentence: "Your guess was exactly right.", over: false };
+  if (gap > 0) return { headline: `You felt ${plural(gap, "point")} surer than you could explain.`, note: "That's normal: explaining is how you find out.", over: true };
+  if (gap < 0) return { headline: `You knew more than you felt: ${plural(-gap, "point")} more.`, note: null, over: false };
+  return { headline: "Your guess was exactly right.", note: "You know what you know.", over: false };
 }
+
+/** How a part earns its points (CONTRACTS.md section 3, `pointsFor`), in one line for the screens. */
+export const POINTS_RULE = "Each part is worth 2 points: 2 if your answer holds up on your own, 1 if it partly does or took a retry or Help, 0 if it was shown to you or doesn't hold up.";
 
 /** Pasted notes go to Claude, so the start screen stops at anything that looks like a key, a token or a
  * password: a known key's shape, or a password, secret, token or key name set to a value with a digit in it

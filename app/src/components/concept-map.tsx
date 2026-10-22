@@ -227,7 +227,7 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
       onLayout={onPress ? undefined : onLayout}
       // a part that opens for editing is labeled by its button instead
       accessible={!onPress}
-      accessibilityLabel={onPress ? undefined : `${label}: ${said}. ${points}${view.state === "revealed" ? ", shown to you" : ""}.`}
+      accessibilityLabel={onPress ? undefined : `${label}: ${said}. ${points}${view.state === "revealed" ? ", shown to you" : ""}.${view.badge ? ` ${view.badge}.` : ""}`}
     >
       <View style={styles.partHead}>
         <PartIcon d={icon} color={look.labelInk} />
@@ -248,6 +248,8 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
       ) : (
         <Text style={[type.partUnknown, { color: look.ink }]}>?</Text>
       )}
+      {/* on the result, a part that moved up a level: the help fades there next time */}
+      {view.badge && <Text style={[type.partLabel, styles.badge, { color: look.labelInk }]}>{`↑ ${view.badge}`}</Text>}
       {ring && <Sparks />}
     </Animated.View>
   );
@@ -326,6 +328,7 @@ const styles = StyleSheet.create({
   part: { minHeight: map.partMinHeight, borderRadius: radius.part, paddingTop: space.s, paddingHorizontal: 10, paddingBottom: 10, gap: space.xs },
   partHead: { flexDirection: "row", alignItems: "center", gap: 6 },
   partLabel: { flex: 1 },
+  badge: { marginTop: 4 },
   pips: { flexDirection: "row", gap: 3 },
   dim: { opacity: 0.8 },
   pressed: { opacity: 0.8 },
