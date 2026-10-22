@@ -1,0 +1,20 @@
+# Run by hand: makes a new preview APK only when the native code changed, since the free plan has
+# 15 Android builds a month. A JavaScript-only change goes out with the Ship workflow instead.
+name: Preview build
+jobs:
+  fingerprint:
+    type: fingerprint
+    environment: preview
+  get_android_build:
+    needs: [fingerprint]
+    type: get-build
+    params:
+      fingerprint_hash: ${{ needs.fingerprint.outputs.android_fingerprint_hash }}
+      profile: preview
+  build_android:
+    needs: [get_android_build]
+    if: ${{ !needs.get_android_build.outputs.build_id }}
+    type: build
+    params:
+      platform: android
+      profile: preview
