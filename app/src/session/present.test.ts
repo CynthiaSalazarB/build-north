@@ -1,60 +1,117 @@
-// What the round 8 screens say: the words, the checks and the box's corners come from the Turns, so they're
+// What the round 9 screens say and draw: the map's parts, the points and the light come from the Turns, so they're
 // checked here.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { Turn, type Mentefacto, type MoveId, type Result } from "@build-north/agents";
+import { Turn, type Mentefacto, type Result } from "@build-north/agents";
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import {
-  aloneOf,
-  checksOf,
+  cappedOf,
   currentPartOf,
+  editorLinesOf,
+  exampleParts,
   eyebrowOf,
-  fileNameOf,
   filledOf,
   firstOnPart,
   gapOf,
-  guessCornersOf,
-  helpLabelOf,
+  helpOf,
   hintCardOf,
   hintPartOf,
+  inlineCodeOf,
   itemsOf,
-  missesOf,
-  partLabelOf,
+  justLitOf,
   partMeaningOf,
   partNotesOf,
-  resultCornersOf,
+  partsOf,
+  partTextOf,
+  pointsOf,
+  provedOf,
+  resultPartsOf,
+  revealHoldOf,
   secretLineOf,
-  splitTrailingQuestion,
   waitingLineOf,
-  wholeMapHelpLabelOf,
+  wholeMapHelpOf,
+  wholeMapPartsOf,
   withPart,
 } from "./present.ts";
 import { blankMap, initialState, received, sent, type Entry } from "./transcript.ts";
 
 const turns = sessionOne.map((step) => Turn.parse(step.turn));
+const turnAt = (n: number) => turns.find((t) => t.turn === n)!;
 const through = (last: number) => turns.filter((t) => t.turn <= last).reduce(received, initialState);
-// the board's corner order (theme.ts box.cornerOrder; theme.ts needs React Native, so it isn't imported here)
-const ORDER = [4, 8, 3, 7, 1, 2, 6, 5];
+const states = (n: number) => partsOf(turnAt(n), through(n).entries).map((p) => `${p.state}:${p.pips?.join("+")}`);
 
-test("the session's concept shows as a spec file", () => {
-  assert.equal(fileNameOf("JWT"), "jwt.spec");
-  assert.equal(fileNameOf(" database index "), "database-index.spec");
+test("Start opens on the concept's line of code, or a comment for a concept typed in", () => {
+  assert.deepEqual(editorLinesOf("API")[1], { n: 12, text: "app.get('/api/users/:id', getUser);", current: true });
+  assert.equal(editorLinesOf("cors")[1]!.text, "app.use(cors({ origin: CLIENT_URL }));");
+  assert.equal(editorLinesOf("monads")[1]!.text, "// explain: monads");
 });
 
-test("the first hint on a part shows its price; the answer scores 0", () => {
-  assert.deepEqual(hintCardOf("nudge", true), { title: "hint 1/3 · −1 pt", note: "this part can now score 1 point at most" });
-  assert.equal(hintCardOf("hint", false).title, "hint 2/3");
-  assert.equal(hintCardOf("partial", true).title, "hint 3/3 · −1 pt");
-  assert.deepEqual(hintCardOf("reveal", false), { title: "the answer", note: "this part scores 0 now. its answer is on your map" });
+test("the democracy session lights the map part by part: asked, capped after a retry, lit with its points", () => {
+  assert.deepEqual(states(4), ["asked:open+open", "unasked:open+open", "unasked:open+open", "unasked:open+open"]);
+  // "A law?" got a nudge: that part can now light 1 point at most
+  assert.deepEqual(states(5), ["asked:open+capped", "unasked:open+open", "unasked:open+open", "unasked:open+open"]);
+  assert.deepEqual(states(7), ["lit:earned+open", "asked:open+open", "unasked:open+open", "unasked:open+open"]);
+  assert.equal(partsOf(turnAt(7), through(7).entries)[0]!.text, "form of government");
+  assert.deepEqual(states(11).slice(0, 2), ["lit:earned+open", "lit:earned+earned"]);
 });
 
-test("Help shows a price only while it would still cost a point", () => {
+test("the light is the points proved so far, and the part that just lit is the one the Turn named", () => {
+  assert.deepEqual([4, 7, 11, 14].map((n) => provedOf(turnAt(n), through(n).entries)), [0, 1, 3, 5]);
+  assert.equal(justLitOf(turnAt(7)), "supraordinate");
+  assert.equal(justLitOf(turnAt(6)), null);
+});
+
+test("a Turn saved before progress.points falls back to the rule: 2 alone, 1 after a Help, 0 when revealed", () => {
+  const old = Turn.parse({ ...turnAt(11), progress: { movesDone: 2, movesTotal: 4, hintsUsed: 2 } });
+  assert.deepEqual(pointsOf(old, through(11).entries), [
+    { move: "supraordinate", points: 1 },
+    { move: "exclusion", points: 2 },
+  ]);
+});
+
+test("the result marks the points the guess claimed but didn't prove, first unproved first", () => {
+  const last = turnAt(14);
+  const parts = resultPartsOf(last.result!, last.mentefacto);
+  assert.deepEqual(
+    parts.map((p) => `${p.state}:${p.pips?.join("+")}`),
+    ["lit:earned+missed", "lit:earned+earned", "lit:earned+missed", "lit:earned+open"],
+  );
+  assert.equal(parts[1]!.text, "not dictatorship");
+  assert.equal(parts[2]!.text, "free elections, rights, more than one party");
+});
+
+test("a revealed answer holds the next question until the learner has read it", () => {
+  const app = (id: string, kind: "question" | "hint" | "named_move", text: string, hintStep?: "reveal"): Entry => ({
+    id,
+    from: "app",
+    message: { agent: kind === "hint" ? "hint_giver" : "app", kind, text, ...(hintStep ? { hintStep } : {}) },
+    phase: "move",
+    move: "supraordinate",
+    level: 2,
+  });
+  const entries = [app("turn-4-0", "question", "What group?"), app("turn-9-0", "hint", "It's a form of government.", "reveal"), app("turn-9-1", "named_move", "That's called…"), app("turn-9-2", "question", "What isn't it?")];
+  assert.deepEqual(revealHoldOf(entries), { key: "turn-9-0", entries: [entries[1]] });
+  assert.equal(revealHoldOf(entries.slice(0, 1)), null);
+});
+
+test("Help costs a point only while the part could still score 2; after a hint it's More help", () => {
   const question = { id: "turn-4-0", from: "app", message: { agent: "questioner", kind: "question", text: "What group?" }, phase: "move", move: "supraordinate", level: 2 } as const;
   const answer = { id: "learner-3", from: "learner", text: "A law?" } as const;
+  const nudge = { id: "turn-5-0", from: "app", message: { agent: "evaluator", kind: "feedback", text: "Not quite. So what kind of thing is it?" }, phase: "move", move: "supraordinate", level: 2 } as const;
   const hint = { id: "turn-6-0", from: "app", message: { agent: "hint_giver", kind: "hint", text: "Think of monarchy.", hintStep: "hint" }, phase: "move", move: "supraordinate", level: 2 } as const;
-  assert.equal(helpLabelOf([question]), "help · −1 pt");
-  assert.equal(helpLabelOf([question, answer]), "help");
-  assert.equal(helpLabelOf([question, answer, hint]), "more help");
+  assert.deepEqual(helpOf([question]), { tag: "help −1", label: "Help, costs a point", more: false });
+  assert.deepEqual(helpOf([question, answer]), { tag: "help", label: "Help", more: false });
+  assert.equal(helpOf([question, answer, hint]).more, true);
+  // a reveal that ended the last part came before this question, so Help costs a point again
+  assert.equal(helpOf([{ ...hint, message: { ...hint.message, hintStep: "reveal" } }, { ...question, id: "turn-9-2" }]).tag, "help −1");
+  assert.equal(cappedOf([question, answer]), false);
+  assert.equal(cappedOf([question, answer, nudge]), true);
+});
+
+test("the hint card counts the Helps on the part, and the first one shows its price", () => {
+  assert.deepEqual(hintCardOf(1, true), { title: "hint 1 of 3 · −1 pt", filled: 1, note: "this part can now light 1 point at most" });
+  assert.equal(hintCardOf(2, false).title, "hint 2 of 3");
+  assert.equal(hintCardOf(5, false).filled, 3);
 });
 
 test("the screen shows the Turn that asked the latest question, with the feedback that came with it", () => {
@@ -62,91 +119,28 @@ test("the screen shows the Turn that asked the latest question, with the feedbac
   assert.deepEqual(currentPartOf(through(7).entries).map((e) => e.id), ["turn-7-0", "turn-7-1", "turn-7-2"]);
 });
 
-test("a reply that ends in a question splits off the question, and a short lead becomes the label", () => {
-  assert.deepEqual(splitTrailingQuestion("Not quite: a law is one rule, and democracy isn't a rule. So what kind of thing is it?"), {
-    statement: "Not quite: a law is one rule, and democracy isn't a rule.",
-    question: "So what kind of thing is it?",
-  });
-  assert.deepEqual(splitTrailingQuestion("You found it."), { statement: "You found it.", question: null });
-  assert.deepEqual(eyebrowOf("Before any help: in your own words, what is democracy?"), {
-    eyebrow: "Before any help",
-    text: "In your own words, what is democracy?",
-  });
+test("a short lead becomes the label over a question, and code in a question goes in chips", () => {
+  assert.deepEqual(eyebrowOf("Before any help: in your own words, what is democracy?"), { eyebrow: "before any help", text: "In your own words, what is democracy?" });
   assert.equal(eyebrowOf("Democracy is one example of a bigger group. What group?").eyebrow, null);
+  assert.deepEqual(inlineCodeOf("Your agent wrote `fetch('/api/users/42')`. What do both sides agree on?"), [
+    { code: false, text: "Your agent wrote " },
+    { code: true, text: "fetch('/api/users/42')" },
+    { code: false, text: ". What do both sides agree on?" },
+  ]);
 });
 
-test("the checks list walks the democracy session from queued to done, with the help each part took", () => {
-  const firstMove = turns.find((t) => t.phase === "move")!;
-  assert.deepEqual(checksOf(firstMove, []).map((c) => c.state), ["now", "queued", "queued", "queued"]);
-  assert.equal(partLabelOf(firstMove), "1/4");
-  assert.equal(partLabelOf(turns[0]!), null);
-  const done = checksOf(turns.at(-1)!, through(Infinity).entries);
-  assert.deepEqual(
-    done.map(({ state, meta }) => [state, meta]),
-    [
-      ["hinted", "done · 1 hint"],
-      ["done", "done"],
-      ["hinted", "done · 1 hint"],
-      ["done", "done"],
-    ],
-  );
-});
-
-test("the guess rings the corners it expects; the result proves, feels sure, or leaves them", () => {
-  assert.deepEqual(guessCornersOf(ORDER, 3), { 4: "expected", 8: "expected", 3: "expected", 7: "empty", 1: "empty", 2: "empty", 6: "empty", 5: "empty" });
-  const over = resultCornersOf(ORDER, 7, 5);
-  assert.deepEqual(ORDER.map((corner) => over[corner as keyof typeof over]), ["proved", "proved", "proved", "proved", "proved", "felt", "felt", "empty"]);
-  // did better than the guess: nothing was felt sure without proof
-  const under = resultCornersOf(ORDER, 2, 3);
-  assert.deepEqual(ORDER.map((corner) => under[corner as keyof typeof under]), ["proved", "proved", "proved", "empty", "empty", "empty", "empty", "empty"]);
+test("a filled part shows the learner's words; what it isn't reads as 'not …'; the example is shown, not earned", () => {
+  const map: Mentefacto = { concept: "API", supraordinate: { value: "a software interface", note: null }, exclusion: [{ value: "a library", note: null }, { value: "not a server", note: null }], isoordinate: [], infraordinate: [] };
+  assert.equal(partTextOf(map, "supraordinate"), "a software interface");
+  assert.equal(partTextOf(map, "exclusion"), "not a library, not a server");
+  assert.equal(partTextOf(map, "isoordinate"), null);
+  assert.deepEqual(exampleParts(map).map((p) => p.state), ["revealed", "revealed", "revealed", "revealed"]);
 });
 
 test("the gap is a signed number and one sentence", () => {
   assert.deepEqual(gapOf({ calibrationGap: 2 }), { sign: "+", amount: 2, sentence: "You felt 2 points surer than you were.", over: true });
   assert.deepEqual(gapOf({ calibrationGap: -1 }), { sign: "−", amount: 1, sentence: "You did 1 point better than you felt.", over: false });
-  assert.equal(gapOf({ calibrationGap: 0 }).sentence, "Your guess was exactly right.");
-});
-
-test("where the gap came from: each part under 2, the help it took and what ended up on the map", () => {
-  const result: Result = {
-    predictedScore: 7,
-    score: 5,
-    maxScore: 8,
-    calibrationGap: 2,
-    hintsUsed: 3,
-    rubric: [
-      { move: "supraordinate", points: 2 },
-      { move: "exclusion", points: 0 },
-      { move: "isoordinate", points: 2 },
-      { move: "infraordinate", points: 1 },
-    ],
-    masteryChanges: [],
-    questions: { asked: 0, testing: 0 },
-    coach: { message: "Its types are next.", nextFocus: "infraordinate" },
-  };
-  const hint = (move: MoveId, hintStep: "nudge" | "reveal", turn: number): Entry => ({
-    id: `turn-${turn}-0`,
-    from: "app",
-    message: { agent: "hint_giver", kind: "hint", text: "…", hintStep },
-    phase: "move",
-    move,
-    level: 2,
-  });
-  const map: Mentefacto = {
-    concept: "JWT",
-    supraordinate: { value: "token format", note: null },
-    exclusion: [{ value: "an encrypted token", note: "a JWT is signed, not encrypted" }],
-    isoordinate: [],
-    infraordinate: [{ value: "HS256", note: null }],
-  };
-  const entries = [hint("exclusion", "nudge", 5), hint("exclusion", "reveal", 6), hint("infraordinate", "nudge", 9)];
-  assert.deepEqual(missesOf(result, entries, map), [
-    { move: "exclusion", label: "What it isn't", meta: "0/2 · answer shown", detail: "an encrypted token: a JWT is signed, not encrypted" },
-    { move: "infraordinate", label: "Its types", meta: "1/2 · 1 hint", detail: "HS256" },
-  ]);
-  // the whole-map evaluator's note wins over the map
-  assert.equal(missesOf(result, entries, map, { infraordinate: "Name a second type." })[1]!.detail, "Name a second type.");
-  assert.deepEqual(aloneOf(result), ["Bigger group", "What it needs"]);
+  assert.equal(gapOf({ calibrationGap: 0 } as Pick<Result, "calibrationGap">).sentence, "Your guess was exactly right.");
 });
 
 test("notes with a key, a token or a password stop at the phone, and the warning says which line", () => {
@@ -172,22 +166,21 @@ test("notes with a key, a token or a password stop at the phone, and the warning
   for (const text of fine) assert.equal(secretLineOf(text), null, text);
 });
 
-test("the transcript doesn't echo the guess, and the waiting line says what's happening", () => {
+test("the transcript doesn't echo the guess, and screen readers hear what's happening", () => {
   const state = sent(received(initialState, turns[0]!), { turn: 1, prediction: 7 });
   assert.ok(state.entries.every((e) => e.from === "app" && e.phase === "predict"));
-  assert.equal(waitingLineOf(state.pending), "opening the box…");
-  assert.equal(waitingLineOf({ turn: 2, text: "x" }), "checking your answer…");
-  assert.equal(waitingLineOf({ turn: 2, question: "Is it a kind of token?" }), "asking the fact desk…");
-  assert.equal(waitingLineOf({ turn: 2, action: "help" }), "finding a hint…");
+  assert.equal(waitingLineOf(state.pending), "Locking in your guess.");
+  assert.equal(waitingLineOf({ turn: 2, text: "x" }), "Checking your answer.");
+  assert.equal(waitingLineOf({ turn: 2, question: "Is it a kind of token?" }), "Looking up the fact.");
+  assert.equal(waitingLineOf({ turn: 2, action: "help" }), "Finding a hint.");
 });
 
 test("on the whole map, Help costs a point on each new part, then names the part it helps", () => {
-  assert.equal(wholeMapHelpLabelOf(0), "help · −1 pt");
-  assert.equal(wholeMapHelpLabelOf(1), "more help");
-  assert.equal(wholeMapHelpLabelOf(3), "more help");
+  assert.deepEqual(wholeMapHelpOf(0), { tag: "help −1", label: "Help, costs a point" });
+  assert.deepEqual(wholeMapHelpOf(1), { tag: "help", label: "More help" });
   // the fourth Help revealed the bigger group, so the next one starts on what it isn't
-  assert.equal(wholeMapHelpLabelOf(4), "help · −1 pt");
-  assert.equal(wholeMapHelpLabelOf(16), null);
+  assert.equal(wholeMapHelpOf(4)?.tag, "help −1");
+  assert.equal(wholeMapHelpOf(16), null);
   assert.deepEqual([0, 3, 4, 8, 15].map(hintPartOf), ["supraordinate", "supraordinate", "exclusion", "isoordinate", "infraordinate"]);
   assert.deepEqual([0, 1, 4, 5].map(firstOnPart), [true, false, true, false]);
 });
@@ -209,6 +202,15 @@ test("a part is written back clean: blanks go, and only an exclusion keeps its d
   assert.deepEqual(itemsOf(withPart(map, "supraordinate", [{ value: "browser security mechanism", note: null }]), "supraordinate"), [
     { value: "browser security mechanism", note: null },
   ]);
+});
+
+test("the whole map lights the learner's words unscored, and keeps what Help revealed dim", () => {
+  const draft = withPart(withPart(blankMap("CORS"), "supraordinate", [{ value: "a browser security rule", note: null }]), "exclusion", [{ value: "a firewall", note: null }]);
+  const server = { ...blankMap("CORS"), exclusion: [{ value: "a firewall", note: null }] };
+  assert.deepEqual(
+    wholeMapPartsOf(draft, server).map((p) => `${p.state}:${p.text}:${p.pips}`),
+    ["lit:a browser security rule:null", "revealed:not a firewall:null", "unasked:null:null", "unasked:null:null"],
+  );
 });
 
 test("the whole-map evaluator's note on each part comes off its label", () => {

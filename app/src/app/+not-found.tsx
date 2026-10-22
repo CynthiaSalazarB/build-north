@@ -2,7 +2,7 @@
 import { useRouter } from "expo-router";
 import { StyleSheet, View } from "react-native";
 import { Body, Button, Label, Screen, Title } from "../components/ui.tsx";
-import { space } from "../theme.ts";
+import { brand, space } from "../theme.ts";
 
 export default function NotFoundScreen() {
   const router = useRouter();
@@ -12,7 +12,7 @@ export default function NotFoundScreen() {
         <Label dim>404</Label>
         <Title>This page doesn't exist.</Title>
         <Body dim>The link may be old or mistyped.</Body>
-        <Button label="Go to Reality Check" onPress={() => router.replace("/")} />
+        <Button label={`Go to ${brand.name}`} onPress={() => router.replace("/")} />
       </View>
     </Screen>
   );

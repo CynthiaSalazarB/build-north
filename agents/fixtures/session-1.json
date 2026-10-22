@@ -30,7 +30,8 @@
       "progress": {
         "movesDone": 0,
         "movesTotal": 4,
-        "hintsUsed": 0
+        "hintsUsed": 0,
+        "points": []
       },
       "result": null,
       "error": null
@@ -68,7 +69,8 @@
       "progress": {
         "movesDone": 0,
         "movesTotal": 4,
-        "hintsUsed": 0
+        "hintsUsed": 0,
+        "points": []
       },
       "result": null,
       "error": null
@@ -186,7 +188,8 @@
       "progress": {
         "movesDone": 0,
         "movesTotal": 4,
-        "hintsUsed": 0
+        "hintsUsed": 0,
+        "points": []
       },
       "result": null,
       "error": null
@@ -224,7 +227,8 @@
       "progress": {
         "movesDone": 0,
         "movesTotal": 4,
-        "hintsUsed": 0
+        "hintsUsed": 0,
+        "points": []
       },
       "result": null,
       "error": null
@@ -262,7 +266,8 @@
       "progress": {
         "movesDone": 0,
         "movesTotal": 4,
-        "hintsUsed": 0
+        "hintsUsed": 0,
+        "points": []
       },
       "result": null,
       "error": null
@@ -301,7 +306,8 @@
       "progress": {
         "movesDone": 0,
         "movesTotal": 4,
-        "hintsUsed": 1
+        "hintsUsed": 1,
+        "points": []
       },
       "result": null,
       "error": null
@@ -352,7 +358,13 @@
       "progress": {
         "movesDone": 1,
         "movesTotal": 4,
-        "hintsUsed": 1
+        "hintsUsed": 1,
+        "points": [
+          {
+            "move": "supraordinate",
+            "points": 1
+          }
+        ]
       },
       "result": null,
       "error": null
@@ -399,7 +411,17 @@
       "progress": {
         "movesDone": 2,
         "movesTotal": 4,
-        "hintsUsed": 2
+        "hintsUsed": 2,
+        "points": [
+          {
+            "move": "supraordinate",
+            "points": 1
+          },
+          {
+            "move": "exclusion",
+            "points": 2
+          }
+        ]
       },
       "result": null,
       "error": null
@@ -477,7 +499,25 @@
       "progress": {
         "movesDone": 4,
         "movesTotal": 4,
-        "hintsUsed": 2
+        "hintsUsed": 2,
+        "points": [
+          {
+            "move": "supraordinate",
+            "points": 1
+          },
+          {
+            "move": "exclusion",
+            "points": 2
+          },
+          {
+            "move": "isoordinate",
+            "points": 1
+          },
+          {
+            "move": "infraordinate",
+            "points": 1
+          }
+        ]
       },
       "result": {
         "predictedScore": 7,
