@@ -164,8 +164,9 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
         glow ? { boxShadow: glow } : null,
       ]}
       onLayout={onPress ? undefined : onLayout}
+      // a part that opens for editing is labeled by its button instead
       accessible={!onPress}
-      accessibilityLabel={`${label}: ${said}. ${earned} of 2 points${view.state === "revealed" ? ", shown to you" : ""}.`}
+      accessibilityLabel={onPress ? undefined : `${label}: ${said}. ${earned} of 2 points${view.state === "revealed" ? ", shown to you" : ""}.`}
     >
       <View style={styles.partHead}>
         <PartIcon d={icon} color={look.labelInk} />

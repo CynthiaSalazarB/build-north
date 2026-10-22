@@ -7,7 +7,7 @@ import { useEffect } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { success } from "../haptics.ts";
 import { gapOf, resultPartsOf } from "../session/present.ts";
-import { space, type } from "../theme.ts";
+import { parts as PARTS, space, type } from "../theme.ts";
 import { ConceptMap, PointSquare } from "./concept-map.tsx";
 import { Firefly } from "./firefly.tsx";
 import { Failure } from "./messages.tsx";
@@ -81,10 +81,12 @@ function ResultBody({ concept, result, map, notes = {}, onAgain, againBusy, agai
         <Body style={styles.normal}>Feeling surer than you can explain is normal. Explaining is how you find out.</Body>
         {noted.length > 0 && (
           <View style={styles.notes}>
+            {/* the whole-map evaluator's note on each part, under the part's name */}
             {noted.map(([move, note]) => (
-              <Body key={move} dim>
-                {note}
-              </Body>
+              <View key={move} style={styles.note}>
+                <Tag dim>{PARTS[move as MoveId].label}</Tag>
+                <Body dim>{note}</Body>
+              </View>
             ))}
           </View>
         )}
@@ -113,7 +115,8 @@ const styles = StyleSheet.create({
   legend: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", columnGap: space.l, rowGap: 6 },
   legendRow: { flexDirection: "row", alignItems: "center", gap: 6 },
   normal: { marginTop: space.xs },
-  notes: { gap: space.s },
+  notes: { gap: space.m },
+  note: { gap: 2 },
   coach: { gap: 2 },
   foot: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m, gap: space.xs },
 });

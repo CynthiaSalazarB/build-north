@@ -160,8 +160,10 @@ export function hintCardOf(n: number, first: boolean): { title: string; filled: 
 /** What the firefly says under itself: Help costs a point only while the part could still score 2. After a
  * hint, Help is the "More help" button by the input instead. */
 export function helpOf(part: readonly Entry[]): { tag: string; label: string; more: boolean } {
-  if (part.some((e) => e.from === "app" && e.message.kind === "hint")) return { tag: "help", label: "More help", more: true };
-  if (part.some((e) => e.from === "learner")) return { tag: "help", label: "Help", more: false };
+  // only what came after the question counts: a reveal before it ended the last part
+  const since = part.slice(part.findIndex((e) => e.from === "app" && e.message.kind === "question") + 1);
+  if (since.some((e) => e.from === "app" && e.message.kind === "hint")) return { tag: "help", label: "More help", more: true };
+  if (since.some((e) => e.from === "learner")) return { tag: "help", label: "Help", more: false };
   return { tag: "help −1", label: "Help, costs a point", more: false };
 }
 

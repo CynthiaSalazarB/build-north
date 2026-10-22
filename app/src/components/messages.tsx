@@ -32,8 +32,9 @@ function WithCode({ text, style }: { text: string; style: object }) {
     <Text style={[style, { color: c.onSurface }]}>
       {inlineCodeOf(text).map((piece, i) =>
         piece.code ? (
+          // non-breaking spaces pad the chip, so a line never breaks inside it before the code
           <Text key={i} style={[type.inlineCode, styles.code, { backgroundColor: c.codeFill, borderColor: c.fieldEdge, color: c.onSurface }]}>
-            {` ${piece.text} `}
+            {`\u00a0${piece.text.replaceAll(" ", "\u00a0")}\u00a0`}
           </Text>
         ) : (
           piece.text

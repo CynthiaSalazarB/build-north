@@ -80,7 +80,7 @@ type WorkProps = { turn: Turn; state: SessionState; send: ReturnType<typeof useS
 function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   const scroll = useRef<ScrollViewInstance>(null);
   const [passed, setPassed] = useState<string | null>(null);
-  const [place, setPlace] = useState({ conversation: 0, ask: 0 });
+  const [place, setPlace] = useState({ map: 0, ask: 0 });
   const slow = useSlow(state.pending !== null);
   // the guess has its own screen; earlier parts are on the map
   const all = state.entries.filter((e) => e.from !== "app" || e.phase !== "predict");
@@ -114,14 +114,18 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
           onContentSizeChange={() => (example ? scroll.current?.scrollTo({ y: 0, animated: true }) : scroll.current?.scrollToEnd({ animated: true }))}
           keyboardShouldPersistTaps="handled"
         >
-          <ConceptMap
-            concept={example ? example.concept : turn.mentefacto.concept}
-            parts={parts}
-            justLit={lit}
-            pulse={turn.turn}
-            leaderFrom={askedNow ? { x: size.iconButton / 2, y: place.conversation - MAP_TOP + place.ask + 2 } : null}
-          />
-          <View style={styles.conversation} onLayout={(e) => setPlace((p) => ({ ...p, conversation: e.nativeEvent.layout.y }))}>
+          {/* the firefly's line starts below the map: its height (a size, which the web reports on every change, unlike
+              a position) plus the gap, plus where the question sits in the conversation */}
+          <View onLayout={(e) => setPlace((p) => (p.map === e.nativeEvent.layout.height ? p : { ...p, map: e.nativeEvent.layout.height }))}>
+            <ConceptMap
+              concept={example ? example.concept : turn.mentefacto.concept}
+              parts={parts}
+              justLit={lit}
+              pulse={turn.turn}
+              leaderFrom={askedNow ? { x: size.iconButton / 2, y: place.map + CONVERSATION_GAP + place.ask + 2 } : null}
+            />
+          </View>
+          <View style={styles.conversation}>
             <Conversation
               entries={entries}
               turn={turn}
@@ -216,11 +220,12 @@ function Conversation({ entries, turn, held, pending, help, onHelp, onAskLayout 
   );
 }
 
-/** The map sits this far below the session bar (the board's 26 px). */
+/** The map sits this far below the session bar, and the conversation this far below the map (the board). */
 const MAP_TOP = 26;
+const CONVERSATION_GAP = 32;
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   content: { paddingHorizontal: space.margin, paddingTop: MAP_TOP, paddingBottom: space.xl },
-  conversation: { marginTop: space.xxl, gap: space.l },
+  conversation: { marginTop: CONVERSATION_GAP, gap: space.l },
 });

@@ -93,6 +93,8 @@ test("Help costs a point only while the part could still score 2; after a hint i
   assert.deepEqual(helpOf([question]), { tag: "help −1", label: "Help, costs a point", more: false });
   assert.deepEqual(helpOf([question, answer]), { tag: "help", label: "Help", more: false });
   assert.equal(helpOf([question, answer, hint]).more, true);
+  // a reveal that ended the last part came before this question, so Help costs a point again
+  assert.equal(helpOf([{ ...hint, message: { ...hint.message, hintStep: "reveal" } }, { ...question, id: "turn-9-2" }]).tag, "help −1");
   assert.equal(cappedOf([question, answer]), false);
   assert.equal(cappedOf([question, answer, nudge]), true);
 });
