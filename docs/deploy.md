@@ -1,14 +1,14 @@
 # Path to production
 
 How a change merged into `main` reaches the people using Lumente: where each piece runs, what each kind
-of change needs, and in what order. Merging into `main` deploys nothing by itself; every step below is
-started by a person.
+of change needs, and in what order. Merging into `main` updates the API by itself (Render's Auto-Deploy);
+every other step below is started by a person.
 
 ## Where each piece runs
 
 | Piece | Runs on | How it gets a new version |
 |---|---|---|
-| The API and the agents (prompts, orchestrator, scoring rules) | Render, service `build-north-api` | **Manual Deploy** of `main` in Render's dashboard. The agents package runs inside the API, on the server, never on the phone |
+| The API and the agents (prompts, orchestrator, scoring rules) | Render, service `build-north-api` | **By itself on every merge** into `main` (Auto-Deploy, on since Oct 22; off again from the freeze, Oct 24, and then a Manual Deploy). The agents package runs inside the API, on the server, never on the phone |
 | The database | SurrealDB Cloud, database `prod` | Never deployed. Its data stays; the rules for its tables come from the API (next section) |
 | Agent Memory | SurrealDB Agent Memory | Set up once; after that the API reads and writes it |
 | The app on Android | the `preview` APK, installed on each phone | JavaScript changes: an **update** over the air (Ship). Native changes: a **new build** |
@@ -58,6 +58,10 @@ Example, #108 (the result shows before the coach's words): the new app works wit
 one, while the old app with the new API would show a stray Continue button. So: Ship first, then the
 Render deploy.
 
+With Auto-Deploy on, the API changes the moment the pull request merges, before anyone can Ship. So when
+the app has to go first, split the change in two pull requests: the app's part first (merge it and Ship),
+then the API's part.
+
 ## Update or new build?
 
 An Android app has two layers. The JavaScript layer (screens, text, logic) can be replaced over the air:
@@ -67,7 +71,9 @@ compiled into the APK: icon, splash, name, native libraries, the SDK) can only c
 EAS takes a **fingerprint** of the native layer. An update only reaches APKs with the same fingerprint, so
 after a native change, phones with the old APK stop getting updates until they install the new build. The
 free plan has 15 Android builds a month. The Preview build workflow checks the fingerprint first and only
-builds when it changed, so running it when unsure costs nothing.
+builds when it changed, so running it when unsure costs nothing. An update also has to be made from code with
+the same native layer as the APK on the phones: Ship from a branch whose `app.json` or native libraries
+differ, and the update goes to a fingerprint no installed APK has.
 
 ## Commands
 
@@ -79,8 +85,9 @@ organization.
   downloads the update, the second uses it.
 - **New build:** `npx eas-cli workflow:run .eas/workflows/preview-build.yml`. Install the new APK on the
   phones, then Ship.
-- **Render deploy:** Render dashboard → `build-north-api` → Manual Deploy → Deploy latest commit (`main`).
-  `/health` answering `{ "ok": true }` means it's up; it doesn't say which version.
+- **Render deploy:** automatic on every merge while Auto-Deploy is on. When it's off: Render dashboard →
+  `build-north-api` → Manual Deploy → Deploy latest commit (`main`). `/health` answering `{ "ok": true }`
+  means it's up; it doesn't say which version.
 - **The testers' website:** `npx eas-cli env:pull --environment production` (it writes `app/.env.local`),
   `npx expo export --platform web`, `npx eas-cli deploy --alias testers`. Then delete `app/.env.local`:
   Expo reads it before `app/.env`, so local runs would otherwise talk to the production API.
@@ -89,9 +96,8 @@ organization.
 
 - **Ship on every merge:** the Ship workflow already says `on: push: main`; it only needs the Expo GitHub
   app installed on the repository (the owner installs it).
-- **Render on every merge:** Render can deploy `main` by itself once Render's GitHub app is installed. It's
-  manual on purpose for now: a person chooses when production changes, and around tests and the demo
-  that matters more than saving a click.
+- **Render on every merge:** already on (Auto-Deploy). It goes off at the freeze (Oct 24), so nothing
+  changes production during the demo unless a person chooses it.
 
 Every deploy, update and build goes in [`expo-log.md`](expo-log.md) (EAS) or the Render dashboard's event
 list (Render).
