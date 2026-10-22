@@ -45,11 +45,11 @@ signs in and the app works as before.
 - Android: `src/app/sign-in.tsx` is the first-launch screen. Get Started opens Clerk's hosted sign-up
   in an in-app browser, and I Have an Account its sign-in. The redirect back to the app needs the
   `@clerk/expo` config plugin in a development or EAS build.
-- The Clerk Dashboard decides the sign-in methods, with no code change: email code only, the Oct 19 scope
-  cut in `DECISIONS.md`. Enable the Native API on its **Native applications** page so the phone apps can
+- The Clerk Dashboard decides the sign-in methods, with no code change: email code and Google (Google
+  came back on Oct 22). Enable the Native API on its **Native applications** page so the phone apps can
   sign in.
-- To try the web build with sign-in locally, use `npx expo serve` on the export: it maps `/sign-in` to
-  `sign-in.html` when the page reloads, which a plain static server can't.
+- To try the web build with sign-in locally, use `npx expo serve` on the export: Clerk's Google sign-in
+  comes back to `/sign-in`, which a plain static server can't map to `sign-in.html` (EAS Hosting does).
 
 ## Commands
 
