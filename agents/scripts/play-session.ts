@@ -4,7 +4,8 @@
 // different path from the fixture; the learner's lines stay the same.
 // `npm run play:session` plays democracy (the session in fixtures/session-1.json);
 // `npm run play:session -- api` plays the demo's session 1 (DECISIONS.md, the demo runs on API, then CORS).
-import { advance, AGENTS, type AgentName, type CallAgent, type Mastery, MOVE_ORDER, type Session, type TurnInput } from "../src/index.ts";
+import { writeFileSync } from "node:fs";
+import { advance, AGENTS, type AgentName, type CallAgent, type Mastery, MOVE_LABEL, MOVE_ORDER, type Session, type TurnInput } from "../src/index.ts";
 import { type AgentRun, dollars, MODEL, runAgent } from "./run-agent.ts";
 
 // The learner's lines for each concept, in order. If the session asks for more, the learner taps Help.
@@ -91,12 +92,23 @@ let session: Session = {
 let mastery: Mastery = { moves: MOVE_ORDER.map((move) => ({ move, level: 1 as const, unassistedSuccesses: 0 })) };
 
 
+// `--save <file>` writes the run as a fixture in the shape of session-1.json: each step's input as the app
+// sends it (the first one is POST /sessions), and the Turn it got back.
+const savePath = process.argv.includes("--save") ? process.argv[process.argv.indexOf("--save") + 1] : undefined;
+const recorded: { note: string; input: unknown; turn: unknown }[] = [];
+if (savePath) session.id = `ses_demo_${name}`;
+
 const seconds: number[] = [];
 console.log(`Session 1 (${concept}) on ${MODEL}\n`);
 for (let i = 0; i < 30 && session.phase !== "result"; i++) {
   const input: TurnInput = lines[i] ?? { action: "help" };
   const started = performance.now();
   const out = await advance({ session, mastery }, input, callAgent);
+  if (savePath && !out.turn.error) {
+    const sent = i === 0 ? { concept } : { turn: session.turn, ...input };
+    const where = out.turn.move ? `${out.turn.phase}: ${MOVE_LABEL[out.turn.move]}, level ${out.turn.level}` : out.turn.phase;
+    recorded.push({ note: `Recorded live on ${MODEL}. ${where}.`, input: sent, turn: out.turn });
+  }
   const s = (performance.now() - started) / 1000;
   const learner = "text" in input ? `"${input.text}"` : JSON.stringify(input);
   if (out.turn.error) {
@@ -120,3 +132,7 @@ const sorted = [...seconds].sort((a, b) => a - b);
 const median = sorted[Math.floor(sorted.length / 2)] ?? 0;
 const max = sorted.at(-1) ?? 0;
 console.log(`\nAnswer turns: median ${median.toFixed(1)} s, max ${max.toFixed(1)} s (budget: median < 4, max < 8) · ${runs.length} Claude calls · ${dollars(runs)}`);
+if (savePath && r) {
+  writeFileSync(savePath, `${JSON.stringify(recorded, null, 2)}\n`);
+  console.log(`Saved ${recorded.length} steps to ${savePath}`);
+}

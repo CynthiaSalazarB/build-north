@@ -1,5 +1,5 @@
 // How the app moves a session forward (CONTRACTS.md section 1). Two clients share this shape: the
-// real API (#7) and a replay of the session-1 fixture that needs no API at all (#6).
+// real API (#7) and a replay of the recorded API session that needs no API at all (#6).
 import type { CreateSessionBody, Turn, TurnBody } from "@build-north/agents";
 
 export type SessionClient = {
