@@ -1,14 +1,14 @@
 # Design directions
 
-Branding and screen mockups for Reality Check, October 20 and 21, 2026. **Round 8, Open Box, is the design we're
-using.** Leo picked it on October 21, in place of round 6 (which #81 first put in the app) and round 7's
-recommendation. Rounds 1 to 7 stay here as the history of how we got there. The pick is logged in
-[`DECISIONS.md`](../../DECISIONS.md), and round 8's tokens become the app's theme in `app/`.
+Branding and screen mockups for Lumente, October 20 to 22, 2026. **Round 9, Lumente, is the design the app
+uses**: questions are the light. It replaced round 8, Open Box, on October 22, which had replaced round 6 the day
+before. Rounds 1 to 8 stay here as the history of how we got there. Each pick is logged in
+[`DECISIONS.md`](../../DECISIONS.md), and Lumente's tokens are the app's theme in `app/`.
 
 These are design boards (HTML pages), not app code. Open them in a browser: GitHub only shows their source.
 
-**Start with [`08-open-box/open-box.html`](08-open-box/open-box.html), the design we're using.**
-[`all-designs.html`](all-designs.html) holds all eight rounds in one self-contained file (images included), so it
+**Start with [`09-lumente/README.md`](09-lumente/README.md), the design the app uses.**
+[`all-designs.html`](all-designs.html) holds rounds 1 to 8 in one self-contained file (images included), so it
 also works when sent on its own. Each round is saved as a standalone file below too.
 
 ## The rounds
@@ -22,7 +22,8 @@ also works when sent on its own. Each round is saved as a standalone file below 
 | 5 | [`05-plaster-to-bronze/plaster-to-bronze.html`](05-plaster-to-bronze/plaster-to-bronze.html) | The direction built from what the app means: Rodin's Thinker, plaster for what you felt sure of, bronze for what you proved, across six screens |
 | 6 | [`06-out-of-the-cave/out-of-the-cave.html`](06-out-of-the-cave/out-of-the-cave.html) | The mix of the picks from rounds 3 to 5 (Plato's Cave, Chiaroscuro, Fresco, Old Master, Plaster to Bronze): every session walks from the dark into daylight. Version 2 applies Apple's design principles and research on reading, navigation and learning: twelve screens with home, waiting and error states, a working guess-and-dawn prototype, and the brand kit for #14. The research is in [`design-principles.md`](06-out-of-the-cave/design-principles.md) |
 | 7 | [`07-pivot-directions/pivot-directions.html`](07-pivot-directions/pivot-directions.html) | Six directions for CS students who build with coding agents, on Android-size screens next to the current app: Cave for Code, Red to Green, Whiteboard, Black Box, Your Pair and Warm Editor. Warm Editor (7F) was the recommendation until round 8: the session as a test run, in round 6's voice and colors. The research is in [`pivot-research.md`](07-pivot-directions/pivot-research.md) |
-| 8 | [`08-open-box/open-box.html`](08-open-box/open-box.html) | **The design we're using.** One direction mixed from four of round 7's: the session as a test run (7B), the box that opens one corner per proved point (7D), the pair that asks (7E), and the tutor's serif voice with the forecast-error result (7F). Shown in two color themes, Cobalt (blue and white) and Obsidian (black and white), each with a day and a night mode |
+| 9 | [`09-lumente/README.md`](09-lumente/README.md) | **The design the app uses.** Questions are the light: the map is four questions in the dark around the concept, a firefly tutor asks them, and an answer in the learner's own words lights its part. Near-black, amber and warm light, with coral only for the gap. The board, the tokens and the contrast table |
+| 8 | [`08-open-box/open-box.html`](08-open-box/open-box.html) | The design from October 21 until Lumente replaced it on October 22. One direction mixed from four of round 7's: the session as a test run (7B), the box that opens one corner per proved point (7D), the pair that asks (7E), and the tutor's serif voice with the forecast-error result (7F). Shown in two color themes, Cobalt (blue and white) and Obsidian (black and white), each with a day and a night mode |
 
 Rounds 2 to 6 use the democracy walk-through from [`agents/fixtures/session-1.json`](../../agents/fixtures/session-1.json)
 (predicted 7, scored 5, so the calibration gap is +2). Rounds 2, 5 and 6 also show the level-5 inflation example from
@@ -49,7 +50,9 @@ same numbers, and a level-5 CORS profile.
 - [`07-pivot-directions/warm-editor-tokens.ts`](07-pivot-directions/warm-editor-tokens.ts): the same roles for 7F, with an
   editor (dark) and a paper (light) palette, Material 3 sizes, springs and the check states. The other round 7
   directions keep their colors inside the board.
-- [`08-open-box/open-box-tokens.ts`](08-open-box/open-box-tokens.ts): the app's theme. The same roles for round 8,
+- [`09-lumente/lumente-tokens.ts`](09-lumente/lumente-tokens.ts): the app's theme. The same role names as round 8
+  where a role still exists, with Lumente's night and day palettes and its contrast checks.
+- [`08-open-box/open-box-tokens.ts`](08-open-box/open-box-tokens.ts): round 8's theme until October 22. The same roles for round 8,
   with the two themes (Obsidian, the default, and Cobalt) each in a day and a night palette, the box's geometry and
   corner states, Material 3 sizes and springs. The pair's drawings are in [`08-open-box/pair/`](08-open-box/pair/).
 

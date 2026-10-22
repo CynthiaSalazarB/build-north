@@ -1,12 +1,12 @@
 ---
-title: "Product thesis: what Reality Check solves and why it should work"
+title: "Product thesis: what Lumente solves and why it should work"
 type: synthesis
 related: ["[[evidence]]"]
 created: 2026-10-21
-updated: 2026-10-21
+updated: 2026-10-22
 ---
 
-What Reality Check solves, how it works, why it should work, what is still unproven, and where it
+What Lumente solves, how it works, why it should work, what is still unproven, and where it
 goes. The evidence behind it is in [evidence](../context/evidence.md), the decisions in
 [`DECISIONS.md`](../../DECISIONS.md), and the technical details in
 [`agents/CONTRACTS.md`](../../agents/CONTRACTS.md).
@@ -53,11 +53,14 @@ The first group is programming students who build with AI coding agents. The app
 and any learner. "First group" means who we build the demo for, test with, sell to and talk about
 first.
 
-## What Reality Check is
+## What Lumente is
 
 **Build with AI. Understand the concepts yourself.**
 
-For programming students who build with AI agents but can't explain what they built, Reality Check is
+The name is *lumen* plus *mente*, light and mind: in the app, questions are the light, and the map lights up
+one part at a time as the learner proves it.
+
+For programming students who build with AI agents but can't explain what they built, Lumente is
 where they figure out the concepts their projects use. First they answer questions, then they ask their
 own, while the help fades level by level. Unlike AI study modes, it isn't a mode they can switch off
 halfway: they build the concept map themselves, and at the end they see their real score next to the

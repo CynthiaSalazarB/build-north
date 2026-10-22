@@ -12,3 +12,5 @@
 | 2026-10-20 | update | context/hosting-setup | Render moves to main once #58 and #60 merge, with a Manual Deploy after each merge; service id left out |
 | 2026-10-21 | add | context/evidence | The reel and its comments, Reddit, the AP story on oral exams, the PNAS study, competitors and prices |
 | 2026-10-21 | add | synthesis/product-thesis | Problem now, value proposition, research, claims, hard questions and gated phases, after office hours on Oct 20 |
+| 2026-10-22 | update | synthesis/product-thesis | The product is now called Lumente (round 9); "the reality check" stays the name of the predicted vs. real score |
+| 2026-10-22 | update | index, context/surrealdb-sponsor-prize | Reality Check renamed to Lumente |
