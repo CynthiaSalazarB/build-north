@@ -10,7 +10,13 @@
 | 2026-10-20 | update | context/hosting-setup | API locked until Clerk (#60): prod database, DEV_KEY, rate limit; Cynthia invited |
 | 2026-10-20 | update | index | decisions/ and raw/ removed after Cynthia's review on #57: decisions stay in DECISIONS.md, source documents get linked from their pages |
 | 2026-10-20 | update | context/hosting-setup | Render moves to main once #58 and #60 merge, with a Manual Deploy after each merge; service id left out |
+| 2026-10-20 | add | synthesis/plan-to-win | Plan to win, from a full read of the repo, the issues, the PRs and the Devpost pages; a proposal for Cynthia |
+| 2026-10-20 | add | synthesis/expo-prize-plan | The Expo prize in full, checked against Expo's, Apple's and Clerk's docs; plan-to-win section 4 now summarizes it |
+| 2026-10-21 | update | synthesis/plan-to-win | The final plan: the user narrowed to CS students who build with coding agents after the mentors' feedback, the Oct 20 items done or moved |
+| 2026-10-21 | update | synthesis/expo-prize-plan | The day by day now points to the main plan's schedule |
+| 2026-10-21 | update | synthesis/plan-to-win | Free tools and credits (section 13), and the Oct 21 facts: no Apple account, round 6 and the EAS project in #80 and #81 |
 | 2026-10-21 | add | context/evidence | The reel and its comments, Reddit, the AP story on oral exams, the PNAS study, competitors and prices |
 | 2026-10-21 | add | synthesis/product-thesis | Problem now, value proposition, research, claims, hard questions and gated phases, after office hours on Oct 20 |
 | 2026-10-22 | update | synthesis/product-thesis | The product is now called Lumente (round 9); "the reality check" stays the name of the predicted vs. real score |
 | 2026-10-22 | update | index, context/surrealdb-sponsor-prize | Reality Check renamed to Lumente |
+| 2026-10-22 | update | synthesis/plan-to-win, synthesis/expo-prize-plan | Adopted with Cynthia's Oct 22 decisions: Lumente, demo on API then CORS, status of P1 to P8, owners, decisions taken and open, the Devpost layout |
