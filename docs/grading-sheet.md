@@ -9,14 +9,14 @@ Testers appear as T1 to T5 only. The list matching IDs to names stays off this r
 ## Concept order
 
 Half the testers take the concepts in the reverse order, so a harder concept can't fake progress or hide
-it (DECISIONS.md, tester concepts and order).
+it (DECISIONS.md, tester concepts are programming concepts).
 
 | Tester | Pre-test | Post-test |
 |---|---|---|
-| T1, T3, T5 | ecosystem | contract |
-| T2, T4 | contract | ecosystem |
+| T1, T3, T5 | database index | rate limiting |
+| T2, T4 | rate limiting | database index |
 
-Training sessions in between use "metaphor" and "habit".
+Training sessions in between use "hashing" and "environment variable".
 
 ## Filling it in
 

@@ -2,9 +2,23 @@
 import { describe, expect, it } from "vitest";
 import { AGENTS, METHOD } from "../src/index.ts";
 
-// The concepts we measure: the demo (democracy, inflation) and the testers' four. A prompt that
-// mentions one could carry its answer and inflate the scores.
-const MEASURED = ["democracy", "inflation", "ecosystem", "contract", "metaphor", "habit"];
+// The concepts we measure: the demo's (JWT, CORS), the testers' four (database index, rate limiting,
+// hashing, environment variable), and the ones they replaced. A prompt that mentions one could carry
+// its answer and inflate the scores.
+const MEASURED = [
+  "democracy",
+  "inflation",
+  "ecosystem",
+  "contract",
+  "metaphor",
+  "habit",
+  "jwt",
+  "cors",
+  "database index",
+  "rate limiting",
+  "hashing",
+  "environment variable",
+];
 
 const empty = (concept: string) => ({ concept, supraordinate: null, exclusion: [], isoordinate: [], infraordinate: [] });
 

@@ -5,10 +5,10 @@ import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type
 // Turn schema when the API starts.
 const SCRIPT = sessionOne.map((step) => Turn.parse(step.turn));
 
-// Temporary: replays agents/fixtures/session-1.json, one Turn per call (a Help too), whatever the
-// concept or the answers, so the app can render every phase before the orchestrator exists. Mastery
-// never changes. It has the exact `Advance` type from @build-north/agents, so #28 swaps in Cynthia's
-// `advance` (#3) with one import.
+// What runs instead of Cynthia's `advance` when Claude is off (no ANTHROPIC_API_KEY): it replays
+// agents/fixtures/session-1.json, one Turn per call (a Help too), whatever the concept or the answers,
+// so the app can run every phase against an API with no key. Mastery never changes. It has the same
+// `Advance` type, so server.ts picks one or the other.
 export const advanceStub: Advance = async ({ session, mastery }) => {
   const scripted = SCRIPT[session.turn];
   if (!scripted) throw new Error(`The fixture session ends after ${SCRIPT.length} Turns`);
@@ -17,8 +17,7 @@ export const advanceStub: Advance = async ({ session, mastery }) => {
   return { session: { ...session, turn: turn.turn, phase, move, mentefacto, result, lastTurn: turn }, mastery, turn };
 };
 
-// Temporary: the fixture Turns need no agent, so this only fails loudly. #10 replaces it with the real
-// callAgent (Claude call, schema check, agent_log row).
+// The fixture Turns need no agent, so without a key this only fails loudly if something asks for one.
 export const callAgentStub: CallAgent = async (agent) => {
-  throw new Error(`callAgent isn't wired yet (#10); something asked for the ${agent}`);
+  throw new Error(`Claude is off (no ANTHROPIC_API_KEY); something asked for the ${agent}`);
 };
