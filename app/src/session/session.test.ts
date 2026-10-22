@@ -3,6 +3,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Turn, type TurnBody } from "@build-north/agents";
+import sessionApi from "@build-north/agents/fixtures/session-api.json" with { type: "json" };
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import { createApiClient } from "./api-client.ts";
 import { ClientError } from "./client.ts";
@@ -12,10 +13,11 @@ import { blankMap, drafted, echoFor, failed, initialState, received, sent, start
 const fixtureTurns = sessionOne.map((step) => Turn.parse(step.turn));
 const first = fixtureTurns[0]!;
 
-test("the fixture client clicks through the whole democracy session, then stops", async () => {
+test("the fixture client clicks through the whole recorded API session, then stops", async () => {
   const client = createFixtureClient(0);
-  let state = received(initialState, await client.start({ concept: "democracy" }));
-  for (const step of sessionOne.slice(1)) {
+  let state = received(initialState, await client.start({ concept: "API" }));
+  assert.equal(state.turn!.mentefacto.concept, "API");
+  for (const step of sessionApi.slice(1)) {
     const body = { turn: state.turn!.turn, ...(step.input as object) } as TurnBody;
     state = sent(state, body);
     state = received(state, await client.send(state.turn!.sessionId, body));
