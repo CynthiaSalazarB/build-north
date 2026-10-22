@@ -396,6 +396,16 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** the app's web and native builds on one platform (EAS), and the API on another.
   Two dashboards instead of one, and the web build depends on the EAS project on Leo's account.
 
+### 2026-10-22 · Sign-in by email code and Google
+- **Decision:** Clerk offers both email code and Google. Google came back on Oct 22 and works on the web
+  build; on phones it needs Clerk's Native API setting. Supersedes the sign-in part of "Build-week scope
+  cuts" (2026-10-19).
+- **Instead of:** email code only, the Oct 19 cut.
+- **Why:** testers and judges sign in with one tap, and Google sign-ins don't count against the Clerk
+  development instance's 100 emails a month. It was already built, so keeping it costs no build time.
+- **Pattern / trade-off:** a federated sign-in next to a passwordless one. One more flow to test on
+  phones before the freeze.
+
 ### 2026-10-22 · From 1,000 px the web build is laid out as a website
 - **Decision:** from 1,000 px wide, the web build has a header (the wordmark, the session's concept, the
   screen's actions) and two columns: the words on the left, 480 px wide, and the map or the code on the
