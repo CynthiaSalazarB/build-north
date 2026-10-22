@@ -4,7 +4,7 @@ import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { createApp } from "./app.ts";
 import { agentConfigFromEnv, createCallAgent, sendWith } from "./call-agent.ts";
 import { connectSurreal, surrealCheck, surrealConfigFromEnv } from "./db.ts";
-import { createMemory, memoryClient, memoryConfigFromEnv } from "./memory.ts";
+import { checkMemory, createMemory, memoryClient, memoryConfigFromEnv } from "./memory.ts";
 import { createStore, defineSchema } from "./store.ts";
 
 const port = Number(process.env.PORT || 3000);

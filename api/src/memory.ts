@@ -64,6 +64,19 @@ export function memoryConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Memor
 export const memoryClient = ({ url, contextId, apiKey }: MemoryConfig) =>
   new AgentMemory({ endpoint: url, context: contextId, apiKey, timeoutMs: REQUEST_TIMEOUT_MS, maxRetries: 1 });
 
+// What the API's key needs: read and write a learner's memory, erase it, and register a learner's scope
+const NEEDED_GRANTS = ["memory:read", "memory:write", "memory:forget", "scope:create"];
+
+// Once at startup, for the log: whether the key works for this context (GET /me) and has what the API needs
+export async function checkMemory(client: AgentMemory): Promise<string> {
+  const me = await client.whoami();
+  const grants = me.effectiveGrants ?? {};
+  const missing = NEEDED_GRANTS.filter((verb) => !grants[verb]?.length);
+  return missing.length
+    ? `the key works as ${me.displayName}, but its grants don't list ${missing.join(", ")}`
+    : `the key works as ${me.displayName}, with ${NEEDED_GRANTS.join(", ")}`;
+}
+
 type Learner = { key: string; scope: string };
 
 // The user id never leaves the API: Agent Memory gets the first 24 hex digits of its SHA-256, which is
