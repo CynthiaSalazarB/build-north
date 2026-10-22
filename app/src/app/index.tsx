@@ -36,7 +36,7 @@ export default function StartScreen() {
   const router = useRouter();
   const c = useColors();
   const { start, offline, state } = useSession();
-  const [concept, setConcept] = useState<string>(offline ? "democracy" : "API");
+  const [concept, setConcept] = useState<string>("API");
   const [notes, setNotes] = useState("");
   const [notesOpen, setNotesOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
