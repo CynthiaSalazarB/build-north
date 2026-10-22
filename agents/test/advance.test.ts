@@ -7,6 +7,7 @@ import {
   advance,
   type AgentName,
   type CallAgent,
+  FACT_DESK_ANSWER_REDIRECT,
   FACT_DESK_REDIRECT,
   type Mastery,
   type Mentefacto,
@@ -231,6 +232,19 @@ describe("whole map (decision 16, level-5 decision)", () => {
     expect(result.rubric.map((r) => r.points)).toEqual([1, 2, 1, 2]); // the hinted move is capped at 1
     expect(result.calibrationGap).toBe(0);
     expect(mastery).toEqual(start);
+  });
+
+  it("an answer typed in the chat gets its own fixed line, never the model's words, and isn't counted", async () => {
+    const { call } = scripted([
+      // even if the model confirms it, the learner only sees where answers go
+      ["fact_desk", { kind: "fact", answer: "Yes, that's its bigger group.", questionType: "states_an_answer" }],
+    ]);
+    const { turns, session } = await play(newSession("inflation", "test"), masteryAt(1), [
+      { action: "start" }, { prediction: 6 }, { question: "a rise in prices" },
+    ], call);
+    expect(turns[2]!.messages).toEqual([{ agent: "fact_desk", kind: "redirect", text: FACT_DESK_ANSWER_REDIRECT }]);
+    expect(turns[2]!.expects).toBe("map");
+    expect(session.questions).toEqual({ asked: 0, testing: 0 });
   });
 
   it("a learner at level 5 on every move gets the map, with no attempt and no example", async () => {
