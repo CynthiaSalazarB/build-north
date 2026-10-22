@@ -44,7 +44,7 @@ export const named = (move: MoveId, revealed: boolean) => (revealed ? NAMED[move
 export const noMoreHelp = "Every part of the map has been revealed. Finish it and submit.";
 
 /** The coach's fixed text when its call fails (#44). Only numbers code computed. */
-export const coachFallback = (score: number, hints: number, focus: MoveId | null) =>
-  focus
-    ? `You scored ${score} of 8 and used ${hints} hints. Next, work on "${MOVE_LABEL[focus]}".`
-    : `You scored ${score} of 8 and used ${hints} hints.`;
+export const coachFallback = (score: number, hints: number, focus: MoveId | null) => {
+  const used = `You scored ${score} of 8 and used ${hints} ${hints === 1 ? "hint" : "hints"}.`;
+  return focus ? `${used} Next, work on "${MOVE_LABEL[focus]}".` : used;
+};
