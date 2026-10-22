@@ -20,11 +20,12 @@ the questions still open are in the [product thesis](wiki/synthesis/product-thes
 1. The learner names a concept from their project (API, JWT, CORS) and predicts their score out of 8.
 2. They build the concept's map in four parts: its bigger group, what it isn't, what it needs and its
    types. The agents ask the questions and judge the answers; any answer that can be defended passes.
-   Hints come only from the Help button, and each one costs points.
+   Hints come only from Help: the first one on a part caps that part at 1 point, and the last step, the
+   answer itself, scores 0.
 3. The help fades over five levels per part, from a worked example to working alone. At level 5 the
    roles flip: the learner asks, and a fact desk answers with facts only.
-4. The real score appears next to the prediction. Scores, levels and hints are computed by code, never
-   by the model.
+4. The real score appears next to the prediction. The evaluator judges each answer; the points, the
+   levels and the gap between prediction and score are computed by code, never by the model.
 
 The map is the conceptual mentefact from Conceptual Pedagogy (Miguel de Zubiría).
 
