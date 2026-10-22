@@ -43,7 +43,8 @@ export default function StartScreen() {
   const [askOpen, setAskOpen] = useState(false);
   const [starting, setStarting] = useState<SessionMode | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const unfinished = state.turn && state.turn.expects !== "none" ? state.turn : null;
+  // a result on screen is finished, even while the coach's words are on their way
+  const unfinished = state.turn && state.turn.expects !== "none" && state.turn.phase !== "result" ? state.turn : null;
   // at level 5 the parts fill on the phone until the map is submitted
   const draft = unfinished?.expects === "map" ? state.draft : null;
   const done = draft ? filledOf(draft) : (unfinished?.progress.movesDone ?? 0);

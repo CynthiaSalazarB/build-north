@@ -309,6 +309,11 @@ const LABELED = new RegExp(`^(${MOVE_ORDER.map((m) => MOVE_LABEL[m]).join("|")})
 
 /** The whole-map evaluator's note on each part. The orchestrator writes each one as "Bigger group: …"
  * (submitMap in agents/src/orchestrator/advance.ts). */
+/** What came with the result and after it: the result's Turn (the part notes are there), then the coach's
+ * words, which come in their own Turn. */
+export const resultMessagesOf = (entries: readonly Entry[]): Message[] =>
+  entries.flatMap((e) => (e.from === "app" && e.phase === "result" ? [e.message] : []));
+
 export function partNotesOf(messages: readonly Message[]): Partial<Record<MoveId, string>> {
   const notes: Partial<Record<MoveId, string>> = {};
   for (const message of messages) {

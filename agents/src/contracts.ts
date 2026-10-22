@@ -117,7 +117,9 @@ export const Result = z.strictObject({
   masteryChanges: z.array(z.strictObject({ move: MoveId, from: Level, to: Level })),
   /** What the learner asked the fact desk; `testing` = questions that test the concept. */
   questions: z.strictObject({ asked: z.number().int().min(0), testing: z.number().int().min(0) }),
-  coach: z.strictObject({ message: z.string(), nextFocus: MoveId.nullable() }),
+  /** Null on the Turn that shows the result: the coach's words come in the next Turn, which the app asks for
+   * at once with `continue`. */
+  coach: z.strictObject({ message: z.string(), nextFocus: MoveId.nullable() }).nullable(),
 });
 export type Result = z.infer<typeof Result>;
 

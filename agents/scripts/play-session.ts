@@ -100,8 +100,10 @@ if (savePath) session.id = `ses_demo_${name}`;
 
 const seconds: number[] = [];
 console.log(`Session 1 (${concept}) on ${MODEL}\n`);
-for (let i = 0; i < 30 && session.phase !== "result"; i++) {
-  const input: TurnInput = lines[i] ?? { action: "help" };
+for (let i = 0; i < 30 && session.lastTurn?.expects !== "none"; i++) {
+  // the result shows first; the app then asks for the coach's words with continue
+  const coaching = session.phase === "result";
+  const input: TurnInput = coaching ? { action: "continue" } : (lines[i] ?? { action: "help" });
   const started = performance.now();
   const out = await advance({ session, mastery }, input, callAgent);
   if (savePath && !out.turn.error) {
@@ -115,7 +117,9 @@ for (let i = 0; i < 30 && session.phase !== "result"; i++) {
     console.log(`  learner ${learner} → ERROR ${out.turn.error.code}`);
     break;
   }
-  if (i > 3) seconds.push(s); // turns 1-4 make at most one call; the budget is about answer turns
+  // turns 1-4 make at most one call, and the coach's Turn comes while the result is on screen: the budget is
+  // about answer turns
+  if (i > 3 && !coaching) seconds.push(s);
   console.log(`[turn ${out.turn.turn} · ${out.turn.phase}${out.turn.move ? ` · ${out.turn.move} L${out.turn.level}` : ""} · ${s.toFixed(1)} s] learner ${learner}`);
   for (const m of out.turn.messages.filter((m) => m.agent !== "example_builder")) console.log(`    ${m.agent}${m.hintStep ? ` (${m.hintStep})` : ""}: ${m.text}`);
   session = out.session;
