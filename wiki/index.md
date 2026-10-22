@@ -2,7 +2,7 @@
 title: Project Wiki Index
 type: index
 updated: 2026-10-22
-total_pages: 4
+total_pages: 6
 ---
 
 # Build North project wiki
@@ -41,3 +41,5 @@ page under a Sources heading, the way the SurrealDB prize page does.
 | Page | Summary | Updated |
 |------|---------|---------|
 | [Product thesis](synthesis/product-thesis.md) | What Lumente solves now, why it should work, what we claim and don't yet, the hard questions, and where it goes | 2026-10-22 |
+| [Plan to win](synthesis/plan-to-win.md) | The plan, adopted Oct 22 with Cynthia's decisions: our user (CS students who build with coding agents), the story and its sources, each judging criterion, the prizes we enter, the changes for the new user, the days to Oct 29, owners, the cut list, the decisions, and the free tools and credits | 2026-10-21 |
+| [Expo prize plan](synthesis/expo-prize-plan.md) | Best Use of Expo in full: what Expo rewards, the EAS setup with config, every judge's path (APK, TestFlight, web), native feel, SDK 58 features, the evidence, owners and risks | 2026-10-20 |

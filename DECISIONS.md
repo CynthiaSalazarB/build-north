@@ -145,6 +145,7 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Web build (the judges' URL):** a Render Static Site in the same workspace, so one dashboard and
   one owner for deploys. Plan B is EAS Hosting, only if Render charges for it or causes trouble: the
   files are the same, so moving takes about 30 minutes plus a `CORS_ORIGIN` update.
+- **Superseded** for the web build on 2026-10-22 by "The web build is on EAS Hosting".
 
 ### 2026-10-19 · Any defensible answer passes
 - **Decision:** the evaluators accept any defensible answer, not one right answer. 2 = defensible and
@@ -385,3 +386,12 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   numbers already exist in the session.
 - **Pattern / trade-off:** the server owns the score and the app only draws it (one source of truth). One
   more field in every Turn; the session-1 and demo-seed fixtures carry it too.
+
+### 2026-10-22 · The web build is on EAS Hosting
+- **Decision:** the web build, the judges' URL, is hosted on EAS Hosting, deployed by the EAS workflow from
+  `main`. The API stays on Render. Supersedes the web-build part of "The API runs on Render" (2026-10-19).
+- **Instead of:** a Render Static Site next to the API, the Oct 19 plan.
+- **Why:** it already runs there, it ships with the same EAS setup as the Android app, and it counts
+  toward Best Use of Expo.
+- **Pattern / trade-off:** the app's web and native builds on one platform (EAS), and the API on another.
+  Two dashboards instead of one, and the web build depends on the EAS project on Leo's account.
