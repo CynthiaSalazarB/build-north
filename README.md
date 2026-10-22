@@ -10,9 +10,9 @@ the questions still open are in the [product thesis](wiki/synthesis/product-thes
 ## Try it
 
 - Web: https://reality-check.expo.app. Sign in with an email code or with Google.
-- Android: a `preview` APK built with EAS Build. The builds are listed in
-  [`docs/expo-log.md`](docs/expo-log.md); its links open in the EAS dashboard.
-  TODO: add the public install link of the current `preview` APK.
+- Android: the `preview` APK built with EAS Build (Oct 22, version code 3):
+  [download](https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk). Every build
+  is listed in [`docs/expo-log.md`](docs/expo-log.md).
 - iOS: no build. iPhones use the web build.
 
 ## How a session runs
