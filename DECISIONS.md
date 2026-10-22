@@ -341,3 +341,4 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** colors by role. Screens read colors by name from one tokens file, so the second
   theme is one constant, not a second set of screens. Round 6's dawn and bronze cast go; the box opening
   on the result is now the session's one big moment.
+- **Superseded** on 2026-10-22 by "The app's design is Lumente (round 9)".
