@@ -36,6 +36,13 @@ Psychologists call the feeling behind it the illusion of explanatory depth: peop
 understand how something works much better than they do, until they try to explain it. AI makes the
 illusion easier to fall into: the code works, so it feels understood.
 
+Two studies with programmers show it directly. In a randomized trial at Anthropic (January 2026), 52
+mostly junior engineers learned a Python library they had never used: the ones coding with an AI
+assistant scored 50% on a quiz about it, against 67% for those who coded by hand, and the biggest gap
+was in debugging. In a lab study of 21 novice programmers (ICER 2024), most of those who struggled
+while using AI thought they understood more than they did, and finished with an illusion of
+competence.
+
 AI also lends confidence. In two studies at Aalto University (246 and 452 people), participants who
 solved logical-reasoning problems with ChatGPT scored better, but overestimated their score by about 4
 points, and those who rated themselves as most AI literate were the most overconfident. The confidence
@@ -140,7 +147,8 @@ with it.
   their own questions understood new material better, with a median effect size of 0.36 (Rosenshine,
   Meister and Chapman, 1996). The Right Question Institute reports a study of 2,217 high school
   students taught to ask their own questions, with gains in curiosity, engagement and self-efficacy.
-  **In the app:** level 5 hands the asking to the learner and counts the questions that test the
+  In the Anthropic trial above, the engineers who asked the AI conceptual questions scored 65% or
+  more, while those who handed it the code scored under 40%. **In the app:** level 5 hands the asking to the learner and counts the questions that test the
   concept.
 - **Explaining in your own words.** Students who explain material to themselves while they study
   understand it better; this is called the self-explanation effect. **In the app:** every answer is
@@ -320,6 +328,7 @@ in the coding agent as the doorway.
 
 - Aalto University (2025), senior author Robin Welsch. AI makes you smarter, but none the wiser: the disconnect between performance and metacognition. *Computers in Human Behavior*. [Aalto University summary](https://www.aalto.fi/en/news/ai-use-makes-us-overestimate-our-cognitive-performance).
 - Abrami, P. C. et al. (2015). Strategies for teaching students to think critically: a meta-analysis. *Review of Educational Research* 85(2). [Summary](https://www.clearinghouse.edu.tum.de/wp-content/uploads/2023/12/CHU_KR18_ENG_Abrami_2015.pdf).
+- Anthropic (2026). [AI assistance and coding skills](https://www.anthropic.com/research/AI-assistance-coding-skills), research post, January 29, 2026.
 - Bandura, A. (1977). Self-efficacy: toward a unifying theory of behavioral change. *Psychological Review* 84(2).
 - Bastani, H. et al. (2025). [Generative AI without guardrails can harm learning: evidence from high school mathematics](https://papers.ssrn.com/abstract=4895486). *PNAS* 122(26).
 - Chi, M. T. H. et al. (1994). Eliciting self-explanations improves understanding. *Cognitive Science* 18(3).
@@ -332,6 +341,7 @@ in the coding agent as the doorway.
 - Loewenstein, G. (1994). The psychology of curiosity. *Psychological Bulletin* 116(1) (the information-gap theory).
 - Moore, G. A. (1991). *Crossing the Chasm* (the beachhead market).
 - National Research Council (2000). [*How People Learn*, chapter 3: Learning and Transfer](https://www.nationalacademies.org/read/9853/chapter/6).
+- Prather, J. et al. (2024). [The widening gap: the benefits and harms of generative AI for novice programmers](https://arxiv.org/abs/2405.17739). ICER 2024.
 - Right Question Institute. [Research on the Question Formulation Technique](https://rightquestion.org/resources/research-on-the-question-formulation-technique/).
 - Rosenshine, B., Meister, C. and Chapman, S. (1996). Teaching students to generate questions: a review of the intervention studies. *Review of Educational Research* 66(2).
 - Rozenblit, L. and Keil, F. (2002). The misunderstood limits of folk science: an illusion of explanatory depth. *Cognitive Science* 26(5).

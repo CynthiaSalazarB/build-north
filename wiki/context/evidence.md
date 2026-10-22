@@ -42,6 +42,15 @@ student describes building a website with AI and no longer being able to work on
 
 ## Research on learning with AI
 
+- **Anthropic, January 2026.** A randomized trial: 52 mostly junior software engineers learned Trio, a
+  Python library for asynchronous programming they had never used. With an AI assistant they finished
+  about two minutes faster (not significant) but scored 50% on the quiz, against 67% for those who
+  coded by hand; the biggest gap was in debugging questions. Those who asked the AI conceptual
+  questions scored 65% or more; those who delegated the code scored under 40%.
+- **Prather et al., ICER 2024.** A lab study of 21 novice programmers using generative AI, with
+  observation, interviews and eye tracking. Students who were already doing well went faster; of the
+  10 who struggled, most thought they understood more than they did and finished with an illusion of
+  competence.
 - **Bastani et al., PNAS 2025.** Close to 1,000 high school math students. With unrestricted GPT-4,
   practice grades went up 48%, but once access was taken away their exam grades were 17% lower than
   those of students who never had it. A version with guardrails, told to give hints instead of
@@ -88,6 +97,8 @@ These show that learners and schools pay in this category, not that they would p
 - [High school student's question, mirrored](https://yomotherboard.com/question/how-can-i-break-my-habit-of-relying-on-ai-to-write-code/)
 - [AP: why colleges are turning to oral exams (Anchorage Daily News reprint, April 2026)](https://www.adn.com/nation-world/2026/04/22/perfect-homework-blank-stares-why-colleges-are-turning-to-oral-exams-to-combat-ai/)
 - [Bastani et al., "Generative AI without guardrails can harm learning", PNAS 2025](https://papers.ssrn.com/abstract=4895486)
+- [Anthropic: AI assistance and coding skills (January 2026)](https://www.anthropic.com/research/AI-assistance-coding-skills)
+- [Prather et al.: The widening gap (ICER 2024)](https://arxiv.org/abs/2405.17739)
 - [Aalto University: AI use makes us overestimate our cognitive performance](https://www.aalto.fi/en/news/ai-use-makes-us-overestimate-our-cognitive-performance)
 - [ChatGPT Study Mode launch](https://campustechnology.com/Articles/2025/07/30/New-ChatGPT-Study-Mode-Guides-Students-Through-Questions.aspx)
 - [Gemini Guided Learning launch](https://techcrunch.com/2025/08/06/google-takes-on-chatgpts-study-mode-with-new-guided-learning-tool-in-gemini/)
