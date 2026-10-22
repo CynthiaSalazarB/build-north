@@ -42,7 +42,8 @@ export async function runAgent<I, O>(agent: AgentDefinition<I, O>, rawInput: I):
 /** The entries whose concept was named after `--` (`npm run eval:fact-desk -- JWT CORS`), or every entry when
  * none was. A name with no entry stops the run, so a typo can't pass on zero cases. */
 export function pick<T extends { concept: string }>(entries: T[]): T[] {
-  const names = process.argv.slice(2).map((name) => name.toLowerCase());
+  // flags (`--memory`) aren't concept names
+  const names = process.argv.slice(2).filter((arg) => !arg.startsWith("--")).map((name) => name.toLowerCase());
   const unknown = names.filter((name) => !entries.some((e) => e.concept.toLowerCase() === name));
   if (unknown.length) throw new Error(`no cases for ${unknown.join(", ")}; this script has ${entries.map((e) => e.concept).join(", ")}`);
   return names.length ? entries.filter((e) => names.includes(e.concept.toLowerCase())) : entries;

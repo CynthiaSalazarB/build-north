@@ -1,9 +1,12 @@
 // #21 done when: the 4 steps on the answer "a law" for democracy's bigger group; no step text contains
 // the answer before reveal, and reveal returns the Item. Each step sees the hints already given, as in
 // a real session. One more case checks the counterexample on an incomplete answer. JWT and CORS, the
-// demo's concepts, get the same: the 4 steps on a wrong bigger group, and a counterexample to read. Name
-// concepts after `--` to run only those (`npm run eval:hint-giver -- JWT CORS`).
-import { AGENTS, type AgentContext, type EvaluatorIssue, type HintGiverInput, type HintStep, type Mentefacto } from "../src/index.ts";
+// demo's concepts, get the same: the 4 steps on a wrong bigger group, and a counterexample to read. So do
+// API (the demo since #96) and the testers' training concepts, hashing and environment variable. Name
+// concepts after `--` to run only those (`npm run eval:hint-giver -- JWT CORS`). With `--memory`, every
+// step also gets three facts from an earlier session (CONTRACTS.md, Memory): the bar is the same, plus no
+// cite of an id it wasn't given (`verifyCites` drops none).
+import { AGENTS, type AgentContext, type EvaluatorIssue, type HintGiverInput, type HintStep, type LearnerMemory, type Mentefacto, verifyCites } from "../src/index.ts";
 import { type AgentRun, dollars, MODEL, pick, runAgent } from "./run-agent.ts";
 
 const item = (value: string, note: string | null = null) => ({ value, note });
@@ -55,7 +58,64 @@ const LADDERS = pick([
       feedback: "A header is part of it, but not enough on its own.",
     },
   },
+  {
+    concept: "API",
+    // the group: a software interface or a contract between programs (the letters' expansion is the name)
+    answer: /software interfaces?|(?<!application )programming interfaces?|interfaces? (between|for) (programs|software|applications)|contracts? between/i,
+    question: "An API is one example of a bigger group. What group?",
+    wrong: "a server",
+    feedback: "Not quite. A server is a machine or program that answers requests, and an API isn't one.",
+    issue: "not_a_class" as EvaluatorIssue,
+    incomplete: {
+      map: { supraordinate: item("software interface"), exclusion: [item("library", "a library is code you include; an API is how other code is allowed to use it")] },
+      question: "What does something need to count as an API?",
+      answer: "It connects programs.",
+      feedback: "Connecting programs is part of it, but not enough on its own.",
+    },
+  },
+  {
+    concept: "hashing",
+    // the group: a one-way function or transformation of data
+    answer: /one-way (functions?|transformations?|processes?)|(mathematical|cryptographic) functions?|data transformations?|transformations? of data|functions? that (maps?|turns?)/i,
+    question: "Hashing is one example of a bigger group. What group?",
+    wrong: "encryption",
+    feedback: "Not quite. Encryption can be undone with a key, and hashing is meant to work one way.",
+    issue: "same_level" as EvaluatorIssue,
+    incomplete: {
+      map: { supraordinate: item("one-way function"), exclusion: [item("encryption", "encryption can be reversed with a key; a hash can't")] },
+      question: "What does something need to count as hashing?",
+      answer: "It scrambles the data.",
+      feedback: "Scrambling is part of it, but not enough on its own.",
+    },
+  },
+  {
+    concept: "environment variable",
+    // the group: a configuration value set outside the program
+    answer: /configuration (values?|settings?|variables?|data)|key-value (pairs?|settings?)|(runtime|process) configuration|config(uration)? values?/i,
+    question: "An environment variable is one example of a bigger group. What group?",
+    wrong: "a password",
+    feedback: "Not quite. A password is one thing you might keep in one, not what it is.",
+    issue: "not_a_class" as EvaluatorIssue,
+    incomplete: {
+      map: { supraordinate: item("configuration value"), exclusion: [item("a variable in the code", "it's set outside the program, so it changes without changing the code")] },
+      question: "What does something need to count as an environment variable?",
+      answer: "It has a name.",
+      feedback: "A name is part of it, but not enough on its own.",
+    },
+  },
 ]);
+
+const withMemory = process.argv.includes("--memory");
+/** Three facts an earlier session left, as the API passes them: two about this part, one about the gap. */
+const memoryFor = (concept: string): LearnerMemory => ({
+  facts: [
+    { id: "attr_level", text: `Level 2 on supraordinate for ${concept}, since Oct 21.`, concept, move: "supraordinate", level: 2, since: "2026-10-21T18:00:00Z", writtenBy: "evaluator", sessionId: "ses_before" },
+    { id: "attr_help", text: `Needed 2 Helps on supraordinate for ${concept}, Oct 21.`, concept, move: "supraordinate", since: "2026-10-21T18:05:00Z", writtenBy: "hint_giver", sessionId: "ses_before" },
+    { id: "attr_gap", text: `Predicted 6, scored 3 on ${concept}: 3 too many.`, concept, since: "2026-10-21T18:10:00Z", writtenBy: "coach", sessionId: "ses_before" },
+  ],
+});
+let cited = 0;
+let invented = 0;
 
 const runs: AgentRun<unknown>[] = [];
 let failures = 0;
@@ -73,15 +133,20 @@ for (const l of LADDERS) {
       { from: "learner", text: l.wrong },
       { from: "app", text: l.feedback },
     ],
+    ...(withMemory ? { memory: memoryFor(l.concept) } : {}),
   };
-  console.log(`Hint giver on ${MODEL}, ${l.concept} → bigger group, after "${l.wrong}"\n`);
+  console.log(`Hint giver on ${MODEL}${withMemory ? ", with memory" : ""}, ${l.concept} → bigger group, after "${l.wrong}"\n`);
   for (const step of ["nudge", "hint", "partial", "reveal"] as HintStep[]) {
     const input: HintGiverInput = { ...base, step, lastAnswer: l.wrong, issue: l.issue };
     const run = await runAgent(AGENTS.hint_giver, input);
     runs.push(run);
     steps++;
     const o = run.output;
+    const { dropped } = verifyCites(o, base.memory);
+    invented += dropped.length;
+    if (o.cites?.length) cited++;
     const problems = [
+      dropped.length > 0 && `cites ids it wasn't given: ${dropped.join(", ")}`,
       o.step !== step && `step came back as ${o.step}`,
       step !== "reveal" && l.answer.test(o.text) && "gives the answer before reveal",
       step !== "reveal" && o.revealed !== null && "revealed before reveal",
@@ -89,7 +154,7 @@ for (const l of LADDERS) {
       step === "reveal" && o.revealed !== null && !l.answer.test(o.revealed.value) && `revealed "${o.revealed.value}" isn't a defensible group`,
     ].filter(Boolean);
     if (problems.length) failures++;
-    console.log(`${problems.length ? "✘" : "✔"} ${step} (${run.ms} ms): ${o.text}`);
+    console.log(`${problems.length ? "✘" : "✔"} ${step} (${run.ms} ms): ${o.text}${o.cites?.length ? `  [cites ${o.cites.join(", ")}]` : ""}`);
     if (o.revealed) console.log(`    revealed: ${JSON.stringify(o.revealed)}`);
     if (problems.length) console.log(`    problems: ${problems.join(", ")}`);
     base.recent.push({ from: "app", text: o.text });
@@ -115,5 +180,5 @@ for (const l of LADDERS) {
   console.log(`\n(review) isoordinate nudge after "${answer}" (${iso.ms} ms): ${iso.output.text}\n`);
 }
 
-console.log(`${steps - failures}/${steps} steps clean · ${dollars(runs)}`);
+console.log(`${steps - failures}/${steps} steps clean${withMemory ? ` · ${cited} cited a fact · ${invented} invented ids` : ""} · ${dollars(runs)}`);
 process.exitCode = failures ? 1 : 0;

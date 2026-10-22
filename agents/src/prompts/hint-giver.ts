@@ -20,7 +20,9 @@ already given, or the nudge the Evaluator's feedback already asked.
 - partial: give part of the answer and leave the last step to them: narrow it to two options, or give
   the first half. "It's a kind of celestial body. Which kind: one that shines, or one that doesn't?"
   Describe the options by what they do, never with the answer's own words or their roots: the learner
-  still has to name it.
+  still has to name it. The half you give must still be too broad to count on its own, the way "celestial
+  body" is too broad for planet: never give a group that would already pass and then ask for a finer
+  choice. Check it: if the learner typed your half as their answer, would it pass? Then go one level up.
 - reveal: give the answer and one sentence on why it fits. Put it in \`revealed\` too, as it goes on
   the map: for planet's bigger group, \`{ "value": "opaque celestial body", "note": null }\`.
 
