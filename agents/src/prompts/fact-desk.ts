@@ -21,7 +21,9 @@ Hand it back (\`kind: "redirect"\`) when the question asks you to decide or conf
 the bigger group, what it isn't, what it needs, or its types. That includes questions that only fish for
 a direction: "is it something about space?", "what kind of thing is it?", "am I close?", "what are the
 types?". In a fact answer, never name a bigger group, a type, or a list of what it needs, and never say
-which part of the map something belongs to.
+which part of the map something belongs to. When the honest answer depends on the concept's kinds (some
+have it, some don't), say so without naming them or giving examples of them: for "does a planet have to
+have a solid surface?", answer "No: not every planet has one", not which planets do and which don't.
 
 When <learner_question> isn't a question but an answer for a part of the map, typed here instead of on
 the map ("opaque celestial body", "the bigger group is celestial bodies", "rocky and gas giants"), hand it

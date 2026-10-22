@@ -16,6 +16,7 @@ import {
   type Result,
   rules,
   type Turn,
+  verifyCites,
 } from "../src/index.ts";
 import { dollars, MODEL, runAgent } from "./run-agent.ts";
 
@@ -83,8 +84,25 @@ const WORD: Record<string, string> = { zero: "0", one: "1", two: "2", three: "3"
 const numbersIn = (text: string) => (text.match(NUMBER) ?? []).map((n) => WORD[n.toLowerCase()] ?? n.toLowerCase());
 const JARGON = /supraordinate|isoordinate|infraordinate/i;
 
+// `--memory`: each case also gets an earlier session's gap and a level, as the API passes them (CONTRACTS.md,
+// Memory). The bar adds: no cite of an id it wasn't given, and a message that talks about last time cites
+// what it relies on (and the reverse).
+const withMemory = process.argv.includes("--memory");
+if (withMemory) {
+  for (const c of CASES) {
+    const concept = c.input.concept;
+    c.input.memory = {
+      facts: [
+        { id: "attr_gap", text: `Predicted 7, scored 3 on ${concept}: 4 too many.`, concept, since: "2026-10-21T18:10:00Z", writtenBy: "coach", sessionId: "ses_before" },
+        { id: "attr_level", text: `Level 2 on isoordinate for ${concept}, since Oct 21.`, concept, move: "isoordinate", level: 2, since: "2026-10-21T18:00:00Z", writtenBy: "evaluator", sessionId: "ses_before" },
+      ],
+    };
+  }
+}
+const PAST = /last time|before|earlier|previous|than you did/i;
+
 const runs = await Promise.all(CASES.map((c) => runAgent(AGENTS.coach, c.input)));
-console.log(`Coach on ${MODEL}\n`);
+console.log(`Coach on ${MODEL}${withMemory ? ", with memory" : ""}\n`);
 let right = 0;
 CASES.forEach((c, i) => {
   const { output: o, ms } = runs[i]!;
@@ -99,10 +117,14 @@ CASES.forEach((c, i) => {
     !focusOk && `nextFocus ${o.nextFocus} isn't ${fewest === 2 ? "null" : `a part with ${fewest} points`}`,
     JARGON.test(o.message) && "uses a move's id instead of its label",
     o.nextFocus && !o.message.toLowerCase().includes(MOVE_LABEL[o.nextFocus].toLowerCase()) && `doesn't name "${MOVE_LABEL[o.nextFocus]}"`,
+    withMemory && verifyCites(o, c.input.memory).dropped.length > 0 && `cites ids it wasn't given: ${verifyCites(o, c.input.memory).dropped.join(", ")}`,
+    withMemory && PAST.test(o.message) && !o.cites?.length && "talks about last time without citing a fact",
+    withMemory && !!o.cites?.length && !PAST.test(o.message) && "cites a fact it doesn't talk about",
+    !withMemory && PAST.test(o.message) && "talks about a last time it can't see",
   ].filter(Boolean);
   if (!problems.length) right++;
   console.log(`${problems.length ? "✘" : "✔"} ${c.label} (${score}/8, gap ${calibrationGap > 0 ? "+" : ""}${calibrationGap}) → ${o.nextFocus ?? "null"} (${ms} ms)`);
-  console.log(`    ${o.message}`);
+  console.log(`    ${o.message}${o.cites?.length ? `  [cites ${o.cites.join(", ")}]` : ""}`);
   if (problems.length) console.log(`    problems: ${problems.join("; ")}`);
 });
 console.log(`\n${right}/${CASES.length} messages clean · ${dollars(runs)}`);
