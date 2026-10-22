@@ -1,14 +1,64 @@
-// Plays session 1 (democracy) end to end against Claude: the real orchestrator and the real agents, with
-// a scripted learner. Prints the conversation and the seconds per turn against the budget (CONTRACTS.md
-// section 5: median under 4 s, never over 8 s). The real model judges for itself, so the session can
-// take a different path from the fixture; the learner's lines stay the same.
+// Plays a session 1 end to end against Claude: the real orchestrator and the real agents, with a scripted
+// learner. Prints the conversation and the seconds per turn against the budget (CONTRACTS.md section 5:
+// median under 4 s, never over 8 s). The real model judges for itself, so the session can take a
+// different path from the fixture; the learner's lines stay the same.
+// `npm run play:session` plays democracy (the session in fixtures/session-1.json);
+// `npm run play:session -- api` plays the demo's session 1 (DECISIONS.md, the demo runs on API, then CORS).
 import { advance, AGENTS, type AgentName, type CallAgent, type Mastery, MOVE_ORDER, type Session, type TurnInput } from "../src/index.ts";
 import { type AgentRun, dollars, MODEL, runAgent } from "./run-agent.ts";
+
+// The learner's lines for each concept, in order. If the session asks for more, the learner taps Help.
+const SCRIPTS: Record<string, { concept: string; lines: TurnInput[] }> = {
+  democracy: {
+    concept: "democracy",
+    lines: [
+      { action: "start" },
+      { prediction: 7 },
+      { text: "When people vote." },
+      { action: "continue" },
+      { text: "A law?" },
+      { action: "help" },
+      { text: "Forms of government." },
+      { text: "Dictatorship." },
+      { text: "Who holds the power." },
+      { text: "Elections." },
+      { action: "help" },
+      { text: "Free elections, rights, other parties." },
+      { text: "Direct?" },
+      { text: "Direct and representative." },
+    ],
+  },
+  // The "server" answer is the demo's related-but-not-a-kind-of moment: an API runs on a server, but it
+  // isn't a kind of server. One Help after it, and the target is 5/8 against a prediction of 7 (+2).
+  api: {
+    concept: "API",
+    lines: [
+      { action: "start" },
+      { prediction: 7 },
+      { text: "Something that lets two apps talk to each other." },
+      { action: "continue" },
+      { text: "A server?" },
+      { action: "help" },
+      { text: "A software interface." },
+      { text: "A library. A library is code you add to your project; an API is how you call it." },
+      { text: "Requests and responses." },
+      { text: "A defined set of requests and responses, and it hides how the other side works." },
+      { text: "REST?" },
+      { text: "Web APIs, library APIs and operating system APIs." },
+    ],
+  },
+};
+const name = process.argv[2] ?? "democracy";
+const script = SCRIPTS[name];
+if (!script) throw new Error(`No script for "${name}". Try: ${Object.keys(SCRIPTS).join(", ")}`);
+const { concept, lines } = script;
 
 const runs: AgentRun<unknown>[] = [];
 const callAgent: CallAgent = async (name: AgentName, input) => {
   const agent = (AGENTS as Partial<Record<AgentName, (typeof AGENTS)[keyof typeof AGENTS]>>)[name];
-  if (!agent) throw new Error(`${name} isn't in the registry yet`); // the coach (#44) falls back to fixed text
+  // The coach is in the registry too (#44). If its call fails, advance still ends the session with fixed
+  // text from the numbers.
+  if (!agent) throw new Error(`${name} isn't in the registry yet`);
   const run = await runAgent(agent as never, input as never);
   runs.push(run);
   return run.output;
@@ -17,7 +67,7 @@ const callAgent: CallAgent = async (name: AgentName, input) => {
 let session: Session = {
   id: "play",
   user: "script",
-  concept: "democracy",
+  concept,
   material: null,
   mode: "learn",
   turn: 0,
@@ -28,7 +78,7 @@ let session: Session = {
   move: null,
   hintStep: null,
   hintsPerMove: { supraordinate: 0, exclusion: 0, isoordinate: 0, infraordinate: 0 },
-  mentefacto: { concept: "democracy", supraordinate: null, exclusion: [], isoordinate: [], infraordinate: [] },
+  mentefacto: { concept, supraordinate: null, exclusion: [], isoordinate: [], infraordinate: [] },
   recent: [],
   retries: 0,
   lastIssue: "none",
@@ -40,26 +90,9 @@ let session: Session = {
 };
 let mastery: Mastery = { moves: MOVE_ORDER.map((move) => ({ move, level: 1 as const, unassistedSuccesses: 0 })) };
 
-// The learner's lines, in order. If the session asks for more, the learner taps Help.
-const lines: TurnInput[] = [
-  { action: "start" },
-  { prediction: 7 },
-  { text: "When people vote." },
-  { action: "continue" },
-  { text: "A law?" },
-  { action: "help" },
-  { text: "Forms of government." },
-  { text: "Dictatorship." },
-  { text: "Who holds the power." },
-  { text: "Elections." },
-  { action: "help" },
-  { text: "Free elections, rights, other parties." },
-  { text: "Direct?" },
-  { text: "Direct and representative." },
-];
 
 const seconds: number[] = [];
-console.log(`Session 1 (democracy) on ${MODEL}\n`);
+console.log(`Session 1 (${concept}) on ${MODEL}\n`);
 for (let i = 0; i < 30 && session.phase !== "result"; i++) {
   const input: TurnInput = lines[i] ?? { action: "help" };
   const started = performance.now();

@@ -1,4 +1,4 @@
-# Reality Check: notes for Claude
+# Lumente: notes for Claude
 
 Read these before planning or starting a task, in this order:
 
@@ -8,6 +8,8 @@ Read these before planning or starting a task, in this order:
    flag anything that conflicts.
    For anything in `app/` or on EAS, read [`wiki/synthesis/expo-prize-plan.md`](wiki/synthesis/expo-prize-plan.md)
    too: the Expo prize plan, with the EAS setup and what the Expo judges look for.
+   [`wiki/synthesis/product-thesis.md`](wiki/synthesis/product-thesis.md) has the problem, the method,
+   what we claim and the hard questions, written for someone new to the project.
 2. [`agents/CONTRACTS.md`](agents/CONTRACTS.md): the contracts between the app, the API and the agents.
 3. [`DECISIONS.md`](DECISIONS.md): every decision with a real trade-off, and why it was taken.
 4. [`wiki/index.md`](wiki/index.md): project notes (hosting, the SurrealDB prize).

@@ -27,7 +27,7 @@ As relayed by Leo on Oct 19 from SurrealDB's Build North participant pack. Not r
   `POST $SPECTRON_URL/api/v1/$SPECTRON_CONTEXT_ID/facts`, read with `/query`.
 - SDKs: `@surrealdb/memory` (JS/TS) and `surrealdb[memory]` (Python).
 
-## Possible fit with Reality Check (Leo's read, not a team decision)
+## Possible fit with Lumente (Leo's read, not a team decision)
 
 - Several agents already share one learner (questioner, evaluator, hint giver, fact desk, coach).
 - Mastery per move changes over time: each level-up is a new fact that replaces the old one, with the

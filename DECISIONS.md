@@ -145,6 +145,7 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Web build (the judges' URL):** a Render Static Site in the same workspace, so one dashboard and
   one owner for deploys. Plan B is EAS Hosting, only if Render charges for it or causes trouble: the
   files are the same, so moving takes about 30 minutes plus a `CORS_ORIGIN` update.
+- **Superseded** for the web build on 2026-10-22 by "The web build is on EAS Hosting".
 
 ### 2026-10-19 · Any defensible answer passes
 - **Decision:** the evaluators accept any defensible answer, not one right answer. 2 = defensible and
@@ -165,6 +166,7 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   cancels that out. None of the four appears in the prompts' test cases, so tuning can't inflate them.
 - **Pattern / trade-off:** counterbalancing. With 5 testers the halves are 3 and 2, so it reduces the
   bias, it doesn't remove it; the slide still calls this a pilot.
+- **Superseded** on 2026-10-21 by "Tester concepts are programming concepts".
 
 ### 2026-10-19 · Build-week scope cuts
 - **Decision:** sign-in by Clerk email code only; learner material is pasted text only (up to 8,000
@@ -260,3 +262,136 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** prefetching (two independent calls in parallel). The next question is
   written from the map as it was before the answer being judged, so it can't build on what the
   learner just found. If the early call fails, the part asks normally when it starts.
+
+### 2026-10-21 · The first group is programming students who build with AI agents
+- **Decision:** the first users, testers and pitch are programming students who build with AI coding
+  agents and can't explain the concepts behind what they built. The app stays open to any concept and
+  any learner: the focus is who we build the demo for, test with, sell to and talk about first.
+  Refines "Education first, but a thinking tool" (2026-10-18).
+- **Instead of:** education for any learner, high school students first, or critical thinking for
+  everyone.
+- **Why:** I have this problem myself, people in this group already describe it (a reel about it drew
+  about 200 comments, many with workarounds of their own), and I can reach testers in it this week.
+- **Pattern / trade-off:** a beachhead market: win one small group first, then reach the next groups
+  with the same product, one at a time (Moore, *Crossing the Chasm*). The persona is still defined by
+  how the learner thinks, not by age. The demo and tester
+  concepts change to programming ones, and high school becomes the next group, backed by research
+  (Bastani et al., 2025) instead of our own testers. Evidence in
+  [`wiki/context/evidence.md`](wiki/context/evidence.md).
+
+### 2026-10-21 · The pitch opens with the pain, not the method
+- **Decision:** the pitch, the README and Devpost open with the moment the learner feels (the agent's
+  code works, and someone asks them to explain it), then the method, then the vision last. Tagline:
+  "Build with AI. Understand the concepts yourself." It says "the concepts" because the app teaches
+  the concepts a project uses, not the project itself, which is a later layer. Closing line: "The help
+  fades. The understanding stays."
+- **Instead of:** opening with "We teach questioning, and concepts are the anchor", or with critical
+  thinking for every area of life; and closing with "Good technology should make you need it less",
+  which read as if losing users were the goal.
+- **Why:** office-hours feedback (Expo, Oct 20): getting people to be more curious is too broad, and
+  nobody wakes up wanting it. People act on a pain they feel; the method explains why the fix works.
+- **Pattern / trade-off:** positioning on the pain: say who it's for, the pain they feel, what the
+  product is, and what it does that the alternatives don't (Moore's positioning template). The philosophy moves to the end of the pitch and to the
+  [product thesis](wiki/synthesis/product-thesis.md), so anyone who only hears the opening hears a
+  narrower product.
+
+### 2026-10-21 · The demo runs on API, then CORS
+- **Decision:** session 1 of the demo, the live learning session with a hint and the prediction gap,
+  maps "API". The level-5 part runs on the CORS profile (#78). JWT stays in the list of tech concepts
+  next to API, for the evals and for learners to try. Replaces inflation.
+- **Instead of:** inflation, which doesn't match the first group; JWT for session 1, as the plan to win
+  (#76) proposed; or dependency injection, too hard to follow in a four-minute demo.
+- **Why:** almost every programmer, and every judge, has heard of an API, so the audience can follow
+  the map as it's built: a kind of software interface; it isn't a library, a server or a database; it
+  needs defined requests and responses and hides how the other side works; its types include web,
+  library and operating system APIs. It keeps the moment where a related answer fails the "is a kind
+  of" test ("a server": an API runs on one, but it isn't a kind of server). CORS is a concept coding
+  agents add to student projects and few students can explain, which suits level 5.
+- **Pattern / trade-off:** the demo matches the first group and starts from its most familiar concept.
+  Session 1 has to be written on API and rehearsed live with Claude (it was planned on JWT, so no
+  extra work), and "api" joins the measured concepts in `agents/test/prompts.test.ts`, next to the
+  list in #83.
+
+### 2026-10-21 · Tester concepts are programming concepts
+- **Decision:** the pre-test and post-test use "database index" and "rate limiting"; training uses
+  "hashing" and "environment variable". Half the testers take database index first and rate limiting
+  last, the other half the reverse. The testers come from the first group: classmates who code with
+  AI. From the plan to win (#76). Supersedes "Tester concepts and order" (2026-10-19).
+- **Instead of:** ecosystem, contract, metaphor and habit, from outside the first group; or general
+  programming concepts such as cache, compiler, loop and array, which coding agents don't add to a
+  project (loop and array are too basic to show a gap).
+- **Why:** testers should be measured on concepts coding agents put in their projects and they often
+  can't explain. The earlier rules stay: none of the four appears in the prompts (the `MEASURED` check
+  in `agents/test/prompts.test.ts`), none is a demo concept, and swapping the order cancels out a
+  concept that happens to be harder.
+- **Pattern / trade-off:** counterbalancing, as before. Hashing and database index are related (a hash
+  index is one type of database index), so training on hashing could help whoever takes database index
+  last; worth checking when reading the results. With 5 testers it is still a pilot.
+
+### 2026-10-21 · The app's design is round 8, Open Box
+- **Decision:** the app uses round 8, Open Box (`docs/design/08-open-box/`), picked by Leo on Oct 21. It
+  replaces round 6, Out of the Cave, which #81 first put in the app, and round 7's recommendation, 7F. The
+  app opens in the Obsidian theme (black and white), and its day and night modes follow the phone's
+  setting. Cobalt (blue and white) stays in the tokens as the second theme. Per #14, Cynthia approves the
+  direction on #72.
+- **Instead of:** keeping round 6's cave and bronze, or moving to 7F (round 6's colors on a test run).
+- **Why:** the user is now CS students who build with coding agents. Round 8 is drawn from what they
+  already read every day: a spec file, a list of checks, `Expected` and `Received`. The gap gets a picture
+  they get at a glance, a black box whose corners open as they prove points, and the pair keeps the tutor
+  friendly without ever reacting to the score.
+- **Pattern / trade-off:** colors by role. Screens read colors by name from one tokens file, so the second
+  theme is one constant, not a second set of screens. Round 6's dawn and bronze cast go; the box opening
+  on the result is now the session's one big moment.
+- **Superseded** on 2026-10-22 by "The app's design is Lumente (round 9)".
+
+### 2026-10-22 · The app's design is Lumente (round 9)
+- **Decision:** one idea for the whole app: questions are the light. The map is four questions in the dark around
+  the concept; a firefly tutor asks them, a dashed amber line runs from it to the part being asked, and it is Help;
+  an answer in the learner's words lights that part. Near-black, amber and warm light, with coral only for the gap;
+  Newsreader, Atkinson Hyperlegible Next and Atkinson Hyperlegible Mono. Working name Lumente (*lumen* plus *mente*,
+  light and mind). Board, tokens and contrast in `docs/design/09-lumente/`. Supersedes round 8, Open Box (#72, used
+  on #81).
+- **Instead of:** round 8, which mixed four round 7 directions (a terminal, a test file, a cube, a mascot) into a
+  look with no single idea; or the cave (round 6, and a version where shadows become real), which needs Plato's
+  allegory to be read and whose blurred shadow cards read as loading placeholders.
+- **Why:** it needs an identity and a differentiator.
+- **Pattern / trade-off:** one central metaphor (a conceptual model: people work out how an app behaves from one
+  image) instead of borrowed conventions (spec files, CI checks). The metaphor costs a rebuild of the screens and a
+  sentence in the pitch; borrowed conventions cost nothing but look like every dev tool. Understanding as light is
+  already in everyday language ("it dawned on me"), so it needs no explanation (conceptual metaphor, Lakoff and
+  Johnson). The tech-student signal lives in the content: the learner's code on Start, code in the questions,
+  `Expected / Received` on the result.
+
+### 2026-10-22 · Progress is the light: dark to light, one stage per point
+- **Decision:** a warm light grows from the top-right corner of a near-black screen, one stage per point proved; at
+  5 points it fills the screen and the text turns dark. The exact score stays in the map's points. The guess screen
+  previews the light of the guess; locking it in returns to the dark. Nothing blinks or pulses.
+- **Instead of:** a progress bar or "3 of 4"; or a night-blue sky going from night to morning (the first version),
+  which still looked like a sleep app.
+- **Why:** it gives the app more feeling and a better user experience.
+- **Pattern / trade-off:** ambient feedback (the environment is the progress bar). Less exact than a bar, so the
+  points carry the score, and the text has to switch from light to dark at the right stage to stay readable: every
+  pair is checked against the real gradient in `docs/design/09-lumente/README.md`. Cues for ideas, not sleep: a
+  graph-paper grid, crisp corners, upright questions and a spark when a part lights. The phone's light or dark
+  setting no longer drives session screens.
+
+### 2026-10-22 · Each Turn carries the points of the moves done so far
+- **Decision:** `Turn.progress.points` lists each finished move's points (0 to 2), in the order the moves
+  finished, taken from the orchestrator's `moveLog`. The app lights a part's points as soon as its move ends,
+  instead of waiting for the result's rubric. The field is optional, so Turns saved before it still parse.
+- **Instead of:** the app guessing the points from the transcript (first try 2, a retry or Help 1, revealed
+  0), which is wrong whenever the evaluator scores a first-try answer 1; or showing points only on the result.
+- **Why:** the app's design (Lumente, round 9) makes progress a light that grows one stage per point
+  proved, with two point squares on each part. Both have to be exact while the session runs, and the
+  numbers already exist in the session.
+- **Pattern / trade-off:** the server owns the score and the app only draws it (one source of truth). One
+  more field in every Turn; the session-1 and demo-seed fixtures carry it too.
+
+### 2026-10-22 · The web build is on EAS Hosting
+- **Decision:** the web build, the judges' URL, is hosted on EAS Hosting, deployed by the EAS workflow from
+  `main`. The API stays on Render. Supersedes the web-build part of "The API runs on Render" (2026-10-19).
+- **Instead of:** a Render Static Site next to the API, the Oct 19 plan.
+- **Why:** it already runs there, it ships with the same EAS setup as the Android app, and it counts
+  toward Best Use of Expo.
+- **Pattern / trade-off:** the app's web and native builds on one platform (EAS), and the API on another.
+  Two dashboards instead of one, and the web build depends on the EAS project on Leo's account.

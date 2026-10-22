@@ -161,13 +161,13 @@ learner.
 | Expo UI (Jetpack Compose components) | Skip: it has no stepper, and the design's guess stepper does the job |
 | App Intents (Siri, Shortcuts, Spotlight) | Skip: iPhone only |
 | PostHog through EAS | Skip: we promise to store only what learning needs |
-| Native tabs, data loaders | Skip: round 6 has no tab bar, and loaders are for the web |
+| Native tabs, data loaders | Skip: Lumente has no tab bar, and loaders are for the web |
 
 ## 7. Pillar 5: prove it
 
 1. **An Expo log from day one**, `docs/expo-log.md`: one row per build, update, deploy and workflow run,
    with the date, what shipped, why, and its link on expo.dev. The write-up and the numbers come from it.
-2. **The Devpost section "How Expo shaped Reality Check"**, in this order:
+2. **The Devpost section "How Expo shaped Lumente"**, in this order:
    - One codebase, three platforms: Expo Router, platform files, the static web build, and contracts
      shared with the API.
    - Built on SDK 58 the week it came out, with development builds, since Expo Go doesn't support it yet.

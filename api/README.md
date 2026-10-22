@@ -32,26 +32,32 @@ local files with their `.ts` extension, and use `import type` for types. The typ
 |---|---|
 | `GET /health` | `{ ok: true }`. Render's health check; never touches the database |
 | `GET /health/db` | Asks SurrealDB for its clock and returns it with how many milliseconds that took. Read-only. `503` when the database is not configured, refuses the login or takes over 5 s; the cause goes to the server log, not the response |
-| `POST /sessions` | `{ concept, material?, mode? }`: saves a new session and returns its first `Turn`, the prediction question. `400` for a bad body, `413` for notes over 8,000 characters |
+| `POST /sessions` | `{ concept, material?, mode? }`: saves a new session and returns its first `Turn`, the prediction question. `mode: "test"` (the testers' pre-test and post-test) puts every move at level 5: after the prediction the learner asks the fact desk with `{ question }` and builds the whole map, and the session never writes mastery. `400` for a bad body, `413` for notes over 8,000 characters |
 | `GET /sessions/:id` | The session's latest `Turn`. `404` if it doesn't exist or belongs to someone else |
-| `POST /sessions/:id/turns` | One of the bodies in CONTRACTS.md section 1, plus `turn`, the number of the `Turn` it answers. Returns the next `Turn`. An answer to an older `Turn` gets the latest one back and runs nothing, even when two copies arrive at once. `400` for a bad body, `404` if the session doesn't exist or belongs to someone else, `409` for a `turn` from the future or a body the latest `Turn` doesn't ask for |
+| `POST /sessions/:id/turns` | One of the bodies in CONTRACTS.md section 1, plus `turn`, the number of the `Turn` it answers. Returns the next `Turn`. An answer to an older `Turn` gets the latest one back and runs nothing, even when two copies arrive at once. `400` for a bad body, `404` if the session doesn't exist or belongs to someone else (both with `{ error }`). `409` with the latest `Turn` for a `turn` from the future or a body the latest `Turn` doesn't ask for; the reason goes to the server log |
 | `GET /me/mastery` | The caller's `Mastery`: the four moves in session order, at level 1 until the orchestrator raises them |
 | `DELETE /me/data` | `204`. Deletes the caller's sessions, their agent logs and mastery (the delete button) |
 
-Until Clerk lands (#23), the session and `/me` routes take the caller's name from an `x-dev-user`
-header, and only together with an `x-dev-key` header equal to the server's `DEV_KEY` (CONTRACTS.md
-section 1). Without a `DEV_KEY`, or with `NODE_ENV=production`, they all answer `401`. Leo shares the
-key; it never goes in the repo or in the deployed web build.
+The session and `/me` routes need the Clerk session token as `Authorization: Bearer <token>` (#23).
+The API checks it without a network call, using the instance's PEM public key in `CLERK_JWT_KEY` (in
+the Clerk dashboard: API keys, Show JWT public key), and keys sessions and mastery by the Clerk user
+id. A web build's token names the origin it came from, which must be one of the `CORS_ORIGIN`
+origins; the native app's token names none. A token that doesn't hold up gets `401`, even with the dev
+headers below.
+
+Outside production, `x-dev-user` also works, but only together with an `x-dev-key` header equal to
+the server's `DEV_KEY` (CONTRACTS.md section 1). Without a `DEV_KEY`, or with `NODE_ENV=production`,
+the dev headers get `401`. Leo shares the key; it never goes in the repo or in the deployed web build.
 
 Every route except `/health` allows 60 requests a minute from one IP, then answers `429`.
 
 The API's types and request schemas come from `@build-north/agents` (`agents/src/contracts.ts`), so
-a change to the contract shows up here as a type error. Until the orchestrator lands, the `Turn`s
-come from a stand-in for `advance` ([`src/advance-stub.ts`](src/advance-stub.ts)) with the same
-`Advance` type. It replays Cynthia's democracy walk-through,
-[`agents/fixtures/session-1.json`](../agents/fixtures/session-1.json): one `Turn` per answer, the
-same 9 whatever the concept or the answers (a Help gets the next one too), and mastery stays at
-level 1. #28 replaces it with the orchestrator from `agents/`.
+a change to the contract shows up here as a type error. With Claude on (below), `/turns` runs
+Cynthia's orchestrator, `advance` from `@build-north/agents` (#28). With Claude off, the `Turn`s come
+from [`src/advance-stub.ts`](src/advance-stub.ts) instead, with the same `Advance` type. It replays
+Cynthia's democracy walk-through, [`agents/fixtures/session-1.json`](../agents/fixtures/session-1.json):
+one `Turn` per answer, the same 9 whatever the concept, the mode or the answers (a Help gets the next
+one too), and mastery stays at level 1. That way the app runs against an API with no key.
 
 ## Claude calls
 
@@ -59,8 +65,9 @@ level 1. #28 replaces it with the orchestrator from `agents/`.
 one structured-output call, set up from Cynthia's registry in `@build-north/agents` (`AGENTS`, #2):
 the agent's system prompt, the user message its `render` writes from the input, its effort, and its
 Zod schemas. The reply is checked against the output schema. Every call writes an `agent_log` row
-with its milliseconds and its cost in dollars. An agent that isn't in the registry yet (the
-whole-map evaluator, #36, and the coach, #44) fails before any call.
+with its milliseconds and its cost in dollars. An agent that isn't in the registry fails before any
+call. When the coach's call fails (#44), the session still ends: `advance` writes fixed text from the
+result's numbers instead.
 
 | Variable | What it does |
 |---|---|
@@ -88,6 +95,24 @@ again at $0 after a restart; the account's own balance, with auto-reload off (#2
   CONTRACTS.md section 4. They stay schemaless so the orchestrator's state can grow, but the fields
   the API relies on are typed, so a bad level or mode is refused instead of saved.
 
+## The demo profile
+
+```bash
+npm run seed:demo -w api -- <user id>
+```
+
+Loads Cynthia's demo profile ([`agents/fixtures/demo-seed.json`](../agents/fixtures/demo-seed.json),
+#32) for one user, through the same store the API reads: level 5 on all four moves, and the CORS
+session waiting at the whole map, with the prediction (7) already made. It prints the session's id.
+Running it again resets the mastery to the seed and adds a fresh waiting session; earlier sessions
+stay.
+
+- **The user id** is what the API keys rows by: the demo account's Clerk user id (its `sub`, now that
+  Clerk is in, #23), or an `x-dev-user` name for local work.
+- **The database** is the one the `SURREAL_*` variables name. With the root `.env` that's `dev`. For
+  demo day, set `SURREAL_DATABASE=prod` in the shell for that one run (a variable set in the shell wins
+  over `.env`), with a user that can write to `prod`.
+
 ## Deploy on Render
 
 Render dashboard → **New → Web Service**:
@@ -102,9 +127,9 @@ Render dashboard → **New → Web Service**:
 | Start command | `node api/src/server.ts` |
 | Health check path | `/health` (under Advanced) |
 | Instance type | Free while building (it sleeps after 15 min idle and takes about a minute to wake). Starter from Oct 22, per `DECISIONS.md` |
-| Environment | `CORS_ORIGIN`, the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `DEV_KEY` (Render's Generate button), `NODE_ENV=development` until Clerk lands (#23), and `ANTHROPIC_API_KEY` with `AGENT_BUDGET_USD` for Claude calls (#10) |
+| Environment | `CORS_ORIGIN` (comma-separated: the Expo dev server and every web build's address, since a web build's Clerk token must come from one of them), the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `CLERK_JWT_KEY` (#23), and `ANTHROPIC_API_KEY` with `AGENT_BUDGET_USD` for Claude calls (#10) |
 
 The Node version comes from [`../.node-version`](../.node-version). Render sets `PORT` itself, and
-also sets `NODE_ENV=production` unless the service sets its own. That would refuse `x-dev-user` on the
-public URL before Clerk exists, so the service sets `NODE_ENV=development` for now. Delete that
-variable when Clerk lands (#23).
+also sets `NODE_ENV=production` unless the service sets its own, which turns `x-dev-user` off on the
+public URL. Since Oct 22 the service sets no `NODE_ENV`, so every caller signs in with Clerk (#22, #23);
+a `DEV_KEY` left on Render does nothing there.

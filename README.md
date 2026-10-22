@@ -1,10 +1,23 @@
-# Reality Check (working name)
+# Lumente (working name)
 
-A mobile app that teaches people to question, anchored in concepts. The learner builds a concept's
-map (a *mentefacto conceptual*) without AI while a set of Claude agents asks questions, gives hints
-that fade over time, and shows the **calibration gap**: how sure the learner felt vs. how well they
-actually did. At the top level the roles flip: the learner asks, and a fact desk agent answers with
-facts only, never the structure.
+**Build with AI. Understand the concepts yourself.**
+
+For programming students who build with AI agents but can't explain what they built, Lumente is
+where they figure out the concepts their projects use. First they answer questions, then they ask their
+own, while the help fades level by level. Unlike AI study modes, it isn't a mode they can switch off
+halfway: they build the concept map themselves, and at the end they see their real score next to the
+one they predicted.
+
+**How it works:** the learner names a concept, pastes their notes about it if they have any, and
+builds a map of it: the bigger group it belongs to, what it isn't, what it needs, and its types. This
+map comes from Conceptual Pedagogy, where it is called a conceptual mentefact. Claude agents ask the
+questions and judge the answers, but never write the map. The help fades over five levels, and at the
+top one the roles flip: the learner asks, and a fact desk answers with facts only. Scores and levels
+are computed by code, never by the model.
+
+**To understand the method, why it should work, what is still unproven and where it goes,** read the
+[product thesis](wiki/synthesis/product-thesis.md). The evidence behind it is in
+[`wiki/context/evidence.md`](wiki/context/evidence.md).
 
 Built for **Build North** (Georgian AI Lab + TapNet), October 2026.
 
@@ -12,10 +25,11 @@ Built for **Build North** (Georgian AI Lab + TapNet), October 2026.
 
 | Folder | What lives there | Owner |
 |---|---|---|
-| [`app/`](app/) | Expo + React Native app (iOS, Android, web) | Jonathan |
+| [`app/`](app/) | Expo + React Native app (iOS, Android, web) | Cynthia and Leo (Jonathan helped) |
 | [`api/`](api/) | Node + Express API: auth, storage, calls the agents | Leo |
 | [`agents/`](agents/) | Prompts, JSON contracts, orchestrator and ladder rules. Pure TypeScript, no server code | Cynthia |
-| [`wiki/`](wiki/index.md) | Project notes: context, research, analysis. Start at `wiki/index.md` | Everyone |
+| [`wiki/`](wiki/index.md) | Project notes: context, research, analysis. Start at `wiki/index.md` | Cynthia and Leo |
+| Slides (outside the repo) | The pitch presentation | Kyle |
 
 `app`, `api` and `agents` are npm workspaces. The API and the app both import `agents/` as the package
 `@build-north/agents`, values included (`MOVE_LABEL`, the fixtures), because it holds no server code: only

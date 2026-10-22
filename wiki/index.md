@@ -1,13 +1,13 @@
 ---
 title: Project Wiki Index
 type: index
-updated: 2026-10-21
-total_pages: 4
+updated: 2026-10-22
+total_pages: 6
 ---
 
 # Build North project wiki
 
-Shared notes for Reality Check: context, research and analysis that don't belong in the code.
+Shared notes for Lumente: context, research and analysis that don't belong in the code.
 Decisions go in [`DECISIONS.md`](../DECISIONS.md) and nowhere else. Longer reasoning behind one goes
 in the entry itself, or in a `context/` page the entry links to. Connection details and secrets never
 go here: the repo is public.
@@ -34,10 +34,12 @@ page under a Sources heading, the way the SurrealDB prize page does.
 |------|---------|---------|
 | [SurrealDB sponsor prize](context/surrealdb-sponsor-prize.md) | SurrealDB sponsors the Agent Memory prize: what judges want, the $50 credit code, the Oct 25 deadline | 2026-10-19 |
 | [Hosting setup](context/hosting-setup.md) | The SurrealDB Cloud instance and the Render service for the API: plans, regions, settings, the #8 numbers | 2026-10-20 |
+| [Evidence](context/evidence.md) | The problem, the buyers and the competitors: what learners describe, the research, prices, and what it doesn't prove yet | 2026-10-21 |
 
 ## Synthesis
 
 | Page | Summary | Updated |
 |------|---------|---------|
-| [Plan to win](synthesis/plan-to-win.md) | The final plan (Oct 21): our user (CS students who build with coding agents), the story and its sources, each judging criterion, the prizes we enter, the changes for the new user, the days to Oct 29, owners, the cut list, the decisions, and the free tools and credits | 2026-10-21 |
+| [Product thesis](synthesis/product-thesis.md) | What Lumente solves now, why it should work, what we claim and don't yet, the hard questions, and where it goes | 2026-10-22 |
+| [Plan to win](synthesis/plan-to-win.md) | The plan, adopted Oct 22 with Cynthia's decisions: our user (CS students who build with coding agents), the story and its sources, each judging criterion, the prizes we enter, the changes for the new user, the days to Oct 29, owners, the cut list, the decisions, and the free tools and credits | 2026-10-21 |
 | [Expo prize plan](synthesis/expo-prize-plan.md) | Best Use of Expo in full: what Expo rewards, the EAS setup with config, every judge's path (APK, TestFlight, web), native feel, SDK 58 features, the evidence, owners and risks | 2026-10-20 |

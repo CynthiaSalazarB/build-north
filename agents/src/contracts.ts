@@ -139,6 +139,9 @@ export const Turn = z.strictObject({
     movesDone: z.number().int().min(0),
     movesTotal: z.number().int().min(1),
     hintsUsed: z.number().int().min(0),
+    /** Each finished move's points, in the order the moves finished, so the app can light them as they're
+     * proved. Optional: Turns saved before Oct 22, and the fixtures, don't have it. */
+    points: z.array(z.strictObject({ move: MoveId, points: Quality })).optional(),
   }),
   result: Result.nullable(),
   error: z.strictObject({ code: z.enum(["agent_failed", "rate_limited"]), retryable: z.boolean() }).nullable(),

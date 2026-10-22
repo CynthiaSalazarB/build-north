@@ -1,0 +1,54 @@
+{
+  "expo": {
+    "name": "Lumente",
+    "slug": "reality-check",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "realitycheck",
+    "userInterfaceStyle": "dark",
+    "runtimeVersion": {
+      "policy": "fingerprint"
+    },
+    "android": {
+      "package": "ca.buildnorth.realitycheck",
+      "adaptiveIcon": {
+        "backgroundColor": "#111114",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false
+    },
+    "web": {
+      "output": "static",
+      "favicon": "./assets/images/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#111114",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 200
+        }
+      ],
+      "@clerk/expo",
+      "expo-secure-store",
+      "expo-web-browser"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "81c0b8ca-1a83-4620-a220-559022ef6aba"
+      }
+    },
+    "owner": "leo_atienza",
+    "updates": {
+      "url": "https://u.expo.dev/81c0b8ca-1a83-4620-a220-559022ef6aba"
+    }
+  }
+}
