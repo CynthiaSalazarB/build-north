@@ -14,7 +14,7 @@ import { Composer } from "../components/composer.tsx";
 import { ConceptMap, Trace, type MapGeometry } from "../components/concept-map.tsx";
 import { GuessScreen } from "../components/guess.tsx";
 import { decorative } from "../components/icons.tsx";
-import { Ask, Aside, FactCard, Failure, FlushReplies, HintCard, LearnerMessage, Nudge, Revealed, useSlow, Waiting } from "../components/messages.tsx";
+import { Ask, Aside, ExampleIntro, ExampleSteps, FactCard, Failure, FlushReplies, HintCard, LearnerMessage, Nudge, Revealed, useSlow, Waiting } from "../components/messages.tsx";
 import { ResultScreen } from "../components/result.tsx";
 import { SessionBar } from "../components/session-bar.tsx";
 import { SiteHeader } from "../components/site-header.tsx";
@@ -26,6 +26,7 @@ import {
   cappedOf,
   currentPartOf,
   exampleParts,
+  exampleStepsOf,
   eyebrowOf,
   helpOf,
   isReveal,
@@ -305,6 +306,9 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
   // the cap note goes with the first nudge or hint of the part, once
   const capAt = entries.findIndex((e, i) => i > asked && e.from === "app" && (e.message.kind === "feedback" || (e.message.kind === "hint" && e.message.hintStep !== "reveal")));
   const active = !held && turn.phase === "move";
+  // the worked example's lines show as four steps, drawn where its first line is
+  const thinking = entries.flatMap((e) => (e.from === "app" && e.message.kind === "example" && e.message.agent !== "app" ? [e] : []));
+  const steps = exampleStepsOf(thinking.map((e) => e.message.text));
 
   const line = (entry: Entry, i: number): ReactNode => {
     if (entry.from === "map") return null;
@@ -334,7 +338,9 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
       case "hint":
         return isReveal(entry) ? <Revealed text={message.text} /> : <HintCard message={message} n={hints.indexOf(entry.id) + 1} capNote={i === capAt} />;
       case "example":
-        return <Body>{message.text}</Body>;
+        if (message.agent === "app") return <ExampleIntro text={message.text} />;
+        if (!steps) return <Body>{message.text}</Body>;
+        return entry.id === thinking[0]?.id ? <ExampleSteps steps={steps} /> : null;
       case "fact":
       case "redirect":
         return <FactCard kind={message.kind} text={message.text} />;

@@ -9,6 +9,8 @@ import {
   currentPartOf,
   editorLinesOf,
   exampleParts,
+  exampleQuestionOf,
+  exampleStepsOf,
   eyebrowOf,
   filledOf,
   firstOnPart,
@@ -135,6 +137,25 @@ test("a filled part shows the learner's words; what it isn't reads as 'not …';
   assert.equal(partTextOf(map, "exclusion"), "not a library, not a server");
   assert.equal(partTextOf(map, "isoordinate"), null);
   assert.deepEqual(exampleParts(map).map((p) => p.state), ["revealed", "revealed", "revealed", "revealed"]);
+});
+
+test("the worked example's eight lines become four steps: a question, what goes on the map, the reasoning", () => {
+  const lines = turns.find((t) => t.example)!.messages.filter((m) => m.kind === "example" && m.agent !== "app").map((m) => m.text);
+  const steps = exampleStepsOf(lines)!;
+  assert.deepEqual(steps.map((s) => s.move), ["supraordinate", "exclusion", "isoordinate", "infraordinate"]);
+  assert.deepEqual(steps.map((s) => s.question), [
+    "What kind of thing is a planet?",
+    "What looks like a planet but isn't one?",
+    "What does something need to count as a planet?",
+    "What kinds of planets are there?",
+  ]);
+  assert.deepEqual(steps[1]!.items, ["not star", "not dwarf planet"]);
+  assert.equal(steps[2]!.items.length, 3);
+  assert.match(steps[0]!.reasoning, /^"A thing" is too broad/);
+  assert.match(steps[1]!.reasoning, /Something closer: Pluto/);
+  // a line that isn't one of the fixture's steps leaves the lines as they came
+  assert.equal(exampleStepsOf([...lines, "Something new."]), null);
+  assert.deepEqual(exampleQuestionOf("It needs enough mass."), { question: null, rest: "It needs enough mass." });
 });
 
 test("the gap is a signed number and one sentence", () => {
