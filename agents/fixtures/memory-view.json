@@ -1,0 +1,40 @@
+{
+  "concepts": [
+    {
+      "concept": "CORS",
+      "moves": [
+        {
+          "move": "supraordinate",
+          "level": 3,
+          "history": [
+            { "level": 3, "since": "2026-10-23T14:02:11Z", "until": null, "source": "upsert", "writtenBy": "evaluator", "readBy": 2 },
+            { "level": 2, "since": "2026-10-22T18:40:05Z", "until": "2026-10-23T14:02:11Z", "source": "upsert", "writtenBy": "evaluator", "readBy": 3 }
+          ]
+        },
+        {
+          "move": "exclusion",
+          "level": 2,
+          "history": [
+            { "level": 2, "since": "2026-10-22T18:41:30Z", "until": null, "source": "upsert", "writtenBy": "evaluator", "readBy": 1 }
+          ]
+        },
+        {
+          "move": "isoordinate",
+          "level": 2,
+          "history": [
+            { "level": 2, "since": "2026-10-22T18:43:02Z", "until": null, "source": "upsert", "writtenBy": "evaluator", "readBy": 1 }
+          ]
+        },
+        {
+          "move": "infraordinate",
+          "level": null,
+          "history": []
+        }
+      ],
+      "gap": {
+        "latest": { "sessionId": "ses_cors_2", "at": "2026-10-23T14:05:40Z", "predictedScore": 6, "score": 5, "gap": 1 },
+        "previous": { "sessionId": "ses_cors_1", "at": "2026-10-22T18:45:12Z", "predictedScore": 7, "score": 4, "gap": 3 }
+      }
+    }
+  ]
+}
