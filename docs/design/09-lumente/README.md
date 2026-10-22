@@ -143,11 +143,6 @@ the board ("Icon and splash").
   the just-lit rings stop.
 - The sky is a three-stop vertical gradient: `expo-linear-gradient` on native, CSS on web.
 
-## Open
-
-- The revealed screen says "it comes back next session". Keep that line only if revealed parts really return in a
-  later session.
-
 ## Not chosen
 
 - **Round 8, Open Box:** it mixed four round 7 directions (a terminal, a test file, a cube, a mascot) into a look
