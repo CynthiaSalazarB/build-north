@@ -15,6 +15,9 @@ the questions still open are in the [product thesis](wiki/synthesis/product-thes
   is listed in [`docs/expo-log.md`](docs/expo-log.md).
 - iOS: no build. iPhones use the web build.
 
+Five minutes with it, step by step, with a test sign-in that sends no email:
+[`docs/testing-notes.md`](docs/testing-notes.md).
+
 ## How a session runs
 
 1. The learner names a concept from their project (API, JWT, CORS) and predicts their score out of 8.
@@ -65,6 +68,19 @@ package's README: [`app/README.md`](app/README.md), [`api/README.md`](api/README
 | API | Express 5 on Node 24, hosted on Render. SurrealDB Cloud for sessions, mastery and agent logs. Clerk for sign-in |
 | Agents | Claude (Anthropic) agents: questioner, evaluator, whole-map evaluator, fact desk, hint giver, coach. Each is one structured-output call; the orchestrator is plain code |
 | Contracts | Zod schemas in `agents/src/contracts.ts` at every boundary: app to API, API to agents, agents to Claude |
+
+How the pieces talk: the app calls only the API, the API is the only thing that calls Claude, and every
+arrow carries a Zod-checked shape.
+
+```mermaid
+flowchart LR
+  App["App: Expo, Android and web<br/>EAS Build, Update, Hosting"] -->|"Clerk session token<br/>POST /sessions, /turns"| API["API: Express 5 on Render"]
+  Clerk["Clerk"] -. "sign-in, token" .-> App
+  API -->|"verifies the token<br/>with the public key"| Clerk
+  API -->|"sessions, mastery, agent logs"| DB[("SurrealDB Cloud")]
+  API -->|"advance(): the orchestrator<br/>in agents/, plain code"| Agents["Agents: prompts and Zod contracts"]
+  Agents -->|"one structured call per agent"| Claude["Claude (Anthropic)"]
+```
 
 Tests: `node --test` in `app` and `api`, Vitest in `agents`; `npm test` at the root runs all three.
 `npm run eval:*` in `agents` runs the prompt evals against Claude and prints the cost.
