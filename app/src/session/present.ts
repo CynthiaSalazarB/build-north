@@ -111,17 +111,18 @@ export type PartView = { move: MoveId; state: PartState; text: string | null; pi
 const pipsFor = (points: number, capped = false): [Pip, Pip] => [points >= 1 ? "earned" : "open", points >= 2 ? "earned" : capped ? "capped" : "open"];
 
 /** The map during a session: finished parts lit with the learner's words (or revealed, 0 points), the part being
- * asked, and the parts still to come. `held` keeps the next part unasked while a reveal waits to be read. */
+ * asked (the Turn names it; a Turn without a name means the next one in order), and the parts still to come.
+ * `held` keeps the next part unasked while a reveal waits to be read. */
 export function partsOf(turn: Turn, entries: readonly Entry[], { held = false, map = turn.mentefacto } = {}): PartView[] {
   const points = pointsOf(turn, entries);
   const capped = cappedOf(currentPartOf(entries));
-  return MOVE_ORDER.map((move, i) => {
+  const asked = !held && turn.phase === "move" ? (turn.move ?? MOVE_ORDER[turn.progress.movesDone] ?? null) : null;
+  return MOVE_ORDER.map((move) => {
     const done = points.find((p) => p.move === move);
-    if (done) {
-      const revealed = hintsFor(entries, move).some((h) => h.message.hintStep === "reveal");
-      return { move, state: revealed ? "revealed" : "lit", text: partTextOf(map, move), pips: pipsFor(done.points) };
-    }
-    if (!held && turn.phase === "move" && i === turn.progress.movesDone) return { move, state: "asked", text: null, pips: pipsFor(0, capped) };
+    // a finished part with no points was shown by Help (the reveal arrives in the Turn that names the next
+    // move, so the points, not the hint's Turn, say which part it was), as on the result
+    if (done) return { move, state: done.points === 0 ? "revealed" : "lit", text: partTextOf(map, move), pips: pipsFor(done.points) };
+    if (move === asked) return { move, state: "asked", text: null, pips: pipsFor(0, capped) };
     return { move, state: "unasked", text: null, pips: pipsFor(0) };
   });
 }

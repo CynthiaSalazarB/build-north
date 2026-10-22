@@ -47,19 +47,23 @@ export function withHeard(typed: string, heard: string): string {
   return base ? `${base} ${words}` : words;
 }
 
-/** The mic button's accessibility label, and its hint when there is something to know. */
-export function voiceLabel(state: VoiceState): { label: string; hint?: string } {
+const HEARD = "Your words appear in the field. Nothing is sent until you tap Send.";
+
+/** The mic button's accessibility label, and its hint when there is something to know. On the web a refusal
+ * is the browser's, so the way out is the site's permission, not the app's settings. */
+export function voiceLabel(state: VoiceState, web = false): { label: string; hint?: string } {
   switch (state.kind) {
     case "listening":
-      return { label: "Stop listening", hint: "Your words appear in the field. Nothing is sent until you tap Send." };
+      return { label: "Stop listening", hint: HEARD };
     case "denied":
+      if (web) return { label: "Speak your answer", hint: "The microphone was refused. Allow it for this site in the address bar, then tap again." };
       return state.canAskAgain
         ? { label: "Speak your answer", hint: "The microphone was refused. Tap to ask again." }
         : { label: "Allow the microphone in Settings", hint: "Opens this app's settings, where the microphone can be allowed." };
     case "error":
       return { label: "Speak your answer", hint: `Listening stopped (${errorWords(state.code)}). Tap to try again.` };
     case "idle":
-      return { label: "Speak your answer", hint: "Your words appear in the field. Nothing is sent until you tap Send." };
+      return { label: "Speak your answer", hint: HEARD };
     case "unsupported":
       return { label: "Speech recognition is not available here" };
   }
@@ -80,6 +84,8 @@ export function errorWords(code: string): string {
       return "no speech service for this language";
     case "busy":
       return "the speech service is busy";
+    case "interrupted":
+      return "something else took the microphone";
     case "aborted":
       return "stopped";
     default:

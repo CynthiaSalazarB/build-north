@@ -18,6 +18,9 @@ type SessionApi = {
   retry(): void;
   /** Level 5: keeps the learner's map; `send({ mentefacto })` submits it. */
   edit(draft: Mentefacto): void;
+  /** The delete button (#43): everything the server kept goes, and so does the session on this device.
+   * Resolves with an error message to show, or null when it's done. */
+  deleteData(): Promise<string | null>;
 };
 
 const SessionContext = createContext<SessionApi | null>(null);
@@ -58,6 +61,15 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     },
     edit(draft) {
       setState((s) => drafted(s, draft));
+    },
+    async deleteData() {
+      try {
+        await client.deleteData();
+        setState(initialState);
+        return null;
+      } catch (error) {
+        return messageOf(error);
+      }
     },
   };
 

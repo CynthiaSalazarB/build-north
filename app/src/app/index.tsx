@@ -146,7 +146,7 @@ export default function StartScreen() {
   if (wide) {
     return (
       <Screen>
-        <SiteHeader end={clerkKey && <SignOut solid />} />
+        <SiteHeader end={<Account solid />} />
         <View style={styles.split}>
           <ScrollView style={styles.words} contentContainerStyle={styles.wordsContent} keyboardShouldPersistTaps="handled">
             <Rise>
@@ -181,7 +181,7 @@ export default function StartScreen() {
             <Text style={[type.wordmark, { color: c.onSurface }]} accessibilityRole="header">
               {brand.name}
             </Text>
-            {clerkKey && <SignOut />}
+            <Account />
           </View>
           <Rise>
             <CodePreview concept={name} />
@@ -229,16 +229,100 @@ function AskYourAi({ open, onClose, onPaste }: { open: boolean; onClose: () => v
   );
 }
 
-// Only rendered with Clerk on (#22), since useAuth needs the ClerkProvider in the root layout
-function SignOut({ solid = false }: { solid?: boolean }): ReactNode {
+/** The account's controls, at the top of Start: "Your data" (what is kept, and the delete button, #43) and, with
+ * Clerk on, "Sign out". `solid` is the website header's opaque look. */
+function Account({ solid = false }: { solid?: boolean }): ReactNode {
+  // useAuth needs the ClerkProvider in the root layout, which is only there with a Clerk key (#22)
+  return clerkKey ? <ClerkAccount solid={solid} /> : <AccountButtons solid={solid} signOut={null} />;
+}
+
+function ClerkAccount({ solid }: { solid: boolean }) {
   const { signOut } = useAuth();
-  return <Button kind={solid ? "secondary" : "text"} solid={solid} label="Sign out" onPress={() => void signOut()} style={!solid && styles.signOut} />;
+  return <AccountButtons solid={solid} signOut={() => signOut()} />;
+}
+
+function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Promise<void>) | null }) {
+  const { offline, deleteData } = useSession();
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={styles.account}>
+      <Button kind="text" label="Your data" onPress={() => setOpen(true)} style={!solid && styles.signOut} />
+      {signOut && <Button kind={solid ? "secondary" : "text"} solid={solid} label="Sign out" onPress={() => void signOut()} style={!solid && styles.signOut} />}
+      <YourData
+        open={open}
+        onClose={() => setOpen(false)}
+        offline={offline}
+        signsOut={signOut !== null}
+        onDelete={async () => {
+          const problem = await deleteData();
+          if (!problem && signOut) await signOut();
+          return problem;
+        }}
+      />
+    </View>
+  );
+}
+
+/** What the app keeps and where a learner's words go, in plain words (the privacy note, #43), and the way to
+ * delete it all: one tap, then a confirmation that says what goes. Demo mode keeps nothing. */
+const KEPT = "We keep each session (the concept, the notes you pasted, your guess, your answers and questions, the tutor's replies and the score) and your level on each of the four parts.";
+const TO_CLAUDE = "Your answers and questions go to Claude, Anthropic's model, through our server, which holds the key. The app never has it.";
+const VOICE = "While the mic is on, the audio goes to your device's speech service (in a browser, the browser's own), which turns it into words. The audio isn't kept.";
+const DEMO = "Demo mode keeps nothing: this is a recorded session, and what you type stays on this device.";
+const TUTOR = "The tutor is an AI. It asks, and it never hands you the answer.";
+
+function YourData({ open, onClose, offline, signsOut, onDelete }: { open: boolean; onClose: () => void; offline: boolean; signsOut: boolean; onDelete: () => Promise<string | null> }) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const close = () => {
+    if (busy) return;
+    setConfirming(false);
+    setError(null);
+    onClose();
+  };
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+    const problem = await onDelete();
+    setBusy(false);
+    if (problem) setError(problem);
+    else close();
+  };
+  return (
+    <Sheet open={open} onClose={close} label="your data">
+      <Title style={styles.sheetTitle}>Your data</Title>
+      {offline ? (
+        <Body>{DEMO}</Body>
+      ) : (
+        <>
+          <Body>{KEPT}</Body>
+          <Small dim>{TO_CLAUDE}</Small>
+          <Small dim>{VOICE}</Small>
+        </>
+      )}
+      <Small dim>{TUTOR}</Small>
+      {!offline &&
+        (confirming ? (
+          <View style={styles.confirm}>
+            <Body>{`This deletes every session and your levels${signsOut ? ", and signs you out" : ""}. It can't be undone.`}</Body>
+            {error && <Failure message={error} />}
+            <Button label={signsOut ? "Delete and sign out" : "Delete my data"} busy={busy} onPress={() => void remove()} />
+            <Button kind="text" label="Keep my data" disabled={busy} onPress={() => setConfirming(false)} />
+          </View>
+        ) : (
+          <Button kind="secondary" label="Delete my data" onPress={() => setConfirming(true)} style={styles.left} />
+        ))}
+    </Sheet>
+  );
 }
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.xl, gap: space.l },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: size.touch },
+  account: { flexDirection: "row", alignItems: "center", gap: space.l },
   signOut: { paddingHorizontal: 0 },
+  confirm: { gap: space.m, marginTop: space.s },
   flex: { flex: 1 },
   resume: { gap: space.m },
   resumeHead: { flexDirection: "row", alignItems: "center", gap: space.m },

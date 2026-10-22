@@ -51,8 +51,17 @@ test("labels say what the tap does, and the hint names the way out", () => {
   assert.equal(voiceLabel({ kind: "unsupported" }).hint, undefined);
 });
 
+test("on the web a refusal points at the site's permission, never at the app's settings", () => {
+  for (const canAskAgain of [true, false]) {
+    const { label, hint } = voiceLabel({ kind: "denied", canAskAgain }, true);
+    assert.equal(label, "Speak your answer");
+    assert.match(hint ?? "", /address bar/);
+    assert.doesNotMatch(hint ?? "", /Settings/);
+  }
+});
+
 test("every error code has plain words", () => {
-  for (const code of ["no-speech", "speech-timeout", "network", "audio-capture", "service-not-allowed", "language-not-supported", "busy", "aborted", "client", "unknown"]) {
+  for (const code of ["no-speech", "speech-timeout", "network", "audio-capture", "service-not-allowed", "language-not-supported", "busy", "interrupted", "aborted", "client", "unknown"]) {
     assert.ok(errorWords(code).length > 0 && !errorWords(code).includes("-"), code);
   }
 });

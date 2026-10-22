@@ -219,30 +219,43 @@ export function IconButton({ icon, label, onPress, disabled, big = false }: { ic
 }
 
 /** The mic beside a field: an icon button that turns amber with a stop square while listening. Hidden where there
- * is no speech recognition. The field itself shows the words; this never sends. */
-export function MicButton({ state, onPress }: { state: VoiceState; onPress: () => void }) {
+ * is no speech recognition; dimmed, not removed, while a call is in flight, so the bar keeps its shape. The field
+ * itself shows the words; this never sends. */
+export function MicButton({ state, onPress, disabled = false }: { state: VoiceState; onPress: () => void; disabled?: boolean }) {
   const c = useColors();
   if (state.kind === "unsupported") return null;
   const listening = state.kind === "listening";
-  const { label, hint } = voiceLabel(state);
+  const { label, hint } = voiceLabel(state, isWeb);
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={hint}
-      accessibilityState={{ selected: listening }}
+      accessibilityState={{ selected: listening, disabled }}
+      disabled={disabled}
       onPress={onPress}
       hitSlop={size.hitSlop}
       style={({ pressed, hovered }: Interaction) => [
         styles.iconButton,
-        { backgroundColor: c.controlFill, borderColor: listening ? c.questionOutline : hovered ? c.onSurfaceVariant : c.outline },
+        { backgroundColor: c.controlFill, borderColor: listening ? c.questionOutline : hovered && !disabled ? c.onSurfaceVariant : c.outline },
         listening && styles.listening,
         easeOnWeb,
-        pressed && styles.pressed,
+        disabled && styles.faint,
+        pressed && !disabled && styles.pressed,
       ]}
     >
       <Icon name={listening ? "stop" : "mic"} color={listening ? c.firefly : c.onSurface} />
     </Pressable>
+  );
+}
+
+/** Under a field with a mic: why listening stopped, when it did (a refusal, an error), and the way out. */
+export function VoiceNote({ state }: { state: VoiceState }) {
+  if (state.kind !== "denied" && state.kind !== "error") return null;
+  return (
+    <View style={styles.voiceNote} accessibilityLiveRegion="polite">
+      <Small dim>{voiceLabel(state, isWeb).hint}</Small>
+    </View>
   );
 }
 
@@ -389,6 +402,7 @@ const styles = StyleSheet.create({
   center: { alignItems: "center", justifyContent: "center", padding: space.xl },
   iconButton: { width: size.iconButton, height: size.iconButton, borderRadius: radius.iconButton, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   listening: { borderWidth: 1.5 },
+  voiceNote: { paddingTop: space.s },
   bigIcon: { width: size.button, height: size.button },
   chip: { height: size.iconButton, borderRadius: radius.chip, borderWidth: 1, paddingHorizontal: 14, justifyContent: "center" },
   card: { borderRadius: radius.card, borderWidth: 1, padding: space.l },

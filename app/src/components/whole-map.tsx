@@ -16,7 +16,7 @@ import { Firefly } from "./firefly.tsx";
 import { FactCard, Failure, FlushReplies, HintCard, LearnerMessage, useSlow, Waiting } from "./messages.tsx";
 import { SessionBar } from "./session-bar.tsx";
 import { SiteHeader } from "./site-header.tsx";
-import { Body, Button, IconButton, KeyboardSafe, Label, MicButton, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useColors, useEntrance, useWide } from "./ui.tsx";
+import { Body, Button, IconButton, KeyboardSafe, Label, MicButton, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useColors, useEntrance, useWide, VoiceNote } from "./ui.tsx";
 import { useVoice } from "./use-voice.ts";
 
 /** Rows a list part can hold in the editor. */
@@ -215,7 +215,8 @@ function FireflyHelp({ help, pending, onHelp }: { help: ReturnType<typeof wholeM
   );
 }
 
-/** The question field: it glows amber, because the light is the learner's own now. */
+/** The question field: it glows amber, because the light is the learner's own now. A question can be spoken too:
+ * it lands in the field, editable, and still needs Ask. */
 function AskBar({ concept, pending, asking, flush, onAsk }: { concept: string; pending: boolean; asking: boolean; flush: boolean; onAsk: (question: string) => void }) {
   const [text, setText] = useState("");
   const question = text.trim();
@@ -224,22 +225,27 @@ function AskBar({ concept, pending, asking, flush, onAsk }: { concept: string; p
     onAsk(question);
     setText("");
   };
+  const voice = useVoice({ text, onText: setText });
   return (
     <View style={[styles.bar, flush && styles.flush]}>
-      <PromptField
-        glow
-        value={text}
-        onChangeText={setText}
-        placeholder="Ask a question"
-        multiline
-        maxLength={500}
-        editable={!pending}
-        accessibilityLabel={`Your question about ${concept}`}
-        onSubmitEditing={submit}
-        submitBehavior="submit"
-        style={pending && styles.dim}
-        end={<SendButton amber busy={asking} disabled={!question || pending} onPress={submit} label="Ask" />}
-      />
+      <View style={styles.askRow}>
+        <MicButton state={voice.state} onPress={voice.toggle} disabled={pending} />
+        <PromptField
+          glow
+          value={text}
+          onChangeText={setText}
+          placeholder={voice.state.kind === "listening" ? "Listening" : "Ask a question"}
+          multiline
+          maxLength={500}
+          editable={!pending}
+          accessibilityLabel={`Your question about ${concept}`}
+          onSubmitEditing={submit}
+          submitBehavior="submit"
+          style={[styles.flex, pending && styles.dim]}
+          end={<SendButton amber busy={asking} disabled={!question || pending} onPress={submit} label="Ask" />}
+        />
+      </View>
+      <VoiceNote state={voice.state} />
     </View>
   );
 }
@@ -278,6 +284,7 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
             <MicButton state={voice.state} onPress={voice.toggle} />
             <Button kind="secondary" label="Done" onPress={done} />
           </View>
+          <VoiceNote state={voice.state} />
           <ScrollView contentContainerStyle={styles.rows} keyboardShouldPersistTaps="handled">
             {rows.map((row, i) => (
               <View key={i} style={styles.row}>
@@ -358,6 +365,7 @@ const styles = StyleSheet.create({
   square: { width: 8, height: 8, borderRadius: radius.point },
   bar: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.margin },
   flush: { paddingHorizontal: 0, paddingBottom: space.xl },
+  askRow: { flexDirection: "row", alignItems: "flex-end", gap: space.s },
   dim: { opacity: 0.55 },
   sheet: {
     borderTopLeftRadius: radius.sheet,

@@ -7,9 +7,8 @@ import { useState } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import type { LearnerInput } from "../session/session-context.tsx";
 import { space } from "../theme.ts";
-import { Button, MicButton, PromptField, SendButton, Small } from "./ui.tsx";
+import { Button, MicButton, PromptField, SendButton, VoiceNote } from "./ui.tsx";
 import { useVoice } from "./use-voice.ts";
-import { voiceLabel } from "./voice.ts";
 
 type Props = {
   turn: Turn;
@@ -63,12 +62,11 @@ function AnswerBar({ pending, placeholder, moreHelp, onSend, style }: AnswerProp
   };
   // speech lands in the same field, editable, and still needs Send
   const voice = useVoice({ text, onText: setText });
-  const note = voice.state.kind === "denied" || voice.state.kind === "error" ? voiceLabel(voice.state).hint : undefined;
   return (
     <View style={style}>
       <View style={styles.row}>
         {moreHelp && <Button kind="hint" label="More help" disabled={pending} onPress={() => onSend({ action: "help" })} />}
-        {!pending && <MicButton state={voice.state} onPress={voice.toggle} />}
+        <MicButton state={voice.state} onPress={voice.toggle} disabled={pending} />
         <PromptField
           value={text}
           onChangeText={setText}
@@ -82,11 +80,7 @@ function AnswerBar({ pending, placeholder, moreHelp, onSend, style }: AnswerProp
           end={<SendButton busy={false} disabled={!answer || pending} onPress={submit} />}
         />
       </View>
-      {note && (
-        <View style={styles.note} accessibilityLiveRegion="polite">
-          <Small dim>{note}</Small>
-        </View>
-      )}
+      <VoiceNote state={voice.state} />
     </View>
   );
 }
@@ -97,5 +91,4 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "flex-end", gap: space.s },
   flex: { flex: 1 },
   dim: { opacity: 0.55 },
-  note: { paddingTop: space.s },
 });

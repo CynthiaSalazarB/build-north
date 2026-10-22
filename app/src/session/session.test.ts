@@ -102,6 +102,24 @@ test("a 409 with the latest Turn is drawn; other errors carry the server's messa
   await assert.rejects(down.start({ concept: "x" }), { status: null, retryable: true });
 });
 
+test("the delete button sends DELETE /me/data with the credentials, no body, and takes the 204", async () => {
+  const calls: Call[] = [];
+  const fetch = (async (url: string, init: RequestInit) => {
+    calls.push({ url, init });
+    return new Response(null, { status: 204 });
+  }) as unknown as typeof globalThis.fetch;
+  await createApiClient({ baseUrl: "http://api.test", getToken: async () => "tok", fetch }).deleteData();
+  assert.equal(calls[0]!.url, "http://api.test/me/data");
+  assert.equal(calls[0]!.init.method, "DELETE");
+  assert.equal(calls[0]!.init.body, undefined);
+  assert.deepEqual(calls[0]!.init.headers, { authorization: "Bearer tok" });
+
+  const refused = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(401, { error: "Sign in first" }).fetch });
+  await assert.rejects(refused.deleteData(), { message: "Sign in first", status: 401, retryable: false });
+  // demo mode has nothing to delete, and says nothing
+  await createFixtureClient(0).deleteData();
+});
+
 /** A level-5 Turn: the whole map, as the orchestrator sends it after the guess. */
 function wholeMap(over: Partial<Turn> = {}): Turn {
   return Turn.parse({
