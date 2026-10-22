@@ -1,5 +1,5 @@
 // Which client the app uses, from app/.env (Expo inlines EXPO_PUBLIC_* when it bundles, so nothing
-// secret goes in them). No EXPO_PUBLIC_API_URL: the app replays the democracy fixture with no API.
+// secret goes in them). No EXPO_PUBLIC_API_URL: the app replays the recorded API session with no API.
 import { createApiClient } from "./api-client.ts";
 import type { SessionClient } from "./client.ts";
 import { createFixtureClient } from "./fixture-client.ts";
