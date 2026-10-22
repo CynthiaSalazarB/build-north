@@ -144,7 +144,7 @@ the native fingerprint.
 Clerk asks teams to use it for sign-in and sessions instead of building their own. The API checks
 Clerk's session token without a network call and keys every row by the Clerk user id (#64). The app
 signs in with Clerk on the web and on phones, keeps the token in secure store and sends a fresh one on
-every call (#75). Sign-in is by email code, and Google works too; keeping Google is Cynthia's call (section 9).
+every call (#75). Sign-in is by email code or Google (decided Oct 22).
 
 Still to add: a sign-in tested on a phone, and delete my data deleting the Clerk account too (#43). Our
 demo's first concept is JWT, the kind of token Clerk issues, which gives the write-up a good line. The
@@ -293,12 +293,12 @@ Taken, each in `DECISIONS.md` or noted here:
 6. The Expo organization: the EAS project stays on Leo's account for now and can move to an
    organization later from its settings.
 7. Toronto on Oct 29: Cynthia and Kyle go; Leo and Jonathan confirm.
+8. Sign-in by email code and Google (Cynthia, Oct 22).
 
 Still open:
 
-8. Render Starter from Oct 22 to Oct 30, about $7, paid with the Render credit (#59).
-9. SurrealDB Agent Memory: Leo recommends skipping it (section 4). Cynthia confirms.
-10. Google sign-in: the Oct 19 decision was email code only, and Google works now too. Keep it?
+9. Render Starter from Oct 22 to Oct 30, about $7, paid with the Render credit (#59).
+10. SurrealDB Agent Memory: Leo recommends skipping it (section 4). Cynthia confirms.
 11. The Expo GitHub app, so every merge to `main` ships to phones and the web (E7). Installing it takes
     Cynthia, who owns the repo, and someone with admin access to the EAS project on Leo's account.
 
