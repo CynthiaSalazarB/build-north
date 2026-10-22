@@ -101,9 +101,14 @@ hosted sign-up and sign-in in an in-app browser. The API checks the session toke
 call, with the instance's public key, and keys every session and mastery row by the Clerk user id.
 Delete my data removes the caller's sessions, agent logs and mastery.
 
-**SurrealDB.** SurrealDB stays the database, with plain tables for sessions and mastery, on a SurrealDB
-Cloud instance with a `dev` and a `prod` database. The team does not enter the SurrealDB Agent Memory
-prize (decided Oct 22, [`DECISIONS.md`](DECISIONS.md)).
+**Best Use of SurrealDB Agent Memory.** SurrealDB Cloud holds the record (sessions, mastery and agent
+logs, in plain tables, with a `dev` and a `prod` database), and SurrealDB Agent Memory remembers each
+learner across sessions: their level on each part of the map, their latest prediction gap, and the Helps
+that cost them most. Code writes every fact as one line from a template, never the learner's words, and
+memory never sets a score: it remembers what the rules decided. Before the hint giver and the coach run,
+the API reads up to 8 facts from earlier sessions, and both agents name the facts they used (`cites`), so
+a message traces back to its source. The learner sees what is remembered, and how it changed, in the
+app's Memory sheet, and Delete my data purges it ([`DECISIONS.md`](DECISIONS.md), Oct 22).
 
 ## Template disclosure
 
