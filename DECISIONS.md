@@ -357,3 +357,15 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   pair is checked against the real gradient in `docs/design/09-lumente/README.md`. Cues for ideas, not sleep: a
   graph-paper grid, crisp corners, upright questions and a spark when a part lights. The phone's light or dark
   setting no longer drives session screens.
+
+### 2026-10-22 · Each Turn carries the points of the moves done so far
+- **Decision:** `Turn.progress.points` lists each finished move's points (0 to 2), in the order the moves
+  finished, taken from the orchestrator's `moveLog`. The app lights a part's points as soon as its move ends,
+  instead of waiting for the result's rubric. The field is optional, so Turns saved before it still parse.
+- **Instead of:** the app guessing the points from the transcript (first try 2, a retry or Help 1, revealed
+  0), which is wrong whenever the evaluator scores a first-try answer 1; or showing points only on the result.
+- **Why:** the app's design (Lumente, round 9) makes progress a light that grows one stage per point
+  proved, with two point squares on each part. Both have to be exact while the session runs, and the
+  numbers already exist in the session.
+- **Pattern / trade-off:** the server owns the score and the app only draws it (one source of truth). One
+  more field in every Turn; the session-1 and demo-seed fixtures carry it too.

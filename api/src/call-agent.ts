@@ -11,8 +11,7 @@ import type { AgentLogEntry } from "./store.ts";
 
 type Usage = Pick<Anthropic.Usage, "input_tokens" | "output_tokens" | "cache_creation_input_tokens" | "cache_read_input_tokens">;
 
-// The whole-map evaluator (#36) and the coach (#44) join the registry later; until then they fail
-// before any call.
+// An agent the contract names but the registry doesn't have yet fails before any call.
 const REGISTRY: Partial<Record<AgentName, AgentDefinition>> = AGENTS;
 
 // Dollars per million tokens (platform.claude.com/docs/en/about-claude/pricing, Oct 2026). cacheWrite

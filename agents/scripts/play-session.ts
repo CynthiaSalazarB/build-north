@@ -56,7 +56,9 @@ const { concept, lines } = script;
 const runs: AgentRun<unknown>[] = [];
 const callAgent: CallAgent = async (name: AgentName, input) => {
   const agent = (AGENTS as Partial<Record<AgentName, (typeof AGENTS)[keyof typeof AGENTS]>>)[name];
-  if (!agent) throw new Error(`${name} isn't in the registry yet`); // the coach (#44) falls back to fixed text
+  // The coach is in the registry too (#44). If its call fails, advance still ends the session with fixed
+  // text from the numbers.
+  if (!agent) throw new Error(`${name} isn't in the registry yet`);
   const run = await runAgent(agent as never, input as never);
   runs.push(run);
   return run.output;
