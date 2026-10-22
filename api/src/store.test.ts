@@ -116,7 +116,7 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
 
     // what the app gets when the demo user signs in, then the presenter's first question
     const fact = { kind: "fact", answer: "No. Browsers enforce CORS, and curl doesn't check it.", questionType: "breaking_case" };
-    const server = createApp({ corsOrigins: [], checkDb: null, store, advance, callAgentFor: () => async () => fact, devKey: "k" }).listen(0);
+    const server = createApp({ corsOrigins: [], checkDb: null, store, advance, callAgentFor: () => async () => fact, userFromToken: null, devKey: "k" }).listen(0);
     st.after(() => server.close());
     await once(server, "listening");
     const api = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
