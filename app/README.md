@@ -1,8 +1,15 @@
 # app
 
-Expo + React Native (Expo SDK 58, TypeScript, Expo Router). iOS, Android and web from one codebase.
-Created with `create-expo-app` and its default template (disclose it on Devpost: templates are
-allowed if disclosed), with the template's demo screens removed.
+Expo + React Native (Expo SDK 58, TypeScript, Expo Router). One codebase; we ship Android (EAS builds)
+and the web. There's no iOS build: the team has no Apple Developer account (Oct 21), so iPhone users
+get the web build. Created with `create-expo-app` and its default template (disclose it on Devpost:
+templates are allowed if disclosed), with the template's demo screens, icons and splash replaced.
+
+The look is round 9, "Lumente", Cynthia's design (`docs/design/09-lumente/`): questions are the light. A
+near-black screen gets a warm light from the top-right corner, one stage per point proved, and the ink turns
+dark once the light fills the screen at 5 points. `src/theme.ts` holds its tokens, and screens take colors only
+from there, through the light of the screen they're on, so the phone's light or dark setting doesn't change
+them.
 
 ## Run it
 
@@ -34,13 +41,15 @@ every API call sends the Clerk session token as `Authorization: Bearer` instead 
 API checks it with `CLERK_JWT_KEY` from the same Clerk application (#23). Without the key, nobody
 signs in and the app works as before.
 
-- Web: `src/app/sign-in.web.tsx` shows Clerk's prebuilt `<SignIn />`.
-- iOS and Android: `src/app/sign-in.tsx` opens Clerk's hosted sign-in in an in-app browser, which also
-  works in Expo Go.
-- The Clerk Dashboard decides the sign-in methods (email and Google for now), with no code change.
-  Enable the Native API on its **Native applications** page so the phone apps can sign in.
-- To try the web build with sign-in locally, use `npx expo serve` on the export: Clerk's Google
-  sign-in comes back to `/sign-in`, which a plain static server can't map to `sign-in.html`.
+- Web: `src/app/sign-in.web.tsx` shows Clerk's prebuilt `<SignIn />` in the brand's colors.
+- Android: `src/app/sign-in.tsx` is the first-launch screen. Get Started opens Clerk's hosted sign-up
+  in an in-app browser, and I Have an Account its sign-in. The redirect back to the app needs the
+  `@clerk/expo` config plugin in a development or EAS build.
+- The Clerk Dashboard decides the sign-in methods, with no code change: email code and Google (Google
+  came back on Oct 22). Enable the Native API on its **Native applications** page so the phone apps can
+  sign in.
+- To try the web build with sign-in locally, use `npx expo serve` on the export: Clerk's Google sign-in
+  comes back to `/sign-in`, which a plain static server can't map to `sign-in.html` (EAS Hosting does).
 
 ## Commands
 
@@ -73,9 +82,16 @@ npx expo export --platform web && npx eas-cli@latest deploy --prod  # the web bu
 | Path | What |
 |---|---|
 | `src/app/` | The routes: `index.tsx` (start: concept + optional notes), `session.tsx` (the session) and `sign-in.tsx` / `sign-in.web.tsx` (#22). No id in a path, so the web build stays static |
-| `src/session/` | The session logic, no React: the two clients (`api-client.ts`, `fixture-client.ts`), what the transcript shows (`transcript.ts`), and the tests |
-| `src/components/` | Messages, the map card, the input for each `expects`, the result card |
-| `src/theme.ts` | Every color, font and size, so the brand kit (#46) changes one file |
+| `src/session/` | The session logic, no React: the two clients (`api-client.ts`, `fixture-client.ts`), what the transcript shows (`transcript.ts`), what the screens say (`present.ts`), and the tests |
+| `src/components/` | The light behind every screen (`light.tsx`), the map (`concept-map.tsx`), the firefly (`firefly.tsx`), the guess (`guess.tsx`), the session's top bar, messages, the input for each `expects`, the result (`result.tsx`) and icons |
+| `src/theme.ts` | Every color, font and size from round 9 "Lumente" (#14): the dark and lit palettes and the nine stages of the light |
+
+## Credits
+
+- Newsreader, by Production Type (SIL Open Font License), from `@expo-google-fonts/newsreader`.
+- Atkinson Hyperlegible Next and Atkinson Hyperlegible Mono, by the Braille Institute (SIL Open Font
+  License), from `@expo-google-fonts/atkinson-hyperlegible-next` and `@expo-google-fonts/atkinson-hyperlegible-mono`.
+- Drawn in code from Cynthia's Lumente board: the light, the grid, the map, the firefly and the icons.
 
 ## Rules
 
