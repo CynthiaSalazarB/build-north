@@ -324,8 +324,9 @@ only widens when the evidence says so.
 material when they have it, so a new subject costs nothing to add.
 
 **Next after the hackathon:** material retrieved from a trusted source when the learner only types a
-topic; comparing the concept in two examples; a fact desk that says where each fact came from; a skill
-in the coding agent as the doorway.
+topic; comparing the concept in two examples; a fact desk that says where each fact came from; a memory
+of each learner's habits across sessions, for the coach and the hint giver; a skill in the coding
+agent as the doorway.
 
 ## Sources
 
