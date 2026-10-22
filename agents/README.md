@@ -51,7 +51,7 @@ npm run eval:fact-desk    # 10 questions each on inflation, JWT, CORS, RAG and e
 npm run eval:whole-map    # the whole-map evaluator on the demo's CORS map (6/8) and a blank map (0/8) (#36)
 npm run eval:coach        # the coach on 4 finished sessions (#44: no number it wasn't given, nextFocus a weakest part)
 npm run play:session      # the whole democracy session against Claude: transcript, score, seconds per turn
-npm run play:demo         # the demo's level-5 part against Claude: fact desk answers and the map's score
+npm run play:demo         # the demo's level-5 part against Claude: fact desk answers, the map's score and the coach's message
 ```
 
 The `eval:*` scripts call Claude with `ANTHROPIC_API_KEY` from the repo's `.env` and print the cost.
