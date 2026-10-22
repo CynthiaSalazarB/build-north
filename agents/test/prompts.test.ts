@@ -2,9 +2,9 @@
 import { describe, expect, it } from "vitest";
 import { AGENTS, METHOD } from "../src/index.ts";
 
-// The concepts we measure: the demo's (JWT, CORS), the testers' four (database index, rate limiting,
-// hashing, environment variable), and the ones they replaced. A prompt that mentions one could carry
-// its answer and inflate the scores.
+// The concepts we measure: the demo's (API for session 1, CORS for level 5), JWT from the same list,
+// the testers' four (database index, rate limiting, hashing, environment variable), and the ones they
+// replaced. A prompt that mentions one could carry its answer and inflate the scores.
 const MEASURED = [
   "democracy",
   "inflation",
@@ -12,6 +12,7 @@ const MEASURED = [
   "contract",
   "metaphor",
   "habit",
+  "api",
   "jwt",
   "cors",
   "database index",
