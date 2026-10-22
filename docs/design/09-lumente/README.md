@@ -24,7 +24,7 @@ Live By*, 1980).
 
 | Element | What it does |
 |---|---|
-| **The light** | A warm light grows from the top-right corner, one stage per point proved. At 5 points it fills the screen and the text turns dark. The exact score lives in the points, not in the light. |
+| **The light** | A warm light grows from the top-right corner, one stage per point proved. Since Oct 22 it grows over all 8 points: dark from 0 to 6 in smaller steps, light at 7 (the text turns dark), and full light at 8. The exact score lives in the points, not in the light. |
 | **The map** | The concept sits in the middle with its four parts around it, each with one fixed icon: bigger group above, what it needs on the left, what it isn't on the right, types below. Each part is a question. Unasked parts are dashed "?" boxes. |
 | **The firefly** | The tutor, drawn small and 2D. It sits next to each question, and a dashed amber line runs from it to the part being asked. Tapping it is Help (−1 point). It shines steadily, never blinks or pulses, and never reacts to the score. |
 | **Points** | Two per part, drawn as two small squares next to the part's label. A lit part shows the learner's own words. |
@@ -75,6 +75,10 @@ gradient, so the check samples the real background color at the eight places whe
 concept, question left and right, bubble and nudge area, guess helper line, result sentence, result legend), at
 every one of the 9 stages, plus the asked part, the gap number, the input, the buttons and the cards. 90 pairs in
 all; the lowest is the header title at 4 points (4.83:1).
+
+Since Oct 22 the app shows these nine stages at new points: the dark ones spread over 0 to 6, the first lit
+stage at 7 and full light at 8, with the steps in between blending two stages, so every background sits between
+two that pass. The table below still names each stage by its original number.
 
 <details>
 <summary>All 90 pairs</summary>
