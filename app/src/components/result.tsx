@@ -1,14 +1,14 @@
-// The end of a session (round 9 "Lumente", #34): the map in the light the learner reached, the gap as a coral
-// number and one sentence, the points proved and the ones felt sure but not proved, the guess against the score,
-// and the coach's next step, which comes a moment after the numbers. Every number comes from Turn.result,
-// computed by code. The firefly is barely there: it never reacts to a score. The gap arrives first, then the map,
-// then the rest, one after another. In the website layout the words are a column on the left and the map stands
-// on the right.
+// The end of a session (round 9 "Lumente", #34): the gap in words, over the guess and the score side by side (a
+// bare signed number read as a grade, decided Oct 22), the map in the light the learner reached with the points
+// proved, the ones felt sure but not proved and the parts that moved up a level, how points work, and the coach's
+// next step, which comes a moment after the numbers. Every number comes from Turn.result, computed by code. The
+// firefly is barely there: it never reacts to a score. The gap arrives first, then the map, then the rest, one
+// after another. In the website layout the words are a column on the left and the map stands on the right.
 import type { Mentefacto, MoveId, Result } from "@build-north/agents";
 import { useEffect } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { success } from "../haptics.ts";
-import { gapOf, resultPartsOf, resultStepsOf, type ResultStep } from "../session/present.ts";
+import { gapOf, POINTS_RULE, resultPartsOf, resultStepsOf, type Pip, type ResultStep } from "../session/present.ts";
 import { page, parts as PARTS, radius, space, type } from "../theme.ts";
 import { ConceptMap, PointSquare } from "./concept-map.tsx";
 import { Firefly } from "./firefly.tsx";
@@ -51,6 +51,10 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
   const lit = useMode() === "day";
   const gap = gapOf(result);
   const missed = Math.max(0, result.predictedScore - result.score);
+  // eight points each: the guess in amber, as on the guess screen; the score filled, and the points the guess
+  // claimed but didn't prove dashed coral, as on the map
+  const guessed = Array.from({ length: 8 }, (_, i): Pip => (i < result.predictedScore ? "claimed" : "open"));
+  const proved = Array.from({ length: 8 }, (_, i): Pip => (i < result.score ? "earned" : i < result.predictedScore ? "missed" : "open"));
   const steps = resultStepsOf(result, map, notes);
 
   const figure = (
@@ -63,10 +67,15 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
   );
   const words = (
     <>
+      {/* the gap in words, over the guess and the score side by side: a bare "0" or "−2" read as a grade */}
       <Rise>
-        <View style={styles.gapRow} accessible accessibilityLabel={`${gap.sign === "−" ? "minus " : ""}${gap.amount}. ${gap.sentence}`}>
-          <Text style={[type.gap, styles.gapNumber, { color: gap.over ? c.gap : c.onSurface }]}>{`${gap.sign ?? ""}${gap.amount}`}</Text>
-          <Text style={[type.reply, styles.sentence, { color: c.onSurface }]}>{gap.sentence}</Text>
+        <View style={styles.headline} accessible accessibilityLabel={`You guessed ${result.predictedScore}. You proved ${result.score} of 8. ${gap.headline}${gap.note ? ` ${gap.note}` : ""}`}>
+          <Text style={[type.question, { color: c.onSurface }]}>{gap.headline}</Text>
+          <View style={styles.scales}>
+            <Scale label="you guessed" value={result.predictedScore} pips={guessed} dark={lit} />
+            <Scale label="you proved" value={result.score} pips={proved} dark={lit} />
+          </View>
+          {gap.note && <Body dim>{gap.note}</Body>}
         </View>
       </Rise>
       {!wide && <Rise order={1}>{figure}</Rise>}
@@ -74,26 +83,20 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
         <View style={styles.legend}>
           <View style={styles.legendRow}>
             <PointSquare pip="earned" dark={lit} />
-            <Label dim>{`proved ${result.score}`}</Label>
+            <Label dim>proved</Label>
           </View>
           {missed > 0 && (
             <View style={styles.legendRow}>
               <PointSquare pip="missed" dark={lit} />
-              <Label dim>{`felt sure, not proved ${missed}`}</Label>
+              <Label dim>felt sure, not proved</Label>
             </View>
           )}
         </View>
-        <Text style={[type.code, { color: c.onSurface }]}>{`Expected: ${result.predictedScore}   Received: ${result.score}`}</Text>
+        <Label dim>{POINTS_RULE}</Label>
         {result.questions.asked > 0 && (
           <Label dim>{`you asked ${result.questions.asked} ${result.questions.asked === 1 ? "question" : "questions"}, ${result.questions.testing} testing the idea`}</Label>
         )}
       </Rise>
-      {/* only for a guess above the score: that's the feeling it names */}
-      {gap.over && (
-        <Rise order={3}>
-          <Body>Feeling surer than you can explain is normal. Explaining is how you find out.</Body>
-        </Rise>
-      )}
       {steps.length > 0 && (
         <Rise order={4}>
           <ResultSteps steps={steps} dark={lit} />
@@ -152,6 +155,28 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
   );
 }
 
+/** One row of the guess against the score: its label, the eight points in four pairs (one pair per part), the number. */
+function Scale({ label, value, pips, dark }: { label: string; value: number; pips: Pip[]; dark: boolean }) {
+  const c = useColors();
+  return (
+    <View style={styles.scale}>
+      <Label dim style={styles.scaleLabel}>
+        {label}
+      </Label>
+      <View style={styles.pairs}>
+        {[0, 1, 2, 3].map((part) => (
+          <View key={part} style={styles.pair}>
+            {[0, 1].map((k) => (
+              <PointSquare key={k} big pip={pips[part * 2 + k]!} dark={dark} />
+            ))}
+          </View>
+        ))}
+      </View>
+      <Text style={[type.pill, { color: c.onSurface }]}>{`${value} of 8`}</Text>
+    </View>
+  );
+}
+
 /** The whole-map evaluator's notes, part by part, the way the worked example reads: the part's name and its
  * points as on the map, the learner's words, then the note, dim. */
 function ResultSteps({ steps, dark }: { steps: ResultStep[]; dark: boolean }) {
@@ -192,9 +217,12 @@ function ResultSteps({ steps, dark }: { steps: ResultStep[]; dark: boolean }) {
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: space.margin, paddingTop: 18, paddingBottom: space.xl, gap: space.l },
-  gapRow: { flexDirection: "row", alignItems: "center", gap: 14 },
-  gapNumber: { lineHeight: 80, letterSpacing: -1.5, fontVariant: ["lining-nums", "tabular-nums"] },
-  sentence: { flex: 1, fontSize: 21, lineHeight: 28 },
+  headline: { gap: space.m },
+  scales: { gap: space.s },
+  scale: { flexDirection: "row", alignItems: "center", gap: space.m },
+  scaleLabel: { width: 92 },
+  pairs: { flexDirection: "row", gap: space.s },
+  pair: { flexDirection: "row", gap: 3 },
   map: { marginTop: space.xs },
   firefly: { position: "absolute", right: 2, top: 4 },
   facts: { gap: space.l },

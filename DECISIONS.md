@@ -520,3 +520,26 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** a fixed reply chosen by a classification (the model classifies, code speaks),
   as in decision 17. One more value in `questionType`; a learner whose claim gets misread as an answer
   sees the line instead of a fact, and can ask it as a question.
+
+### 2026-10-22 · The result leads with the gap in words, over the guess and the score
+- **Decision:** the result's headline is the gap in words, with its direction ("You felt 2 points surer
+  than you could explain", "You knew more than you felt: 2 points more", "Your guess was exactly right"),
+  over two rows of eight points: my guess and what I proved. The big signed number is gone, and the screen
+  says how a part earns its points.
+- **Instead of:** the gap as one big signed number ("−2", "0", "+2") with a sentence beside it.
+- **Why:** Leo showed me that a learner reads the biggest number as their grade: "0" looks like nothing and
+  "−2" like losing points, when 0 is the best calibration there is. The pitch says AI gives false
+  confidence, so the screen has to say plainly that this number is about my confidence, not my map.
+- **Pattern / trade-off:** show both values and name the direction, the way certainty-based marking keeps
+  "how much you got right" apart from "how well your confidence matched". The gap stays the message, and
+  it loses the drama of one big number.
+
+### 2026-10-22 · No mastery screen: a level-up shows on the result, the levels live in the Memory sheet
+- **Decision:** the mastery screen (#42) is cut. On the result, a part that moved up a level says so under
+  its words ("less help next time", or "you can do this alone now" at level 5), and the Memory sheet (#112)
+  is the one place to see every level and how it changed.
+- **Instead of:** a separate screen with the level per part and a "you did this alone" moment.
+- **Why:** I want a clean experience that doesn't repeat itself, and the same levels on two screens is
+  noise. The moment belongs where it happens, at the end of the session.
+- **Pattern / trade-off:** one home for each piece of information. If memory's flag stays off, the levels
+  have no screen of their own; the result still marks each level-up.
