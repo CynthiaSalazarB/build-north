@@ -5,7 +5,7 @@ import type { AddressInfo } from "node:net";
 import { test } from "node:test";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { AGENTS, type AgentContext } from "@build-north/agents";
+import { AGENTS, type AgentContext, type AgentName } from "@build-north/agents";
 import {
   AgentCallError,
   agentConfigFromEnv,
@@ -147,7 +147,8 @@ test("an agent that isn't in the registry yet, or an input that breaks its schem
     calls++;
     return reply(answer(question));
   });
-  await assert.rejects(callAgent("coach", { concept: "democracy" }), /no coach agent/);
+  // Challenger belongs to Check the AI, not this version (CONTRACTS.md section 2)
+  await assert.rejects(callAgent("challenger" as AgentName, {}), /no challenger agent/);
   await assert.rejects(callAgent("questioner", { ...context, level: 9 }), failsWith("agent_failed", false));
   assert.equal(calls, 0);
 });

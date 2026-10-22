@@ -5,6 +5,8 @@ import type { AddressInfo } from "node:net";
 import { test, type TestContext } from "node:test";
 import {
   AGENTS,
+  FACT_DESK_REDIRECT,
+  MOVE_LABEL,
   MOVE_ORDER,
   Mastery as MasterySchema,
   Session as SessionSchema,
@@ -101,6 +103,21 @@ async function start(t: TestContext, options: AppOptions): Promise<string> {
   t.after(() => server.close());
   await once(server, "listening");
   return `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+}
+
+// Claude, faked behind the real callAgent: each call gets the next reply scripted for its agent (the
+// system prompt says which agent is calling, so two calls at once get their own replies)
+function fakeClaude(replies: [keyof typeof AGENTS, unknown][]) {
+  const send: SendToClaude = async ({ system }) => {
+    const next = replies.findIndex(([agent]) => AGENTS[agent].system === system);
+    if (next < 0) throw new Error("a call the script doesn't have");
+    const [, output] = replies.splice(next, 1)[0]!;
+    const usage = { input_tokens: 1_000, output_tokens: 500, cache_creation_input_tokens: null, cache_read_input_tokens: null };
+    return { message: { content: [{ type: "text", text: JSON.stringify(output) }], stop_reason: "end_turn", usage }, headers: new Headers() };
+  };
+  const logged: AgentLogEntry[] = [];
+  const callAgentFor = createCallAgent({ send, model: "claude-opus-5-5", budgetUsd: 10, log: async (entry) => void logged.push(entry) });
+  return { callAgentFor, logged };
 }
 
 test("GET /health answers ok", async (t) => {
@@ -393,9 +410,7 @@ test("in production only a Clerk token gets in, and without CLERK_JWT_KEY no tok
   assert.equal((await post(noClerk, { concept: "democracy" }, bearer(sessionToken()))).status, 401);
 });
 
-test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2 Helps, 5/8, an agent_log row per call", async (t) => {
-  // the coach joins the registry with #44; until then its call fails before Claude, and advance writes fixed text
-  t.mock.method(console, "error", () => {});
+test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2 Helps, 5/8, the coach's message, an agent_log row per call", async (t) => {
   const item = (value: string, note: string | null = null) => ({ value, note });
   const judged = (verdict: string, quality: number, accepted: ReturnType<typeof item>[], feedback: string, issue = "none") => ({
     verdict,
@@ -406,6 +421,7 @@ test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2
     feedback,
   });
   const hint = (text: string) => ({ step: "hint", text, revealed: null });
+  const coach = { message: "You found the bigger group and a real exclusion. 'What it needs' is next.", nextFocus: "isoordinate" };
   // What Claude answers, per agent and in order: session 1 from agents/test/advance.test.ts
   const replies: [keyof typeof AGENTS, unknown][] = [
     ["questioner", { question: "Democracy is one example of a bigger group. What group?", scaffold: null }],
@@ -422,17 +438,9 @@ test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2
     ["evaluator", judged("correct", 2, [item("free elections"), item("rights"), item("more than one party")], "Yes: free elections, rights and more than one party.")],
     ["evaluator", judged("partial", 1, [item("direct democracy")], "Direct democracy is one type, where people vote on laws themselves. Is that the only way it can work?")],
     ["evaluator", judged("correct", 2, [item("direct democracy"), item("representative democracy")], "Yes: direct and representative democracy.")],
+    ["coach", coach],
   ];
-  // Claude, faked: the system prompt says which agent is calling, so two calls at once get their own replies
-  const send: SendToClaude = async ({ system }) => {
-    const next = replies.findIndex(([agent]) => AGENTS[agent].system === system);
-    if (next < 0) throw new Error("a call the script doesn't have");
-    const [, output] = replies.splice(next, 1)[0]!;
-    const usage = { input_tokens: 1_000, output_tokens: 500, cache_creation_input_tokens: null, cache_read_input_tokens: null };
-    return { message: { content: [{ type: "text", text: JSON.stringify(output) }], stop_reason: "end_turn", usage }, headers: new Headers() };
-  };
-  const logged: AgentLogEntry[] = [];
-  const callAgentFor = createCallAgent({ send, model: "claude-opus-5-5", budgetUsd: 10, log: async (entry) => void logged.push(entry) });
+  const { callAgentFor, logged } = fakeClaude(replies);
   const url = await start(t, { ...withStore(), advance, callAgentFor });
 
   let latest = await (await post(url, { concept: "democracy" })).json();
@@ -464,10 +472,113 @@ test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2
   const { predictedScore, score, calibrationGap, hintsUsed, rubric } = latest.result;
   assert.deepEqual({ predictedScore, score, calibrationGap, hintsUsed }, { predictedScore: 7, score: 5, calibrationGap: 2, hintsUsed: 2 });
   assert.deepEqual(rubric.map((r: { points: number }) => r.points), [1, 2, 1, 1]);
-  assert.equal(typeof latest.result.coach.message, "string");
+  // the result carries the coach's words, and the coach's message closes the last Turn
+  assert.deepEqual(latest.result.coach, coach);
+  assert.deepEqual(latest.messages.at(-1), { agent: "coach", kind: "summary", text: coach.message });
   // one agent_log row per Claude call, each with its session and its cost
-  assert.equal(logged.length, 14);
+  assert.equal(logged.length, 15);
   assert.ok(logged.every((row) => row.session === latest.sessionId && row.usd > 0));
+  // the coach's agent_log row holds what it was sent: the final map, and the result its words complete
+  const sent = logged.at(-1)!;
+  const { result: numbers, ...rest } = sent.input as { result: object };
+  assert.equal(sent.agent, "coach");
+  assert.deepEqual(rest, { concept: "democracy", mentefacto: latest.mentefacto });
+  assert.deepEqual({ ...numbers, coach }, latest.result);
   const mastery = await (await fetch(`${url}/me/mastery`, { headers: as("leo") })).json();
   assert.deepEqual(mastery.moves.map((m: { level: number }) => m.level), [2, 3, 2, 3]);
+});
+
+test("a test session starts at level 5, { question } gets the fact desk's answer, { mentefacto } the whole-map evaluator's score, and mastery is unchanged", async (t) => {
+  const store = memoryStore();
+  const before = await store.getMastery("leo");
+  before.moves[1] = { move: "exclusion", level: 3, unassistedSuccesses: 1 };
+  await store.saveMastery("leo", before);
+  const masterySaves = t.mock.method(store, "saveMastery");
+  const replies: [keyof typeof AGENTS, unknown][] = [
+    ["fact_desk", { kind: "fact", answer: "Yes, when the fish, the plants and the water act on one another.", questionType: "breaking_case" }],
+    // the model's words give the bigger group away; the learner only ever sees the fixed redirect (decision 17)
+    ["fact_desk", { kind: "redirect", answer: "It's a kind of system.", questionType: "asks_for_structure" }],
+    ["evaluator_full", { rubric: MOVE_ORDER.map((move) => ({ move, quality: move === "isoordinate" ? 1 : 2, feedback: `Scripted ${move}.` })) }],
+    ["coach", { message: "Scripted coach.", nextFocus: "isoordinate" }],
+  ];
+  const claude = fakeClaude(replies);
+  const url = await start(t, { ...noDb, store, advance, callAgentFor: claude.callAgentFor });
+  // answers the latest Turn with `body` and returns the next one
+  const next = async (latest: { sessionId: string; turn: number }, body: object) => {
+    const res = await answer(url, latest.sessionId, { ...body, turn: latest.turn });
+    assert.equal(res.status, 200);
+    const turn = await res.json();
+    assert.equal(turn.error, null, `Turn ${turn.turn}`);
+    return turn;
+  };
+
+  const first = await (await post(url, { concept: "ecosystem", mode: "test" })).json();
+  // straight from the prediction to the whole map: no first attempt, no worked example, no questioner
+  const map = await next(first, { prediction: 5 });
+  assert.deepEqual([map.phase, map.move, map.level, map.expects], ["move", null, 5, "map"]);
+  assert.equal(map.messages[0].text, "Build the mentefacto for ecosystem. Ask me any facts you need.");
+
+  const fact = await next(map, { question: "Is a fish tank an ecosystem?" });
+  assert.deepEqual(fact.messages, [{ agent: "fact_desk", kind: "fact", text: "Yes, when the fish, the plants and the water act on one another." }]);
+  assert.equal(fact.expects, "map");
+  const redirect = await next(fact, { question: "What's the bigger group of ecosystem?" });
+  assert.deepEqual(redirect.messages, [{ agent: "fact_desk", kind: "redirect", text: FACT_DESK_REDIRECT }]);
+
+  const item = (value: string, note: string | null = null) => ({ value, note });
+  const mentefacto = {
+    concept: "ecosystem",
+    supraordinate: item("system"),
+    exclusion: [item("habitat", "a habitat is only the place, without what lives there")],
+    isoordinate: [item("living things"), item("their surroundings")],
+    infraordinate: [item("aquatic ecosystem"), item("land ecosystem")],
+  };
+  const done = await next(redirect, { mentefacto });
+  assert.equal(done.expects, "none");
+  const { score, calibrationGap, rubric, masteryChanges, questions } = done.result;
+  assert.deepEqual(
+    { score, calibrationGap, rubric, masteryChanges, questions },
+    {
+      score: 7,
+      calibrationGap: -2,
+      rubric: MOVE_ORDER.map((move) => ({ move, points: move === "isoordinate" ? 1 : 2 })),
+      masteryChanges: [],
+      questions: { asked: 2, testing: 1 },
+    },
+  );
+  // each move's feedback, after its plain label
+  assert.deepEqual(
+    done.messages.filter((m: { agent: string }) => m.agent === "evaluator").map((m: { text: string }) => m.text),
+    MOVE_ORDER.map((move) => `${MOVE_LABEL[move]}: Scripted ${move}.`),
+  );
+  assert.equal(replies.length, 0);
+  // the fact desk's agent_log rows are the questions metric; the evaluator's row holds the map Claude scored
+  const id = first.sessionId;
+  assert.deepEqual(
+    claude.logged.map((row) => [row.agent, row.session]),
+    [["fact_desk", id], ["fact_desk", id], ["evaluator_full", id], ["coach", id]],
+  );
+  assert.deepEqual(claude.logged[2]!.input, { concept: "ecosystem", material: null, mentefacto });
+  // the mastery from before the session, which the session never wrote
+  assert.deepEqual(await (await fetch(`${url}/me/mastery`, { headers: as("leo") })).json(), before);
+  assert.equal(masterySaves.mock.callCount(), 0);
+});
+
+test("when the coach call fails, the session still ends, with fixed text built from the numbers", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const claude = fakeClaude([
+    ["evaluator_full", { rubric: MOVE_ORDER.map((move) => ({ move, quality: move === "supraordinate" ? 0 : 2, feedback: "Scripted." })) }],
+    // off the coach's schema, so callAgent refuses it and advance falls back
+    ["coach", { message: 6, nextFocus: "the bigger group" }],
+  ]);
+  const url = await start(t, { ...withStore(), advance, callAgentFor: claude.callAgentFor });
+  const first = await (await post(url, { concept: "inflation", mode: "test" })).json();
+  const map = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 7 })).json();
+  const blank = { concept: "inflation", supraordinate: null, exclusion: [], isoordinate: [], infraordinate: [] };
+  const done = await (await answer(url, first.sessionId, { turn: map.turn, mentefacto: blank })).json();
+
+  const fixed = { message: 'You scored 6 of 8 and used 0 hints. Next, work on "Bigger group".', nextFocus: "supraordinate" };
+  assert.deepEqual([done.error, done.expects, done.result.score], [null, "none", 6]);
+  assert.deepEqual(done.result.coach, fixed);
+  assert.deepEqual(done.messages.at(-1), { agent: "coach", kind: "summary", text: fixed.message });
+  assert.deepEqual(await (await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") })).json(), done);
 });
