@@ -57,7 +57,8 @@
       "progress": {
         "movesDone": 0,
         "movesTotal": 4,
-        "hintsUsed": 0
+        "hintsUsed": 0,
+        "points": []
       },
       "result": null,
       "error": null

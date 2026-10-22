@@ -349,6 +349,15 @@ function totalHints(s: Session): number {
   return MOVE_ORDER.reduce((sum, move) => sum + s.hintsPerMove[move], 0);
 }
 
+function progressOf(s: Session): Turn["progress"] {
+  return {
+    movesDone: s.moveLog.length,
+    movesTotal: MOVE_ORDER.length,
+    hintsUsed: totalHints(s),
+    points: s.moveLog.map(({ move, points }) => ({ move, points })),
+  };
+}
+
 const words = (item: Item) => item.value.trim().toLowerCase().split(/\s+/);
 const sameItem = (a: Item, b: Item) => words(a).join(" ") === words(b).join(" ");
 /** `sharper` keeps every word of `vaguer` and adds more. */
@@ -410,7 +419,7 @@ function toTurn(s: Session, step: Step): Turn {
     scaffold: step.scaffold ?? null,
     mentefacto: structuredClone(s.mentefacto),
     example: step.example ?? null,
-    progress: { movesDone: s.moveLog.length, movesTotal: MOVE_ORDER.length, hintsUsed: totalHints(s) },
+    progress: progressOf(s),
     result: s.phase === "result" ? structuredClone(s.result) : null,
     error: null,
   };
@@ -434,7 +443,7 @@ function errorTurn(s: Session, error: unknown): Turn {
     scaffold: null,
     mentefacto: s.mentefacto,
     example: null,
-    progress: { movesDone: s.moveLog.length, movesTotal: MOVE_ORDER.length, hintsUsed: totalHints(s) },
+    progress: progressOf(s),
     result: null,
     error: null,
   };
