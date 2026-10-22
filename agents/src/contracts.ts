@@ -117,7 +117,9 @@ export const Result = z.strictObject({
   masteryChanges: z.array(z.strictObject({ move: MoveId, from: Level, to: Level })),
   /** What the learner asked the fact desk; `testing` = questions that test the concept. */
   questions: z.strictObject({ asked: z.number().int().min(0), testing: z.number().int().min(0) }),
-  coach: z.strictObject({ message: z.string(), nextFocus: MoveId.nullable() }),
+  /** Null on the Turn that shows the result: the coach's words come in the next Turn, which the app asks for
+   * at once with `continue`. */
+  coach: z.strictObject({ message: z.string(), nextFocus: MoveId.nullable() }).nullable(),
 });
 export type Result = z.infer<typeof Result>;
 
@@ -159,6 +161,41 @@ export type Mastery = z.infer<typeof Mastery>;
 // Output schemas go to Claude through `zodOutputFormat`, so they stay plain: strings, enums,
 // literals, arrays and nullables.
 
+export const AgentName = z.enum(["questioner", "evaluator", "evaluator_full", "hint_giver", "fact_desk", "coach"]);
+export type AgentName = z.infer<typeof AgentName>;
+
+// ---------- 2a. What the agents remember about a learner (SurrealDB Agent Memory) ----------
+// The API keeps one memory scope per learner. Every fact is built in code from a template ("Level 3 on
+// infraordinate for CORS, since Oct 22"); learner text never goes in. The levels still come from code and
+// our own tables: memory never changes a score, it only tells the coach and the hint giver what this
+// learner has already proved, and lets the app show how that memory changed and why.
+
+/** One fact the API read back from memory, as the coach and the hint giver see it. */
+export const MemoryFact = z.strictObject({
+  /** Memory's id for the row, what `cites` points at. */
+  id: z.string().min(1),
+  /** One line from a template, never the learner's words. */
+  text: z.string().min(1),
+  concept: z.string().min(1),
+  /** Facts about one move (`level.*`, `help.*`); absent on whole-map facts (`map.*`, `gap.*`). */
+  move: MoveId.optional(),
+  level: Level.optional(),
+  /** When the fact became current (ISO 8601). */
+  since: z.string().min(1),
+  /** The id of the fact this one replaced, when memory kept an older value for the same key. */
+  supersedes: z.string().min(1).optional(),
+  writtenBy: AgentName,
+  /** The session whose turn wrote it. */
+  sessionId: z.string().min(1),
+  turn: z.number().int().min(1).optional(),
+});
+export type MemoryFact = z.infer<typeof MemoryFact>;
+
+/** At most 8 facts: the current level per move, the latest gap, and the Helps that cost the most. */
+export const MEMORY_FACTS_MAX = 8;
+export const LearnerMemory = z.strictObject({ facts: z.array(MemoryFact).max(MEMORY_FACTS_MAX) });
+export type LearnerMemory = z.infer<typeof LearnerMemory>;
+
 export const AgentContext = z.strictObject({
   concept: z.string(),
   material: z.string().nullable(),
@@ -167,6 +204,8 @@ export const AgentContext = z.strictObject({
   mentefacto: Mentefacto,
   /** This move's exchanges only. */
   recent: z.array(z.strictObject({ from: z.enum(["app", "learner"]), text: z.string() })),
+  /** What memory holds on this learner and concept; absent when memory is off, empty or late. */
+  memory: LearnerMemory.optional(),
 });
 export type AgentContext = z.infer<typeof AgentContext>;
 
@@ -261,6 +300,8 @@ export const HintGiverOutput = z.strictObject({
   text: z.string(),
   /** Only at `reveal`: the Item that goes into the mentefacto, with 0 points. */
   revealed: Item.nullable(),
+  /** Ids of the `AgentContext.memory` facts the hint relies on; the API drops any id it didn't pass in. */
+  cites: z.array(z.string()).optional(),
 });
 export type HintGiverOutput = z.infer<typeof HintGiverOutput>;
 
@@ -271,16 +312,74 @@ export const WorkedExample = z.strictObject({
 });
 export type WorkedExample = z.infer<typeof WorkedExample>;
 
-/** The coach writes `result.coach`, so it receives the result without it. */
-export const CoachInput = z.strictObject({ concept: z.string(), mentefacto: Mentefacto, result: Result.omit({ coach: true }) });
+/** The coach writes `result.coach`, so it receives the result without it. `memory` is what earlier sessions
+ *  left, so the message can compare with last time; absent when memory is off, empty or late. */
+export const CoachInput = z.strictObject({
+  concept: z.string(),
+  mentefacto: Mentefacto,
+  result: Result.omit({ coach: true }),
+  memory: LearnerMemory.optional(),
+});
 export type CoachInput = z.infer<typeof CoachInput>;
-export const CoachOutput = z.strictObject({ message: z.string(), nextFocus: MoveId.nullable() });
+export const CoachOutput = z.strictObject({
+  message: z.string(),
+  nextFocus: MoveId.nullable(),
+  /** Ids of the `AgentContext.memory` facts the message relies on; the API drops any id it didn't pass in. */
+  cites: z.array(z.string()).optional(),
+});
 export type CoachOutput = z.infer<typeof CoachOutput>;
 
-// ---------- 3. The seam between the orchestrator and the API ----------
+// ---------- 2b. What the app shows of memory: GET /me/memory ----------
 
-export const AgentName = z.enum(["questioner", "evaluator", "evaluator_full", "hint_giver", "fact_desk", "coach"]);
-export type AgentName = z.infer<typeof AgentName>;
+/** Where a memory row came from, in memory's own words (`upsert` is a fact the API wrote as a triple). */
+export const MemorySourceKind = z.enum(["upsert", "turn", "document"]);
+export type MemorySourceKind = z.infer<typeof MemorySourceKind>;
+
+/** One row of a move's history: a level that was current from `since` until `until` (null = still current). */
+export const MemoryHistoryRow = z.strictObject({
+  level: Level,
+  since: z.string().min(1),
+  until: z.string().min(1).nullable(),
+  source: MemorySourceKind,
+  writtenBy: AgentName,
+  /** How many times an agent other than the writer received this row (counted from agent_log). */
+  readBy: z.number().int().min(0),
+});
+export type MemoryHistoryRow = z.infer<typeof MemoryHistoryRow>;
+
+/** The whole-map result memory kept: predicted minus real points, as in `Result.calibrationGap`. */
+export const MemoryGap = z.strictObject({
+  sessionId: z.string().min(1),
+  at: z.string().min(1),
+  predictedScore: z.number().int().min(0).max(8),
+  score: z.number().int().min(0).max(8),
+  gap: z.number().int(),
+});
+export type MemoryGap = z.infer<typeof MemoryGap>;
+
+/** "What Lumente remembers": per concept, each move's level now and how it got there. Empty arrays on a first session. */
+export const MemoryView = z.strictObject({
+  concepts: z.array(
+    z.strictObject({
+      concept: z.string().min(1),
+      moves: z.array(
+        z.strictObject({
+          move: MoveId,
+          /** Null until the evaluator has written a level for this move. */
+          level: Level.nullable(),
+          /** Newest first; the first row is the current one. */
+          history: z.array(MemoryHistoryRow),
+        }),
+      ),
+      /** The latest whole-map gap and the one before it, for "last time you predicted 3 too many, this time 1". */
+      gap: z.strictObject({ latest: MemoryGap.nullable(), previous: MemoryGap.nullable() }),
+    }),
+  ),
+});
+export type MemoryView = z.infer<typeof MemoryView>;
+
+// ---------- 3. The seam between the orchestrator and the API ----------
+// `AgentName` moved up to section 2, since `MemoryFact.writtenBy` uses it.
 
 /** Written by the API (#10): prompt + schema to Claude, validated, logged to agent_log. */
 export type CallAgent = (agent: AgentName, input: unknown) => Promise<unknown>;

@@ -4,7 +4,7 @@
 //
 // Examples in prompts use "planet" only. The test scripts use democracy and inflation, and the testers
 // use ecosystem, contract, metaphor and habit, so no prompt carries the answer to anything we measure.
-import type { AgentContext, Mentefacto, MoveId } from "../contracts.ts";
+import type { AgentContext, LearnerMemory, Mentefacto, MoveId } from "../contracts.ts";
 import { MOVE_LABEL } from "../contracts.ts";
 
 /** The method, the same for every agent. */
@@ -61,6 +61,22 @@ export function renderMentefacto(m: Mentefacto): string {
     `isoordinate: ${list(m.isoordinate)}`,
     `infraordinate: ${list(m.infraordinate)}`,
   ].join("\n");
+}
+
+/** What the coach and the hint giver are told about memory, when it's there. Code wrote every fact from a
+ * template, so a fact is never the learner's text and never an answer. */
+export const MEMORY = `<memory>, when it's there, holds what earlier sessions left about this learner on <concept>, one
+fact per line after its id. Code wrote every fact from a template: they are reliable, they hold no
+answers, and they are not the learner's words. A level is how much support a part gets, from 1 (a
+worked example) to 5 (the whole map alone): higher means the learner needed less. Use only facts that
+are in <memory>, and never invent an earlier session. Put the id of every fact your text relies on in
+\`cites\`.`;
+
+/** Memory's facts, one line each after its id, so a message can cite them. Nothing when memory is off or
+ * empty, so the user message is the same as without memory. */
+export function renderMemory(memory: LearnerMemory | undefined): string[] {
+  if (!memory?.facts.length) return [];
+  return ["<memory>", ...memory.facts.map((fact) => `- ${fact.id}: ${fact.text}`), "</memory>"];
 }
 
 /** The context every per-move agent receives, as the user message's opening blocks. */

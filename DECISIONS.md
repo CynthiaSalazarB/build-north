@@ -462,3 +462,41 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   not the words. Motion is one-shot (blocks rise in, a part eases into its new state, the line draws
   itself, the guess rolls, Start's code line types itself in); nothing loops, blinks or pulses, and Reduce
   Motion leaves only the light.
+
+### 2026-10-22 · Agent Memory contract: facts the agents read, ids they may cite, a view the app shows
+- **Decision:** `AgentContext` gets an optional `memory: { facts: MemoryFact[] }` (at most 8), built by the
+  API from SurrealDB Agent Memory before the coach and the hint giver run. A `MemoryFact` is one line from a
+  template ("Level 3 on infraordinate for CORS, since Oct 22"), with its id, when it became current, the id
+  it superseded, which agent wrote it and which session. The coach's and the hint giver's outputs get an
+  optional `cites: string[]`, the fact ids the message relies on; the API keeps only ids it passed in.
+  `MemoryView` is what `GET /me/memory` returns and the app's Memory sheet shows: per concept and move the
+  level now, its history (level, since, until, source kind, writer, how many times other agents read it),
+  and the latest whole-map gap next to the one before. Reverses "We don't enter the SurrealDB Agent Memory
+  prize" (2026-10-22), on the privacy point it raised: no learner text ever goes to memory, the learner id
+  is a salted hash of the Clerk id, the flag is off by default, and Delete my data purges the scope.
+- **Instead of:** memory inside the orchestrator's state, or raw memory rows passed to the prompts, or the
+  Oct 21 draft that stored the learner's own words beside each fact.
+- **Why:** the prize asks for facts that replace older facts with the history kept, answers traced to a
+  source, and memory shared across agents. Each lands on a field here: `supersedes` and `history`, `cites`
+  and `source`, `writtenBy` and `readBy`. Keeping memory out of the orchestrator keeps "numbers in code,
+  words in the model": a level still comes from `rules.ts`, memory only remembers it.
+- **Pattern / trade-off:** a read model beside the system of record, with provenance on every row. The
+  agents' inputs grow by one optional field, so every existing fixture and prompt stays valid; the cost is
+  one more read before two of the six agent calls, bounded by the API at 1.5 s.
+
+### 2026-10-22 · The result shows first; the coach's words come right after
+- **Decision:** a session ends in two Turns. The last answer's Turn shows the result (every number is
+  code's) with `result.coach: null` and `expects: "continue"`; the app sends `continue` at once, with no
+  button, and the next Turn brings the coach's message. The result screen says "Reading your map…"
+  until it arrives, and Try again if the call fails. If the coach itself fails, its Turn carries the fixed
+  text built from the numbers, as before.
+- **Instead of:** a faster model for the coach, or the API running the coach in the background while the
+  app polls for it.
+- **Why:** the last answer waited for two calls in a row, the evaluator and then the coach: 9.2 s, over the
+  8 s ceiling. The numbers are ready the moment the evaluator answers, and they're the moment of the
+  session (the gap), so they shouldn't wait for words. A faster coach would save less time and write
+  weaker messages. Memory adds its read before the coach, and now that wait is hidden too.
+- **Pattern / trade-off:** take the slow, non-critical call off the critical path (progressive rendering),
+  done as one more request from the app rather than a background job. Every session gets one more Turn
+  and request; in exchange there's no job queue and no polling, and the turn numbers already make the
+  extra request safe to resend.

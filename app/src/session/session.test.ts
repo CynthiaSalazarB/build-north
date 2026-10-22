@@ -8,6 +8,7 @@ import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type
 import { createApiClient } from "./api-client.ts";
 import { ClientError } from "./client.ts";
 import { createFixtureClient } from "./fixture-client.ts";
+import { resultMessagesOf } from "./present.ts";
 import { blankMap, drafted, echoFor, failed, initialState, received, sent, startedWith, withRevealed } from "./transcript.ts";
 
 const fixtureTurns = sessionOne.map((step) => Turn.parse(step.turn));
@@ -47,6 +48,16 @@ test("the worked example's map joins the conversation once, ahead of its message
   const exampleTurn = fixtureTurns.find((t) => t.example)!;
   assert.equal(state.entries.filter((e) => e.from === "map").length, 1);
   assert.equal(state.entries[at + 1]!.id, `turn-${exampleTurn.turn}-0`);
+});
+
+test("the result comes first without the coach's words; the next Turn brings them, and the result's lines stay", () => {
+  let state = initialState;
+  for (const turn of fixtureTurns.slice(0, -1)) state = received(state, turn);
+  assert.deepEqual([state.turn!.phase, state.turn!.expects, state.turn!.result!.coach], ["result", "continue", null]);
+  const shown = resultMessagesOf(state.entries);
+  state = received(state, fixtureTurns.at(-1)!);
+  assert.equal(state.turn!.expects, "none");
+  assert.deepEqual(resultMessagesOf(state.entries), [...shown, { agent: "coach", kind: "summary", text: state.turn!.result!.coach!.message }]);
 });
 
 test("an error Turn keeps the screen and offers to send the same body again, without echoing it twice", () => {

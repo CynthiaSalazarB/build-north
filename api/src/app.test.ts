@@ -458,6 +458,8 @@ test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2
     { text: "Free elections, rights, other parties." },
     { text: "Direct?" },
     { text: "Direct and representative." },
+    // the result shows first; the app asks for the coach's words at once
+    { action: "continue" },
   ];
   for (const input of inputs) {
     const body = { ...input, turn: latest.turn };
@@ -532,8 +534,11 @@ test("a test session starts at level 5, { question } gets the fact desk's answer
     isoordinate: [item("living things"), item("their surroundings")],
     infraordinate: [item("aquatic ecosystem"), item("land ecosystem")],
   };
+  // the result shows first, without the coach's words; continue brings them and ends the session
   const done = await next(redirect, { mentefacto });
-  assert.equal(done.expects, "none");
+  assert.deepEqual([done.expects, done.result.coach], ["continue", null]);
+  const coached = await next(done, { action: "continue" });
+  assert.deepEqual([coached.expects, coached.result.coach], ["none", { message: "Scripted coach.", nextFocus: "isoordinate" }]);
   const { score, calibrationGap, rubric, masteryChanges, questions } = done.result;
   assert.deepEqual(
     { score, calibrationGap, rubric, masteryChanges, questions },
@@ -574,7 +579,8 @@ test("when the coach call fails, the session still ends, with fixed text built f
   const first = await (await post(url, { concept: "inflation", mode: "test" })).json();
   const map = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 7 })).json();
   const blank = { concept: "inflation", supraordinate: null, exclusion: [], isoordinate: [], infraordinate: [] };
-  const done = await (await answer(url, first.sessionId, { turn: map.turn, mentefacto: blank })).json();
+  const shown = await (await answer(url, first.sessionId, { turn: map.turn, mentefacto: blank })).json();
+  const done = await (await answer(url, first.sessionId, { turn: shown.turn, action: "continue" })).json();
 
   const fixed = { message: 'You scored 6 of 8 and used 0 hints. Next, work on "Bigger group".', nextFocus: "supraordinate" };
   assert.deepEqual([done.error, done.expects, done.result.score], [null, "none", 6]);
