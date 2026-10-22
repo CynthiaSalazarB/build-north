@@ -1,12 +1,12 @@
 // Every color, font and size the app uses: round 9 "Lumente" (#14), Cynthia's design, from
 // docs/design/09-lumente/lumente-tokens.ts. Questions are the light: a near-black screen with a warm light that
-// grows from the top-right corner, one stage per point proved, and the ink turns dark at 5 points, when the light
-// fills the screen. Nothing blinks or pulses. Screens take colors only through useColors() in components/ui.tsx.
+// grows from the top-right corner, one stage per point proved, and the ink turns dark at 7 points, when the light
+// fills the screen (full light at 8). Nothing blinks or pulses. Screens take colors only through useColors() in components/ui.tsx.
 import { Platform } from "react-native";
 
 export const brand = { name: "Lumente", tagline: "Build with AI. Understand the concepts yourself." } as const;
 
-/** Dark (0 to 4 points): light ink on near-black. */
+/** Dark (0 to 6 points): light ink on near-black. */
 const night = {
   surface: "#16151a",
   surfaceContainer: "#1f1d22",
@@ -56,7 +56,7 @@ const night = {
 
 export type Colors = { readonly [K in keyof typeof night]: string };
 
-/** Lit (5 to 8 points): dark ink on warm light. */
+/** Lit (7 and 8 points): dark ink on warm light. */
 const day: Colors = {
   surface: "#fbdeb4",
   surfaceContainer: "#fffaf2",
@@ -105,20 +105,46 @@ export type Mode = keyof typeof palette;
 /** The near-black under the light, top to bottom. */
 export const base = { top: "#111114", bottom: "#16151a" } as const;
 
-/** The light, one stage per point proved: a radial gradient from the top-right corner (`circle at 100% 0%`),
- *  stops in percent of the distance to the far corner. Dark stages sit over `base`; lit stages are opaque. */
-export const light = [
-  { points: 0, name: "dark", mode: "night", stops: [["rgba(255, 210, 150, 0.5)", 0], ["rgba(200, 120, 60, 0.22)", 10], ["rgba(17, 17, 20, 0)", 26]] },
-  { points: 1, name: "dark", mode: "night", stops: [["rgba(255, 214, 158, 0.65)", 0], ["rgba(210, 130, 66, 0.35)", 10], ["rgba(120, 68, 36, 0.18)", 24], ["rgba(17, 17, 20, 0)", 40]] },
-  { points: 2, name: "first light", mode: "night", stops: [["rgba(255, 218, 164, 0.8)", 0], ["rgba(224, 148, 80, 0.55)", 10], ["rgba(140, 80, 42, 0.3)", 26], ["rgba(17, 17, 20, 0)", 50]] },
-  { points: 3, name: "spreading", mode: "night", stops: [["rgba(255, 222, 170, 0.95)", 0], ["rgba(236, 165, 95, 0.75)", 9], ["rgba(150, 85, 45, 0.5)", 22], ["rgba(90, 50, 28, 0.3)", 45], ["rgba(17, 17, 20, 0)", 65]] },
-  { points: 4, name: "most of the map", mode: "night", stops: [["rgba(255, 230, 185, 1)", 0], ["rgba(242, 175, 105, 0.8)", 12], ["rgba(170, 98, 52, 0.5)", 28], ["rgba(100, 56, 30, 0.32)", 52], ["rgba(17, 17, 20, 0)", 75]] },
-  { points: 5, name: "lit", mode: "day", stops: [["#fff4e0", 0], ["#fbdeb4", 35], ["#ecbe8c", 70], ["#deaa7a", 100]] },
-  { points: 6, name: "lit", mode: "day", stops: [["#fff7e8", 0], ["#fce6c3", 40], ["#f2cda0", 75], ["#e8bc8e", 100]] },
-  { points: 7, name: "lit", mode: "day", stops: [["#fffaf0", 0], ["#fdeed4", 45], ["#f6dcb8", 80], ["#eecea6", 100]] },
-  { points: 8, name: "full light", mode: "day", stops: [["#fffcf6", 0], ["#fef5e6", 50], ["#f9ead4", 85], ["#f4e0c4", 100]] },
-] as const;
-export type LightStage = (typeof light)[number];
+/** A gradient stop: a color and where it sits, in percent of the distance to the far corner. */
+type LightStop = readonly [color: string, at: number];
+type DesignedStage = { readonly name: string; readonly mode: Mode; readonly stops: readonly LightStop[] };
+
+/** The nine stages from the design board, each one contrast-checked (docs/design/09-lumente/README.md): a radial
+ *  gradient from the top-right corner (`circle at 100% 0%`). Dark stages sit over `base`; lit stages are opaque. */
+const designed: readonly DesignedStage[] = [
+  { name: "dark", mode: "night", stops: [["rgba(255, 210, 150, 0.5)", 0], ["rgba(200, 120, 60, 0.22)", 10], ["rgba(17, 17, 20, 0)", 26]] },
+  { name: "dark", mode: "night", stops: [["rgba(255, 214, 158, 0.65)", 0], ["rgba(210, 130, 66, 0.35)", 10], ["rgba(120, 68, 36, 0.18)", 24], ["rgba(17, 17, 20, 0)", 40]] },
+  { name: "first light", mode: "night", stops: [["rgba(255, 218, 164, 0.8)", 0], ["rgba(224, 148, 80, 0.55)", 10], ["rgba(140, 80, 42, 0.3)", 26], ["rgba(17, 17, 20, 0)", 50]] },
+  { name: "spreading", mode: "night", stops: [["rgba(255, 222, 170, 0.95)", 0], ["rgba(236, 165, 95, 0.75)", 9], ["rgba(150, 85, 45, 0.5)", 22], ["rgba(90, 50, 28, 0.3)", 45], ["rgba(17, 17, 20, 0)", 65]] },
+  { name: "most of the map", mode: "night", stops: [["rgba(255, 230, 185, 1)", 0], ["rgba(242, 175, 105, 0.8)", 12], ["rgba(170, 98, 52, 0.5)", 28], ["rgba(100, 56, 30, 0.32)", 52], ["rgba(17, 17, 20, 0)", 75]] },
+  { name: "lit", mode: "day", stops: [["#fff4e0", 0], ["#fbdeb4", 35], ["#ecbe8c", 70], ["#deaa7a", 100]] },
+  { name: "lit", mode: "day", stops: [["#fff7e8", 0], ["#fce6c3", 40], ["#f2cda0", 75], ["#e8bc8e", 100]] },
+  { name: "lit", mode: "day", stops: [["#fffaf0", 0], ["#fdeed4", 45], ["#f6dcb8", 80], ["#eecea6", 100]] },
+  { name: "full light", mode: "day", stops: [["#fffcf6", 0], ["#fef5e6", 50], ["#f9ead4", 85], ["#f4e0c4", 100]] },
+];
+
+/** What the screen shows at a number of points: a designed stage, or two blended, the second over the first at `mix`. */
+export type LightStage = DesignedStage & { readonly points: number; readonly over?: { readonly stops: readonly LightStop[]; readonly mix: number } };
+
+const at = (points: number, stage: number): LightStage => ({ ...designed[stage]!, points });
+const blend = (points: number, from: number, to: number, mix: number): LightStage => ({ ...at(points, from), over: { stops: designed[to]!.stops, mix } });
+
+/** One step per point proved, over all 8 (decided Oct 22). The turn to dark ink has no readable in-between: light
+ *  ink needs the background behind the words to stay dark, and the darkest text on the light (the question color)
+ *  needs it about half as bright as white. So the dark stages spread over 0 to 6 points in smaller steps, and the
+ *  screen turns light at 7, the last step before full light at 8. A step between two designed stages blends them,
+ *  so every pixel sits between two backgrounds that already pass. */
+export const light: readonly LightStage[] = [
+  at(0, 0),
+  blend(1, 0, 1, 2 / 3),
+  blend(2, 1, 2, 1 / 3),
+  at(3, 2),
+  blend(4, 2, 3, 2 / 3),
+  blend(5, 3, 4, 1 / 3),
+  at(6, 4),
+  at(7, 5),
+  at(8, 8),
+];
 
 export const lightFor = (points: number): LightStage => light[Math.max(0, Math.min(8, Math.round(points)))]!;
 

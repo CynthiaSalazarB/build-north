@@ -419,13 +419,17 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   habits, for the coach and the hint giver, is parked in the Vision and Scope doc.
 
 ### 2026-10-22 · The light grows over all 8 points
-- **Decision:** the light grows a smaller stage per point across all 8 points, and fills the screen only
-  at 8. Supersedes the "at 5 points it fills the screen" part of "Progress is the light" (2026-10-22).
-  The ink still turns dark once the light is bright enough that light ink would fail contrast.
+- **Decision:** the light grows over all 8 points in smaller steps: the dark stages spread over 0 to 6
+  points, the screen turns light at 7, and 8 is full light. Supersedes the "at 5 points it fills the
+  screen" part of "Progress is the light" (2026-10-22). The 9 contrast-checked stages stay as designed;
+  a step between two of them blends them, so every background sits between two that already pass.
 - **Instead of:** the light filling the screen at 5 points.
 - **Why:** testing the app, the jump between 4 and 5 felt too big. Smaller steps read as steady progress.
-- **Pattern / trade-off:** a continuous progress cue. A full light now means a full map, so a learner who
-  scores 5 to 7 sees a bright screen, not a full one.
+  The turn from light ink to dark has no readable in-between (light ink needs the background behind the
+  words dark; the darkest text on the light needs it about half as bright as white), so it moves to the
+  last step before full light instead of disappearing.
+- **Pattern / trade-off:** a continuous progress cue. The screen turns light only for 7 or 8 points, so
+  most sessions stay in the dark with a growing glow, and a full light means a full map.
 
 ### 2026-10-22 · The worked example is behind a button
 - **Decision:** after the first attempt, the worked example (planet) shows as a "See an example" button

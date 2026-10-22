@@ -102,7 +102,12 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   const hold = revealHoldOf(all);
   const held = hold !== null && hold.key !== passed;
   const entries = held ? hold.entries : currentPartOf(all);
-  const example = turn.phase === "example" && turn.example ? turn.example : null;
+  // The worked example is offered, not imposed (decided Oct 22): a "See an example" button opens the walkthrough
+  // and the planet map. Continue moves on either way, so the session's steps and scores don't change.
+  const [exampleOpen, setExampleOpen] = useState(false);
+  const offered = turn.phase === "example" && !!turn.example && !exampleOpen;
+  const shown = offered ? entries.filter((e) => !(e.from === "app" && e.phase === "example")) : entries;
+  const example = turn.phase === "example" && turn.example && exampleOpen ? turn.example : null;
   const parts = example ? exampleParts(example) : partsOf(turn, all, { held });
   const lit = held ? null : justLitOf(turn);
   const pending = state.pending !== null;
@@ -121,7 +126,7 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   const conversation = (show: Show) => (
     <Conversation
       show={show}
-      entries={entries}
+      entries={shown}
       turn={turn}
       held={held}
       pending={pending}
@@ -133,6 +138,11 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   );
   const status = (
     <>
+      {offered && (
+        <View style={styles.offer}>
+          <Button kind="secondary" label="See an example" onPress={() => setExampleOpen(true)} />
+        </View>
+      )}
       {pending && <Waiting line={waitingLineOf(state.pending)} slow={slow} />}
       {failure && <Failure message={`${failure.message}${saved}`}>{failure.retryable && <Button kind="secondary" label="Try again" onPress={retry} />}</Failure>}
     </>
@@ -356,6 +366,7 @@ const CONVERSATION_GAP = 32;
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
+  offer: { alignItems: "flex-start" },
   content: { paddingHorizontal: space.margin, paddingTop: MAP_TOP, paddingBottom: space.xl },
   conversation: { marginTop: CONVERSATION_GAP, gap: space.l },
   wide: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },

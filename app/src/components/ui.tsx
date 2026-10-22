@@ -1,5 +1,5 @@
 // Small building blocks every screen uses (round 9 "Lumente"). A Screen sets the light (the points proved, 0 to
-// 8); everything inside reads its colors from that light's mode, dark ink once the light fills the screen at 5.
+// 8); everything inside reads its colors from that light's mode, dark ink once the light fills the screen at 7.
 // Nothing here holds a color of its own.
 import { StatusBar } from "expo-status-bar";
 import { createContext, useContext, useState, type ReactNode } from "react";

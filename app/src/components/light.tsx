@@ -53,6 +53,21 @@ function Stage({ stage, width, height }: { stage: LightStage; width: number; hei
   );
 }
 
+/** A designed stage, or two blended: the second drawn over the first at `mix`. Both layers are opaque, so the
+ *  result is a mix of two backgrounds that each passed the contrast check. */
+function Layers({ stage, width, height }: { stage: LightStage; width: number; height: number }) {
+  return (
+    <>
+      <Stage stage={stage} width={width} height={height} />
+      {stage.over && (
+        <View style={[StyleSheet.absoluteFill, { opacity: stage.over.mix }]}>
+          <Stage stage={{ ...stage, stops: stage.over.stops }} width={width} height={height} />
+        </View>
+      )}
+    </>
+  );
+}
+
 /** Fills its parent, under everything else. `points` is the stage: 0 to 8. */
 export function Light({ points }: { points: number }) {
   const stage = lightFor(points);
@@ -83,9 +98,9 @@ export function Light({ points }: { points: number }) {
     >
       {box.width > 0 && (
         <>
-          {under && <Stage stage={under} {...box} />}
+          {under && <Layers stage={under} {...box} />}
           <Animated.View style={[StyleSheet.absoluteFill, over]}>
-            <Stage stage={stage} {...box} />
+            <Layers stage={stage} {...box} />
           </Animated.View>
         </>
       )}
