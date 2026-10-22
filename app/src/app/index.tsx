@@ -1,9 +1,11 @@
 // The start screen: a concept, and optionally the learner's own notes (pasted text only, up to 8,000
 // characters: decision 12).
+import { useAuth } from "@clerk/expo";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { Body, Button, Screen, Small, Title } from "../components/ui.tsx";
+import { clerkKey } from "../session/config.ts";
 import { useSession } from "../session/session-context.tsx";
 import { brand, colors, fonts, radius, space } from "../theme.ts";
 
@@ -77,10 +79,17 @@ export default function StartScreen() {
 
           {error && <Text style={styles.error}>{error}</Text>}
           <Button label="Start" busy={starting} disabled={!concept.trim()} onPress={begin} />
+          {clerkKey && <SignOut />}
         </ScrollView>
       </KeyboardAvoidingView>
     </Screen>
   );
+}
+
+// Only rendered with Clerk on (#22), since useAuth needs the ClerkProvider in the root layout
+function SignOut() {
+  const { signOut } = useAuth();
+  return <Button label="Sign out" kind="secondary" onPress={() => void signOut()} />;
 }
 
 const styles = StyleSheet.create({
