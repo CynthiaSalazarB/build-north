@@ -259,7 +259,8 @@ type MemoryFact = {
 - **Optional end to end.** Off by default behind a flag. When it's off, empty, or slower than 1.5 s, the
   API calls the agent without it, and the user message is the same as before memory existed.
 - **`cites`:** the hint giver's and the coach's outputs carry the ids of the facts their text relies on.
-  The API keeps only ids it passed in and logs the rest.
+  The API keeps only ids it passed in and logs the rest, with `verifyCites(output, memory)` from
+  `@build-north/agents` (it returns the cleaned output and the dropped ids).
 
 `GET /me/memory` returns `MemoryView`, what the app's Memory sheet shows: per concept and move, the
 level now and its history (level, since, until, source, which agent wrote it, how many times other

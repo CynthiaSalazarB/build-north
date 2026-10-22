@@ -11,7 +11,9 @@ import {
   MOVE_ORDER,
   MemoryFact,
   MemoryView,
+  type CoachOutput as CoachOutputT,
   type MemoryFact as MemoryFactT,
+  verifyCites,
 } from "../src/index.ts";
 
 const read = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
@@ -106,5 +108,24 @@ describe("MemoryView", () => {
 
   it("a first session is an empty view", () => {
     expect(() => MemoryView.parse({ concepts: [] })).not.toThrow();
+  });
+});
+
+describe("verifyCites", () => {
+  const memory = { facts: [fact, { ...fact, id: "attr_gap" }] };
+
+  it("keeps the cites of facts it was given, each once, and names the ones it dropped", () => {
+    const { output, dropped } = verifyCites({ message: "m", nextFocus: null, cites: ["attr_gap", "attr_made_up", "attr_gap", "attr_01HZX"] }, memory);
+    expect(output).toEqual({ message: "m", nextFocus: null, cites: ["attr_gap", "attr_01HZX"] });
+    expect(dropped).toEqual(["attr_made_up"]);
+  });
+
+  it("drops every cite when memory was off, and leaves an output with no cites as it is", () => {
+    expect(verifyCites({ step: "hint", text: "t", revealed: null, cites: ["attr_gap"] }, undefined)).toEqual({
+      output: { step: "hint", text: "t", revealed: null, cites: [] },
+      dropped: ["attr_gap"],
+    });
+    const bare: CoachOutputT = { message: "m", nextFocus: null };
+    expect(verifyCites(bare, memory)).toEqual({ output: bare, dropped: [] });
   });
 });
