@@ -319,7 +319,12 @@ describe("failures and limits", () => {
     expect(revealTurn.mentefacto.supraordinate).toEqual(item("form of government"));
     expect(revealTurn.move).toBe("exclusion");
     expect(revealTurn.messages.at(-1)!.text).toBe("What isn't it?");
-    expect(revealTurn.progress).toEqual({ movesDone: 1, movesTotal: 4, hintsUsed: 4 });
+    expect(revealTurn.progress).toEqual({
+      movesDone: 1,
+      movesTotal: 4,
+      hintsUsed: 4,
+      points: [{ move: "supraordinate", points: 0 }],
+    });
     expect(session.moveLog[0]!.points).toBe(0);
   });
 

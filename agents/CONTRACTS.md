@@ -120,7 +120,12 @@ type Turn = {
   scaffold: { given: string[]; blanks: number } | null;     // level 3 only: the half-built part
   mentefacto: Mentefacto;                                   // what the learner has built so far
   example: Mentefacto | null;   // phase "example" only: the worked example's map (planet) as it fills in
-  progress: { movesDone: number; movesTotal: number; hintsUsed: number };
+  progress: {
+    movesDone: number;
+    movesTotal: number;
+    hintsUsed: number;
+    points?: { move: MoveId; points: 0 | 1 | 2 }[];   // each finished move's points, in the order they finished
+  };
   result: Result | null;                                    // only when phase = "result"
   error: { code: "agent_failed" | "rate_limited"; retryable: boolean } | null;
 };
@@ -143,7 +148,7 @@ Example, session 1, the learner just answered "A law?" for the bigger group:
   "scaffold": null,
   "mentefacto": { "concept": "democracy", "supraordinate": null, "exclusion": [], "isoordinate": [], "infraordinate": [] },
   "example": null,
-  "progress": { "movesDone": 0, "movesTotal": 4, "hintsUsed": 0 },
+  "progress": { "movesDone": 0, "movesTotal": 4, "hintsUsed": 0, "points": [] },
   "result": null,
   "error": null
 }
