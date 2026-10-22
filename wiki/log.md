@@ -20,3 +20,4 @@
 | 2026-10-22 | update | synthesis/product-thesis | The product is now called Lumente (round 9); "the reality check" stays the name of the predicted vs. real score |
 | 2026-10-22 | update | index, context/surrealdb-sponsor-prize | Reality Check renamed to Lumente |
 | 2026-10-22 | update | synthesis/plan-to-win, synthesis/expo-prize-plan | Adopted with Cynthia's Oct 22 decisions: Lumente, demo on API then CORS, status of P1 to P8, owners, decisions taken and open, the Devpost layout |
+| 2026-10-22 | update | synthesis/plan-to-win, synthesis/product-thesis, context/surrealdb-sponsor-prize | We skip the SurrealDB Agent Memory prize; learner-habit memory joins the ideas for later |

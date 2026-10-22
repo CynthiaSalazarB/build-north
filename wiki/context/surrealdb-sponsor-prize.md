@@ -29,6 +29,8 @@ As relayed by Leo on Oct 19 from SurrealDB's Build North participant pack. Not r
 
 ## Possible fit with Lumente (Leo's read, not a team decision)
 
+**Decided Oct 22: we don't enter this prize** (`DECISIONS.md`). The fits below stay as ideas for later.
+
 - Several agents already share one learner (questioner, evaluator, hint giver, fact desk, coach).
 - Mastery per move changes over time: each level-up is a new fact that replaces the old one, with the
   history kept.

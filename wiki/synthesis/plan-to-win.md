@@ -153,7 +153,7 @@ email cap and keep the `+clerk_test` fallback in the testing notes.
 
 ### What we skip
 
-We skip SurrealDB Agent Memory (Leo's recommendation; Cynthia confirms in section 9). We use plain tables, and its judges want facts that replace old ones,
+We skip SurrealDB Agent Memory (decided Oct 22). We use plain tables, and its judges want facts that replace old ones,
 answers traced to a source and memory shared across agents. We'd only try it if the core is green on
 Oct 23. We skip Eon too: Era simulates companies for testing enterprise agents, which doesn't fit us.
 
@@ -294,11 +294,12 @@ Taken, each in `DECISIONS.md` or noted here:
    organization later from its settings.
 7. Toronto on Oct 29: Cynthia and Kyle go; Leo and Jonathan confirm.
 8. Sign-in by email code and Google (Cynthia, Oct 22).
+9. We don't enter the SurrealDB Agent Memory prize (Cynthia, Oct 22). Learner-habit memory is parked
+   in the Vision and Scope doc for later.
 
 Still open:
 
-9. Render Starter from Oct 22 to Oct 30, about $7, paid with the Render credit (#59).
-10. SurrealDB Agent Memory: Leo recommends skipping it (section 4). Cynthia confirms.
+10. Render Starter from Oct 22 to Oct 30, about $7, paid with the Render credit (#59).
 11. The Expo GitHub app, so every merge to `main` ships to phones and the web (E7). Installing it takes
     Cynthia, who owns the repo, and someone with admin access to the EAS project on Leo's account.
 

@@ -406,6 +406,18 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** a federated sign-in next to a passwordless one. One more flow to test on
   phones before the freeze.
 
+### 2026-10-22 · We don't enter the SurrealDB Agent Memory prize
+- **Decision:** we skip the SurrealDB Agent Memory prize. SurrealDB stays our database, with plain tables
+  for sessions and mastery.
+- **Instead of:** building on Agent Memory in the last two days before the freeze.
+- **Why:** the core loop doesn't need it: the levels come from code, by the rule "numbers in code, words
+  in the model". The prize asks for facts that replace older ones, answers traced to a source and
+  memory shared across agents, and the sponsor said plain tables are unlikely to compete. By default
+  Agent Memory sends what it stores to another model to extract facts, a privacy question about
+  learners' text that we haven't settled.
+- **Pattern / trade-off:** a scope cut to protect the core. One prize fewer; a memory of each learner's
+  habits, for the coach and the hint giver, is parked in the Vision and Scope doc.
+
 ### 2026-10-22 · From 1,000 px the web build is laid out as a website
 - **Decision:** from 1,000 px wide, the web build has a header (the wordmark, the session's concept, the
   screen's actions) and two columns: the words on the left, 480 px wide, and the map or the code on the
