@@ -418,6 +418,26 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** a scope cut to protect the core. One prize fewer; a memory of each learner's
   habits, for the coach and the hint giver, is parked in the Vision and Scope doc.
 
+### 2026-10-22 · The light grows over all 8 points
+- **Decision:** the light grows a smaller stage per point across all 8 points, and fills the screen only
+  at 8. Supersedes the "at 5 points it fills the screen" part of "Progress is the light" (2026-10-22).
+  The ink still turns dark once the light is bright enough that light ink would fail contrast.
+- **Instead of:** the light filling the screen at 5 points.
+- **Why:** testing the app, the jump between 4 and 5 felt too big. Smaller steps read as steady progress.
+- **Pattern / trade-off:** a continuous progress cue. A full light now means a full map, so a learner who
+  scores 5 to 7 sees a bright screen, not a full one.
+
+### 2026-10-22 · The worked example is behind a button
+- **Decision:** after the first attempt, the worked example (planet) shows as a "See an example" button
+  instead of the whole walkthrough. "Continue" moves on either way, and all four parts start at level 2,
+  as before. Only the screen changes: the session's steps, the contracts and the scoring stay the same.
+- **Instead of:** showing everyone the whole walkthrough, or moving the example before the first attempt.
+- **Why:** the walkthrough was a whole paragraph to read on the first screen. Worked examples help
+  beginners but slow down people who already know the topic, so it's offered, not imposed. The first
+  attempt stays first, so it captures the learner's own words before any help.
+- **Pattern / trade-off:** optional scaffolding (the worked-example effect and the expertise reversal
+  effect). Level 2 no longer means the learner watched the example.
+
 ### 2026-10-22 · From 1,000 px the web build is laid out as a website
 - **Decision:** from 1,000 px wide, the web build has a header (the wordmark, the session's concept, the
   screen's actions) and two columns: the words on the left, 480 px wide, and the map or the code on the

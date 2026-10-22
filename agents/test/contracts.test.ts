@@ -50,6 +50,24 @@ describe("CONTRACTS.md examples", () => {
   });
 });
 
+describe("the recorded API session (demo mode)", () => {
+  const steps = JSON.parse(read("../fixtures/session-api.json")) as { note: string; input: unknown; turn: unknown }[];
+
+  it.each(steps.map((s, i) => [i, s] as const))("step %i: input and Turn parse", (i, step) => {
+    const body = i === 0 ? CreateSessionBody : TurnBody;
+    expect(() => body.parse(step.input)).not.toThrow();
+    expect(() => Turn.parse(step.turn)).not.toThrow();
+  });
+
+  it("plays every Turn in order, on API, and ends at the result: 5/8 against a prediction of 7", () => {
+    const turns = steps.map((s) => Turn.parse(s.turn));
+    turns.forEach((turn, i) => expect(turn.turn).toBe(i + 1));
+    expect(turns.every((turn) => turn.mentefacto.concept === "API")).toBe(true);
+    const result = turns.at(-1)!.result!;
+    expect([turns.at(-1)!.expects, result.predictedScore, result.score, result.calibrationGap]).toEqual(["none", 7, 5, 2]);
+  });
+});
+
 describe("fixtures", () => {
   const steps = JSON.parse(read("../fixtures/session-1.json")) as { note: string; input: unknown; turn: unknown }[];
 

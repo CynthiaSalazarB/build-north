@@ -1,10 +1,11 @@
-// #6: the democracy session from agents/fixtures/session-1.json, one Turn per action, whatever the
-// concept or the answer. It lets the whole session click through with no API.
+// Demo mode (#6): the API session recorded live with Claude (agents/fixtures/session-api.json, the
+// demo's session 1), one Turn per action, whatever the concept or the answer. It lets the whole session
+// click through with no API. Played on Demo Day, it's a replay and has to be called one.
 import { Turn } from "@build-north/agents";
-import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
+import sessionApi from "@build-north/agents/fixtures/session-api.json" with { type: "json" };
 import { ClientError, type SessionClient } from "./client.ts";
 
-const STEPS: readonly Turn[] = sessionOne.map((step) => Turn.parse(step.turn));
+const STEPS: readonly Turn[] = sessionApi.map((step) => Turn.parse(step.turn));
 
 /** `delayMs` stands in for the wait on Claude, so the thinking indicator shows. */
 export function createFixtureClient(delayMs = 600): SessionClient {
