@@ -1,59 +1,121 @@
-# Lumente (working name)
+# Lumente
 
-**Build with AI. Understand the concepts yourself.**
+Lumente shows CS students which concepts in their AI-built code they can't explain, and gets them
+explaining those concepts in their own words. An AI tutor, the firefly, asks the questions and judges
+the answers; it never hands over the answer.
 
-For programming students who build with AI agents but can't explain what they built, Lumente is
-where they figure out the concepts their projects use. First they answer questions, then they ask their
-own, while the help fades level by level. Unlike AI study modes, it isn't a mode they can switch off
-halfway: they build the concept map themselves, and at the end they see their real score next to the
-one they predicted.
+Built for Build North (Georgian AI Lab + TapNet), October 2026. The method, the evidence behind it and
+the questions still open are in the [product thesis](wiki/synthesis/product-thesis.md).
 
-**How it works:** the learner names a concept, pastes their notes about it if they have any, and
-builds a map of it: the bigger group it belongs to, what it isn't, what it needs, and its types. This
-map comes from Conceptual Pedagogy, where it is called a conceptual mentefact. Claude agents ask the
-questions and judge the answers, but never write the map. The help fades over five levels, and at the
-top one the roles flip: the learner asks, and a fact desk answers with facts only. Scores and levels
-are computed by code, never by the model.
+## Try it
 
-**To understand the method, why it should work, what is still unproven and where it goes,** read the
-[product thesis](wiki/synthesis/product-thesis.md). The evidence behind it is in
-[`wiki/context/evidence.md`](wiki/context/evidence.md).
+- Web: https://reality-check.expo.app. Sign in with an email code or with Google.
+- Android: a `preview` APK built with EAS Build. The builds are listed in
+  [`docs/expo-log.md`](docs/expo-log.md); its links open in the EAS dashboard.
+  TODO: add the public install link of the current `preview` APK.
+- iOS: no build. iPhones use the web build.
 
-Built for **Build North** (Georgian AI Lab + TapNet), October 2026.
+## How a session runs
 
-## Structure
+1. The learner names a concept from their project (API, JWT, CORS) and predicts their score out of 8.
+2. They build the concept's map in four parts: its bigger group, what it isn't, what it needs and its
+   types. The agents ask the questions and judge the answers; any answer that can be defended passes.
+   Hints come only from the Help button, and each one costs points.
+3. The help fades over five levels per part, from a worked example to working alone. At level 5 the
+   roles flip: the learner asks, and a fact desk answers with facts only.
+4. The real score appears next to the prediction. Scores, levels and hints are computed by code, never
+   by the model.
+
+The map is the conceptual mentefact from Conceptual Pedagogy (Miguel de Zubiría).
+
+## Run it from a clean clone
+
+Node 24 (see [`.node-version`](.node-version)). `app`, `api` and `agents` are npm workspaces, so one
+install at the root covers all three:
+
+```bash
+npm install
+npm run start -w app     # the Expo dev server: press w for the browser
+npm run dev -w api       # the API on http://localhost:3000, restarts on save
+npm test                 # every workspace's tests, no Claude call
+```
+
+Phones need the Android development build, since Expo Go does not run SDK 58 yet. The rest is in each
+package's README: [`app/README.md`](app/README.md), [`api/README.md`](api/README.md),
+[`agents/README.md`](agents/README.md).
+
+- With no `app/.env`, the app runs in demo mode: it replays
+  [`agents/fixtures/session-api.json`](agents/fixtures/session-api.json), the API session recorded live
+  with Claude, one Turn per action, and needs no API. `EXPO_PUBLIC_API_URL` in `app/.env` points it at
+  an API, and `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` turns sign-in on.
+- The API reads the repo root's `.env` (copy `.env.example`). Its variables, names only: `SURREAL_URL`,
+  `SURREAL_NAMESPACE`, `SURREAL_DATABASE`, `SURREAL_USER`, `SURREAL_PASS` and `SURREAL_AUTH_LEVEL` for
+  the database; `CLERK_JWT_KEY` to check sign-in tokens; `CORS_ORIGIN` for the web builds' origins;
+  `ANTHROPIC_API_KEY` with `AGENT_BUDGET_USD` to turn Claude on, and `AGENT_MODEL` to pick the model;
+  `DEV_KEY` for the local dev headers. Without the Claude key, the API replays
+  `agents/fixtures/session-1.json` instead of calling Claude.
+- `api/` and `agents/` have no build step: Node 24 runs the TypeScript directly.
+
+## Stack
+
+| Layer | What |
+|---|---|
+| App | Expo SDK 58, React Native, Expo Router, TypeScript. EAS Build (Android), EAS Update, EAS Hosting (web) |
+| API | Express 5 on Node 24, hosted on Render. SurrealDB Cloud for sessions, mastery and agent logs. Clerk for sign-in |
+| Agents | Claude (Anthropic) agents: questioner, evaluator, whole-map evaluator, fact desk, hint giver, coach. Each is one structured-output call; the orchestrator is plain code |
+| Contracts | Zod schemas in `agents/src/contracts.ts` at every boundary: app to API, API to agents, agents to Claude |
+
+Tests: `node --test` in `app` and `api`, Vitest in `agents`; `npm test` at the root runs all three.
+`npm run eval:*` in `agents` runs the prompt evals against Claude and prints the cost.
+
+## Sponsor tracks
+
+**Best Use of Expo.** One TypeScript codebase ships to Android and the web. EAS Build made the Android
+development build and the `preview` APK (Oct 21); EAS Update shipped the first JavaScript changes to the
+`preview` channel the same day, with no new build; EAS Hosting serves the web build (the `review` and
+`testers` aliases, then production). The EAS project lives in the `lumente` organization. From the SDK:
+Expo Router, expo-updates, expo-secure-store (the session token), expo-web-browser (Clerk's hosted
+sign-in on Android), expo-haptics, expo-font and Expo Observe. Every build, update and deploy is a row
+in [`docs/expo-log.md`](docs/expo-log.md).
+
+**Best Use of Clerk.** Clerk handles sign-in and sessions, by email code or Google, set in the Clerk
+dashboard with no code change. The web build shows Clerk's prebuilt sign-in; Android opens Clerk's
+hosted sign-up and sign-in in an in-app browser. The API checks the session token without a network
+call, with the instance's public key, and keys every session and mastery row by the Clerk user id.
+Delete my data removes the caller's sessions, agent logs and mastery.
+
+**SurrealDB.** SurrealDB stays the database, with plain tables for sessions and mastery, on a SurrealDB
+Cloud instance with a `dev` and a `prod` database. The team does not enter the SurrealDB Agent Memory
+prize (decided Oct 22, [`DECISIONS.md`](DECISIONS.md)).
+
+## Template disclosure
+
+The Expo app started from `create-expo-app`'s default template. The template's demo screens, icons and
+splash were replaced. Fonts: Newsreader (Production Type) and Atkinson Hyperlegible Next and Mono
+(Braille Institute), under the SIL Open Font License, from `@expo-google-fonts`.
+
+## Repository
 
 | Folder | What lives there | Owner |
 |---|---|---|
-| [`app/`](app/) | Expo + React Native app (iOS, Android, web) | Cynthia and Leo (Jonathan helped) |
-| [`api/`](api/) | Node + Express API: auth, storage, calls the agents | Leo |
-| [`agents/`](agents/) | Prompts, JSON contracts, orchestrator and ladder rules. Pure TypeScript, no server code | Cynthia |
-| [`wiki/`](wiki/index.md) | Project notes: context, research, analysis. Start at `wiki/index.md` | Cynthia and Leo |
+| [`app/`](app/) | Expo + React Native app: Android and web | Cynthia and Leo (Jonathan helped) |
+| [`api/`](api/) | Express API: the sign-in check, storage, the Claude calls | Leo |
+| [`agents/`](agents/) | Prompts, Zod contracts, fixtures, the orchestrator. Plain TypeScript, no server code | Cynthia |
+| [`wiki/`](wiki/index.md) | Project notes: context, research, analysis | Cynthia and Leo |
 | Slides (outside the repo) | The pitch presentation | Kyle |
 
-`app`, `api` and `agents` are npm workspaces. The API and the app both import `agents/` as the package
-`@build-north/agents`, values included (`MOVE_LABEL`, the fixtures), because it holds no server code: only
-Zod and plain TypeScript. The Claude calls and the keys live in `api/`.
+- [`agents/CONTRACTS.md`](agents/CONTRACTS.md): the contracts between the app, the API and the agents.
+- [`DECISIONS.md`](DECISIONS.md): every decision with a real trade-off, and why it was taken.
+- [`wiki/index.md`](wiki/index.md): the project wiki, starting with the product thesis and the plan.
+- [`docs/expo-log.md`](docs/expo-log.md): every EAS build, update and deploy.
+- [`docs/tester-protocol.md`](docs/tester-protocol.md): the Oct 23 pilot, five testers (T1 to T5), a
+  pre-test and a post-test on concepts they never trained on. Results: TODO after the pilot.
 
-The contracts between the three are in [`agents/CONTRACTS.md`](agents/CONTRACTS.md).
+## How the team works
 
-## Setup
-
-```bash
-cp .env.example .env    # fill in the values (ask in Discord)
-npm install             # installs all three workspaces; needs Node 24 (.node-version)
-```
-
-Per-folder run instructions live in each folder's README.
-
-## How we work
-
-- Tasks live in GitHub Issues + the project board (Todo, In Progress, Done). One owner per issue, 1 to
-  3 hours, a "done when" line and a "depends on" line. Each issue sits in the milestone of its day.
-- Every change goes through a short branch (`jonathan/6-session-screen`) and a pull request, docs
-  included: one teammate reviews, merge the same day. `main` is protected, so nothing is pushed to it
-  directly; even a typo is a quick pull request.
-- Secrets never go in git. `.env.example` lists every variable; the Claude key exists only on the API.
-- Decisions with a real trade-off go in [`DECISIONS.md`](DECISIONS.md), and changes to
-  [`agents/CONTRACTS.md`](agents/CONTRACTS.md) change what everyone builds: both arrive through a pull
-  request, and the merge is the acceptance.
+- `main` is protected. Every change goes through a short branch and a pull request, docs included, and
+  one teammate reviews. Changes to `agents/CONTRACTS.md` and new `DECISIONS.md` entries arrive the same
+  way; the merge is the acceptance.
+- The repo is public: no secrets, connection details, keys or tester names in any file. The Claude key
+  exists only on the API.
+- Stand-in code says `Temporary:` in its comment.
