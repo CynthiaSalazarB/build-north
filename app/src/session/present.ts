@@ -1,7 +1,7 @@
 // What the screens say and draw, as pure functions of the Turns and the transcript: the map's parts and their
 // points, the light (points proved so far), the hint card, Help's price, the reveal, and the gap. No React here,
 // so it's tested under Node. The rules behind the words are in CONTRACTS.md section 3.
-import { MOVE_LABEL, MOVE_ORDER, type Item, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
+import { MOVE_LABEL, MOVE_ORDER, WORKED_EXAMPLE, type Item, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
 import type { Entry } from "./transcript.ts";
 
 /** The concepts Start offers (Lumente's board): what coding agents put in student projects. */
@@ -129,6 +129,37 @@ export function partsOf(turn: Turn, entries: readonly Entry[], { held = false, m
 /** The worked example's map: every part shown by the tutor, so none is lit and none scores. */
 export const exampleParts = (map: Mentefacto): PartView[] =>
   MOVE_ORDER.map((move) => ({ move, state: "revealed", text: partTextOf(map, move), pips: ["open", "open"] }));
+
+/** "First: what kind of thing is a planet? "A thing" is too broad…" becomes the question and the reasoning after it. */
+export function exampleQuestionOf(text: string): { question: string | null; rest: string } {
+  const match = /^(?:\w+[:,]\s+)?([^?.]{3,80}\?)\s*(.*)$/s.exec(text.trim());
+  if (!match) return { question: null, rest: text.trim() };
+  const question = match[1]!;
+  return { question: question.charAt(0).toUpperCase() + question.slice(1), rest: match[2]! };
+}
+
+/** One part of the worked example: the question it asks, what it puts on the map, and the reasoning. */
+export type ExampleStep = { move: MoveId; question: string | null; items: string[]; reasoning: string };
+
+/** The worked example's lines, grouped by the part each one builds (WORKED_EXAMPLE says which), so the screen
+ * shows four steps, not eight paragraphs. Null when a line isn't one of its steps: the lines then show as they came. */
+export function exampleStepsOf(lines: readonly string[]): ExampleStep[] | null {
+  const steps: ExampleStep[] = [];
+  for (const line of lines) {
+    const step = WORKED_EXAMPLE.steps.find((s) => s.thinkAloud === line);
+    if (!step) return null;
+    const item = step.move === "exclusion" ? `not ${step.item.value}` : step.item.value;
+    const last = steps.at(-1);
+    if (last?.move === step.move) {
+      last.items.push(item);
+      last.reasoning = `${last.reasoning} ${line}`.trim();
+      continue;
+    }
+    const { question, rest } = exampleQuestionOf(line);
+    steps.push({ move: step.move, question, items: [item], reasoning: rest });
+  }
+  return steps.length > 0 ? steps : null;
+}
 
 /** The result's map: proved points filled; the points the guess claimed but didn't prove are dashed coral,
  * taken from the first unproved points in the parts' order. */

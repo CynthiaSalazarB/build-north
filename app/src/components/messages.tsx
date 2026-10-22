@@ -1,11 +1,11 @@
 // One line of the conversation under the map (round 9 "Lumente"): the firefly's question beside it (tapping the
 // firefly is Help), a free nudge after a wrong answer, an amber hint card that says what it costs, a revealed
-// answer (0 points), a fact, and the learner's answers on the right. The learner sees what kind of message it is,
-// never which agent wrote it.
-import type { Message } from "@build-north/agents";
+// answer (0 points), a fact, the worked example in four steps, and the learner's answers on the right. The learner
+// sees what kind of message it is, never which agent wrote it.
+import { MOVE_LABEL, type Message } from "@build-north/agents";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { hintCardOf, inlineCodeOf } from "../session/present.ts";
+import { hintCardOf, inlineCodeOf, type ExampleStep } from "../session/present.ts";
 import { radius, size, space, type } from "../theme.ts";
 import { Firefly, type FireflyState } from "./firefly.tsx";
 import { Icon } from "./icons.tsx";
@@ -142,6 +142,46 @@ export function Revealed({ text }: { text: string }) {
   );
 }
 
+/** The worked example's first line, as the heading of what follows. */
+export function ExampleIntro({ text }: { text: string }) {
+  const c = useColors();
+  return (
+    <View style={styles.exampleIntro}>
+      <Tag style={{ color: c.question }}>worked example</Tag>
+      <Text style={[type.question, { color: c.onSurface }]}>{text}</Text>
+    </View>
+  );
+}
+
+/** The worked example in four steps, so a glance reads the questions and the answers: each part's name as on the
+ * map, the question it asks, what it puts on the map (dashed, like the map: shown, not earned), and the reasoning,
+ * dim, for whoever wants the why. */
+export function ExampleSteps({ steps }: { steps: ExampleStep[] }) {
+  const c = useColors();
+  return (
+    <View style={styles.exampleSteps}>
+      {steps.map((step, i) => (
+        <View key={step.move} style={[styles.exampleStep, { borderLeftColor: c.partEdge }]}>
+          <Tag style={{ color: c.question }}>{`${i + 1} · ${MOVE_LABEL[step.move].toLowerCase()}`}</Tag>
+          {step.question && <Reply>{step.question}</Reply>}
+          <View style={styles.exampleItems}>
+            {step.items.map((item) => (
+              <View key={item} style={[styles.exampleItem, { borderColor: c.partEdge, backgroundColor: c.partFill }]}>
+                <Text style={[type.ui, { color: c.onSurface }]}>{item}</Text>
+              </View>
+            ))}
+          </View>
+          {step.reasoning !== "" && (
+            <Body dim style={type.bubble}>
+              {step.reasoning}
+            </Body>
+          )}
+        </View>
+      ))}
+    </View>
+  );
+}
+
 /** A fact desk answer: facts only, or the redirect when a question fishes for the map (which says so itself). */
 export function FactCard({ kind, text }: { kind: "fact" | "redirect"; text: string }) {
   return (
@@ -224,6 +264,11 @@ const styles = StyleSheet.create({
   hintSteps: { flexDirection: "row", gap: space.xs },
   step: { width: 7, height: 7, borderRadius: radius.point },
   hintText: { marginTop: 6, lineHeight: 25 },
+  exampleIntro: { gap: space.xs },
+  exampleSteps: { gap: space.xl },
+  exampleStep: { gap: space.s, borderLeftWidth: 2, paddingLeft: space.l },
+  exampleItems: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
+  exampleItem: { paddingVertical: 6, paddingHorizontal: 10, borderWidth: 1, borderStyle: "dashed", borderRadius: radius.chip },
   fact: { maxWidth: "88%", gap: 2 },
   learner: { alignSelf: "flex-end", maxWidth: "78%", paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderRadius: radius.bubble, borderBottomRightRadius: 2 },
   asking: { maxWidth: "82%", backgroundColor: "rgba(242, 184, 75, 0.1)", boxShadow: "0 0 14px rgba(242, 184, 75, 0.18)" },
