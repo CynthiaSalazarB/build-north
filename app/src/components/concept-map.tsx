@@ -154,7 +154,7 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
     revealed: { borderWidth: 1, borderStyle: "dashed", borderColor: c.partEdge, backgroundColor: c.partFill, ink: c.onSurface, labelInk: c.onSurfaceVariant, glow: undefined },
   }[view.state];
   const glow = ring ? "0 0 0 3px rgba(242, 184, 75, 0.6), 0 0 22px rgba(255, 236, 205, 0.45)" : look.glow;
-  const earned = view.pips.filter((p) => p === "earned").length;
+  const points = view.pips ? `${view.pips.filter((p) => p === "earned").length} of 2 points` : "not scored yet";
   const said = view.text ?? (view.state === "asked" ? "being asked now" : "not answered yet");
   const box = (
     <View
@@ -166,17 +166,19 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
       onLayout={onPress ? undefined : onLayout}
       // a part that opens for editing is labeled by its button instead
       accessible={!onPress}
-      accessibilityLabel={onPress ? undefined : `${label}: ${said}. ${earned} of 2 points${view.state === "revealed" ? ", shown to you" : ""}.`}
+      accessibilityLabel={onPress ? undefined : `${label}: ${said}. ${points}${view.state === "revealed" ? ", shown to you" : ""}.`}
     >
       <View style={styles.partHead}>
         <PartIcon d={icon} color={look.labelInk} />
         <Text style={[type.partLabel, styles.partLabel, { color: look.labelInk }]}>{label}</Text>
-        <View style={styles.pips}>
-          {view.pips.map((pip, i) => (
-            // points on a lit part, or on any part once the light fills the screen, are dark ink
-            <PointSquare key={i} pip={pip} dark={view.state === "lit" || !night} />
-          ))}
-        </View>
+        {view.pips && (
+          <View style={styles.pips}>
+            {view.pips.map((pip, i) => (
+              // points on a lit part, or on any part once the light fills the screen, are dark ink
+              <PointSquare key={i} pip={pip} dark={view.state === "lit" || !night} />
+            ))}
+          </View>
+        )}
       </View>
       {view.text ? (
         <Text style={[view.state === "revealed" ? type.revealedText : type.partText, { color: look.ink }, view.state === "revealed" && styles.dim]} numberOfLines={5}>

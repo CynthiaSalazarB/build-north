@@ -2,7 +2,9 @@
 // empty map in the dark, with the firefly beside it. A concept is picked in one tap or typed, plus optionally the
 // learner's notes (pasted text only, up to 8,000 characters: decision 12). "Ask your AI what to map" gives a
 // prompt to paste into a coding agent, so the concepts come from the learner's own project; notes that look like a
-// key or a password never leave the phone.
+// key or a password never leave the phone. "Test myself" starts a self-test instead: the whole map alone, the
+// testers' pre-test and post-test.
+import type { SessionMode } from "@build-north/agents";
 import type { Metadata } from "expo-router/server";
 import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
@@ -14,7 +16,7 @@ import { Firefly } from "../components/firefly.tsx";
 import { Failure } from "../components/messages.tsx";
 import { Body, Button, Card, Chip, KeyboardSafe, Label, PromptField, Screen, Sheet, Small, Title, useColors } from "../components/ui.tsx";
 import { UpdateNotice } from "../components/update-notice.tsx";
-import { AI_PROMPT, CONCEPTS, editorLinesOf, secretLineOf, type PartView } from "../session/present.ts";
+import { AI_PROMPT, CONCEPTS, editorLinesOf, filledOf, secretLineOf, type PartView } from "../session/present.ts";
 import { clerkKey } from "../session/config.ts";
 import { useSession } from "../session/session-context.tsx";
 import { brand, editor, radius, space, type } from "../theme.ts";
@@ -38,20 +40,23 @@ export default function StartScreen() {
   const [notes, setNotes] = useState("");
   const [notesOpen, setNotesOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
-  const [starting, setStarting] = useState(false);
+  const [starting, setStarting] = useState<SessionMode | null>(null);
   const [error, setError] = useState<string | null>(null);
   const unfinished = state.turn && state.turn.expects !== "none" ? state.turn : null;
+  // at level 5 the parts fill on the phone until the map is submitted
+  const draft = unfinished?.expects === "map" ? state.draft : null;
+  const done = draft ? filledOf(draft) : (unfinished?.progress.movesDone ?? 0);
   const secretLine = secretLineOf(notes);
   const secret = secretLine !== null;
   const name = concept.trim();
   const picked = CONCEPTS.find((chip) => chip === name) ?? null;
 
-  const begin = async () => {
+  const begin = async (mode: SessionMode) => {
     if (!name || starting || secret) return;
-    setStarting(true);
+    setStarting(mode);
     setError(null);
-    const problem = await start({ concept: name, ...(notes.trim() ? { material: notes } : {}) });
-    setStarting(false);
+    const problem = await start({ concept: name, ...(notes.trim() ? { material: notes } : {}), ...(mode === "test" ? { mode } : {}) });
+    setStarting(null);
     if (problem) setError(problem);
     else router.push("/session");
   };
@@ -95,7 +100,7 @@ export default function StartScreen() {
                 <Body style={styles.flex} numberOfLines={1}>
                   {unfinished.mentefacto.concept}
                 </Body>
-                <Label dim>{`${unfinished.progress.movesDone} of ${unfinished.progress.movesTotal} parts`}</Label>
+                <Label dim>{`${done} of ${unfinished.progress.movesTotal} parts`}</Label>
               </View>
               <Button kind="secondary" label="Resume" onPress={() => router.push("/session")} />
             </Card>
@@ -117,7 +122,7 @@ export default function StartScreen() {
             autoCapitalize="none"
             accessibilityLabel="A concept to map"
             returnKeyType="go"
-            onSubmitEditing={() => void begin()}
+            onSubmitEditing={() => void begin("learn")}
           />
 
           <View style={styles.extras}>
@@ -147,8 +152,20 @@ export default function StartScreen() {
         </ScrollView>
 
         <View style={styles.foot}>
-          <Button label={name ? `Start with ${name}` : "Pick a concept"} busy={starting} disabled={!name || secret} onPress={() => void begin()} />
-          {clerkKey && <SignOut />}
+          <Button label={name ? `Start with ${name}` : "Pick a concept"} busy={starting === "learn"} disabled={!name || secret || starting !== null} onPress={() => void begin("learn")} />
+          <View style={styles.footRow}>
+            {!offline && (
+              <Button
+                kind="text"
+                label="Test myself"
+                hint="The whole map on your own, with only the facts. Your levels don't change."
+                busy={starting === "test"}
+                disabled={!name || secret || starting !== null}
+                onPress={() => void begin("test")}
+              />
+            )}
+            {clerkKey && <SignOut />}
+          </View>
         </View>
       </KeyboardSafe>
       <AskYourAi
@@ -218,6 +235,7 @@ const styles = StyleSheet.create({
   notes: { fontFamily: type.input.fontFamily, fontSize: type.input.fontSize, minHeight: 140, paddingHorizontal: space.l, paddingVertical: space.m, borderRadius: radius.field, borderWidth: 1, textAlignVertical: "top" },
   count: { alignSelf: "flex-end" },
   foot: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m, gap: space.xs },
+  footRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: space.xl },
   sheetTitle: { fontSize: 24, lineHeight: 30 },
   prompt: { borderRadius: radius.field, borderWidth: 1, padding: space.l },
   promptText: { lineHeight: 18 },

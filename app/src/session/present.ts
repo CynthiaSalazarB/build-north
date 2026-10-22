@@ -1,7 +1,7 @@
 // What the screens say and draw, as pure functions of the Turns and the transcript: the map's parts and their
 // points, the light (points proved so far), the hint card, Help's price, the reveal, and the gap. No React here,
 // so it's tested under Node. The rules behind the words are in CONTRACTS.md section 3.
-import { MOVE_ORDER, type Item, type Mentefacto, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
+import { MOVE_LABEL, MOVE_ORDER, type Item, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
 import type { Entry } from "./transcript.ts";
 
 /** The concepts Start offers (Lumente's board): what coding agents put in student projects. */
@@ -63,8 +63,11 @@ export function revealHoldOf(entries: readonly Entry[]): { key: string; entries:
   return reveal ? { key: reveal.id, entries: [reveal] } : null;
 }
 
-const hintsFor = (entries: readonly Entry[], move: MoveId) =>
-  entries.filter((e): e is Extract<Entry, { from: "app" }> => e.from === "app" && e.message.kind === "hint" && e.move === move);
+/** The hints on one part. A level-5 hint comes with no part: the n-th of those is about hintPartOf(n). */
+function hintsFor(entries: readonly Entry[], move: MoveId) {
+  let wholeMap = 0;
+  return entries.filter((e): e is Extract<Entry, { from: "app" }> => e.from === "app" && e.message.kind === "hint" && (e.move ?? hintPartOf(wholeMap++)) === move);
+}
 
 /** True once the part on screen took a retry (feedback on a wrong answer) or a Help: it can then light 1 point
  * at most. A right answer's feedback comes with the next question, so it's never after the latest one. */
@@ -102,7 +105,8 @@ export function partTextOf(map: Mentefacto, move: MoveId): string | null {
 
 export type PartState = "unasked" | "asked" | "lit" | "revealed";
 export type Pip = "earned" | "open" | "capped" | "claimed" | "missed";
-export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] };
+/** `pips` is null where nothing is scored yet: the whole map at level 5, until it's submitted. */
+export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] | null };
 
 const pipsFor = (points: number, capped = false): [Pip, Pip] => [points >= 1 ? "earned" : "open", points >= 2 ? "earned" : capped ? "capped" : "open"];
 
@@ -214,6 +218,75 @@ const SET_SECRET = /(?:pass(?:word|wd)?|secret|token|api[_-]?key|_key)\s*[:=]\s*
 export function secretLineOf(text: string): number | null {
   const i = text.split("\n").findIndex((line) => KEY_SHAPE.test(line) || SET_SECRET.test(line));
   return i < 0 ? null : i + 1;
+}
+
+// ---------- Level 5: the learner builds the whole map and asks the fact desk ----------
+
+/** How many of the four parts have something in them. */
+export const filledOf = (map: Mentefacto): number => MOVE_ORDER.filter((move) => itemsOf(map, move).length > 0).length;
+
+/** The whole map while the learner builds it: their words light a part (nothing is scored until they submit),
+ * an answer Help revealed stays dim, and an empty part is a "?". */
+export function wholeMapPartsOf(draft: Mentefacto, server: Mentefacto): PartView[] {
+  return MOVE_ORDER.map((move) => {
+    const text = partTextOf(draft, move);
+    const shown = itemsOf(server, move).length > 0;
+    return { move, state: text ? (shown ? "revealed" : "lit") : "unasked", text, pips: null };
+  });
+}
+
+/** What each part asks for, in plain words: the method's moves without its names. */
+export function partMeaningOf(move: MoveId, concept: string): string {
+  switch (move) {
+    case "supraordinate":
+      return `The closest bigger group that ${concept} belongs to.`;
+    case "exclusion":
+      return `Something close to ${concept} that it isn't, and how they differ.`;
+    case "isoordinate":
+      return `What something needs to count as ${concept}.`;
+    case "infraordinate":
+      return `The kinds of ${concept}.`;
+  }
+}
+
+/** Writes one part back into the map: blank items go, a note only stays on an exclusion. */
+export function withPart(map: Mentefacto, move: MoveId, items: readonly Item[]): Mentefacto {
+  const clean = items
+    .map((i) => ({ value: i.value.trim(), note: move === "exclusion" && i.note?.trim() ? i.note.trim() : null }))
+    .filter((i) => i.value);
+  return move === "supraordinate" ? { ...map, supraordinate: clean[0] ?? null } : { ...map, [move]: clean };
+}
+
+/** The ladder has four steps per part (three hints, then the answer). */
+const STEPS_PER_PART = 4;
+
+/** On the whole map, Help works on the first part whose hints haven't run out, in order (CONTRACTS.md
+ * section 3), so the n-th hint of the session (from 0) is about this part. */
+export const hintPartOf = (n: number): MoveId => MOVE_ORDER[Math.min(Math.floor(n / STEPS_PER_PART), MOVE_ORDER.length - 1)]!;
+
+/** The n-th hint of the session (from 0) is the first on its part, the one that costs the point. */
+export const firstOnPart = (n: number) => n % STEPS_PER_PART === 0;
+
+/** Help on the whole map, under the firefly: the first Help on a part costs a point, the next ones nothing more
+ * until the answer itself. Null once every part has been revealed. */
+export function wholeMapHelpOf(hintsUsed: number): { tag: string; label: string } | null {
+  if (hintsUsed >= STEPS_PER_PART * MOVE_ORDER.length) return null;
+  return firstOnPart(hintsUsed) ? { tag: "help −1", label: "Help, costs a point" } : { tag: "help", label: "More help" };
+}
+
+const LABELED = new RegExp(`^(${MOVE_ORDER.map((m) => MOVE_LABEL[m]).join("|")}): ([\\s\\S]+)$`);
+
+/** The whole-map evaluator's note on each part. The orchestrator writes each one as "Bigger group: …"
+ * (submitMap in agents/src/orchestrator/advance.ts). */
+export function partNotesOf(messages: readonly Message[]): Partial<Record<MoveId, string>> {
+  const notes: Partial<Record<MoveId, string>> = {};
+  for (const message of messages) {
+    if (message.kind !== "feedback") continue;
+    const match = LABELED.exec(message.text);
+    const move = match && MOVE_ORDER.find((m) => MOVE_LABEL[m] === match[1]);
+    if (move) notes[move] = match[2]!.trim();
+  }
+  return notes;
 }
 
 /** What to paste into a coding agent in your project, so its answer can go in your notes. */

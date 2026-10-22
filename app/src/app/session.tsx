@@ -1,7 +1,7 @@
 // The session (#6, #7, round 9 "Lumente"): the guess, then the work (the map in the light the learner has earned,
-// the firefly's question with the part it asks about, and the one input the latest Turn asks for), then the
-// result. A single route with no id in the path, so the web build stays static (decision 14, #27). Closing saves:
-// the start screen offers to resume.
+// the firefly's question with the part it asks about, and the one input the latest Turn asks for, or at level 5
+// the whole map with the fact desk), then the result. A single route with no id in the path, so the web build
+// stays static (decision 14, #27). Closing saves: the start screen offers to resume.
 import type { Turn } from "@build-north/agents";
 import { Redirect, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
@@ -12,6 +12,7 @@ import { GuessScreen } from "../components/guess.tsx";
 import { Ask, Aside, FactCard, Failure, HintCard, LearnerMessage, Nudge, Revealed, useSlow, Waiting } from "../components/messages.tsx";
 import { ResultScreen } from "../components/result.tsx";
 import { SessionBar } from "../components/session-bar.tsx";
+import { WholeMapScreen } from "../components/whole-map.tsx";
 import { Body, Button, KeyboardSafe, Screen } from "../components/ui.tsx";
 import { tick } from "../haptics.ts";
 import {
@@ -22,6 +23,7 @@ import {
   helpOf,
   isReveal,
   justLitOf,
+  partNotesOf,
   partsOf,
   provedOf,
   revealHoldOf,
@@ -33,7 +35,7 @@ import { size, space } from "../theme.ts";
 
 export default function SessionScreen() {
   const router = useRouter();
-  const { state, send, retry, start } = useSession();
+  const { state, send, retry, start, edit } = useSession();
   const [again, setAgain] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null });
   const { turn } = state;
   if (!turn) return <Redirect href="/" />;
@@ -55,9 +57,10 @@ export default function SessionScreen() {
   }
   if (turn.result && turn.expects === "none") {
     const concept = turn.mentefacto.concept;
+    // a self-test is tried again as a self-test
     const tryAgain = async () => {
       setAgain({ busy: true, error: null });
-      const problem = await start({ concept });
+      const problem = await start({ concept, ...(state.mode === "test" ? { mode: state.mode } : {}) });
       setAgain({ busy: false, error: problem });
     };
     return (
@@ -65,12 +68,16 @@ export default function SessionScreen() {
         concept={concept}
         result={turn.result}
         map={turn.mentefacto}
+        notes={partNotesOf(turn.messages)}
         onAgain={() => void tryAgain()}
         againBusy={again.busy}
         againError={again.error}
         onDone={home}
       />
     );
+  }
+  if (turn.expects === "map") {
+    return <WholeMapScreen turn={turn} state={state} send={send} retry={retry} edit={edit} onClose={close} />;
   }
   return <WorkScreen turn={turn} state={state} send={send} retry={retry} onClose={close} />;
 }

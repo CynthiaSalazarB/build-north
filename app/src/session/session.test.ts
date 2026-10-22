@@ -7,7 +7,7 @@ import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type
 import { createApiClient } from "./api-client.ts";
 import { ClientError } from "./client.ts";
 import { createFixtureClient } from "./fixture-client.ts";
-import { echoFor, failed, initialState, received, sent } from "./transcript.ts";
+import { blankMap, drafted, echoFor, failed, initialState, received, sent, startedWith, withRevealed } from "./transcript.ts";
 
 const fixtureTurns = sessionOne.map((step) => Turn.parse(step.turn));
 const first = fixtureTurns[0]!;
@@ -98,4 +98,59 @@ test("a 409 with the latest Turn is drawn; other errors carry the server's messa
 
   const down = createApiClient({ baseUrl: "http://api.test", fetch: (async () => { throw new TypeError("network"); }) as unknown as typeof fetch });
   await assert.rejects(down.start({ concept: "x" }), { status: null, retryable: true });
+});
+
+/** A level-5 Turn: the whole map, as the orchestrator sends it after the guess. */
+function wholeMap(over: Partial<Turn> = {}): Turn {
+  return Turn.parse({
+    sessionId: "ses_5",
+    turn: 2,
+    phase: "move",
+    move: null,
+    level: 5,
+    messages: [{ agent: "app", kind: "question", text: "Build the mentefacto for CORS. Ask me any facts you need." }],
+    expects: "map",
+    scaffold: null,
+    mentefacto: blankMap("CORS"),
+    example: null,
+    progress: { movesDone: 0, movesTotal: 4, hintsUsed: 0 },
+    result: null,
+    error: null,
+    ...over,
+  });
+}
+
+test("a self-test starts in test mode, and the learner's map stays on the phone until they submit", () => {
+  let state = startedWith(wholeMap(), "test");
+  assert.equal(state.mode, "test");
+  assert.deepEqual(state.draft, blankMap("CORS"));
+  const mine = { ...blankMap("CORS"), supraordinate: { value: "web security", note: null }, infraordinate: [{ value: "simple requests", note: null }] };
+  state = drafted(state, mine);
+  // a fact desk answer keeps the map as the learner left it
+  state = received(sent(state, { turn: 2, question: "Does curl get blocked?" }), wholeMap({ turn: 3, messages: [{ agent: "fact_desk", kind: "fact", text: "No: browsers enforce it." }] }));
+  assert.deepEqual(state.draft, mine);
+  assert.equal(state.entries.at(-2)?.from, "learner");
+});
+
+test("an answer Help revealed joins the learner's map once: a bigger group replaces theirs, list items are added", () => {
+  const mine = { ...blankMap("CORS"), supraordinate: { value: "web security", note: null }, infraordinate: [{ value: "simple requests", note: null }] };
+  const server = {
+    ...blankMap("CORS"),
+    supraordinate: { value: "browser security mechanism", note: null },
+    infraordinate: [{ value: "Simple Requests", note: null }, { value: "preflighted requests", note: null }],
+  };
+  const joined = withRevealed(mine, server);
+  assert.deepEqual(joined.supraordinate, server.supraordinate);
+  assert.deepEqual(joined.infraordinate.map((i) => i.value), ["simple requests", "preflighted requests"]);
+  assert.deepEqual(withRevealed(joined, server), joined);
+  // the learner's own map isn't changed in place
+  assert.equal(mine.supraordinate.value, "web security");
+});
+
+test("the map goes once the result comes back, and only a level-5 Turn takes edits", () => {
+  let state = startedWith(wholeMap());
+  state = received(state, { ...wholeMap({ turn: 3, phase: "result", expects: "none" }), result: null });
+  assert.equal(state.draft, null);
+  assert.equal(drafted(state, blankMap("x")).draft, null);
+  assert.equal(drafted(received(initialState, first), blankMap("x")).draft, null);
 });

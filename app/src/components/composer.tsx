@@ -1,6 +1,7 @@
 // The bottom of a session screen (round 9 "Lumente"): the one input the latest Turn asks for (`expects`). Help is
 // the firefly itself until the first hint; after it, "More help" sits by the input. A revealed answer holds the
-// next question behind "Next question". Everything waits while a call is pending (decision 18).
+// next question behind "Next question". Everything waits while a call is pending (decision 18). The guess has its
+// own screen (guess.tsx), and so does the whole map at level 5 (whole-map.tsx).
 import type { Turn } from "@build-north/agents";
 import { useState } from "react";
 import { StyleSheet, View } from "react-native";
@@ -37,9 +38,8 @@ export function Composer({ turn, pending, placeholder, moreHelp, onNext, onSend 
           <Button label="Continue" busy={pending} onPress={() => onSend({ action: "continue" })} />
         </View>
       );
+    // the guess and the whole map (level 5) have their own screens
     case "map":
-      // Building the whole map alone is the level-5 screen (#26).
-      return null;
     case "prediction":
     case "none":
       return null;

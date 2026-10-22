@@ -97,13 +97,15 @@ export function Nudge({ text, capNote }: { text: string; capNote: boolean }) {
 }
 
 /** A hint: amber, the firefly's light. Its head says which of the three it is (`n`) and, on a part's first, its price. */
-export function HintCard({ message, n, capNote }: { message: Message; n: number; capNote: boolean }) {
+export function HintCard({ message, n, capNote, part }: { message: Message; n: number; capNote: boolean; part?: string }) {
   const c = useColors();
   const card = hintCardOf(n, n === 1);
+  // on the whole map (level 5) the card names the part it helps with
+  const title = part ? `${part} · ${card.title}` : card.title;
   return (
-    <View style={[styles.hint, { backgroundColor: c.hintContainer }]} role="note" accessibilityLabel={`${card.title}. ${message.text}${capNote ? ` ${card.note}` : ""}`}>
+    <View style={[styles.hint, { backgroundColor: c.hintContainer }]} role="note" accessibilityLabel={`${title}. ${message.text}${capNote ? ` ${card.note}` : ""}`}>
       <View style={styles.hintHead}>
-        <Text style={[type.label, { color: c.hint }]}>{card.title}</Text>
+        <Text style={[type.label, styles.hintTitle, { color: c.hint }]}>{title}</Text>
         <View style={styles.hintSteps}>
           {[1, 2, 3].map((n) => (
             <View key={n} style={[styles.step, n <= card.filled ? { backgroundColor: c.hint } : { borderColor: c.hint, borderWidth: 1 }]} />
@@ -210,7 +212,8 @@ const styles = StyleSheet.create({
   replyText: { marginTop: 2 },
   note: { marginTop: 6 },
   hint: { borderRadius: radius.card, paddingVertical: 14, paddingHorizontal: space.l, boxShadow: "0 0 26px rgba(242, 184, 75, 0.4)" },
-  hintHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  hintHead: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: space.s },
+  hintTitle: { flexShrink: 1 },
   hintSteps: { flexDirection: "row", gap: space.xs },
   step: { width: 7, height: 7, borderRadius: radius.point },
   hintText: { marginTop: 6, lineHeight: 25 },

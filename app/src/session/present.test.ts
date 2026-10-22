@@ -10,11 +10,17 @@ import {
   editorLinesOf,
   exampleParts,
   eyebrowOf,
+  filledOf,
+  firstOnPart,
   gapOf,
   helpOf,
   hintCardOf,
+  hintPartOf,
   inlineCodeOf,
+  itemsOf,
   justLitOf,
+  partMeaningOf,
+  partNotesOf,
   partsOf,
   partTextOf,
   pointsOf,
@@ -23,13 +29,16 @@ import {
   revealHoldOf,
   secretLineOf,
   waitingLineOf,
+  wholeMapHelpOf,
+  wholeMapPartsOf,
+  withPart,
 } from "./present.ts";
-import { initialState, received, sent, type Entry } from "./transcript.ts";
+import { blankMap, initialState, received, sent, type Entry } from "./transcript.ts";
 
 const turns = sessionOne.map((step) => Turn.parse(step.turn));
 const turnAt = (n: number) => turns.find((t) => t.turn === n)!;
 const through = (last: number) => turns.filter((t) => t.turn <= last).reduce(received, initialState);
-const states = (n: number) => partsOf(turnAt(n), through(n).entries).map((p) => `${p.state}:${p.pips.join("+")}`);
+const states = (n: number) => partsOf(turnAt(n), through(n).entries).map((p) => `${p.state}:${p.pips?.join("+")}`);
 
 test("Start opens on the concept's line of code, or a comment for a concept typed in", () => {
   assert.deepEqual(editorLinesOf("API")[1], { n: 12, text: "app.get('/api/users/:id', getUser);", current: true });
@@ -64,7 +73,7 @@ test("the result marks the points the guess claimed but didn't prove, first unpr
   const last = turnAt(14);
   const parts = resultPartsOf(last.result!, last.mentefacto);
   assert.deepEqual(
-    parts.map((p) => `${p.state}:${p.pips.join("+")}`),
+    parts.map((p) => `${p.state}:${p.pips?.join("+")}`),
     ["lit:earned+missed", "lit:earned+earned", "lit:earned+missed", "lit:earned+open"],
   );
   assert.equal(parts[1]!.text, "not dictatorship");
@@ -164,4 +173,53 @@ test("the transcript doesn't echo the guess, and screen readers hear what's happ
   assert.equal(waitingLineOf({ turn: 2, text: "x" }), "Checking your answer.");
   assert.equal(waitingLineOf({ turn: 2, question: "Is it a kind of token?" }), "Looking up the fact.");
   assert.equal(waitingLineOf({ turn: 2, action: "help" }), "Finding a hint.");
+});
+
+test("on the whole map, Help costs a point on each new part, then names the part it helps", () => {
+  assert.deepEqual(wholeMapHelpOf(0), { tag: "help −1", label: "Help, costs a point" });
+  assert.deepEqual(wholeMapHelpOf(1), { tag: "help", label: "More help" });
+  // the fourth Help revealed the bigger group, so the next one starts on what it isn't
+  assert.equal(wholeMapHelpOf(4)?.tag, "help −1");
+  assert.equal(wholeMapHelpOf(16), null);
+  assert.deepEqual([0, 3, 4, 8, 15].map(hintPartOf), ["supraordinate", "supraordinate", "exclusion", "isoordinate", "infraordinate"]);
+  assert.deepEqual([0, 1, 4, 5].map(firstOnPart), [true, false, true, false]);
+});
+
+test("a part is written back clean: blanks go, and only an exclusion keeps its difference", () => {
+  const map = blankMap("CORS");
+  const exclusion = withPart(map, "exclusion", [
+    { value: " same-origin policy ", note: " it relaxes that policy " },
+    { value: "  ", note: "ignored" },
+    { value: "a firewall", note: " " },
+  ]);
+  assert.deepEqual(exclusion.exclusion, [
+    { value: "same-origin policy", note: "it relaxes that policy" },
+    { value: "a firewall", note: null },
+  ]);
+  assert.deepEqual(withPart(map, "isoordinate", [{ value: "an Origin header", note: "dropped" }]).isoordinate, [{ value: "an Origin header", note: null }]);
+  assert.equal(withPart(map, "supraordinate", [{ value: "", note: null }]).supraordinate, null);
+  assert.equal(filledOf(exclusion), 1);
+  assert.deepEqual(itemsOf(withPart(map, "supraordinate", [{ value: "browser security mechanism", note: null }]), "supraordinate"), [
+    { value: "browser security mechanism", note: null },
+  ]);
+});
+
+test("the whole map lights the learner's words unscored, and keeps what Help revealed dim", () => {
+  const draft = withPart(withPart(blankMap("CORS"), "supraordinate", [{ value: "a browser security rule", note: null }]), "exclusion", [{ value: "a firewall", note: null }]);
+  const server = { ...blankMap("CORS"), exclusion: [{ value: "a firewall", note: null }] };
+  assert.deepEqual(
+    wholeMapPartsOf(draft, server).map((p) => `${p.state}:${p.text}:${p.pips}`),
+    ["lit:a browser security rule:null", "revealed:not a firewall:null", "unasked:null:null", "unasked:null:null"],
+  );
+});
+
+test("the whole-map evaluator's note on each part comes off its label", () => {
+  const notes = partNotesOf([
+    { agent: "evaluator", kind: "feedback", text: "Bigger group: 'Security' is too broad. What's the closest group?" },
+    { agent: "evaluator", kind: "feedback", text: "What it isn't: A sharp exclusion." },
+    { agent: "coach", kind: "summary", text: "Bigger group: not a note" },
+    { agent: "evaluator", kind: "feedback", text: "Not quite: a law is one rule." },
+  ]);
+  assert.deepEqual(notes, { supraordinate: "'Security' is too broad. What's the closest group?", exclusion: "A sharp exclusion." });
+  assert.equal(partMeaningOf("isoordinate", "CORS"), "What something needs to count as CORS.");
 });
