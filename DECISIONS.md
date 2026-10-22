@@ -417,6 +417,8 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   learners' text that we haven't settled.
 - **Pattern / trade-off:** a scope cut to protect the core. One prize fewer; a memory of each learner's
   habits, for the coach and the hint giver, is parked in the Vision and Scope doc.
+- **Superseded the same day** by "Agent Memory contract: facts the agents read, ids they may cite, a view
+  the app shows" (below): we enter the prize, with no learner text in memory.
 
 ### 2026-10-22 · The light grows over all 8 points
 - **Decision:** the light grows over all 8 points in smaller steps: the dark stages spread over 0 to 6
