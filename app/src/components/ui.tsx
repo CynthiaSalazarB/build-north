@@ -29,6 +29,7 @@ import { SafeAreaView, useSafeAreaInsets, type Edge } from "react-native-safe-ar
 import { isWeb, lightFor, maxContentWidth, motion, page, palette, radius, size, space, type, wideFrom, type Colors, type Mode } from "../theme.ts";
 import { Icon, type IconName } from "./icons.tsx";
 import { Light } from "./light.tsx";
+import { voiceLabel, type VoiceState } from "./voice.ts";
 
 const LightContext = createContext(0);
 
@@ -217,6 +218,34 @@ export function IconButton({ icon, label, onPress, disabled, big = false }: { ic
   );
 }
 
+/** The mic beside a field: an icon button that turns amber with a stop square while listening. Hidden where there
+ * is no speech recognition. The field itself shows the words; this never sends. */
+export function MicButton({ state, onPress }: { state: VoiceState; onPress: () => void }) {
+  const c = useColors();
+  if (state.kind === "unsupported") return null;
+  const listening = state.kind === "listening";
+  const { label, hint } = voiceLabel(state);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      accessibilityState={{ selected: listening }}
+      onPress={onPress}
+      hitSlop={size.hitSlop}
+      style={({ pressed, hovered }: Interaction) => [
+        styles.iconButton,
+        { backgroundColor: c.controlFill, borderColor: listening ? c.questionOutline : hovered ? c.onSurfaceVariant : c.outline },
+        listening && styles.listening,
+        easeOnWeb,
+        pressed && styles.pressed,
+      ]}
+    >
+      <Icon name={listening ? "stop" : "mic"} color={listening ? c.firefly : c.onSurface} />
+    </Pressable>
+  );
+}
+
 /** A concept, picked in one tap; the picked one is amber. */
 export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const c = useColors();
@@ -359,6 +388,7 @@ const styles = StyleSheet.create({
   pressed: { transform: [{ scale: 0.97 }] },
   center: { alignItems: "center", justifyContent: "center", padding: space.xl },
   iconButton: { width: size.iconButton, height: size.iconButton, borderRadius: radius.iconButton, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  listening: { borderWidth: 1.5 },
   bigIcon: { width: size.button, height: size.button },
   chip: { height: size.iconButton, borderRadius: radius.chip, borderWidth: 1, paddingHorizontal: 14, justifyContent: "center" },
   card: { borderRadius: radius.card, borderWidth: 1, padding: space.l },

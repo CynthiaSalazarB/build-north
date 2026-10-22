@@ -16,7 +16,8 @@ import { Firefly } from "./firefly.tsx";
 import { FactCard, Failure, FlushReplies, HintCard, LearnerMessage, useSlow, Waiting } from "./messages.tsx";
 import { SessionBar } from "./session-bar.tsx";
 import { SiteHeader } from "./site-header.tsx";
-import { Body, Button, IconButton, KeyboardSafe, Label, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useColors, useEntrance, useWide } from "./ui.tsx";
+import { Body, Button, IconButton, KeyboardSafe, Label, MicButton, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useColors, useEntrance, useWide } from "./ui.tsx";
+import { useVoice } from "./use-voice.ts";
 
 /** Rows a list part can hold in the editor. */
 const MAX_ITEMS = 6;
@@ -253,6 +254,12 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
   const change = (i: number, patch: Partial<Item>) => setRows((now) => now.map((row, j) => (j === i ? { ...row, ...patch } : row)));
   const remove = (i: number) => setRows((now) => (now.length > 1 ? now.filter((_, j) => j !== i) : [{ value: "", note: null }]));
   const done = () => onDone(rows);
+  // the mic in the head dictates into the field last focused (the first item until one is)
+  const [focus, setFocus] = useState<{ i: number; part: "value" | "note" }>({ i: 0, part: "value" });
+  const voice = useVoice({
+    text: rows[focus.i]?.[focus.part] ?? "",
+    onText: (text) => change(focus.i, focus.part === "value" ? { value: text } : { note: text }),
+  });
   // no custom line height on these fields: on Android a multiline one would show only its last line
   const field = [styles.input, { fontFamily: type.input.fontFamily, fontSize: type.input.fontSize, color: c.onSurface, backgroundColor: c.surface, borderColor: c.fieldEdge }];
   const scrim = <Pressable style={[wide ? StyleSheet.absoluteFill : styles.flex, { backgroundColor: c.scrim }]} onPress={done} accessibilityRole="button" accessibilityLabel="Save and close" />;
@@ -268,6 +275,7 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
               <Title style={styles.title}>{PARTS[move].label}</Title>
               <Small dim>{partMeaningOf(move, concept)}</Small>
             </View>
+            <MicButton state={voice.state} onPress={voice.toggle} />
             <Button kind="secondary" label="Done" onPress={done} />
           </View>
           <ScrollView contentContainerStyle={styles.rows} keyboardShouldPersistTaps="handled">
@@ -285,6 +293,7 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
                     style={field}
                     returnKeyType="done"
                     onSubmitEditing={done}
+                    onFocus={() => setFocus({ i, part: "value" })}
                   />
                   {move === "exclusion" && (
                     <TextInput
@@ -296,6 +305,7 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
                       multiline
                       accessibilityLabel={`How item ${i + 1} is different`}
                       style={[field, styles.note]}
+                      onFocus={() => setFocus({ i, part: "note" })}
                     />
                   )}
                 </View>
