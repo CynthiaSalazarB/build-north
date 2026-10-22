@@ -6,6 +6,7 @@ import { test, type TestContext } from "node:test";
 import {
   AGENTS,
   FACT_DESK_REDIRECT,
+  MOVE_LABEL,
   MOVE_ORDER,
   Mastery as MasterySchema,
   Session as SessionSchema,
@@ -479,7 +480,7 @@ test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2
   assert.deepEqual(mastery.moves.map((m: { level: number }) => m.level), [2, 3, 2, 3]);
 });
 
-test("a test session starts at level 5, { question } gets the fact desk's answer, and mastery is unchanged when it ends", async (t) => {
+test("a test session starts at level 5, { question } gets the fact desk's answer, { mentefacto } the whole-map evaluator's score, and mastery is unchanged", async (t) => {
   // the coach joins the registry with #44; until then its call fails before Claude, and advance writes fixed text
   t.mock.method(console, "error", () => {});
   const store = memoryStore();
@@ -491,13 +492,10 @@ test("a test session starts at level 5, { question } gets the fact desk's answer
     ["fact_desk", { kind: "fact", answer: "Yes, when the fish, the plants and the water act on one another.", questionType: "breaking_case" }],
     // the model's words give the bigger group away; the learner only ever sees the fixed redirect (decision 17)
     ["fact_desk", { kind: "redirect", answer: "It's a kind of system.", questionType: "asks_for_structure" }],
+    ["evaluator_full", { rubric: MOVE_ORDER.map((move) => ({ move, quality: move === "isoordinate" ? 1 : 2, feedback: `Scripted ${move}.` })) }],
   ];
   const claude = fakeClaude(replies);
-  // Temporary: the whole-map evaluator joins the registry with #36; until then the test answers for it
-  const rubric = { rubric: MOVE_ORDER.map((move) => ({ move, quality: move === "isoordinate" ? 1 : 2, feedback: "Scripted." })) };
-  const callAgentFor: AppOptions["callAgentFor"] = (id) => async (agent, input) =>
-    agent === "evaluator_full" ? rubric : claude.callAgentFor(id)(agent, input);
-  const url = await start(t, { ...noDb, store, advance, callAgentFor });
+  const url = await start(t, { ...noDb, store, advance, callAgentFor: claude.callAgentFor });
   // answers the latest Turn with `body` and returns the next one
   const next = async (latest: { sessionId: string; turn: number }, body: object) => {
     const res = await answer(url, latest.sessionId, { ...body, turn: latest.turn });
@@ -520,21 +518,36 @@ test("a test session starts at level 5, { question } gets the fact desk's answer
   assert.deepEqual(redirect.messages, [{ agent: "fact_desk", kind: "redirect", text: FACT_DESK_REDIRECT }]);
 
   const item = (value: string, note: string | null = null) => ({ value, note });
-  const done = await next(redirect, {
-    mentefacto: {
-      concept: "ecosystem",
-      supraordinate: item("system"),
-      exclusion: [item("habitat", "a habitat is only the place, without what lives there")],
-      isoordinate: [item("living things"), item("their surroundings")],
-      infraordinate: [item("aquatic ecosystem"), item("land ecosystem")],
-    },
-  });
+  const mentefacto = {
+    concept: "ecosystem",
+    supraordinate: item("system"),
+    exclusion: [item("habitat", "a habitat is only the place, without what lives there")],
+    isoordinate: [item("living things"), item("their surroundings")],
+    infraordinate: [item("aquatic ecosystem"), item("land ecosystem")],
+  };
+  const done = await next(redirect, { mentefacto });
   assert.equal(done.expects, "none");
-  const { score, calibrationGap, masteryChanges, questions } = done.result;
-  assert.deepEqual({ score, calibrationGap, masteryChanges, questions }, { score: 7, calibrationGap: -2, masteryChanges: [], questions: { asked: 2, testing: 1 } });
+  const { score, calibrationGap, rubric, masteryChanges, questions } = done.result;
+  assert.deepEqual(
+    { score, calibrationGap, rubric, masteryChanges, questions },
+    {
+      score: 7,
+      calibrationGap: -2,
+      rubric: MOVE_ORDER.map((move) => ({ move, points: move === "isoordinate" ? 1 : 2 })),
+      masteryChanges: [],
+      questions: { asked: 2, testing: 1 },
+    },
+  );
+  // each move's feedback, after its plain label
+  assert.deepEqual(
+    done.messages.filter((m: { agent: string }) => m.agent === "evaluator").map((m: { text: string }) => m.text),
+    MOVE_ORDER.map((move) => `${MOVE_LABEL[move]}: Scripted ${move}.`),
+  );
   assert.equal(replies.length, 0);
-  // the fact desk's agent_log rows are the questions metric
-  assert.deepEqual(claude.logged.map((row) => [row.agent, row.session]), [["fact_desk", first.sessionId], ["fact_desk", first.sessionId]]);
+  // the fact desk's agent_log rows are the questions metric; the last row holds the map Claude scored
+  const id = first.sessionId;
+  assert.deepEqual(claude.logged.map((row) => [row.agent, row.session]), [["fact_desk", id], ["fact_desk", id], ["evaluator_full", id]]);
+  assert.deepEqual(claude.logged[2]!.input, { concept: "ecosystem", material: null, mentefacto });
   // the mastery from before the session, which the session never wrote
   assert.deepEqual(await (await fetch(`${url}/me/mastery`, { headers: as("leo") })).json(), before);
   assert.equal(masterySaves.mock.callCount(), 0);

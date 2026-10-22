@@ -267,7 +267,7 @@ defensible answer passes. In: `{ concept, material, mentefacto }`
 
 ```json
 { "rubric": [
-    { "move": "supraordinate", "quality": 1, "feedback": "'Money' is too broad. What's the closest group?" },
+    { "move": "supraordinate", "quality": 0, "feedback": "Inflation is related to money, but it isn't a kind of money." },
     { "move": "exclusion", "quality": 2, "feedback": "'One product getting more expensive' is an excellent exclusion." },
     { "move": "isoordinate", "quality": 2, "feedback": "..." },
     { "move": "infraordinate", "quality": 2, "feedback": "..." }
