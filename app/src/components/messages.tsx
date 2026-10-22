@@ -56,7 +56,11 @@ export function Ask({ text, eyebrow = null, firefly, fireflyAfter = false }: { t
   const drawing = (
     <>
       <Firefly state={firefly.state} />
-      {firefly.tag && <Text style={[type.tag, styles.fireflyTag, { color: c.question }]}>{firefly.tag}</Text>}
+      {firefly.tag && (
+        <Text style={[type.tag, styles.fireflyTag, { color: c.question }]} numberOfLines={1}>
+          {firefly.tag}
+        </Text>
+      )}
     </>
   );
   return (
@@ -252,7 +256,8 @@ const styles = StyleSheet.create({
   ask: { flexDirection: "row", alignItems: "flex-start", gap: 14 },
   reverse: { flexDirection: "row-reverse" },
   firefly: { width: COLUMN, alignItems: "center", gap: 2 },
-  fireflyTag: { textAlign: "center" },
+  // "help −1" is wider than the firefly's column, so the tag overflows it evenly instead of wrapping
+  fireflyTag: { textAlign: "center", minWidth: COLUMN + 16, marginHorizontal: -8 },
   askText: { flex: 1, gap: space.xs, paddingTop: 2 },
   code: { borderRadius: 4, borderWidth: 1, overflow: "hidden" },
   indent: { marginLeft: INDENT },

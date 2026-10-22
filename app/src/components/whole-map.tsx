@@ -198,7 +198,11 @@ function FireflyHelp({ help, pending, onHelp }: { help: ReturnType<typeof wholeM
   const drawing = (
     <>
       <Firefly state="fades" size={30} />
-      {help && <Text style={[type.tag, { color: c.question }]}>{pending ? "checking" : help.tag}</Text>}
+      {help && (
+        <Text style={[type.tag, styles.fireflyTag, { color: c.question }]} numberOfLines={1}>
+          {pending ? "checking" : help.tag}
+        </Text>
+      )}
     </>
   );
   if (!help || pending) {
@@ -360,6 +364,8 @@ const styles = StyleSheet.create({
   status: { flexDirection: "row", alignItems: "center", gap: space.m, marginTop: space.xs },
   you: { flexDirection: "row", alignItems: "center", gap: space.m, marginTop: space.s },
   firefly: { width: size.iconButton, alignItems: "center", gap: 2 },
+  // "help −1" is wider than the firefly's column, so the tag overflows it evenly instead of wrapping
+  fireflyTag: { textAlign: "center", minWidth: size.iconButton + 16, marginHorizontal: -8 },
   pressed: { opacity: 0.8 },
   asked: { flexDirection: "row", alignItems: "center", gap: space.xs },
   square: { width: 8, height: 8, borderRadius: radius.point },
