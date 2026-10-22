@@ -34,6 +34,7 @@ import {
   partNotesOf,
   partsOf,
   provedOf,
+  resultMessagesOf,
   revealHoldOf,
   waitingLineOf,
 } from "../session/present.ts";
@@ -46,6 +47,15 @@ export default function SessionScreen() {
   const { state, send, retry, start, edit } = useSession();
   const [again, setAgain] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null });
   const { turn } = state;
+  // The result shows first (decided Oct 22); its Turn expects continue, and the app asks for the coach's words
+  // at once, with no button, once per Turn. A failed ask shows Try again where the words go.
+  const coachDue = turn?.phase === "result" && turn.expects === "continue" && turn.result?.coach === null;
+  const askedCoach = useRef<number | null>(null);
+  useEffect(() => {
+    if (!turn || !coachDue || state.pending || state.failure || askedCoach.current === turn.turn) return;
+    askedCoach.current = turn.turn;
+    send({ action: "continue" });
+  }, [turn, coachDue, state.pending, state.failure, send]);
   if (!turn) return <Redirect href="/" />;
 
   const close = () => (router.canGoBack() ? router.back() : router.replace("/"));
@@ -63,7 +73,7 @@ export default function SessionScreen() {
       />
     );
   }
-  if (turn.result && turn.expects === "none") {
+  if (turn.phase === "result" && turn.result) {
     const concept = turn.mentefacto.concept;
     // a self-test is tried again as a self-test
     const tryAgain = async () => {
@@ -76,7 +86,9 @@ export default function SessionScreen() {
         concept={concept}
         result={turn.result}
         map={turn.mentefacto}
-        notes={partNotesOf(turn.messages)}
+        notes={partNotesOf(resultMessagesOf(state.entries))}
+        coachFailure={coachDue && state.failure ? state.failure.message : null}
+        onRetryCoach={retry}
         onAgain={() => void tryAgain()}
         againBusy={again.busy}
         againError={again.error}

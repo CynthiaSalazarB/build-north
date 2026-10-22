@@ -483,3 +483,20 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** a read model beside the system of record, with provenance on every row. The
   agents' inputs grow by one optional field, so every existing fixture and prompt stays valid; the cost is
   one more read before two of the six agent calls, bounded by the API at 1.5 s.
+
+### 2026-10-22 · The result shows first; the coach's words come right after
+- **Decision:** a session ends in two Turns. The last answer's Turn shows the result (every number is
+  code's) with `result.coach: null` and `expects: "continue"`; the app sends `continue` at once, with no
+  button, and the next Turn brings the coach's message. The result screen says "Writing your next step…"
+  until it arrives, and Try again if the call fails. If the coach itself fails, its Turn carries the fixed
+  text built from the numbers, as before.
+- **Instead of:** a faster model for the coach, or the API running the coach in the background while the
+  app polls for it.
+- **Why:** the last answer waited for two calls in a row, the evaluator and then the coach: 9.2 s, over the
+  8 s ceiling. The numbers are ready the moment the evaluator answers, and they're the moment of the
+  session (the gap), so they shouldn't wait for words. A faster coach would save less time and write
+  weaker messages. Memory adds its read before the coach, and now that wait is hidden too.
+- **Pattern / trade-off:** take the slow, non-critical call off the critical path (progressive rendering),
+  done as one more request from the app rather than a background job. Every session gets one more Turn
+  and request; in exchange there's no job queue and no polling, and the turn numbers already make the
+  extra request safe to resend.

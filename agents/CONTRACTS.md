@@ -79,6 +79,11 @@ asks for: `prediction` → `{ prediction }`, `text` → `{ text }`, `continue` �
 `map` → `{ question }` while the learner asks and `{ mentefacto }` to submit. `{ action: "help" }`
 works during the moves, the whole map included.
 
+The session ends in two Turns, so the result never waits for the coach. The last answer's Turn shows the
+result with `result.coach: null` and `expects: "continue"`; the app shows the result and sends
+`{ action: "continue" }` at once, with no button. The next Turn brings the coach's words (`result.coach`
+and a `summary` message) and `expects: "none"`.
+
 Every `/turns` body also carries `turn`: the number of the `Turn` it answers. If that number is
 older than the session's latest, the API returns the latest `Turn` as it is and doesn't call
 `advance` again, so an answer resent after a timeout is judged once. The app disables Send while a
@@ -127,7 +132,7 @@ type Turn = {
     hintsUsed: number;
     points?: { move: MoveId; points: 0 | 1 | 2 }[];   // each finished move's points, in the order they finished
   };
-  result: Result | null;                                    // only when phase = "result"
+  result: Result | null;   // only when phase = "result"; result.coach is null on the first of its two Turns
   error: { code: "agent_failed" | "rate_limited"; retryable: boolean } | null;
 };
 ```
@@ -180,6 +185,8 @@ Example, session 1, the learner just answered "A law?" for the bigger group:
 ```
 
 `calibrationGap = predictedScore − score`, in points. Positive means overconfident (predicted 7, got 5: +2).
+
+`coach` is null on the Turn that shows the result, and filled on the next one (section 1).
 
 `questions` counts what the learner asked the fact desk (level 5 and the testers' pre-test and
 post-test). `testing` is how many of those test the concept (compare, contrast, breaking case, what
@@ -375,7 +382,8 @@ fail on demo day. The shape below is the fixture's shape.
 ### Coach: the end-of-session message
 
 In: `{ concept, mentefacto, result, memory? }` with every number already computed by code; `result` comes
-without its `coach` field, since that's what the coach writes.
+without its `coach` field, since that's what the coach writes. Called on the Turn after the result, which
+the app asks for as soon as the result is on screen (section 1).
 
 ```json
 { "message": "You found the bigger group and a real exclusion, and your guess was closer than last time. 'What it needs' is next.",
@@ -398,7 +406,8 @@ Hint giver).
 
 | When | Rule |
 |---|---|
-| Session start | predict (0 to 8 points, after one line explaining the task) → short attempt ("in your own words") → worked example if any move is at level 1 → the four moves → result |
+| Session start | predict (0 to 8 points, after one line explaining the task) → short attempt ("in your own words") → worked example if any move is at level 1 → the four moves → result → the coach's words |
+| Session end | the last answer's Turn shows the result, every number from code, with `coach: null` and `expects: "continue"`; the app's `continue` gets the coach's Turn, which ends the session. If the coach fails, its Turn carries fixed text built from the numbers |
 | Level for a move | read from mastery; new learners start at 1. Watching the worked example moves every move to level 2 |
 | After an answer | evaluator. `correct` → accept, name the move, next move. `partial` / `incorrect` → the feedback only, and the learner tries again (a retry). No automatic hint |
 | Hint ladder | nudge → hint → partial → reveal, one step per Help, and every Help counts. At levels 2 and 3 the feedback after a retry already nudged (free), so the first Help gives `hint`. At levels 4 and 5 there is no free nudge |
@@ -481,9 +490,11 @@ tables above stay the record.
   $30 with auto-reload off (#20). Measure the cost of one full session (#10); if 20 tester sessions
   plus the demo don't fit in $30, `AGENT_MODEL` drops to `claude-sonnet-5-5`.
 - A turn waits for one call at a time: a wrong answer is the evaluator alone, a Help is the hint giver
-  alone, and the next move's question is asked alongside the move's first evaluation (section 3). The
-  one turn with two calls in a row is the last answer (evaluator, then coach). At level 5 each question
-  is one fact desk call (effort `low`).
+  alone, and the next move's question is asked alongside the move's first evaluation (section 3). No
+  turn waits for two calls in a row: the last answer is the evaluator alone and shows the result, and the
+  coach is its own Turn, asked for while the result is on screen (decided Oct 22: the two calls in a row
+  took 9.2 s). With memory on, the coach's memory read goes on that Turn. At level 5 each question is one
+  fact desk call (effort `low`).
 - Schemas: every object `additionalProperties: false` (Zod does this). No `min`/`max`/`minLength`:
   the SDK strips them and checks them locally. The first call with a new schema is slower (it gets
   compiled, then cached 24 h), so warm up every agent before the demo.

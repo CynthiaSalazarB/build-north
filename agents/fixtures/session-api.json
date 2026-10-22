@@ -659,7 +659,7 @@
     }
   },
   {
-    "note": "Recorded live on claude-opus-5-5. result.",
+    "note": "Recorded live on claude-opus-5-5. result. Split on Oct 22 the way advance now ends a session: the result first, without the coach's words.",
     "input": {
       "turn": 11,
       "text": "Web APIs, library APIs and operating system APIs."
@@ -680,7 +680,142 @@
           "agent": "app",
           "kind": "named_move",
           "text": "Those are called infraordinate classes: its types. You found them."
+        }
+      ],
+      "expects": "continue",
+      "scaffold": null,
+      "mentefacto": {
+        "concept": "API",
+        "supraordinate": {
+          "value": "software interface",
+          "note": null
         },
+        "exclusion": [
+          {
+            "value": "library",
+            "note": "a library is code you add to your project; an API is the interface you use to call it"
+          }
+        ],
+        "isoordinate": [
+          {
+            "value": "lets one program send requests and get responses",
+            "note": null
+          },
+          {
+            "value": "a defined set of requests and responses",
+            "note": null
+          },
+          {
+            "value": "hides how the other side works",
+            "note": null
+          }
+        ],
+        "infraordinate": [
+          {
+            "value": "REST",
+            "note": null
+          },
+          {
+            "value": "web APIs",
+            "note": null
+          },
+          {
+            "value": "library APIs",
+            "note": null
+          },
+          {
+            "value": "operating system APIs",
+            "note": null
+          }
+        ]
+      },
+      "example": null,
+      "progress": {
+        "movesDone": 4,
+        "movesTotal": 4,
+        "hintsUsed": 1,
+        "points": [
+          {
+            "move": "supraordinate",
+            "points": 1
+          },
+          {
+            "move": "exclusion",
+            "points": 2
+          },
+          {
+            "move": "isoordinate",
+            "points": 1
+          },
+          {
+            "move": "infraordinate",
+            "points": 1
+          }
+        ]
+      },
+      "result": {
+        "predictedScore": 7,
+        "score": 5,
+        "maxScore": 8,
+        "calibrationGap": 2,
+        "hintsUsed": 1,
+        "rubric": [
+          {
+            "move": "supraordinate",
+            "points": 1
+          },
+          {
+            "move": "exclusion",
+            "points": 2
+          },
+          {
+            "move": "isoordinate",
+            "points": 1
+          },
+          {
+            "move": "infraordinate",
+            "points": 1
+          }
+        ],
+        "masteryChanges": [
+          {
+            "move": "exclusion",
+            "from": 2,
+            "to": 3
+          },
+          {
+            "move": "isoordinate",
+            "from": 2,
+            "to": 3
+          },
+          {
+            "move": "infraordinate",
+            "from": 2,
+            "to": 3
+          }
+        ],
+        "questions": {
+          "asked": 0,
+          "testing": 0
+        },
+        "coach": null
+      },
+      "error": null
+    }
+  },
+  {
+    "note": "The coach's words from the same live run, in their own Turn: the app asks for them at once, with no button.",
+    "input": {
+      "turn": 12,
+      "action": "continue"
+    },
+    "turn": {
+      "sessionId": "ses_demo_api",
+      "turn": 13,
+      "phase": "result",
+      "move": null,
+      "level": null,
+      "messages": [
         {
           "agent": "coach",
           "kind": "summary",

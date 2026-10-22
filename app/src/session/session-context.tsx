@@ -32,9 +32,12 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     const sessionId = state.turn?.sessionId;
     if (!sessionId || state.pending) return;
     setState((s) => sent(s, body, retry));
+    // a reply for a session no longer on screen (the learner started another, say before the coach's words
+    // came) changes nothing
+    const same = (s: SessionState) => s.turn?.sessionId === sessionId;
     client.send(sessionId, body).then(
-      (turn) => setState((s) => received(s, turn)),
-      (error: unknown) => setState((s) => failed(s, messageOf(error), retryableOf(error))),
+      (turn) => setState((s) => (same(s) ? received(s, turn) : s)),
+      (error: unknown) => setState((s) => (same(s) ? failed(s, messageOf(error), retryableOf(error)) : s)),
     );
   };
 

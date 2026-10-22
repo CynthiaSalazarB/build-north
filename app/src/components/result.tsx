@@ -1,8 +1,9 @@
 // The end of a session (round 9 "Lumente", #34): the map in the light the learner reached, the gap as a coral
 // number and one sentence, the points proved and the ones felt sure but not proved, the guess against the score,
-// and the coach's next step. Every number comes from Turn.result, computed by code. The firefly is barely there:
-// it never reacts to a score. The gap arrives first, then the map, then the rest, one after another. In the
-// website layout the words are a column on the left and the map stands on the right.
+// and the coach's next step, which comes a moment after the numbers. Every number comes from Turn.result,
+// computed by code. The firefly is barely there: it never reacts to a score. The gap arrives first, then the map,
+// then the rest, one after another. In the website layout the words are a column on the left and the map stands
+// on the right.
 import type { Mentefacto, MoveId, Result } from "@build-north/agents";
 import { useEffect } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
@@ -22,6 +23,9 @@ type Props = {
   map: Mentefacto;
   /** The whole-map evaluator's note per part, after level 5 or a self-test. */
   notes?: Partial<Record<MoveId, string>>;
+  /** The coach's words come after the result (`result.coach` is null until then); this is why they didn't. */
+  coachFailure?: string | null;
+  onRetryCoach?: () => void;
   onAgain: () => void;
   againBusy?: boolean;
   againError?: string | null;
@@ -41,7 +45,7 @@ export function ResultScreen(props: Props) {
 }
 
 /** Inside the Screen, so the colors follow the light the score reached. */
-function ResultBody({ concept, result, map, notes = {}, onAgain, againBusy, againError, onDone }: Props) {
+function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoach, onAgain, againBusy, againError, onDone }: Props) {
   const c = useColors();
   const wide = useWide();
   const lit = useMode() === "day";
@@ -98,10 +102,19 @@ function ResultBody({ concept, result, map, notes = {}, onAgain, againBusy, agai
           ))}
         </Rise>
       )}
-      <Rise order={5} style={styles.coach}>
-        <Tag dim>next</Tag>
-        <Body>{result.coach.message}</Body>
-      </Rise>
+      {/* the coach's words arrive a moment after the numbers; screen readers hear them when they do */}
+      <View role="status" accessibilityLiveRegion="polite">
+        <Rise key={result.coach ? "coach" : "waiting"} order={5} style={styles.coach}>
+          <Tag dim>next</Tag>
+          {result.coach ? (
+            <Body>{result.coach.message}</Body>
+          ) : coachFailure ? (
+            <Failure message={coachFailure}>{onRetryCoach && <Button kind="secondary" label="Try again" onPress={onRetryCoach} />}</Failure>
+          ) : (
+            <Body dim>Writing your next step…</Body>
+          )}
+        </Rise>
+      </View>
       {againError && <Failure message={againError} />}
     </>
   );
