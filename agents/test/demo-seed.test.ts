@@ -14,7 +14,7 @@ describe("demo seed", () => {
     expect(seed.mastery.moves.every((m) => m.level === 5)).toBe(true);
   });
 
-  it("is the session the orchestrator produces: inflation, prediction made, waiting at the whole map", async () => {
+  it("is the session the orchestrator produces: CORS, prediction made, waiting at the whole map", async () => {
     const fresh: Session = {
       ...seed.session,
       turn: 0,
@@ -29,21 +29,22 @@ describe("demo seed", () => {
     }
     expect(state.session).toEqual(seed.session);
     expect(seed.session.lastTurn?.expects).toBe("map");
-    expect(seed.session.lastTurn?.messages[0]?.text).toBe("Build the mentefacto for inflation. Ask me any facts you need.");
+    expect(seed.session.lastTurn?.messages[0]?.text).toBe("Build the mentefacto for CORS. Ask me any facts you need.");
   });
 
-  it("the demo script produces the expected numbers: 6/8, gap +1, no hints, 4 questions / 3 testing", async () => {
+  it("the demo script produces the expected numbers: 6/8, gap +1, no hints, 3 questions / 2 testing", async () => {
     const answers: Record<string, unknown> = {
-      "Is it when one thing gets more expensive, or everything?": { kind: "fact", answer: "Everything, broadly.", questionType: "contrast" },
-      "If gas goes up, is that inflation?": { kind: "fact", answer: "Not by itself.", questionType: "breaking_case" },
-      "Does it have to last a long time to count?": { kind: "fact", answer: "Mostly yes.", questionType: "what_it_needs" },
-      "What is the bigger group that inflation belongs to?": { kind: "redirect", answer: "x", questionType: "asks_for_structure" },
+      "If I call my API with curl, does CORS still block it?": { kind: "fact", answer: "No.", questionType: "breaking_case" },
+      "Does the server have to send a header for the browser to allow it?": { kind: "fact", answer: "Yes.", questionType: "what_it_needs" },
+      "Is CORS a kind of security feature?": { kind: "redirect", answer: "x", questionType: "asks_for_structure" },
     };
     const call: CallAgent = async (agent, input) => {
       if (agent === "fact_desk") return answers[(input as { question: string }).question];
       if (agent === "evaluator_full") {
-        // "money" fails "inflation is a kind of money": 0 points (the real evaluator agrees, see play:demo).
-        return { rubric: MOVE_ORDER.map((move) => ({ move, quality: move === "supraordinate" ? 0 : 2, feedback: "..." })) };
+        // 1 point each: "CORS is a kind of security feature" is true, but a closer group fits in between, and
+        // the two types are split by different criteria. The real evaluator agrees, see eval:whole-map.
+        const flawed = (move: string) => move === "supraordinate" || move === "infraordinate";
+        return { rubric: MOVE_ORDER.map((move) => ({ move, quality: flawed(move) ? 1 : 2, feedback: "..." })) };
       }
       if (agent === "coach") return { message: "Almost all alone.", nextFocus: "supraordinate" };
       throw new Error(`unexpected ${agent}`);

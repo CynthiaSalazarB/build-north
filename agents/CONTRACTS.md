@@ -267,7 +267,7 @@ defensible answer passes. In: `{ concept, material, mentefacto }`
 
 ```json
 { "rubric": [
-    { "move": "supraordinate", "quality": 1, "feedback": "'Money' is too broad. What's the closest group?" },
+    { "move": "supraordinate", "quality": 0, "feedback": "Inflation is related to money, but it isn't a kind of money." },
     { "move": "exclusion", "quality": 2, "feedback": "'One product getting more expensive' is an excellent exclusion." },
     { "move": "isoordinate", "quality": 2, "feedback": "..." },
     { "move": "infraordinate", "quality": 2, "feedback": "..." }
@@ -425,8 +425,8 @@ with `error` set. What `callAgent` throws carries `code` and `retryable`, the tw
 
 ## 5. Notes for the API
 
-- Model from `AGENT_MODEL` (default `claude-opus-5-5`). Effort `low` for questioner and hint giver,
-  `medium` for the evaluators.
+- Model from `AGENT_MODEL` (default `claude-opus-5-5`). Effort `low` for questioner, hint giver and
+  coach, `medium` for the evaluators.
 - Latency budget: **median under 4 s per turn, never over 8 s**, measured at the walking skeleton
   (Oct 21, #7 and #10). The app shows a thinking indicator whenever a call is pending. If it's slower:
   lower the effort first, then move the Questioner and Hint giver to `claude-sonnet-5-5`.

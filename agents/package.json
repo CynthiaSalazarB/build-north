@@ -14,6 +14,8 @@
     "eval:questioner": "node --env-file-if-exists=../.env scripts/eval-questioner.ts",
     "eval:hint-giver": "node --env-file-if-exists=../.env scripts/eval-hint-giver.ts",
     "eval:fact-desk": "node --env-file-if-exists=../.env scripts/eval-fact-desk.ts",
+    "eval:whole-map": "node --env-file-if-exists=../.env scripts/eval-whole-map.ts",
+    "eval:coach": "node --env-file-if-exists=../.env scripts/eval-coach.ts",
     "play:session": "node --env-file-if-exists=../.env scripts/play-session.ts",
     "play:demo": "node --env-file-if-exists=../.env scripts/play-demo.ts"
   },
