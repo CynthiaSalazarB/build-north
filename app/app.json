@@ -36,7 +36,13 @@
       "@clerk/expo",
       "expo-secure-store",
       "expo-web-browser",
-      "expo-speech-recognition"
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Lumente uses the microphone only while the mic button is on, to type your answer.",
+          "speechRecognitionPermission": "Lumente turns what you say into text you can edit, only while the mic button is on."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
