@@ -1,13 +1,13 @@
 ---
 title: Project Wiki Index
 type: index
-updated: 2026-10-21
+updated: 2026-10-22
 total_pages: 4
 ---
 
 # Build North project wiki
 
-Shared notes for Reality Check: context, research and analysis that don't belong in the code.
+Shared notes for Lumente: context, research and analysis that don't belong in the code.
 Decisions go in [`DECISIONS.md`](../DECISIONS.md) and nowhere else. Longer reasoning behind one goes
 in the entry itself, or in a `context/` page the entry links to. Connection details and secrets never
 go here: the repo is public.
@@ -40,4 +40,4 @@ page under a Sources heading, the way the SurrealDB prize page does.
 
 | Page | Summary | Updated |
 |------|---------|---------|
-| [Product thesis](synthesis/product-thesis.md) | What Reality Check solves now, why it should work, what we claim and don't yet, the hard questions, and where it goes | 2026-10-21 |
+| [Product thesis](synthesis/product-thesis.md) | What Lumente solves now, why it should work, what we claim and don't yet, the hard questions, and where it goes | 2026-10-22 |

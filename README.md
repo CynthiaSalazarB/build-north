@@ -1,8 +1,8 @@
-# Reality Check (working name)
+# Lumente (working name)
 
 **Build with AI. Understand the concepts yourself.**
 
-For programming students who build with AI agents but can't explain what they built, Reality Check is
+For programming students who build with AI agents but can't explain what they built, Lumente is
 where they figure out the concepts their projects use. First they answer questions, then they ask their
 own, while the help fades level by level. Unlike AI study modes, it isn't a mode they can switch off
 halfway: they build the concept map themselves, and at the end they see their real score next to the
