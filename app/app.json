@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "Reality Check",
+    "name": "Lumente",
     "slug": "reality-check",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "realitycheck",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "dark",
     "runtimeVersion": {
       "policy": "fingerprint"
     },
     "android": {
       "package": "ca.buildnorth.realitycheck",
       "adaptiveIcon": {
-        "backgroundColor": "#14100C",
+        "backgroundColor": "#111114",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
@@ -28,9 +28,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#14100C",
+          "backgroundColor": "#111114",
           "image": "./assets/images/splash-icon.png",
-          "imageWidth": 160
+          "imageWidth": 200
         }
       ],
       "@clerk/expo",
