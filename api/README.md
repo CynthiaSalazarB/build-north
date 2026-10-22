@@ -65,8 +65,9 @@ one too), and mastery stays at level 1. That way the app runs against an API wit
 one structured-output call, set up from Cynthia's registry in `@build-north/agents` (`AGENTS`, #2):
 the agent's system prompt, the user message its `render` writes from the input, its effort, and its
 Zod schemas. The reply is checked against the output schema. Every call writes an `agent_log` row
-with its milliseconds and its cost in dollars. An agent that isn't in the registry yet (the coach,
-#44) fails before any call.
+with its milliseconds and its cost in dollars. An agent that isn't in the registry fails before any
+call. When the coach's call fails (#44), the session still ends: `advance` writes fixed text from the
+result's numbers instead.
 
 | Variable | What it does |
 |---|---|
@@ -94,6 +95,24 @@ again at $0 after a restart; the account's own balance, with auto-reload off (#2
   CONTRACTS.md section 4. They stay schemaless so the orchestrator's state can grow, but the fields
   the API relies on are typed, so a bad level or mode is refused instead of saved.
 
+## The demo profile
+
+```bash
+npm run seed:demo -w api -- <user id>
+```
+
+Loads Cynthia's demo profile ([`agents/fixtures/demo-seed.json`](../agents/fixtures/demo-seed.json),
+#32) for one user, through the same store the API reads: level 5 on all four moves, and the CORS
+session waiting at the whole map, with the prediction (7) already made. It prints the session's id.
+Running it again resets the mastery to the seed and adds a fresh waiting session; earlier sessions
+stay.
+
+- **The user id** is what the API keys rows by: the demo account's Clerk user id (its `sub`, now that
+  Clerk is in, #23), or an `x-dev-user` name for local work.
+- **The database** is the one the `SURREAL_*` variables name. With the root `.env` that's `dev`. For
+  demo day, set `SURREAL_DATABASE=prod` in the shell for that one run (a variable set in the shell wins
+  over `.env`), with a user that can write to `prod`.
+
 ## Deploy on Render
 
 Render dashboard → **New → Web Service**:
@@ -108,9 +127,9 @@ Render dashboard → **New → Web Service**:
 | Start command | `node api/src/server.ts` |
 | Health check path | `/health` (under Advanced) |
 | Instance type | Free while building (it sleeps after 15 min idle and takes about a minute to wake). Starter from Oct 22, per `DECISIONS.md` |
-| Environment | `CORS_ORIGIN`, the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `CLERK_JWT_KEY` (#23), `DEV_KEY` (Render's Generate button), `NODE_ENV=development` until the app signs in with Clerk (#22, #23), and `ANTHROPIC_API_KEY` with `AGENT_BUDGET_USD` for Claude calls (#10) |
+| Environment | `CORS_ORIGIN` (comma-separated: the Expo dev server and every web build's address, since a web build's Clerk token must come from one of them), the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `CLERK_JWT_KEY` (#23), and `ANTHROPIC_API_KEY` with `AGENT_BUDGET_USD` for Claude calls (#10) |
 
 The Node version comes from [`../.node-version`](../.node-version). Render sets `PORT` itself, and
-also sets `NODE_ENV=production` unless the service sets its own. That would refuse `x-dev-user` on the
-public URL before Clerk exists, so the service sets `NODE_ENV=development` for now. Delete that
-variable when Clerk lands (#23).
+also sets `NODE_ENV=production` unless the service sets its own, which turns `x-dev-user` off on the
+public URL. Since Oct 22 the service sets no `NODE_ENV`, so every caller signs in with Clerk (#22, #23);
+a `DEV_KEY` left on Render does nothing there.
