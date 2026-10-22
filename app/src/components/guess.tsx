@@ -92,7 +92,7 @@ function Guess({ guess, went, pending, onStep, footer }: GuessProps) {
   return (
     <ScrollView contentContainerStyle={styles.content}>
       <Rise style={styles.column}>
-        <Body dim>4 questions, 2 points each.</Body>
+        <Body dim>The map has 4 parts.</Body>
         <Title style={styles.question}>How many points will you prove?</Title>
         <View style={styles.stepper}>
           <IconButton big icon="minus" label="One point less" disabled={guess === 0 || pending} onPress={() => onStep(-1)} />
