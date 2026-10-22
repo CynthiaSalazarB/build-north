@@ -329,10 +329,11 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 
 ### 2026-10-22 · The app's design is Lumente (round 9)
 - **Decision:** one idea for the whole app: questions are the light. The map is four questions in the dark around
-  the concept; a firefly tutor asks them, its light points at the part being asked, and it is Help; an answer in the
-  learner's words lights that part. Night blue, amber and daylight white, with coral only for the gap; Newsreader,
-  Atkinson Hyperlegible Next and Atkinson Hyperlegible Mono. Working name Lumente (*lumen* plus *mente*, light and
-  mind). Board, tokens and contrast in `docs/design/09-lumente/`. Supersedes round 8, Open Box (#72, used on #81).
+  the concept; a firefly tutor asks them, a dashed amber line runs from it to the part being asked, and it is Help;
+  an answer in the learner's words lights that part. Near-black, amber and warm light, with coral only for the gap;
+  Newsreader, Atkinson Hyperlegible Next and Atkinson Hyperlegible Mono. Working name Lumente (*lumen* plus *mente*,
+  light and mind). Board, tokens and contrast in `docs/design/09-lumente/`. Supersedes round 8, Open Box (#72, used
+  on #81).
 - **Instead of:** round 8, which mixed four round 7 directions (a terminal, a test file, a cube, a mascot) into a
   look with no single idea; or the cave (round 6, and a version where shadows become real), which needs Plato's
   allegory to be read and whose blurred shadow cards read as loading placeholders.
@@ -341,15 +342,18 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   image) instead of borrowed conventions (spec files, CI checks). The metaphor costs a rebuild of the screens and a
   sentence in the pitch; borrowed conventions cost nothing but look like every dev tool. Understanding as light is
   already in everyday language ("it dawned on me"), so it needs no explanation (conceptual metaphor, Lakoff and
-  Johnson).
+  Johnson). The tech-student signal lives in the content: the learner's code on Start, code in the questions,
+  `Expected / Received` on the result.
 
-### 2026-10-22 · Progress is the sky: night to morning, one stage per point
-- **Decision:** the background moves through nine stages, one per point proved: night, pre-dawn, first light, dawn,
-  then sunrise at 5 points, when the text turns dark, then morning. The exact score stays in the map's points. The
-  guess screen previews the sky of the guess; locking it in returns to night.
-- **Instead of:** a progress bar or "3 of 4"; or staying at night with the light only in the map.
+### 2026-10-22 · Progress is the light: dark to light, one stage per point
+- **Decision:** a warm light grows from the top-right corner of a near-black screen, one stage per point proved; at
+  5 points it fills the screen and the text turns dark. The exact score stays in the map's points. The guess screen
+  previews the light of the guess; locking it in returns to the dark. Nothing blinks or pulses.
+- **Instead of:** a progress bar or "3 of 4"; or a night-blue sky going from night to morning (the first version),
+  which still looked like a sleep app.
 - **Why:** it gives the app more feeling and a better user experience.
 - **Pattern / trade-off:** ambient feedback (the environment is the progress bar). Less exact than a bar, so the
   points carry the score, and the text has to switch from light to dark at the right stage to stay readable: every
-  pair is checked in the contrast table in `docs/design/09-lumente/README.md`. The phone's light or dark setting no
-  longer drives session screens.
+  pair is checked against the real gradient in `docs/design/09-lumente/README.md`. Cues for ideas, not sleep: a
+  graph-paper grid, crisp corners, upright questions and a spark when a part lights. The phone's light or dark
+  setting no longer drives session screens.
