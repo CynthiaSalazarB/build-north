@@ -12,7 +12,7 @@ import { brand, page, radius, space, type, webSans } from "../theme.ts";
 
 /** The web page's title and description, in the static HTML, so a shared link previews well. */
 export function generateMetadata(): Metadata {
-  const title = `${brand.name}: can you explain the code your AI wrote?`;
+  const title = `${brand.name}: can you explain the idea behind the code your AI wrote?`;
   const description = "Pick a concept from your project. An AI tutor asks questions and never hands you the answer; each answer in your own words brings more light.";
   return { title, description, openGraph: { title, description } };
 }
@@ -48,7 +48,7 @@ export default function SignInScreen() {
             <Rise style={styles.intro}>
               <Small dim>{brand.tagline}</Small>
               <Text style={[type.display, { color: c.onSurface }]} accessibilityRole="header">
-                Can you explain the code your AI wrote?
+                Can you explain the idea behind the code your AI wrote?
               </Text>
               <Text style={[type.lead, { color: c.onSurfaceVariant }]}>{HOW}</Text>
             </Rise>
@@ -73,7 +73,7 @@ export default function SignInScreen() {
           <Text style={[type.wordmark, { color: c.onSurface }]}>{brand.name}</Text>
           <View style={styles.head}>
             <Firefly state="asks" />
-            <Title style={styles.flex}>Can you explain the code your AI wrote?</Title>
+            <Title style={styles.flex}>Can you explain the idea behind the code your AI wrote?</Title>
           </View>
           <Small dim>{HOW}</Small>
         </Rise>
