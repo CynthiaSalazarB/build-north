@@ -607,3 +607,21 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** a progressive web app on top of Expo Router's static output. In standalone mode
   on iOS, Google sign-in may bounce to Safari and lose the standalone window; the email code signs in
   without leaving it, and the testing notes say so.
+
+### 2026-10-23 · A session survives a reload or a killed app
+- **Decision:** the device keeps which session is on screen (its id, its mode, the notes it started with and,
+  at level 5, the map being built) in the browser's storage on the web and in a file in the app's documents
+  folder on a phone (`app/src/session/saved.ts`, `storage.ts`), and Start offers to resume it after a reload,
+  a closed tab or a killed app. Resuming reads the session's latest Turn back from the API (`GET /sessions/:id`,
+  which existed since #27 and nothing called), so the map, the points and the current question return and the
+  session goes on from that Turn; the earlier lines stay on the server. The record goes once the session is
+  over, on Delete my data and on sign-out. Demo mode keeps nothing.
+- **Instead of:** losing the session (a tester who refreshes the page, or whose phone kills the app in the
+  background, starts over while the server's copy stays half done), or keeping the whole transcript on the
+  device (more to keep in step with the server, and the learner's words on the device).
+- **Why:** tester day: five testers, each with a pre-test, a session and a post-test, on phones and laptops we
+  don't control. The server already kept every session; only the app forgot. `expo-file-system` is part of
+  every Expo build, so the fingerprint doesn't change and build 3 takes this as an update.
+- **Pattern / trade-off:** a pointer on the device, the state on the server. A resumed session shows the latest
+  Turn's lines, not the whole conversation (the map and the points carry the history); the pointer lives on
+  one device, so a session can't be picked up on another.

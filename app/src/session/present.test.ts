@@ -36,6 +36,7 @@ import {
   resultStepsOf,
   revealHoldOf,
   secretLineOf,
+  shareLineOf,
   waitingLineOf,
   wholeMapHelpOf,
   wholeMapPartsOf,
@@ -226,6 +227,11 @@ test("the gap is a signed number and one sentence", () => {
   assert.deepEqual(gapOf({ calibrationGap: 2 }), { headline: "You felt 2 points surer than you could explain.", note: "That's normal: explaining is how you find out.", over: true });
   assert.deepEqual(gapOf({ calibrationGap: -1 }), { headline: "You knew more than you felt: 1 point more.", note: null, over: false });
   assert.deepEqual(gapOf({ calibrationGap: 0 } as Pick<Result, "calibrationGap">), { headline: "Your guess was exactly right.", note: "You know what you know.", over: false });
+});
+
+test("what a learner shares is the concept and the numbers with the tagline and the address, never their words", () => {
+  const brand = { name: "Lumente", tagline: "Build with AI. Understand the concepts yourself.", site: "https://example.test" };
+  assert.equal(shareLineOf("JWT", { predictedScore: 6, score: 4 }, brand), "JWT on Lumente: I guessed 6 of 8 and proved 4. Build with AI. Understand the concepts yourself. https://example.test");
 });
 
 test("notes with a key, a token or a password stop at the phone, and the warning says which line", () => {
