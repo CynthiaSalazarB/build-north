@@ -27,7 +27,8 @@ crwl "https://nodejs.org/docs/latest-v24.x/api/test.html" -o markdown -b ignore_
 
 ## Install crwl in a cloud session
 
-A Claude Code cloud session does not have `crwl`. Install it once in the session (about a minute):
+A Claude Code cloud session (`CLAUDE_CODE_REMOTE` is `true`) does not have `crwl`. Install it once in
+the session (about a minute):
 
 ```bash
 command -v crwl >/dev/null || uv tool install crawl4ai \
@@ -39,5 +40,6 @@ Why Playwright is pinned: the cloud image has a Chromium build for one Playwrigh
 newer Chromium, and the crawl then fails with "Executable doesn't exist". The Playwright version in
 `/opt/node-tools` is the one that matches the Chromium on the image.
 
-On your own computer, install it with `pip install crawl4ai`, then run `crawl4ai-setup` one time to
-get its browser.
+On your own computer, do not install `crwl` without asking: the install is `pip install crawl4ai`, then
+`crawl4ai-setup`, which downloads a browser. If `crwl` is missing, ask the user first, and use WebFetch
+until they say yes.
