@@ -24,3 +24,4 @@
 | 2026-10-22 | add | context/status-oct22 | End of Oct 22: what is live, the open PRs and what each waits on, what is open on Cynthia and on Leo, the dates to the freeze |
 | 2026-10-22 | update | synthesis/plan-to-win, context/surrealdb-sponsor-prize | We enter the SurrealDB Agent Memory prize after all (#99, #107, #115, #112): section 4, decision 9, the categories and the credits row; the prize page says how |
 | 2026-10-22 | add | context/submission-checklist | What Devpost and each prize ask for, from the overview, rules, resources and SurrealDB's pack: no extra asks from SurrealDB; everyone must be 18+ and live in Canada |
+| 2026-10-23 | update | context/status-oct22 | #106: the README rewritten for judges in plain words, with demo-mode images; setup moved to docs/developers.md |

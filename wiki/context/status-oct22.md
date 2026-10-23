@@ -3,7 +3,7 @@ title: "Status, Oct 22 night: what is live, what is open, and who holds it"
 type: context
 related: ["[[plan-to-win]]", "[[expo-prize-plan]]", "[[hosting-setup]]"]
 created: 2026-10-22
-updated: 2026-10-22
+updated: 2026-10-23
 ---
 
 Where Leo's side stands late on Oct 22, written for the next session that opens this repo (Cynthia's
@@ -33,7 +33,7 @@ All three of Leo's are ready for review; one teammate reviews, the merge is the 
 | #103 | The app's final polish, with `main` merged in through #123 and Cynthia's three asks done (the points rule under the guess squares, "write your answers on the map", an audio line that promises only what we control; the facts are in the PR body). Plus the review fixes of Oct 22 night: the mic hands over between fields cleanly and ignores a second tap during the start, the coach is asked on a second session, Try again sends the map or the guess as it is on screen, Delete my data never sticks. Tests: app 49/49, api 42 + 1 skipped, agents 102/102; tsc clean. Native module inside, and `eas fingerprint:compare` says this tree matches build 3, so merging keeps `main` on build 3's runtime | Cynthia's review and merge. Leo's real-microphone test on the phone has not happened yet; the phones already run this code through the preview updates, so the merge changes nothing on them. Cynthia's timing rule stands: tonight, or after Oct 23, never on tester day |
 | #104 | `npm run export:testers -w api` (the grading sheet's rows and the maps to grade, pseudonyms only, #50) and `npm run smoke -w api` (#45, #37). Reviewed by Cynthia on Oct 22 | Cynthia's merge |
 | #124 | API: a Turn with `error` saves nothing (it wrote the stale session and mastery back), mastery is written only for the moves the Turn changed (every turn wrote all four from a seconds-old copy, so another session's level-up could go back down), and `REQUESTS_PER_MINUTE` (the limit is per IP; a room shares one; 60 when unset). api 43 pass + 1 skipped, tsc clean. Three smaller things seen and left for after Oct 23 are in the PR body | Cynthia's review and merge. Render deploys `main` on merge |
-| #106 | The final README (#55), with `docs/testing-notes.md` for judges and the architecture diagram, Cynthia's memory paragraph merged in. Draft until the freeze; one TODO: the pilot results | A teammate follows it from a clean clone; Cynthia merges after the freeze |
+| #106 | The final README (#55), rewritten Oct 23 in plain words for judges and organizers: what Lumente is and who it's for, why, how a session works, the idea behind it, mission and vision, how to try it, the judging criteria, the prize tracks. A hero image and four screenshots from demo mode. Setup, tests and team rules moved to `docs/developers.md`; `main` merged in. Draft until the freeze; the PR body lists 8 `TODO(Cynthia)` items (links, pilot numbers, names, disclosures, wording) | Cynthia fills the TODOs and merges after the freeze |
 
 Merged on Oct 22: #79, #81, #82, #88 to #100, #102, #105, #107 to #111, #113 to #123.
 
