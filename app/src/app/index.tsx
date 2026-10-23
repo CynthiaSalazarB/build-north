@@ -166,6 +166,8 @@ export default function StartScreen() {
         <SiteHeader end={<Account solid />} />
         <View style={styles.split}>
           <ScrollView style={styles.words} contentContainerStyle={styles.wordsContent} keyboardShouldPersistTaps="handled">
+            {/* an Android tablet in the website layout still gets "Update ready"; the web never does */}
+            <UpdateNotice />
             <Rise style={styles.heading}>
               <Text style={[type.display, { color: c.onSurface }]} accessibilityRole="header">
                 {QUESTION}

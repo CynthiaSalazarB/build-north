@@ -20,16 +20,17 @@ export function UpdateNotice() {
 }
 
 function Pending() {
-  const { isUpdateAvailable, isUpdatePending, isDownloading } = Updates.useUpdates();
+  const { isUpdateAvailable, isUpdatePending, isChecking, isDownloading } = Updates.useUpdates();
   // the launch already checked, so the first check here is a minute in at the earliest
   const checkedAt = useRef(Date.now());
   const check = useCallback(() => {
     const now = Date.now();
-    if (now - checkedAt.current < CHECK_EVERY_MS) return;
+    // one check or download at a time, and a check that fails (offline, rate limited) changes nothing: the
+    // next one tries again
+    if (isChecking || isDownloading || now - checkedAt.current < CHECK_EVERY_MS) return;
     checkedAt.current = now;
-    // a check that fails (offline, rate limited) changes nothing; the next one tries again
     void Updates.checkForUpdateAsync().catch(() => undefined);
-  }, []);
+  }, [isChecking, isDownloading]);
   useEffect(() => {
     const listener = AppState.addEventListener("change", (state) => {
       if (state === "active") check();

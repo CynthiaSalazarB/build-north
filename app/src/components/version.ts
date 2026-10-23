@@ -17,8 +17,14 @@ export type Running = {
   updateId: string | null;
 };
 
-/** "Oct 23, 1:15 PM", in the device's time zone. */
-const whenOf = (date: Date) => date.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+/** "Oct 23, 1:15 PM", in the device's time zone; the plain date on a JavaScript engine without Intl. */
+function whenOf(date: Date): string {
+  try {
+    return date.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  } catch {
+    return date.toISOString().slice(0, 10);
+  }
+}
 
 export function versionLineOf(running: Running): string {
   const app = running.version ? `${running.name} ${running.version}` : running.name;
