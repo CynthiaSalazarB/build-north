@@ -1,7 +1,7 @@
 // The session the screens share: the transcript state plus what a learner can do (start, send, retry,
 // and at level 5 edit their map). The rules live in transcript.ts; this file only wires them to the
 // client. Starting a session replaces the previous one.
-import type { CreateSessionBody, Mentefacto, TurnInput } from "@build-north/agents";
+import type { CreateSessionBody, MemoryView, Mentefacto, TurnInput } from "@build-north/agents";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { ClientError, type SessionClient } from "./client.ts";
 import { drafted, failed, initialState, received, resendOf, sent, startedWith, type SessionState } from "./transcript.ts";
@@ -21,6 +21,8 @@ type SessionApi = {
   /** The delete button (#43): everything the server kept goes, and so does the session on this device.
    * Resolves with an error message to show, or null when it's done. */
   deleteData(): Promise<string | null>;
+  /** The Memory sheet (#112): what Lumente remembers of this learner. Rejects with a ClientError. */
+  memory(): Promise<MemoryView>;
 };
 
 const SessionContext = createContext<SessionApi | null>(null);
@@ -75,6 +77,7 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
         return messageOf(error);
       }
     },
+    memory: () => client.memory(),
   };
 
   return <SessionContext.Provider value={api}>{children}</SessionContext.Provider>;

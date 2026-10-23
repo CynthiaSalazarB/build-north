@@ -103,6 +103,12 @@ export const Message = z.strictObject({
   kind: MessageKind,
   text: z.string(),
   hintStep: HintStep.optional(),
+  /** A hint or the coach's summary with memory on: the ids of the memory facts the text relies on, once the API
+   *  kept only the ones it passed in (`verifyCites`). Absent when nothing was cited. */
+  cites: z.array(z.string().min(1)).optional(),
+  /** The cited facts' own words, filled by the API's memory reader before the Turn goes out, so the app can show
+   *  "From what Lumente remembers: …" under the message. Absent when nothing was cited. */
+  sources: z.array(z.strictObject({ id: z.string().min(1), text: z.string().min(1) })).optional(),
 });
 export type Message = z.infer<typeof Message>;
 

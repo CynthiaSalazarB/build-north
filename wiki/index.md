@@ -32,7 +32,7 @@ page under a Sources heading, the way the SurrealDB prize page does.
 
 | Page | Summary | Updated |
 |------|---------|---------|
-| [SurrealDB sponsor prize](context/surrealdb-sponsor-prize.md) | SurrealDB sponsors the Agent Memory prize: what judges want, the $50 credit code, the Oct 25 deadline | 2026-10-19 |
+| [SurrealDB sponsor prize](context/surrealdb-sponsor-prize.md) | SurrealDB sponsors the Agent Memory prize: what judges want, how we enter it, what the live context does, the Oct 25 deadline | 2026-10-23 |
 | [Hosting setup](context/hosting-setup.md) | The SurrealDB Cloud instance and the Render service for the API: plans, regions, settings, the #8 numbers | 2026-10-20 |
 | [Evidence](context/evidence.md) | The problem, the buyers and the competitors: what learners describe, the research, prices, and what it doesn't prove yet | 2026-10-21 |
 | [Status, Oct 22 night](context/status-oct22.md) | What is live (API, web, APK, updates, the demo account, the first real numbers), the open PRs and what each waits on, what is open on Cynthia and on Leo, the dates to the freeze | 2026-10-22 |

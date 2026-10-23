@@ -242,7 +242,7 @@ async function hint(
   s.hintStep = step;
   s.recent.push({ from: "app", text: h.text });
   if (step === "reveal" && h.revealed) merge(s.mentefacto, move, [h.revealed]);
-  return { message: { ...say("hint_giver", "hint", h.text), hintStep: step }, revealed: step === "reveal" };
+  return { message: { ...say("hint_giver", "hint", h.text), hintStep: step, ...cited(h.cites) }, revealed: step === "reveal" };
 }
 
 async function finishMove(s: Session, m: Mastery, move: MoveId, quality: Quality, lead: Message[], call: CallAgent): Promise<Step> {
@@ -338,7 +338,7 @@ function finishSession(s: Session, lead: Message[]): Step {
 /** The coach's message on the result already shown, which ends the session. */
 async function coachSession(s: Session, call: CallAgent): Promise<Step> {
   const { coach: _none, ...result } = s.result!;
-  let coach: NonNullable<Result["coach"]>;
+  let coach: CoachOutput;
   try {
     coach = CoachOutput.parse(await call("coach", { concept: s.concept, mentefacto: s.mentefacto, result }));
   } catch {
@@ -347,13 +347,19 @@ async function coachSession(s: Session, call: CallAgent): Promise<Step> {
     coach = { message: text.coachFallback(result.score, result.hintsUsed, weakest), nextFocus: weakest };
   }
   s.result = { ...result, coach: { message: coach.message, nextFocus: coach.nextFocus } };
-  return { messages: [say("coach", "summary", coach.message)], expects: "none", level: null };
+  return { messages: [{ ...say("coach", "summary", coach.message), ...cited(coach.cites) }], expects: "none", level: null };
 }
 
 // ---------- Helpers ----------
 
 function say(agent: Message["agent"], kind: Message["kind"], textValue: string): Message {
   return { agent, kind, text: textValue };
+}
+
+/** The memory facts a hint or the coach's summary relies on, as the message carries them (CONTRACTS.md, Memory).
+ * The API has already kept only the ids it passed in, so an empty list means nothing to cite. */
+function cited(cites: readonly string[] | undefined): Pick<Message, "cites"> {
+  return cites?.length ? { cites: [...cites] } : {};
 }
 
 function context(s: Session, move: MoveId, level: Level): AgentContext {

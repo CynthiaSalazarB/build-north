@@ -34,7 +34,8 @@ DEFINE FIELD OVERWRITE at ON agent_log TYPE datetime DEFAULT time::now() READONL
 DEFINE INDEX OVERWRITE agent_log_session ON agent_log FIELDS session;
 `;
 
-export type AgentLogEntry = { session: string; agent: string; input: unknown; output: unknown; ms: number; usd: number };
+/** `dropped`: on a coach or hint giver row, the fact ids its output cited that the API hadn't passed in (CONTRACTS.md, Memory). */
+export type AgentLogEntry = { session: string; agent: string; input: unknown; output: unknown; ms: number; usd: number; dropped?: string[] };
 
 export type Store = {
   createSession(user: string, input: NewSession): Promise<Session>;
@@ -47,6 +48,10 @@ export type Store = {
   // the moves given, one row each; moves left out keep their rows (a Turn writes only what it changed)
   saveMastery(user: string, mastery: Mastery): Promise<void>;
   logAgentCall(entry: AgentLogEntry): Promise<void>;
+  // GET /me/memory: the concepts of the user's finished sessions, newest first, each once
+  finishedConcepts(user: string): Promise<string[]>;
+  // GET /me/memory: the memory fact ids each hint giver or coach call received, one list per agent_log row
+  memoryReads(user: string): Promise<string[][]>;
   // DELETE /me/data: sessions, their agent logs, and mastery
   deleteUserData(user: string): Promise<void>;
 };
@@ -151,10 +156,21 @@ export function createStore(db: Surreal): Store {
       );
     },
 
-    async logAgentCall({ session, agent, input, output, ms, usd }) {
+    async logAgentCall({ session, agent, input, output, ms, usd, dropped }) {
       await one("CREATE agent_log CONTENT $entry RETURN NONE", {
-        entry: { session: sessionId(session), agent, input, output, ms: Math.round(ms), usd },
+        entry: { session: sessionId(session), agent, input, output, ms: Math.round(ms), usd, ...(dropped ? { dropped } : {}) },
       });
+    },
+
+    async finishedConcepts(user) {
+      const rows = await one<{ concept: string }[]>("SELECT concept FROM session WHERE user = $user AND result != NONE AND result != NULL ORDER BY createdAt DESC", { user });
+      return [...new Set(rows.map((row) => row.concept))];
+    },
+
+    async memoryReads(user) {
+      // a path through the facts array gives the ids as one array; NONE on a call that got no memory
+      const rows = await one<{ ids: unknown }[]>('SELECT input.memory.facts.id AS ids FROM agent_log WHERE session.user = $user AND agent IN ["hint_giver", "coach"]', { user });
+      return rows.map((row) => (Array.isArray(row.ids) ? row.ids.filter((id): id is string => typeof id === "string") : []));
     },
 
     async deleteUserData(user) {

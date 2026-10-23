@@ -1,6 +1,6 @@
 // #7: the real API (CONTRACTS.md section 1). Every response that carries a Turn is checked against the
 // Turn schema, so a server that drifted from the contract fails here, not in a screen.
-import { Turn, type CreateSessionBody, type TurnBody } from "@build-north/agents";
+import { MemoryView, Turn, type CreateSessionBody, type TurnBody } from "@build-north/agents";
 import { ClientError, type SessionClient } from "./client.ts";
 
 export type ApiClientOptions = {
@@ -26,7 +26,7 @@ export function createApiClient({ baseUrl, devUser, devKey, getToken, fetch: sen
   const root = baseUrl.replace(/\/+$/, "");
 
   /** One call with the learner's credentials; the answer's body is parsed as JSON when there is one. */
-  async function call(method: "POST" | "DELETE", path: string, body?: unknown): Promise<{ res: Response; json: unknown }> {
+  async function call(method: "GET" | "POST" | "DELETE", path: string, body?: unknown): Promise<{ res: Response; json: unknown }> {
     const headers: Record<string, string> = {};
     if (body !== undefined) headers["content-type"] = "application/json";
     const token = getToken ? await getToken() : null;
@@ -76,6 +76,13 @@ export function createApiClient({ baseUrl, devUser, devKey, getToken, fetch: sen
     async deleteData() {
       const { res, json } = await call("DELETE", "/me/data");
       if (!res.ok) throw errorOf(res, json);
+    },
+    async memory() {
+      const { res, json } = await call("GET", "/me/memory");
+      if (!res.ok) throw errorOf(res, json);
+      const view = MemoryView.safeParse(json);
+      if (!view.success) throw new ClientError("The server sent something unexpected. Try again.", res.status, true);
+      return view.data;
     },
   };
 }

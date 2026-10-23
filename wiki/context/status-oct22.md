@@ -3,7 +3,7 @@ title: "Status, Oct 22 night: what is live, what is open, and who holds it"
 type: context
 related: ["[[plan-to-win]]", "[[expo-prize-plan]]", "[[hosting-setup]]"]
 created: 2026-10-22
-updated: 2026-10-22
+updated: 2026-10-23
 ---
 
 Where Leo's side stands late on Oct 22, written for the next session that opens this repo (Cynthia's
@@ -51,7 +51,10 @@ Merged on Oct 22: #79, #81, #82, #88 to #100, #102, #105, #107 to #111, #113 to 
 5. The slow `evaluator_full` turn: lower the effort first, then Sonnet for the questioner and the hint giver
    (plan, section 10). Prompts and effort are hers. Related, from the #124 review: the Anthropic client runs
    with a 30 s timeout and one retry, so a hung call holds a learner for about a minute before the error Turn.
-6. #112 (Agent Memory, Leo's build): the `Message.sources` shape she proposed waits on Leo's answer; the kill
+6. #112 (Agent Memory, Leo's build): **built, Oct 23**, draft PR #130 on `leo/memory-build`. The `Message.sources`
+   shape works and is in the PR (the two optional fields and the two-line copy in `advance.ts`, hers to keep or
+   replace). The live smoke (`npm run memory:smoke -w api`) passes all 8 checks against the `lumente` context.
+   Waits on her review; the flag stays off in production until the app update ships, then Render. The kill
    rule is Oct 24 noon.
 
 ## Open on Leo
@@ -64,8 +67,9 @@ Merged on Oct 22: #79, #81, #82, #88 to #100, #102, #105, #107 to #111, #113 to 
 - Oct 23: `npm run smoke -w api` in the morning (#37), on call for the API, fixes as `eas update` from a branch
   whose fingerprint matches build 3 (`main` after #103, or `leo/final-polish` before); after the post-tests,
   `npm run export:testers -w api` against `prod` (#50).
-- Oct 24, before 6 PM: #112 or its kill rule at noon; the `production` Android build, the last update and web
-  deploy, Render Auto-Deploy off, the freeze summary on #45.
+- Oct 24, before 6 PM: #112 is built (#130, waits on review); if merged, Ship first, then `AGENT_MEMORY_ENABLED=true`
+  on Render, else the kill rule at noon; the `production` Android build, the last update and web deploy,
+  Render Auto-Deploy off, the freeze summary on #45.
 
 ## Closed on Oct 22
 
