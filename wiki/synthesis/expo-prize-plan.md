@@ -111,7 +111,7 @@ once #64 is live. Until then a copy in demo mode is up for review at
 | A judge with | Gets the app through | What we give them |
 |---|---|---|
 | An Android phone | The `preview` APK (EAS internal distribution) | The install link and a QR code on Devpost and in the README, with one line about allowing the install |
-| An iPhone or a laptop | The web build on EAS Hosting | `https://reality-check.expo.app`, with a page title and description from `generateMetadata()` so the link previews well |
+| An iPhone or a laptop | The web build on EAS Hosting, which installs as a web app | `https://reality-check.expo.app`, with a page title, description and card from `generateMetadata()` so the link previews well. Share, then "Add to Home Screen": Lumente opens full screen with its own icon (`public/manifest.json`, `+html.tsx`) |
 | No time | The video | Three minutes at most |
 
 There's no TestFlight: on Oct 21 the team decided against an Apple Developer account, since Apple's
@@ -139,11 +139,13 @@ the two places we ship. Each one does a job the learner notices.
 | A tick when the guess changes and a success at a level-up, nothing else | `expo-haptics`: Android's own haptics, the Vibration API on the web (iPhone Safari has none) | Done in #81 |
 | The drawn icons, the arch, the beam and the bronze | `react-native-svg` | Done in #81 |
 | The dawn after the guess and the points casting into bronze, as fades with Reduce Motion | Reanimated | Done in #81 |
-| Launch times and crashes from the APK, release by release | Expo Observe (Android release builds; nothing on the web) | Done in #80 |
+| Launch times and crashes from the APK, release by release, including the crashes a learner recovers from with Try again | Expo Observe (Android release builds; nothing on the web): `ObserveRoot`, a marker on each screen, `Observe.reportError` in the error boundary | Done in #80, the marker and the report in #PR |
 | The fact desk at level 5 as a half-height sheet over the map | `@expo/ui`'s `BottomSheet`, which also works on the web. Expo Router's form sheet shows as a plain page there | In #26 (Cynthia) |
-| "Update ready: restart", so testers see a fix arrive | `expo-updates` with `useUpdates()` (release builds; nothing on the web) | Planned, Leo, 1 h |
-| Page titles and descriptions, so the link previews well | `generateMetadata()` from Expo Router | Planned, Leo, 20 min |
-| The question read aloud | `expo-speech` (Android and the web) | Only if we're ahead |
+| "Update ready: restart", so testers see a fix arrive, also while the app is open: it checks again when it comes back to the foreground and when Start is shown again, at most once a minute | `expo-updates` with `useUpdates()` and `checkForUpdateAsync()` (release builds; nothing on the web) | Done in #81, the live check in #PR |
+| Page titles and descriptions, so the link previews well, with a card (`public/og.png`) for a link shared in a chat | `generateMetadata()` from Expo Router, `openGraph` and `twitter` | Done in #92, the card in #PR |
+| On an iPhone or a laptop, Lumente installs from the browser as a web app: its own icon, full screen, no address bar | `public/manifest.json` and the icons, copied into the static export; the Apple metas in `+html.tsx` | Done in #PR |
+| In Your data, what is running: the version and the EAS Update it is on, so a tester or a judge can name what they saw and we find it in the dashboard | `expo-updates` (`updateId`, `createdAt`, `channel`) and `expo-constants` | Done in #PR |
+| The question read aloud | `expo-speech` (Android and the web) | Only if we're ahead, and only in the Oct 24 production build: it is a native module |
 
 We skip glass (`expo-glass-effect` only works on iOS 26 and later, and draws a plain view elsewhere) and
 dark mode this week.
@@ -162,6 +164,13 @@ learner.
 | App Intents (Siri, Shortcuts, Spotlight) | Skip: iPhone only |
 | PostHog through EAS | Skip: we promise to store only what learning needs |
 | Native tabs, data loaders | Skip: Lumente has no tab bar, and loaders are for the web |
+
+Checked again on Oct 23 against the SDK 58 changelog: anything that adds a native module (`expo-speech` for the
+question read aloud, `expo-clipboard` for a Copy button, `expo-widgets`, `@expo/ui`) changes the fingerprint,
+so build 3 would stop taking updates from `main`. None of it goes in before the testers finish; if any of it
+goes in, it all goes into the one production build on Oct 24, and `eas fingerprint:compare` says so first.
+JavaScript-only pieces (the live update check, the version line, the Observe markers and error report, the
+installable web app and the link card) ship as updates and web deploys at no cost.
 
 ## 7. Pillar 5: prove it
 
@@ -186,6 +195,21 @@ learner.
 7. **Demo Day:** the app on a phone, mirrored, and one planned update live. Fix something small on
    stage ("testers missed the Help button"), run `eas update`, and the phone shows "Update ready:
    restart". Rehearse it twice; if the network fails, play the same moment from the video.
+
+What the winning pages have that ours should too (read Oct 23: Cospray and capitalX on Devpost, and Expo's
+own write-ups of Callie, Lingvano, Phantom and Partiful; the only two verifiable Expo hackathon prizes since
+2025 are those two):
+
+- One line per Expo module with the job the learner notices (Cospray's "List of Expo Technologies"), which
+  `docs/expo-log.md` already keeps. Name `expo-speech-recognition` as a community module on the Expo Modules
+  API, since judges check docs.expo.dev.
+- The phone and the browser side by side, both linked: every winner claims a web build, none shows it.
+- Challenges with numbers (the keyboard over the input, the 90 s timeout, the slowest turn at 10.6 s) and the
+  alternatives we rejected and why (Expo Go can't run SDK 58, so development builds; drawn SVG and Reanimated
+  on the UI thread instead of Lottie or Rive for the firefly; no TestFlight, so the web app on iPhones).
+- Say plainly that web on iPhones is a decision with a reason, since the prize text says native iOS and Android.
+- The EAS evidence no hackathon winner has shown: the builds and updates counted, the fingerprint check that
+  skipped a rebuild, a workflow run, Observe's launch times, all linked and screenshotted.
 
 ## 8. Pillar 6: talk to Expo
 

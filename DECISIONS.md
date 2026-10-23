@@ -543,3 +543,18 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   noise. The moment belongs where it happens, at the end of the session.
 - **Pattern / trade-off:** one home for each piece of information. If memory's flag stays off, the levels
   have no screen of their own; the result still marks each level-up.
+
+### 2026-10-23 · On iPhones the web build installs as a web app
+- **Decision:** the web build ships a web app manifest, its icons and Apple's home-screen metas
+  (`app/public/`, `app/src/app/+html.tsx`), so a judge or a tester with an iPhone or a laptop can add Lumente
+  to the home screen and open it full screen with its own icon. The status bar is black, not translucent,
+  so the wordmark never sits under the clock. No service worker: every session needs the API, so there is
+  nothing to run offline.
+- **Instead of:** a plain Safari tab for everyone without an Android phone, or an Apple account and
+  TestFlight (decided against on Oct 21: Apple's review takes too long for this week).
+- **Why:** the Expo story is one codebase on three platforms, and until now the third platform was a
+  browser tab. This is the same static export EAS Hosting already serves, with no new build and nothing
+  native, so it costs nothing on the free plan and cannot break the phones.
+- **Pattern / trade-off:** a progressive web app on top of Expo Router's static output. In standalone mode
+  on iOS, Google sign-in may bounce to Safari and lose the standalone window; the email code signs in
+  without leaving it, and the testing notes say so.

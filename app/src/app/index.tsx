@@ -6,7 +6,6 @@
 // testers' pre-test and post-test. In the website layout the choices are a column on the left and the code and
 // the map stand on the right.
 import type { SessionMode } from "@build-north/agents";
-import type { Metadata } from "expo-router/server";
 import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
 import { useRouter } from "expo-router";
@@ -17,19 +16,18 @@ import { Failure } from "../components/messages.tsx";
 import { SiteHeader } from "../components/site-header.tsx";
 import { Body, Button, Card, Chip, KeyboardSafe, Label, PromptField, Rise, Screen, Sheet, Small, Title, useColors, useWide } from "../components/ui.tsx";
 import { UpdateNotice } from "../components/update-notice.tsx";
+import { VersionLine } from "../components/version-line.tsx";
 import { AI_PROMPT, CONCEPTS, filledOf, secretLineOf } from "../session/present.ts";
 import { clerkKey } from "../session/config.ts";
 import { useSession } from "../session/session-context.tsx";
-import { brand, page, radius, size, space, type } from "../theme.ts";
+import { brand, page, pageMetadata, radius, size, space, type } from "../theme.ts";
 
 const MAX_CONCEPT = 100;
 const MAX_NOTES = 8000;
 
-/** The web page's title and description, in the static HTML, so a shared link previews well. */
-export function generateMetadata(): Metadata {
-  const title = `${brand.name}: can you explain the ideas behind the code your AI wrote?`;
-  const description = `${SUBTITLE} ${GUIDED} Or you lead the investigation.`;
-  return { title, description, openGraph: { title, description } };
+/** The web page's title, description and card, in the static HTML, so a shared link previews well. */
+export function generateMetadata() {
+  return pageMetadata(`${brand.name}: can you explain the ideas behind the code your AI wrote?`, `${SUBTITLE} ${GUIDED} Or you lead the investigation.`);
 }
 
 /** Start's words (Cynthia, Oct 23): the question, the line under it, and what each way to start means. */
@@ -343,6 +341,8 @@ function YourData({ open, onClose, offline, signsOut, onDelete }: { open: boolea
         ) : (
           <Button kind="secondary" label="Delete my data" onPress={() => setConfirming(true)} style={styles.left} />
         ))}
+      {/* what is running, so a tester or a judge can say exactly what they saw */}
+      <VersionLine />
     </Sheet>
   );
 }

@@ -1,11 +1,18 @@
-// "Update ready" on the start screen (E13): an update published with EAS Update downloads in the
-// background, and this offers to restart into it. Release builds only: the web and development builds
-// never get updates, so nothing shows there.
+// "Update ready" on the start screen (E13): an update published with EAS Update downloads in the background,
+// and this offers to restart into it. The build checks once at launch on its own; this also checks when the app
+// comes back to the foreground and when Start is shown again after a session, at most once a minute, so a fix
+// published while the app was open is offered without a relaunch (the fix a tester gets the same evening, and
+// the update that arrives on stage). Release builds only: the web and development builds never get updates, so
+// nothing shows there.
+import { useFocusEffect } from "expo-router";
 import * as Updates from "expo-updates";
-import { useEffect } from "react";
-import { Platform, StyleSheet, View } from "react-native";
+import { useCallback, useEffect, useRef } from "react";
+import { AppState, Platform, StyleSheet, View } from "react-native";
 import { space } from "../theme.ts";
 import { Body, Button, Card } from "./ui.tsx";
+
+/** Expo rate-limits checks, and one a minute is plenty for a fix to arrive. */
+const CHECK_EVERY_MS = 60_000;
 
 export function UpdateNotice() {
   if (Platform.OS === "web" || !Updates.isEnabled) return null;
@@ -13,11 +20,27 @@ export function UpdateNotice() {
 }
 
 function Pending() {
-  const { isUpdateAvailable, isUpdatePending } = Updates.useUpdates();
-  // the launch check finds a new update; download it now so the notice can offer it this session
+  const { isUpdateAvailable, isUpdatePending, isDownloading } = Updates.useUpdates();
+  // the launch already checked, so the first check here is a minute in at the earliest
+  const checkedAt = useRef(Date.now());
+  const check = useCallback(() => {
+    const now = Date.now();
+    if (now - checkedAt.current < CHECK_EVERY_MS) return;
+    checkedAt.current = now;
+    // a check that fails (offline, rate limited) changes nothing; the next one tries again
+    void Updates.checkForUpdateAsync().catch(() => undefined);
+  }, []);
   useEffect(() => {
-    if (isUpdateAvailable && !isUpdatePending) void Updates.fetchUpdateAsync().catch(() => undefined);
-  }, [isUpdateAvailable, isUpdatePending]);
+    const listener = AppState.addEventListener("change", (state) => {
+      if (state === "active") check();
+    });
+    return () => listener.remove();
+  }, [check]);
+  useFocusEffect(check);
+  // a check finds a new update; download it now so the notice can offer it this session
+  useEffect(() => {
+    if (isUpdateAvailable && !isUpdatePending && !isDownloading) void Updates.fetchUpdateAsync().catch(() => undefined);
+  }, [isUpdateAvailable, isUpdatePending, isDownloading]);
   if (!isUpdatePending) return null;
   return (
     <Card style={styles.card}>
