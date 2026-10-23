@@ -16,7 +16,7 @@ import { Firefly } from "./firefly.tsx";
 import { FactCard, Failure, FlushReplies, HintCard, LearnerMessage, useSlow, Waiting } from "./messages.tsx";
 import { SessionBar } from "./session-bar.tsx";
 import { SiteHeader } from "./site-header.tsx";
-import { Body, Button, IconButton, KeyboardSafe, Label, MicButton, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useColors, useEntrance, useWide, VoiceNote } from "./ui.tsx";
+import { Body, Button, IconButton, KeyboardSafe, Label, MicButton, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useColors, useEntrance, useWide, VoiceNote, type Interaction } from "./ui.tsx";
 import { useVoice } from "./use-voice.ts";
 
 /** Rows a list part can hold in the editor. */
@@ -192,12 +192,13 @@ function Asked({ n }: { n: number }) {
   );
 }
 
-/** The firefly beside "You ask now": dim, since the learner leads now, and still Help when tapped. */
+/** The firefly beside "You ask now": dim, since the learner leads now, and still Help when tapped (it wakes under a
+ * finger or a pointer, and fades again). */
 function FireflyHelp({ help, pending, onHelp }: { help: ReturnType<typeof wholeMapHelpOf>; pending: boolean; onHelp: () => void }) {
   const c = useColors();
-  const drawing = (
+  const drawing = (glow: boolean) => (
     <>
-      <Firefly state="fades" size={30} />
+      <Firefly state="fades" size={30} glow={glow} />
       {help && (
         <Text style={[type.tag, styles.fireflyTag, { color: c.question }]} numberOfLines={1}>
           {pending ? "checking" : help.tag}
@@ -208,13 +209,13 @@ function FireflyHelp({ help, pending, onHelp }: { help: ReturnType<typeof wholeM
   if (!help || pending) {
     return (
       <View style={styles.firefly} role={pending ? "status" : undefined}>
-        {drawing}
+        {drawing(false)}
       </View>
     );
   }
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={help.label} onPress={onHelp} hitSlop={size.hitSlop} style={({ pressed }) => [styles.firefly, pressed && styles.pressed]}>
-      {drawing}
+      {({ pressed, hovered }: Interaction) => drawing(pressed || !!hovered)}
     </Pressable>
   );
 }
@@ -224,12 +225,14 @@ function FireflyHelp({ help, pending, onHelp }: { help: ReturnType<typeof wholeM
 function AskBar({ concept, pending, asking, flush, onAsk }: { concept: string; pending: boolean; asking: boolean; flush: boolean; onAsk: (question: string) => void }) {
   const [text, setText] = useState("");
   const question = text.trim();
+  const voice = useVoice({ text, onText: setText });
   const submit = () => {
     if (!question || pending) return;
+    // what is on screen is what goes; a phrase still being heard stops here instead of landing in the emptied field
+    if (voice.state.kind === "listening") voice.cancel();
     onAsk(question);
     setText("");
   };
-  const voice = useVoice({ text, onText: setText });
   return (
     <View style={[styles.bar, flush && styles.flush]}>
       <View style={styles.askRow}>

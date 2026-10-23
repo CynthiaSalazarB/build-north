@@ -79,10 +79,10 @@ export default function SessionScreen() {
   }
   if (turn.phase === "result" && turn.result) {
     const concept = turn.mentefacto.concept;
-    // a self-test is tried again as a self-test
+    // the same concept with the same notes; a self-test is tried again as a self-test
     const tryAgain = async () => {
       setAgain({ busy: true, error: null });
-      const problem = await start({ concept, ...(state.mode === "test" ? { mode: state.mode } : {}) });
+      const problem = await start({ concept, ...(state.material ? { material: state.material } : {}), ...(state.mode === "test" ? { mode: state.mode } : {}) });
       setAgain({ busy: false, error: problem });
     };
     return (

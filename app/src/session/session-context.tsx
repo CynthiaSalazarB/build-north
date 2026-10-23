@@ -50,7 +50,7 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     async start(body) {
       try {
         const turn = await client.start(body);
-        setState(startedWith(turn, body.mode));
+        setState(startedWith(turn, body.mode, body.material ?? null));
         return null;
       } catch (error) {
         return messageOf(error);

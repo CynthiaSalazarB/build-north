@@ -263,7 +263,8 @@ function Account({ solid = false }: { solid?: boolean }): ReactNode {
 
 function ClerkAccount({ solid }: { solid: boolean }) {
   const { signOut } = useAuth();
-  return <AccountButtons solid={solid} signOut={() => signOut()} />;
+  // a sign-out that fails (offline, say) leaves the learner signed in, with nothing to show for it
+  return <AccountButtons solid={solid} signOut={() => signOut().catch(() => undefined)} />;
 }
 
 function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Promise<void>) | null }) {

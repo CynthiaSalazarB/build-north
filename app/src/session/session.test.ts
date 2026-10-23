@@ -115,6 +115,19 @@ test("a 409 with the latest Turn is drawn; other errors carry the server's messa
   await assert.rejects(down.start({ concept: "x" }), { status: null, retryable: true });
 });
 
+test("a call that outlasts the timeout says so, and is worth trying again", async () => {
+  const hangs = ((_: string, init: RequestInit) => new Promise<Response>((_resolve, reject) => init.signal?.addEventListener("abort", () => reject(new Error("aborted"))))) as unknown as typeof fetch;
+  await assert.rejects(createApiClient({ baseUrl: "http://api.test", fetch: hangs, timeoutMs: 5 }).start({ concept: "x" }), { message: /taking too long/, status: null, retryable: true });
+});
+
+test("the notes a session started with stay in its state, so Try again can send them", () => {
+  const state = startedWith(first, "learn", "my notes");
+  assert.equal(state.material, "my notes");
+  assert.equal(received(sent(state, { turn: 1, prediction: 7 }), first).material, "my notes");
+  assert.equal(startedWith(first).material, null);
+  assert.equal(initialState.material, null);
+});
+
 test("the delete button sends DELETE /me/data with the credentials, no body, and takes the 204", async () => {
   const calls: Call[] = [];
   const fetch = (async (url: string, init: RequestInit) => {

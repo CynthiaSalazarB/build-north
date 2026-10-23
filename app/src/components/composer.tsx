@@ -55,13 +55,15 @@ type AnswerProps = { pending: boolean; placeholder: string; moreHelp: boolean; o
 function AnswerBar({ pending, placeholder, moreHelp, onSend, style }: AnswerProps) {
   const [text, setText] = useState("");
   const answer = text.trim();
+  // speech lands in the same field, editable, and still needs Send
+  const voice = useVoice({ text, onText: setText });
   const submit = () => {
     if (!answer || pending) return;
+    // what is on screen is what goes; a phrase still being heard stops here instead of landing in the emptied field
+    if (voice.state.kind === "listening") voice.cancel();
     onSend({ text: answer });
     setText("");
   };
-  // speech lands in the same field, editable, and still needs Send
-  const voice = useVoice({ text, onText: setText });
   return (
     <View style={style}>
       <View style={styles.row}>

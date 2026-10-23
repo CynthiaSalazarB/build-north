@@ -39,7 +39,7 @@ export function useWide(): boolean {
 }
 
 /** A Pressable's state; react-native-web adds hover and focus to the press. */
-type Interaction = PressableStateCallbackType & { hovered?: boolean; focused?: boolean };
+export type Interaction = PressableStateCallbackType & { hovered?: boolean; focused?: boolean };
 
 /** On the web a control eases between rest, hover and press instead of snapping (react-native-web passes these
  * style properties through to CSS; React Native's own types don't list them). */
