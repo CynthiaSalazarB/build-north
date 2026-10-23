@@ -300,6 +300,8 @@ const KEPT = "We keep each session (the concept, the notes you pasted, your gues
 const TO_CLAUDE = "Your answers and questions go to Claude, Anthropic's model, through our server, which holds the key. The app never has it.";
 const MEMORY_KEPT = "Lumente also keeps progress notes the app writes after each session (your level on each part, your guess against your score, how many Helps a part took): never your words. Memory shows them, and Delete my data removes them too.";
 const VOICE = "While the mic is on, the audio goes to your device's speech service, which turns it into words: on most Android phones that is Google's, and in a browser the browser's own. Only the words reach us, and only when you send them. We never receive or keep the audio; the speech service handles it under its own terms.";
+// what Expo Observe receives (app/_layout.tsx): launch times, each screen's time to interactive, crash reports; phones only
+const OBSERVE = "On the Android app, Expo, the service that delivers the app's updates, gets crash reports and how fast the app starts and each screen opens, so we can fix what breaks. We don't send your answers or notes there.";
 const DEMO = "Demo mode keeps nothing: this is a recorded session, and what you type stays on this device.";
 const WHO_ASKS = "The questions come from an AI. It asks, and it never hands you the answer.";
 
@@ -335,6 +337,7 @@ function YourData({ open, onClose, offline, signsOut, onDelete }: { open: boolea
           <Small dim>{MEMORY_KEPT}</Small>
           <Small dim>{TO_CLAUDE}</Small>
           <Small dim>{VOICE}</Small>
+          <Small dim>{OBSERVE}</Small>
         </>
       )}
       <Small dim>{WHO_ASKS}</Small>
