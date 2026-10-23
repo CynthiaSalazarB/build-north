@@ -91,6 +91,19 @@ function memoryStore(): Store {
   };
 }
 
+// The Store as the SurrealDB one reads: a row goes through the Session schema on the way out (store.ts), so a
+// saved session that drifted from the contract fails there.
+function parsingStore(): Store {
+  const store = memoryStore();
+  return {
+    ...store,
+    async getSession(user, id) {
+      const session = await store.getSession(user, id);
+      return session && SessionSchema.parse(session);
+    },
+  };
+}
+
 const withStore = (): AppOptions => ({ ...noDb, store: memoryStore() });
 const post = (url: string, body: unknown, headers: Record<string, string> = as("leo")) =>
   fetch(`${url}/sessions`, {
@@ -655,6 +668,41 @@ test("mastery is written only for the moves a Turn changed, and an error Turn wr
     } else latest = turn;
   }
   assert.ok(failed, "no step called Claude");
+});
+
+test("a Turn off the contract is never saved: the learner gets the latest Turn again with error set, and the session stays readable", async (t) => {
+  const errors = t.mock.method(console, "error", () => {});
+  // An orchestrator that puts a scaffold with no blanks on the Turn, the shape #139 found: valid for the questioner's
+  // output, off the Turn contract (blanks >= 1). Saved, it would fail the store's Session.parse on every read after it.
+  let drift = true;
+  const drifting: Advance = async (state, input, callAgent) => {
+    const next = await advanceStub(state, input, callAgent);
+    if (!drift || !("prediction" in input)) return next;
+    const turn = { ...next.turn, scaffold: { given: ["moon", "asteroid"], blanks: 0 } };
+    return { ...next, session: { ...next.session, lastTurn: turn }, turn };
+  };
+  const store = parsingStore();
+  const sessionSaves = t.mock.method(store, "saveSession");
+  const masterySaves = t.mock.method(store, "saveMastery");
+  const url = await start(t, { ...noDb, store, advance: drifting });
+  const first = await (await post(url, { concept: "democracy" })).json();
+  const res = await answer(url, first.sessionId, { turn: 1, prediction: 7 });
+  // the session reads back as it was: the next read, and the retry, still work
+  const read = await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") });
+  assert.equal(read.status, 200);
+  assert.deepEqual(await read.json(), first);
+  // the answer is the latest Turn with error set (CONTRACTS.md section 5), nothing was written, and the reason is logged
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { ...first, error: { code: "agent_failed", retryable: true } });
+  assert.equal(sessionSaves.mock.callCount(), 1); // the start only
+  assert.equal(masterySaves.mock.callCount(), 0);
+  assert.match(String(errors.mock.calls[0]?.arguments[0]), /Turn 2 of session s1 is off the contract and wasn't saved: scaffold\.blanks/);
+  // the same answer sent again, once the orchestrator behaves, moves the session on as usual
+  drift = false;
+  const retried = await (await answer(url, first.sessionId, { turn: 1, prediction: 7 })).json();
+  assert.deepEqual([retried.turn, retried.error], [2, null]);
+  assert.doesNotThrow(() => TurnSchema.parse(retried));
+  assert.equal(sessionSaves.mock.callCount(), 2);
 });
 
 test("with memory on, the hint giver and the coach get what earlier sessions left and the app gets the sources of what they cite; the result writes the session's facts; the sheet reads; Delete my data purges first", async (t) => {
