@@ -19,7 +19,9 @@ Lumente helps students who code with AI learn to explain the ideas behind their 
 
 </div>
 
-<p align="center"><i>TODO(Cynthia): a hero image here, such as the result screen with the guess, the real score and the gap, or a short GIF of one session.</i></p>
+<p align="center"><img src="docs/readme/hero.jpg" alt="Lumente's result screen on a laptop: the learner guessed 7 of 8 points and proved 5, next to the concept map for API with all four parts filled in" width="860" /></p>
+
+<p align="center"><sub>The screens on this page come from the app's demo mode, which replays a session recorded live with Claude.</sub></p>
 
 ## What it is and who it's for
 
@@ -54,7 +56,7 @@ The firefly on screen is the AI. It asks the questions and checks your answers, 
 
 | Pick and guess | Answer the questions | Get a hint | See your score |
 |:---:|:---:|:---:|:---:|
-| *TODO screenshot* | *TODO screenshot* | *TODO screenshot* | *TODO screenshot* |
+| <img src="docs/readme/step-1-guess.jpg" alt="The guess screen: how many of the 8 points will you prove? The guess is 7" width="200" /> | <img src="docs/readme/step-2-map.jpg" alt="A question about API, with two parts of the map already filled in" width="200" /> | <img src="docs/readme/step-3-hint.jpg" alt="After the answer 'A server?', a free nudge and a hint card that costs one point" width="200" /> | <img src="docs/readme/step-4-score.jpg" alt="The result: a guess of 7 and a score of 5, so the learner felt 2 points surer than they could explain" width="200" /> |
 
 ## The idea behind it
 
