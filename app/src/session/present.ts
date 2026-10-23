@@ -242,8 +242,12 @@ export function hintCardOf(n: number, first: boolean): { title: string; filled: 
 /** What the firefly says under itself: Help costs a point only while the part could still score 2. After a
  * hint, Help is the "More help" button by the input instead. */
 export function helpOf(part: readonly Entry[]): { tag: string; label: string; more: boolean } {
+  const asked = part.findIndex((e) => e.from === "app" && e.message.kind === "question");
+  // a part picked up after a reload shows the latest Turn's lines only (saved.ts): no question, so no firefly to
+  // tap. Help goes by the input instead, as it does after a hint.
+  if (asked < 0 && part.some((e) => e.from === "app" && e.phase === "move")) return { tag: "help", label: "More help", more: true };
   // only what came after the question counts: a reveal before it ended the last part
-  const since = part.slice(part.findIndex((e) => e.from === "app" && e.message.kind === "question") + 1);
+  const since = part.slice(asked + 1);
   if (since.some((e) => e.from === "app" && e.message.kind === "hint")) return { tag: "help", label: "More help", more: true };
   // once a retry capped the part at 1 point, Help costs nothing more; a follow-up question isn't a retry
   if (cappedOf(part)) return { tag: "help", label: "Help", more: false };
@@ -357,6 +361,11 @@ export const hintPartOf = (n: number): MoveId => MOVE_ORDER[Math.min(Math.floor(
 
 /** The n-th hint of the session (from 0) is the first on its part, the one that costs the point. */
 export const firstOnPart = (n: number) => n % STEPS_PER_PART === 0;
+
+/** Which Help of the session (from 0) the i-th hint on screen is, of the `shown` hints the transcript holds. A
+ * session picked up after a reload shows the latest Turn's lines only (saved.ts), so the transcript may start
+ * mid-session: the count runs back from the Turn's own total, which every hint moved up by one. */
+export const hintNumberOf = (hintsUsed: number, shown: number, i: number): number => Math.max(0, hintsUsed - shown) + i;
 
 /** Help on the whole map, under the firefly: the first Help on a part costs a point, the next ones nothing more
  * until the answer itself. Null once every part has been revealed. */
