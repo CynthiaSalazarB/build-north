@@ -64,13 +64,12 @@ what runs now, what is open, what to do and decide, what to know.
   This morning #129 fixed four more from a review of `main`. The audio facts for Your data (we keep none,
   nowhere; the speech service is Google's on most Android phones and the browser's on the web) are in #103's
   body; the wording is hers to change.
-- **Not verified by anyone yet:** a real microphone on a phone and on the web. Every voice check so far used
-  a stand-in `SpeechRecognition` in a browser. The first tester with the mic is the first real test; the
-  fallback is typing, which never depended on the mic.
-- **Clerk, two things on Leo:** the password at sign-up is to be turned off in the Clerk dashboard (her decision
-  of Oct 22: email code and Google only); whether that is done is not recorded here, check before the first
-  tester signs up. Google sign-in on the phone needs build 3's SHA-256 in Clerk's Android tab; email code
-  works without it.
+- **The microphone on a real phone: tested by Leo** (Oct 23 morning, build 3 with the `main` update). Until
+  then every voice check had used a stand-in `SpeechRecognition` in a browser. The fallback is typing, which
+  never depended on the mic.
+- **Clerk: the password at sign-up is off** (Leo, Oct 23 morning; her decision of Oct 22: email code and Google
+  only). Google sign-in on the phone still needs build 3's SHA-256 in Clerk's Android tab; email code works
+  without it.
 - **Rate limit:** 60 requests a minute per IP, and a room on one Wi-Fi shares one IP. Five testers plus the two
   of us stay under it; a bigger room means `REQUESTS_PER_MINUTE` on Render (#124), no deploy needed.
 - **Builds are scarce** (3 of 15 free Android builds used): JS ships as `eas update --channel preview
