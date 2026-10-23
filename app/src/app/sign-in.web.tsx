@@ -1,5 +1,5 @@
-// Sign-in on the web build (#22), which is also its landing page: the start screen's question, one line on how it
-// works, and Clerk's prebuilt SignIn in round 9's dark colors; in the website layout, beside the code and the map
+// Sign-in on the web build (#22), which is also its landing page: what Lumente is for, one line on how it works
+// (Cynthia's words, Oct 23), and Clerk's prebuilt SignIn in round 9's dark colors; in the website layout, beside the code and the map
 // the learner is about to light. The methods come from the Clerk dashboard. Android uses sign-in.tsx.
 import type { Metadata } from "expo-router/server";
 import { SignIn } from "@clerk/expo/web";
@@ -12,13 +12,14 @@ import { brand, page, radius, space, type, webSans } from "../theme.ts";
 
 /** The web page's title and description, in the static HTML, so a shared link previews well. */
 export function generateMetadata(): Metadata {
-  const title = `${brand.name}: can you explain the idea behind the code your AI wrote?`;
-  const description = "Pick a concept from your project. An AI tutor asks questions and never hands you the answer; each answer in your own words brings more light.";
+  const title = `${brand.name}: ${HEADLINE.toLowerCase().replace(/\.$/, "")}`;
+  const description = HOW;
   return { title, description, openGraph: { title, description } };
 }
 
-/** What the landing page says under its question: the tutor is an AI, and it won't think for you. */
-const HOW = "An AI tutor asks. You explain. It never hands you the answer.";
+/** The landing page's headline and the line under it (Cynthia, Oct 23). */
+const HEADLINE = "Build understanding, not dependence.";
+const HOW = "Learn to investigate concepts through guided questions, make connections, and figure things out for yourself.";
 
 export default function SignInScreen() {
   const c = useColors();
@@ -46,9 +47,8 @@ export default function SignInScreen() {
         <View style={styles.split}>
           <ScrollView style={styles.words} contentContainerStyle={styles.wordsContent}>
             <Rise style={styles.intro}>
-              <Small dim>{brand.tagline}</Small>
               <Text style={[type.display, { color: c.onSurface }]} accessibilityRole="header">
-                Can you explain the idea behind the code your AI wrote?
+                {HEADLINE}
               </Text>
               <Text style={[type.lead, { color: c.onSurfaceVariant }]}>{HOW}</Text>
             </Rise>
@@ -73,7 +73,7 @@ export default function SignInScreen() {
           <Text style={[type.wordmark, { color: c.onSurface }]}>{brand.name}</Text>
           <View style={styles.head}>
             <Firefly state="asks" />
-            <Title style={styles.flex}>Can you explain the idea behind the code your AI wrote?</Title>
+            <Title style={styles.flex}>{HEADLINE}</Title>
           </View>
           <Small dim>{HOW}</Small>
         </Rise>
