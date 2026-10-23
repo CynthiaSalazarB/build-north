@@ -5,10 +5,11 @@
 import { MOVE_LABEL, type Message } from "@build-north/agents";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { hintCardOf, inlineCodeOf, type ExampleStep } from "../session/present.ts";
+import { hintCardOf, inlineCodeOf, rememberedLineOf, type ExampleStep } from "../session/present.ts";
 import { radius, size, space, type } from "../theme.ts";
 import { Firefly, type FireflyState } from "./firefly.tsx";
 import { Icon } from "./icons.tsx";
+import { MemorySheet } from "./memory-sheet.tsx";
 import { Body, Label, Reply, Tag, useColors, useMode, type Interaction } from "./ui.tsx";
 
 /** The firefly's column is 44 wide and the question starts 14 after it, so replies line up with the question. */
@@ -108,8 +109,9 @@ export function Nudge({ text, capNote, tag }: { text: string; capNote: boolean; 
   );
 }
 
-/** A hint: amber, the firefly's light. Its head says which of the three it is (`n`) and, on a part's first, its price. */
-export function HintCard({ message, n, capNote, part }: { message: Message; n: number; capNote: boolean; part?: string }) {
+/** A hint: amber, the firefly's light. Its head says which of the three it is (`n`) and, on a part's first, its price.
+ * With memory on, the facts the help relies on come under it (`concept` is where the Memory sheet then opens). */
+export function HintCard({ message, n, capNote, part, concept = "" }: { message: Message; n: number; capNote: boolean; part?: string; concept?: string }) {
   const c = useColors();
   const card = hintCardOf(n, n === 1);
   // on the whole map (level 5) the card names the part it helps with
@@ -126,7 +128,25 @@ export function HintCard({ message, n, capNote, part }: { message: Message; n: n
       </View>
       <Text style={[type.body, styles.hintText, { color: c.onHintContainer }]}>{message.text}</Text>
       {capNote && <Text style={[type.label, styles.note, { color: c.hintNote }]}>{card.note}</Text>}
+      <Remembered sources={message.sources} concept={concept} color={c.hintNote} />
     </View>
+  );
+}
+
+/** "From what Lumente remembers: …" under a hint or the coach's words (#112): the memory facts the text relies on,
+ * in their own sentences. Tapping it opens the Memory sheet on this concept. Nothing when nothing was cited. */
+export function Remembered({ sources, concept, color }: { sources: Message["sources"]; concept: string; color?: string }) {
+  const c = useColors();
+  const [open, setOpen] = useState(false);
+  if (!sources?.length) return null;
+  const line = rememberedLineOf(sources);
+  return (
+    <>
+      <Pressable accessibilityRole="button" accessibilityLabel={line} accessibilityHint="Opens what Lumente remembers" onPress={() => setOpen(true)} hitSlop={size.hitSlop} style={({ pressed }) => [styles.remembered, pressed && styles.pressed]}>
+        <Text style={[type.label, { color: color ?? c.onSurfaceVariant }]}>{line}</Text>
+      </Pressable>
+      <MemorySheet open={open} onClose={() => setOpen(false)} concept={concept} />
+    </>
   );
 }
 
@@ -271,6 +291,7 @@ const styles = StyleSheet.create({
   hintSteps: { flexDirection: "row", gap: space.xs },
   step: { width: 7, height: 7, borderRadius: radius.point },
   hintText: { marginTop: 6, lineHeight: 25 },
+  remembered: { marginTop: 8, alignSelf: "flex-start" },
   exampleIntro: { gap: space.xs },
   exampleSteps: { gap: space.xl },
   exampleStep: { gap: space.s, borderLeftWidth: 2, paddingLeft: space.l },

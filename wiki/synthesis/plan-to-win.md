@@ -159,8 +159,10 @@ cost them most, as facts code writes from templates, never the learner's words. 
 coach read up to 8 facts from earlier sessions and cite the ones they use, and the learner sees them in a
 Memory sheet. That answers the judges' three asks: a level-up replaces the old fact and keeps its
 history, a message traces back to the facts it cites, and more than one agent's work goes in and comes
-out. Levels still come from code, so memory never changes a score. Proposed (not decided yet): if it
-isn't working by Oct 24 noon, the flag stays off and the write-up doesn't claim it.
+out. Levels still come from code, so memory never changes a score. Kill rule (decided): if it
+isn't working by Oct 24 noon, the flag stays off and the write-up doesn't claim it. **Oct 23: built**
+(draft PR #130; the live smoke passes), waiting on Cynthia's review; what the live context does is on
+the [prize page](../context/surrealdb-sponsor-prize.md).
 
 ### What we skip
 

@@ -36,7 +36,8 @@ local files with their `.ts` extension, and use `import type` for types. The typ
 | `GET /sessions/:id` | The session's latest `Turn`. `404` if it doesn't exist or belongs to someone else |
 | `POST /sessions/:id/turns` | One of the bodies in CONTRACTS.md section 1, plus `turn`, the number of the `Turn` it answers. Returns the next `Turn`. An answer to an older `Turn` gets the latest one back and runs nothing; two copies of the same answer arriving at once both run, and the one that saves first is the one that counts. A `Turn` with `error` saves nothing. Mastery is written only for the moves the `Turn` changed, never for a test session. `400` for a bad body, `404` if the session doesn't exist or belongs to someone else (both with `{ error }`). `409` with the latest `Turn` for a `turn` from the future or a body the latest `Turn` doesn't ask for; the reason goes to the server log |
 | `GET /me/mastery` | The caller's `Mastery`: the four moves in session order, at level 1 until the orchestrator raises them |
-| `DELETE /me/data` | `204`. Deletes the caller's sessions, their agent logs and mastery (the delete button) |
+| `GET /me/memory` | The caller's `MemoryView` (CONTRACTS.md section 2b), what the app's Memory sheet shows: per concept and part the level now and how it changed, and the latest guess against the score beside the one before. `{ "concepts": [] }` with memory off, or before a first finished session |
+| `DELETE /me/data` | `204`. Purges the caller's memory scope, then deletes their sessions, their agent logs and mastery (the delete button). If the purge fails, nothing is deleted and the answer is a `500`, so the learner can try again |
 
 The session and `/me` routes need the Clerk session token as `Authorization: Bearer <token>` (#23).
 The API checks it without a network call, using the instance's PEM public key in `CLERK_JWT_KEY` (in
@@ -95,6 +96,59 @@ again at $0 after a restart; the account's own balance, with auto-reload off (#2
   database. At startup the store defines the `session`, `mastery` and `agent_log` tables from
   CONTRACTS.md section 4. They stay schemaless so the orchestrator's state can grow, but the fields
   the API relies on are typed, so a bad level or mode is refused instead of saved.
+
+## Agent Memory (#112)
+
+[`src/memory.ts`](src/memory.ts) is the API's side of SurrealDB Agent Memory (CONTRACTS.md section 2,
+Memory): what earlier sessions left about a learner, read before the hint giver and the coach, written
+when a session reaches its result, shown by `GET /me/memory` and purged by `DELETE /me/data`. Off by
+default; on, in production, for the demo.
+
+| Variable | What it does |
+|---|---|
+| `AGENT_MEMORY_ENABLED` | `true` turns memory on. Unset or anything else: off, and every route runs as before memory existed |
+| `AGENT_MEMORY_ENDPOINT` | The context's host, `https://<host>` (SurrealDB Studio, the context's API keys view). Required when on |
+| `AGENT_MEMORY_CONTEXT` | The context id. Required when on |
+| `AGENT_MEMORY_API_KEY` | A key for that context with read, write, scope-create and forget grants. Render and your local `.env` only, never the app |
+| `LEARNER_ID_SALT` | Salts the learner's pseudonym, the same one the testers' export uses (above). Set it to the same value on Render and for the export |
+
+What goes in: after a session has its result, one fact per part whose level changed ("You moved up to
+level 3 on 'What it isn't' for API on Oct 22."), the gap ("Last time on API you guessed 7 and proved
+3.") and the Helps each part took ("'Its types' took 2 Helps on API last time."). Each is a sentence code
+writes from a template, sent as a triple (`infer: "triples"`: memory runs no model on it), so the
+learner's words never go in. The scope is `learner/<pseudonym>`, the entity `topic/<pseudonym>_<concept>`,
+and each row carries its provenance in labels (`session`, `turn`, `writer`, and the numbers). A later
+session's write of the same key supersedes the earlier value; memory keeps the chain, and the Memory
+sheet shows it. Two things the live context taught us (Oct 23): a dot in a key is folded into an
+underscore, so the keys are `level_<move>`, `gap` and `help_<move>` from the start; and parallel writes
+on one entity fail with "unknown error", so the writes go one after another (about 5 s for a session's
+seven facts, off the request path).
+
+What comes out: before the hint giver and the coach, up to 8 facts from the learner's earlier sessions
+on the concept (the current level per part, the latest gap, the Helps that cost most), read once per
+Turn and only when one of those two runs. A read over 1.5 s, an empty one or the flag off: the agent
+runs without memory and the user message is the one it always had. The orchestrator copies the facts a
+message cites onto it (`Message.cites`); the API keeps only ids it passed in (`verifyCites`), logs the
+rest on the `agent_log` row as `dropped`, and fills `Message.sources` with the cited facts' words, so
+the app can show "From what Lumente remembers: …". The write runs off the request path: a memory that
+is down costs the learner nothing but the facts, and the cause goes to the server log. The tables above
+stay the record; memory never changes a number.
+
+**Turning it on in production:** the app parses every `Turn` with the strict schema, so a build without
+the `cites` and `sources` fields (the testers' build) rejects a Turn that carries them. Ship the app
+update with #112 first, then set `AGENT_MEMORY_ENABLED=true` on Render (docs/deploy.md: Ship, then
+Render).
+
+```bash
+npm run memory:smoke -w api
+```
+
+The memory smoke test, against the live context with a throwaway learner that it erases at the end:
+a session's facts are written, its own coach reads nothing, a second session reads them within 1.5 s,
+a second write supersedes the first and the chain is kept, a third session reads the current facts
+with what they superseded, the Memory sheet's view shows the level change and both gaps, the rows hold
+sentences only, and the purge leaves nothing. Exit 0 with a note when the three memory variables are
+unset (so it runs anywhere the API's smoke test runs), exit 1 on any failure. Prints no secret.
 
 ## The demo profile
 

@@ -4,7 +4,7 @@
 // next step, which comes a moment after the numbers. Every number comes from Turn.result, computed by code. The
 // firefly is barely there: it never reacts to a score. The gap arrives first, then the map, then the rest, one
 // after another. In the website layout the words are a column on the left and the map stands on the right.
-import { MOVE_ORDER, type Mentefacto, type MoveId, type Result } from "@build-north/agents";
+import { MOVE_ORDER, type Mentefacto, type Message, type MoveId, type Result } from "@build-north/agents";
 import { useEffect } from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { success } from "../haptics.ts";
@@ -12,7 +12,7 @@ import { gapOf, POINTS_RULE, resultPartsOf, resultStepsOf, type Pip, type Result
 import { page, parts as PARTS, radius, space, type } from "../theme.ts";
 import { ConceptMap, PointSquare } from "./concept-map.tsx";
 import { Firefly } from "./firefly.tsx";
-import { Failure } from "./messages.tsx";
+import { Failure, Remembered } from "./messages.tsx";
 import { SessionBar } from "./session-bar.tsx";
 import { SiteHeader } from "./site-header.tsx";
 import { Body, Button, Label, Rise, Screen, Tag, useColors, useMode, useWide } from "./ui.tsx";
@@ -27,6 +27,8 @@ type Props = {
   lastPart?: Partial<Record<MoveId, string>>;
   /** The coach's words come after the result (`result.coach` is null until then); this is why they didn't. */
   coachFailure?: string | null;
+  /** With memory on, the facts the coach's words rely on (the summary message's `sources`, #112). */
+  coachSources?: Message["sources"];
   onRetryCoach?: () => void;
   onAgain: () => void;
   againBusy?: boolean;
@@ -47,7 +49,7 @@ export function ResultScreen(props: Props) {
 }
 
 /** Inside the Screen, so the colors follow the light the score reached. */
-function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFailure, onRetryCoach, onAgain, againBusy, againError, onDone }: Props) {
+function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFailure, coachSources, onRetryCoach, onAgain, againBusy, againError, onDone }: Props) {
   const c = useColors();
   const wide = useWide();
   const lit = useMode() === "day";
@@ -111,7 +113,10 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFail
         <Rise key={result.coach ? "coach" : "waiting"} order={5} style={[styles.coach, { borderLeftColor: c.question }]}>
           <Tag style={{ color: c.question }}>for next time</Tag>
           {result.coach ? (
-            <Body>{result.coach.message}</Body>
+            <>
+              <Body>{result.coach.message}</Body>
+              <Remembered sources={coachSources} concept={concept} />
+            </>
           ) : coachFailure ? (
             <Failure message={coachFailure}>{onRetryCoach && <Button kind="secondary" label="Try again" onPress={onRetryCoach} />}</Failure>
           ) : (

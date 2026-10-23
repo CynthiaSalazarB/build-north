@@ -75,7 +75,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
           if (message.kind === "fact" || message.kind === "redirect") line = <FactCard kind={message.kind} text={message.text} />;
           else if (message.kind === "hint") {
             const n = hints.indexOf(entry.id);
-            line = <HintCard message={message} n={(n % 4) + 1} capNote={n % 4 === 0} part={PARTS[hintPartOf(n)].label} />;
+            line = <HintCard message={message} n={(n % 4) + 1} capNote={n % 4 === 0} part={PARTS[hintPartOf(n)].label} concept={concept} />;
           } else line = <Body>{message.text}</Body>;
         }
         return line ? (
