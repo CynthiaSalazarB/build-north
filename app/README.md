@@ -23,8 +23,11 @@ npm run start -w app        # then scan the QR code with Expo Go, or press w for
 With no `app/.env`, the app runs in **demo mode**: it replays the API session recorded with Claude from
 `agents/fixtures/session-api.json`, one Turn per action, whatever you type (#6). "Your data" at the top of
 Start holds the privacy note and the delete button (`DELETE /me/data`, then sign-out; #43), and the mic by
-every answer, question and part field turns speech into editable text that still needs Send. To use the API, create
-`app/.env` (Expo reads the `.env` in this folder, not the repo root's):
+every answer, question and part field turns speech into editable text that still needs Send. With the API, a
+session survives a reload or a killed app: the device keeps which session is on screen (`src/session/saved.ts`,
+`storage.ts`: the browser's storage on the web, a file on a phone) and Start offers to resume it from its latest
+Turn (`GET /sessions/:id`); demo mode keeps nothing. To use the API, create `app/.env` (Expo reads the `.env` in
+this folder, not the repo root's):
 
 ```bash
 EXPO_PUBLIC_API_URL=http://localhost:3000   # on a phone, use your computer's LAN address instead of localhost

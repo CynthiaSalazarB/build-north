@@ -127,6 +127,23 @@ test("a 409 with the latest Turn is drawn; other errors carry the server's messa
   await assert.rejects(down.start({ concept: "x" }), { status: null, retryable: true });
 });
 
+test("a session is picked up with GET /sessions/:id, and a 404 says it is gone for good", async () => {
+  const { fetch, calls } = fakeFetch(200, first);
+  const client = createApiClient({ baseUrl: "http://api.test", getToken: async () => "tok", fetch });
+  assert.deepEqual(await client.resume("ses 1"), first);
+  assert.equal(calls[0]!.url, "http://api.test/sessions/ses%201");
+  assert.equal(calls[0]!.init.method, "GET");
+  assert.equal(calls[0]!.init.body, undefined);
+  assert.deepEqual(calls[0]!.init.headers, { authorization: "Bearer tok" });
+
+  const gone = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(404, { error: "No such session" }).fetch });
+  await assert.rejects(gone.resume("ses_1"), { message: "No such session", status: 404, retryable: false });
+  const odd = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(200, { hello: "world" }).fetch });
+  await assert.rejects(odd.resume("ses_1"), { message: /unexpected/, retryable: true });
+  // demo mode keeps nothing to pick up
+  await assert.rejects(createFixtureClient(0).resume("ses_1"), { retryable: false });
+});
+
 test("a call that outlasts the timeout says so, and is worth trying again", async () => {
   const hangs = ((_: string, init: RequestInit) => new Promise<Response>((_resolve, reject) => init.signal?.addEventListener("abort", () => reject(new Error("aborted"))))) as unknown as typeof fetch;
   await assert.rejects(createApiClient({ baseUrl: "http://api.test", fetch: hangs, timeoutMs: 5 }).start({ concept: "x" }), { message: /taking too long/, status: null, retryable: true });

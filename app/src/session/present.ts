@@ -288,6 +288,13 @@ export function gapOf(result: Pick<Result, "calibrationGap">): { headline: strin
   return { headline: "Your guess was exactly right.", note: "You know what you know.", over: false };
 }
 
+/** What a learner shares from the result: the concept, the guess against the score, the tagline and the address.
+ * Numbers only, never the learner's words. `brand` comes from the theme (theme.ts needs React Native; this file
+ * doesn't). */
+export function shareLineOf(concept: string, result: Pick<Result, "predictedScore" | "score">, brand: { name: string; tagline: string; site: string }): string {
+  return `${concept} on ${brand.name}: I guessed ${result.predictedScore} of 8 and proved ${result.score}. ${brand.tagline} ${brand.site}`;
+}
+
 /** How a part earns its points (CONTRACTS.md section 3, `pointsFor`), in one line for the screens. */
 export const POINTS_RULE = "Each part is worth 2 points: 2 if your answer holds up on your own, 1 if it partly does or took a retry or Help, 0 if it was shown to you or doesn't hold up.";
 

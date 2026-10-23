@@ -3,13 +3,15 @@
 // proved, the ones felt sure but not proved and the parts that moved up a level, how points work, and the coach's
 // next step, which comes a moment after the numbers. Every number comes from Turn.result, computed by code. The
 // firefly is barely there: it never reacts to a score. The gap arrives first, then the map, then the rest, one
-// after another. In the website layout the words are a column on the left and the map stands on the right.
+// after another. Share hands the numbers (never the words) to a chat or a post: the phone's share sheet, the
+// browser's where it has one, else the clipboard. In the website layout the words are a column on the left and the
+// map stands on the right.
 import { MOVE_ORDER, type Mentefacto, type Message, type MoveId, type Result } from "@build-north/agents";
-import { useEffect } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { useEffect, useState } from "react";
+import { Platform, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { success } from "../haptics.ts";
-import { gapOf, POINTS_RULE, resultPartsOf, resultStepsOf, type Pip, type ResultStep } from "../session/present.ts";
-import { page, parts as PARTS, radius, space, type } from "../theme.ts";
+import { gapOf, POINTS_RULE, resultPartsOf, resultStepsOf, shareLineOf, type Pip, type ResultStep } from "../session/present.ts";
+import { brand, page, parts as PARTS, radius, space, type } from "../theme.ts";
 import { ConceptMap, PointSquare } from "./concept-map.tsx";
 import { Firefly } from "./firefly.tsx";
 import { Failure, Remembered } from "./messages.tsx";
@@ -129,6 +131,7 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFail
   );
   const again = <Button label={`Try ${concept} again`} fit={wide} busy={againBusy} onPress={onAgain} />;
   const another = <Button kind="text" label="Map another concept" onPress={onDone} />;
+  const share = <ShareButton concept={concept} result={result} />;
 
   if (wide) {
     return (
@@ -140,6 +143,7 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFail
             <Rise order={6} style={styles.actions}>
               {again}
               {another}
+              {share}
             </Rise>
           </ScrollView>
           <View style={styles.stage}>
@@ -158,10 +162,35 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFail
       <ScrollView contentContainerStyle={styles.content}>{words}</ScrollView>
       <View style={styles.foot}>
         {again}
-        {another}
+        <View style={styles.footRow}>
+          {another}
+          {share}
+        </View>
       </View>
     </>
   );
+}
+
+/** Share the result's numbers: the phone's share sheet, the browser's where it has one, else the clipboard, and
+ * the label says what happened. A share sheet the learner dismisses says nothing. */
+function ShareButton({ concept, result }: { concept: string; result: Result }) {
+  const [copied, setCopied] = useState<"no" | "yes" | "refused">("no");
+  const share = async () => {
+    const message = shareLineOf(concept, result, brand);
+    if (Platform.OS !== "web") {
+      await Share.share({ message }).catch(() => undefined);
+      return;
+    }
+    const nav = typeof navigator === "undefined" ? undefined : navigator;
+    if (nav?.share) {
+      await nav.share({ text: message }).catch(() => undefined);
+      return;
+    }
+    const ok = nav?.clipboard ? await nav.clipboard.writeText(message).then(() => true, () => false) : false;
+    setCopied(ok ? "yes" : "refused");
+  };
+  const label = copied === "yes" ? "Copied" : copied === "refused" ? "Couldn't copy" : "Share";
+  return <Button kind="text" label={label} hint="Shares your guess and your score, not your answers" onPress={() => void share()} />;
 }
 
 /** One row of the guess against the score: its label, the eight points in four pairs (one pair per part), the number. */
@@ -245,6 +274,7 @@ const styles = StyleSheet.create({
   item: { paddingVertical: 6, paddingHorizontal: 10, borderWidth: 1, borderRadius: radius.chip },
   coach: { gap: space.xs, borderLeftWidth: 2, paddingLeft: space.l },
   foot: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m, gap: space.xs },
+  footRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: space.s },
   split: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },
   words: { width: page.words, flexGrow: 0 },
   wordsContent: { flexGrow: 1, justifyContent: "center", paddingTop: space.xxl, paddingBottom: page.header, gap: space.xl },
