@@ -363,8 +363,12 @@ The same order as the Team Brief's pitch, with its rehearsal answers:
    goes blank. Then the scope, in the next breath: "Not line by line. The ideas underneath it: the API,
    the token, the CORS rule. That's what you defend in an interview or a code review." The app's
    headline carries that scope in one line: "Can you explain the ideas behind the code your AI wrote?"
-2. Why it's bigger (20 s): AI lends confidence the learner didn't earn (Aalto: about 4 points of
-   overestimate) and lowers what they learn (Anthropic: 50% against 67%).
+2. Why it's bigger (20 s): the pain every learner shares, then why we start where we do. "Everyone
+   knows the moment: someone asks you to explain something you thought you understood, and you can't."
+   (The illusion of explanatory depth, Rozenblit and Keil.) AI makes that moment more common: it lends
+   confidence the learner didn't earn (Aalto: about 4 points of overestimate) and lowers what they learn
+   (Anthropic: 50% against 67%). "We start with programming students, because they hit it every week":
+   their AI writes their work every day, and code reviews, project defenses and interviews check it.
 3. Session 1, live, on API (60 s): the prediction, the questions, a Help that costs a point, and the
    gap (about +2).
 4. The switch to the level-5 profile on CORS (30 s): the learner asks, the fact desk answers with
