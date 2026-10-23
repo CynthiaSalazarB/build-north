@@ -259,7 +259,8 @@ type MemoryFact = {
 - **Optional end to end.** Off by default behind a flag. When it's off, empty, or slower than 1.5 s, the
   API calls the agent without it, and the user message is the same as before memory existed.
 - **`cites`:** the hint giver's and the coach's outputs carry the ids of the facts their text relies on.
-  The API keeps only ids it passed in and logs the rest.
+  The API keeps only ids it passed in and logs the rest, with `verifyCites(output, memory)` from
+  `@build-north/agents` (it returns the cleaned output and the dropped ids).
 
 `GET /me/memory` returns `MemoryView`, what the app's Memory sheet shows: per concept and move, the
 level now and its history (level, since, until, source, which agent wrote it, how many times other
@@ -340,8 +341,15 @@ Help exists and costs a point (a question that points somewhere would be a free 
   "questionType": "asks_for_structure" }
 ```
 
-- `questionType`: `fact | compare | contrast | breaking_case | what_it_needs | asks_for_structure | other`.
-  Everything except `fact`, `asks_for_structure` and `other` counts as `testing` in the result.
+When the learner types an answer in the chat instead of a question ("software interface"), the fact desk
+hands it back with `questionType: "states_an_answer"`. Code then shows its own fixed line, whatever the
+model wrote, so it can never confirm or correct the answer: "That looks like an answer. Answers go on the
+map, and the whole map is scored when you submit. If you need a fact, ask me." It isn't counted in
+`questions`. A claim the learner wants checked ("an API always uses HTTP") is a question and gets facts.
+
+- `questionType`: `fact | compare | contrast | breaking_case | what_it_needs | asks_for_structure | states_an_answer | other`.
+  Everything except `fact`, `asks_for_structure`, `states_an_answer` and `other` counts as `testing` in the
+  result, and `states_an_answer` doesn't count as a question at all.
 - Facts in one or two sentences, from the learner's material when it has the answer.
 - Never names a part of the map or says which box something belongs in. A leak here gives the answer
   away, so this prompt gets the most test cases.
@@ -391,8 +399,9 @@ the app asks for as soon as the result is on screen (section 1).
   "cites": ["attr_gap"] }
 ```
 
-The coach never computes or states a number it wasn't given. With memory on, it can compare this session
-with the last in words, only from a fact in `memory`, and cites that fact. Naming a move after it's found
+The coach never computes or states a number it wasn't given. It doesn't repeat the prediction, which the
+screen already shows. With memory on, it can compare this session with the last in words, only from a fact
+in `memory`, and cites that fact. Naming a move after it's found
 ("That's called the supraordinate class. You found it.") is fixed text from code.
 
 ### Not in this version

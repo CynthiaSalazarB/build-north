@@ -9,14 +9,14 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { css, useReducedMotion } from "react-native-reanimated";
 import { tick } from "../haptics.ts";
-import type { PartView } from "../session/present.ts";
+import { POINTS_RULE, type PartView } from "../session/present.ts";
 import type { Failure as CallFailure } from "../session/transcript.ts";
 import { motion, page, space, type } from "../theme.ts";
 import { ConceptMap, PointSquare } from "./concept-map.tsx";
 import { Failure } from "./messages.tsx";
 import { SessionBar } from "./session-bar.tsx";
 import { SiteHeader } from "./site-header.tsx";
-import { Body, Button, easeOut, IconButton, Rise, Screen, Title, useColors, useMode, useWide } from "./ui.tsx";
+import { Body, Button, easeOut, IconButton, Label, Rise, Screen, Title, useColors, useMode, useWide } from "./ui.tsx";
 
 const MAX = 8;
 
@@ -114,7 +114,7 @@ function Guess({ guess, went, pending, onStep, footer, wide = false }: GuessProp
   const start = wide && styles.fromLeft;
   return (
     <Rise style={wide ? styles.wordsColumn : styles.column}>
-      <Body dim>4 questions, 2 points each.</Body>
+      <Body dim>The map has 4 parts.</Body>
       <Title style={[styles.question, wide && styles.display]}>How many points will you prove?</Title>
       <View style={[styles.stepper, start]}>
         <IconButton big icon="minus" label="One point less" disabled={guess === 0 || pending} onPress={() => onStep(-1)} />
@@ -137,6 +137,10 @@ function Guess({ guess, went, pending, onStep, footer, wide = false }: GuessProp
           </View>
         ))}
       </View>
+      {/* how a part earns its points, the same line the result shows (decided Oct 22) */}
+      <Label dim style={[styles.rule, wide && styles.ruleLeft]}>
+        {POINTS_RULE}
+      </Label>
       {footer && <View style={[styles.footer, start]}>{footer}</View>}
     </Rise>
   );
@@ -153,6 +157,8 @@ const styles = StyleSheet.create({
   digits: { fontVariant: ["lining-nums", "tabular-nums"] },
   points: { flexDirection: "row", justifyContent: "center", gap: space.l, marginTop: 26 },
   pair: { flexDirection: "row", gap: 6 },
+  rule: { marginTop: space.l, textAlign: "center" },
+  ruleLeft: { textAlign: "left" },
   footer: { marginTop: space.xxl, alignItems: "center" },
   fromLeft: { justifyContent: "flex-start", alignItems: "flex-start" },
   foot: { paddingHorizontal: space.margin, paddingBottom: space.margin },

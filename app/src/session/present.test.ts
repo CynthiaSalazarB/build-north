@@ -29,6 +29,7 @@ import {
   pointsOf,
   provedOf,
   resultPartsOf,
+  resultStepsOf,
   revealHoldOf,
   secretLineOf,
   waitingLineOf,
@@ -81,6 +82,23 @@ test("the result marks the points the guess claimed but didn't prove, first unpr
   );
   assert.equal(parts[1]!.text, "not dictatorship");
   assert.equal(parts[2]!.text, "free elections, rights, more than one party");
+  // the parts that moved up a level say the help fades there; reaching 5 means doing it alone
+  assert.deepEqual(parts.map((p) => p.badge), [null, "less help next time", null, "less help next time"]);
+  const toFive = { ...last.result!, masteryChanges: [{ move: "supraordinate" as const, from: 4 as const, to: 5 as const }] };
+  assert.equal(resultPartsOf(toFive, last.mentefacto)[0]!.badge, "you can do this alone now");
+});
+
+test("with the whole-map evaluator's notes, the result reads part by part: points as on the map, the words, the note", () => {
+  const last = turnAt(14);
+  const notes = { supraordinate: "Close group.", isoordinate: "One is missing." };
+  const steps = resultStepsOf(last.result!, last.mentefacto, notes);
+  assert.deepEqual(steps.map((s) => s.move), ["supraordinate", "exclusion", "isoordinate", "infraordinate"]);
+  assert.deepEqual(steps.map((s) => s.pips.join("+")), resultPartsOf(last.result!, last.mentefacto).map((p) => p.pips!.join("+")));
+  assert.deepEqual(steps[1]!.items, ["not dictatorship"]);
+  assert.deepEqual(steps[2]!.items, ["free elections", "rights", "more than one party"]);
+  assert.deepEqual([steps[0]!.note, steps[1]!.note], ["Close group.", null]);
+  // levels 1 to 4 have no notes: the conversation already went part by part
+  assert.deepEqual(resultStepsOf(last.result!, last.mentefacto, {}), []);
 });
 
 test("a revealed answer holds the next question until the learner has read it", () => {
@@ -201,9 +219,9 @@ test("the worked example's eight lines become four steps: a question, what goes 
 });
 
 test("the gap is a signed number and one sentence", () => {
-  assert.deepEqual(gapOf({ calibrationGap: 2 }), { sign: "+", amount: 2, sentence: "You felt 2 points surer than you were.", over: true });
-  assert.deepEqual(gapOf({ calibrationGap: -1 }), { sign: "−", amount: 1, sentence: "You did 1 point better than you felt.", over: false });
-  assert.equal(gapOf({ calibrationGap: 0 } as Pick<Result, "calibrationGap">).sentence, "Your guess was exactly right.");
+  assert.deepEqual(gapOf({ calibrationGap: 2 }), { headline: "You felt 2 points surer than you could explain.", note: "That's normal: explaining is how you find out.", over: true });
+  assert.deepEqual(gapOf({ calibrationGap: -1 }), { headline: "You knew more than you felt: 1 point more.", note: null, over: false });
+  assert.deepEqual(gapOf({ calibrationGap: 0 } as Pick<Result, "calibrationGap">), { headline: "Your guess was exactly right.", note: "You know what you know.", over: false });
 });
 
 test("notes with a key, a token or a password stop at the phone, and the warning says which line", () => {

@@ -3,7 +3,9 @@
 // that names a bigger group, a type or a requirement of inflation. Leak patterns are a net, not proof:
 // read the printed answers too. JWT and CORS, the demo's concepts, and RAG and embeddings, the start
 // screen's AI presets, get 10 questions each the same way, with their own leak patterns, and the same
-// bar: zero leaks, and the type right on 8 of every 10. Name concepts after `--` to run only those
+// bar: zero leaks, and the type right on 8 of every 10. API (the demo's concept since #96) and the testers'
+// pre/post-test concepts, database index and rate limiting, get 12 each: the same 10, plus two answers
+// typed in the chat (`states_an_answer`, Oct 22). Name concepts after `--` to run only those
 // (`npm run eval:fact-desk -- JWT CORS`).
 import { AGENTS, FACT_DESK_REDIRECT, type QuestionType } from "../src/index.ts";
 import { dollars, MODEL, pick, runAgent } from "./run-agent.ts";
@@ -107,6 +109,70 @@ const CONCEPTS = pick<{ concept: string; leak: RegExp; cases: Case[] }>([
       { question: "What does cosine similarity measure between two embeddings?", structure: false, type: "fact" },
     ],
   },
+  {
+    concept: "API",
+    // the demo's concept (#96): its bigger group (a software interface, a contract between programs; the
+    // letters' expansion is a fact, not the group), and its types by style (REST, SOAP, GraphQL, gRPC) or
+    // by where they live (web, library, operating system)
+    leak: /(types?|kinds?|sorts?) of APIs?|\b(REST(ful)?|SOAP|GraphQL|gRPC|RPC|WebSockets?)\b|web APIs?|library APIs?|operating[- ]system APIs?|\bOS APIs?|system calls?|(public|private|partner|internal|open) APIs?|software interfaces?|(?<!application )programming interfaces?|interfaces? (between|for) (programs|software|applications)|contracts? between/i,
+    cases: [
+      { question: "What's the bigger group that an API belongs to?", structure: true, type: "asks_for_structure" },
+      { question: "Is an API a kind of interface?", structure: true, type: "asks_for_structure" },
+      { question: "What types of APIs are there?", structure: true, type: "asks_for_structure" },
+      { question: "Is it something about connecting programs?", structure: true, type: "asks_for_structure" },
+      { question: "What does something need to count as an API?", structure: true, type: "asks_for_structure" },
+      { question: "How is an API different from a library?", structure: false, type: "contrast" },
+      { question: "If two functions in the same program call each other, is that using an API?", structure: false, type: "breaking_case" },
+      { question: "Does an API have to go over the internet?", structure: false, type: "what_it_needs" },
+      { question: "Is an API like a restaurant menu?", structure: false, type: "compare" },
+      { question: "What is an HTTP status code?", structure: false, type: "fact" },
+      // answers typed in the chat instead of on the map (Oct 22): the app shows its own fixed line
+      { question: "software interface", structure: true, type: "states_an_answer" },
+      { question: "REST and GraphQL", structure: true, type: "states_an_answer" },
+    ],
+  },
+  {
+    concept: "database index",
+    // the testers' pre/post-test concept (docs/tester-protocol.md): its bigger group (a data structure, a
+    // lookup structure), and its types by structure (B-tree, hash, bitmap) or by role (clustered,
+    // composite, covering, unique, full-text, primary, secondary)
+    leak: /(types?|kinds?|sorts?) of (database )?indexe?s|\bB\+?-?trees?\b|hash index(es)?|bitmap index|\bclustered|non-?clustered|composite index|covering index|unique index|full-?text index|partial index|primary index|secondary index|\bGIN\b|\bGiST\b|(lookup|auxiliary|search|data) structures?/i,
+    cases: [
+      { question: "What's the bigger group that a database index belongs to?", structure: true, type: "asks_for_structure" },
+      { question: "Is an index a kind of data structure?", structure: true, type: "asks_for_structure" },
+      { question: "What types of indexes are there?", structure: true, type: "asks_for_structure" },
+      { question: "Is it something about speed?", structure: true, type: "asks_for_structure" },
+      { question: "What does something need to count as a database index?", structure: true, type: "asks_for_structure" },
+      { question: "How is an index different from just sorting the table?", structure: false, type: "contrast" },
+      { question: "If I add an index to a column I never search on, do my queries get faster?", structure: false, type: "breaking_case" },
+      { question: "Does an index have to be stored apart from the table?", structure: false, type: "what_it_needs" },
+      { question: "Is an index like the index at the back of a book?", structure: false, type: "compare" },
+      { question: "Why do inserts get slower when a table has many indexes?", structure: false, type: "fact" },
+      { question: "a data structure for fast lookups", structure: true, type: "states_an_answer" },
+      { question: "B-tree and hash indexes", structure: true, type: "states_an_answer" },
+    ],
+  },
+  {
+    concept: "rate limiting",
+    // the testers' other pre/post-test concept: its bigger group (traffic control, a throttling or
+    // access-control technique), and its types by algorithm (token bucket, leaky bucket, fixed or sliding
+    // window) or by key (per user, per IP)
+    leak: /(types?|kinds?|sorts?) of rate limit(ing|s|ers)?|token bucket|leaky bucket|fixed[- ]window|sliding[- ](window|log)|per[- ](user|IP|key|client)\b|concurrency limits?|traffic (control|management|shaping)|throttling (mechanisms?|techniques?|polic(y|ies))|(access|flow)[- ]control (mechanisms?|techniques?)/i,
+    cases: [
+      { question: "What's the bigger group that rate limiting belongs to?", structure: true, type: "asks_for_structure" },
+      { question: "Is rate limiting a kind of security measure?", structure: true, type: "asks_for_structure" },
+      { question: "What types of rate limiting are there?", structure: true, type: "asks_for_structure" },
+      { question: "Is it something about traffic?", structure: true, type: "asks_for_structure" },
+      { question: "What does something need to count as rate limiting?", structure: true, type: "asks_for_structure" },
+      { question: "How is rate limiting different from blocking an IP address?", structure: false, type: "contrast" },
+      { question: "If a server just slows down when it's busy, is that rate limiting?", structure: false, type: "breaking_case" },
+      { question: "Does rate limiting have to send back an error when the limit is hit?", structure: false, type: "what_it_needs" },
+      { question: "Is rate limiting like a bouncer letting people in one at a time?", structure: false, type: "compare" },
+      { question: "What does HTTP status code 429 mean?", structure: false, type: "fact" },
+      { question: "a way to control traffic", structure: true, type: "states_an_answer" },
+      { question: "token bucket and fixed window", structure: true, type: "states_an_answer" },
+    ],
+  },
 ]);
 
 const empty = (concept: string) => ({ concept, supraordinate: null, exclusion: [], isoordinate: [], infraordinate: [] });
@@ -119,7 +185,9 @@ const tally = new Map(CONCEPTS.map((g) => [g.concept, { leaks: 0, typesRight: 0,
 console.log(`Fact desk on ${MODEL}, ${CONCEPTS.map((g) => g.concept).join(", ")}\n`);
 cases.forEach((c, i) => {
   const { output: o, ms } = runs[i]!;
-  const leak = c.structure ? o.kind !== "redirect" : o.kind === "fact" && (JARGON.test(o.answer) || c.leak.test(o.answer));
+  // what the learner sees: code shows a fixed line for a redirect and for an answer typed in the chat
+  const fixed = o.kind === "redirect" || o.questionType === "states_an_answer";
+  const leak = c.structure ? !fixed : !fixed && (JARGON.test(o.answer) || c.leak.test(o.answer));
   const typeOk = o.questionType === c.type;
   const t = tally.get(c.concept)!;
   if (leak) t.leaks++;

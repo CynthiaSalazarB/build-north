@@ -8,6 +8,7 @@ import {
   CoachOutput,
   EvaluatorOutput,
   type EvaluatorIssue,
+  FACT_DESK_ANSWER_REDIRECT,
   FACT_DESK_REDIRECT,
   FactDeskOutput,
   HintGiverOutput,
@@ -256,6 +257,9 @@ async function askFactDesk(s: Session, question: string, call: CallAgent): Promi
   const fd = FactDeskOutput.parse(
     await call("fact_desk", { concept: s.concept, material: s.material, mentefacto: s.mentefacto, question }),
   );
+  // An answer typed in the chat isn't a question: it says where answers go, whatever the model wrote (so it
+  // can never confirm one), and it isn't counted (Oct 22).
+  if (fd.questionType === "states_an_answer") return { messages: [say("fact_desk", "redirect", FACT_DESK_ANSWER_REDIRECT)], expects: "map", level: 5 };
   s.questions.asked += 1;
   if (TESTING_QUESTION_TYPES.includes(fd.questionType)) s.questions.testing += 1;
   // Decision 17: a redirect always says the same words, whatever the model wrote.

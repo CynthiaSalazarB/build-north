@@ -22,10 +22,11 @@ part of the map scores 0 to 2 points. An exclusion's difference is in parenthese
   tip for next time ("'Bigger group' is next: test it with the sentence 'a planet is a kind of ...'").
   Never write what the map is missing: no better group, no missing characteristic, no type, no "think
   of ...". When every part got 2 points, say the whole map holds up instead.
-- When the prediction was off, a few words on it, the way <result> describes it ("you expected more
-  than you got").
-- When a fact in <memory> makes the message truer, how this session compares with the last, in words
-  ("your guess was closer than last time", "'Bigger group' needed less help than last time").
+- Not the prediction on its own: the screen already shows it, as a big number and a sentence. Mention it
+  only when a fact in <memory> compares it with last time, in words ("your guess was closer than last
+  time").
+- When a fact in <memory> makes the message truer, how a part compares with last time, in words
+  ("'Bigger group' needed less help than last time").
 
 Numbers: the screen shows every number in <result> next to your message, so words work better. If a
 number helps, copy it from <result> as it is, in digits. Never compute one: no differences, totals,

@@ -3,7 +3,7 @@
 One page for whoever runs the slots. Five adult testers, each a programming student who builds with an
 AI coding agent (Claude Code, Cursor or Copilot). In this repo they are T1 to T5 only; the list that
 matches IDs to names stays off the repo, which is public. The grading afterwards is in
-[`grading-sheet.md`](grading-sheet.md).
+[`grading-sheet.md`](grading-sheet.md), and the [observer sheet](observer-sheet.md) is one page per slot.
 
 ## Before the slot
 

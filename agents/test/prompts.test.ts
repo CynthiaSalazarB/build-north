@@ -186,6 +186,11 @@ describe("agent prompts", () => {
     expect(AGENTS.coach.output.parse({ message: "Closer than last time.", nextFocus: null, cites: ["attr_gap"] }).cites).toEqual(["attr_gap"]);
   });
 
+  it("the fact desk sorts an answer typed in the chat, and the coach leaves the prediction to the screen", () => {
+    expect(AGENTS.fact_desk.system).toContain("`states_an_answer`");
+    expect(AGENTS.coach.system).toContain("Not the prediction on its own");
+  });
+
   it("render refuses an input that doesn't match the agent's schema", () => {
     expect(() => AGENTS.questioner.input.parse({ concept: "planet" })).toThrow();
   });

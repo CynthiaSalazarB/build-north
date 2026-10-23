@@ -27,7 +27,7 @@ const MAX_NOTES = 8000;
 
 /** The web page's title and description, in the static HTML, so a shared link previews well. */
 export function generateMetadata(): Metadata {
-  const title = `${brand.name}: can you explain the code your AI wrote?`;
+  const title = `${brand.name}: can you explain the idea behind the code your AI wrote?`;
   const description = "Pick a concept from your project. An AI tutor asks questions and never hands you the answer; each answer in your own words brings more light.";
   return { title, description, openGraph: { title, description } };
 }
@@ -152,7 +152,7 @@ export default function StartScreen() {
           <ScrollView style={styles.words} contentContainerStyle={styles.wordsContent} keyboardShouldPersistTaps="handled">
             <Rise>
               <Text style={[type.display, { color: c.onSurface }]} accessibilityRole="header">
-                Can you explain the code your AI wrote?
+                Can you explain the idea behind the code your AI wrote?
               </Text>
             </Rise>
             {choices}
@@ -188,7 +188,7 @@ export default function StartScreen() {
             <CodePreview concept={name} />
           </Rise>
           <Rise order={1}>
-            <Title>Can you explain the code your AI wrote?</Title>
+            <Title>Can you explain the idea behind the code your AI wrote?</Title>
           </Rise>
           {choices}
         </ScrollView>
