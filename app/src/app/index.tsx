@@ -145,7 +145,7 @@ export default function StartScreen() {
             style={[styles.notes, { color: c.onSurface, backgroundColor: c.surfaceContainer, borderColor: secret ? c.gap : c.fieldEdge }]}
           />
           <Label dim style={styles.count}>{`${notes.length.toLocaleString("en-US")} / 8,000`}</Label>
-          {secret && <Failure message={`Line ${secretLine} looks like it has a key, a token or a password. Take it out before you start: your notes go to the AI tutor.`} />}
+          {secret && <Failure message={`Line ${secretLine} looks like it has a key, a token or a password. Take it out before you start: your notes go to the AI.`} />}
         </View>
       )}
       {error && <Failure message={error} />}
@@ -291,11 +291,11 @@ function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Pr
 
 /** What the app keeps and where a learner's words go, in plain words (the privacy note, #43), and the way to
  * delete it all: one tap, then a confirmation that says what goes. Demo mode keeps nothing. */
-const KEPT = "We keep each session (the concept, the notes you pasted, your guess, your answers and questions, the tutor's replies and the score) and your level on each of the four parts.";
+const KEPT = "We keep each session (the concept, the notes you pasted, your guess, your answers and questions, the AI's replies and the score) and your level on each of the four parts.";
 const TO_CLAUDE = "Your answers and questions go to Claude, Anthropic's model, through our server, which holds the key. The app never has it.";
 const VOICE = "While the mic is on, the audio goes to your device's speech service, which turns it into words: on most Android phones that is Google's, and in a browser the browser's own. Only the words reach us, and only when you send them. We never receive or keep the audio; the speech service handles it under its own terms.";
 const DEMO = "Demo mode keeps nothing: this is a recorded session, and what you type stays on this device.";
-const TUTOR = "The tutor is an AI. It asks, and it never hands you the answer.";
+const WHO_ASKS = "The questions come from an AI. It asks, and it never hands you the answer.";
 
 function YourData({ open, onClose, offline, signsOut, onDelete }: { open: boolean; onClose: () => void; offline: boolean; signsOut: boolean; onDelete: () => Promise<string | null> }) {
   const [confirming, setConfirming] = useState(false);
@@ -330,7 +330,7 @@ function YourData({ open, onClose, offline, signsOut, onDelete }: { open: boolea
           <Small dim>{VOICE}</Small>
         </>
       )}
-      <Small dim>{TUTOR}</Small>
+      <Small dim>{WHO_ASKS}</Small>
       {!offline &&
         (confirming ? (
           <View style={styles.confirm}>
