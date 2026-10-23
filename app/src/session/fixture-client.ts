@@ -18,8 +18,11 @@ export function createFixtureClient(delayMs = 600): SessionClient {
 
   return {
     offline: true,
-    // nothing is kept anywhere in demo mode, so there is nothing to delete
+    // nothing is kept anywhere in demo mode, so there is nothing to delete, and nothing to remember
     async deleteData() {},
+    async memory() {
+      return { concepts: [] };
+    },
     async start() {
       next = 1;
       run += 1;

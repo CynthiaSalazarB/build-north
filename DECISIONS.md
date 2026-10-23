@@ -534,6 +534,25 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   "how much you got right" apart from "how well your confidence matched". The gap stays the message, and
   it loses the drama of one big number.
 
+### 2026-10-23 · Memory is written when the result is saved, and a session's coach reads only what came before it
+- **Decision:** the API writes a session's facts to Agent Memory the moment its result Turn is saved (the level
+  changes, the gap, the Helps per part), off the request path, with each fact's provenance in labels on the row
+  (`session`, `turn`, `writer`, the numbers). The read before the hint giver and the coach takes, per key, the
+  newest row not written by the current session, so the coach of a session whose facts were just written still
+  reads only earlier sessions. Facts are attributes of one entity per learner and concept, one key per fact
+  (`level.<move>`, `gap`, `help.<move>`), so a later session's write supersedes the earlier value and memory's own
+  history is the Memory sheet's chain. The message's `cites` go on the `Message` (optional, with `sources`), not on
+  `Result`, and the result screen reads the summary message's `sources` from the same Turn.
+- **Instead of:** writing after the coach's Turn (the session's real end), or keeping the numbers in a side table
+  of our own, or putting `sources` on `Result.coach`.
+- **Why:** the coach's Turn only arrives if the app asks for it; a learner who closes the app on the result would
+  leave no memory. Writing at the result and skipping the current session's rows on the read keeps both. Labels
+  keep each row self-describing, so the view and the agents read memory, not our tables, which is what the prize
+  judges. `Result` stays as it was for every saved session; only the Turn that carries the coach's words gains
+  a field, and only with memory on.
+- **Pattern / trade-off:** write early, filter on read. One more label per row; a read has to skip rows by
+  session instead of trusting "newest". A session with no result (abandoned) leaves nothing, as before.
+
 ### 2026-10-22 · No mastery screen: a level-up shows on the result, the levels live in the Memory sheet
 - **Decision:** the mastery screen (#42) is cut. On the result, a part that moved up a level says so under
   its words ("less help next time", or "you can do this alone now" at level 5), and the Memory sheet (#112)
