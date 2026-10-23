@@ -19,8 +19,8 @@ in a pull request when it's done.
 
 ## Who can enter
 
-- [ ] **Everyone on the team is 18 or older and lives in Canada** (Rules: "You must be 18 or older and
-  live in Canada"). Owner: Cynthia confirms for all four, Oct 23.
+- [x] **Everyone on the team is 18 or older and lives in Canada** (Rules: "You must be 18 or older and
+  live in Canada"). Confirmed by Cynthia on Oct 22: all four, in Toronto.
 - [x] Four people at most, one submission per team.
 - [x] Built during Build Week, with prior work, templates and AI tools disclosed (below).
 
