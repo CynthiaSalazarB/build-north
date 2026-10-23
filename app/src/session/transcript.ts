@@ -22,14 +22,17 @@ export type SessionState = {
   failure: Failure | null;
   /** "test" for a self-test (the testers' pre-test and post-test): every part at level 5. */
   mode: SessionMode;
+  /** The notes the session started with (pasted text), so Try again on the result keeps them. The Turn doesn't
+   * carry them back. */
+  material: string | null;
   /** Level 5: the learner's map, kept on the phone until they submit it (`expects: "map"`). */
   draft: Mentefacto | null;
 };
 
-export const initialState: SessionState = { turn: null, entries: [], pending: null, failure: null, mode: "learn", draft: null };
+export const initialState: SessionState = { turn: null, entries: [], pending: null, failure: null, mode: "learn", material: null, draft: null };
 
-/** A session that just started, in learn or test mode. */
-export const startedWith = (turn: Turn, mode: SessionMode = "learn"): SessionState => received({ ...initialState, mode }, turn);
+/** A session that just started, in learn or test mode, with the notes it was given. */
+export const startedWith = (turn: Turn, mode: SessionMode = "learn", material: string | null = null): SessionState => received({ ...initialState, mode, material }, turn);
 
 /** The learner's side of the conversation, as it shows in the transcript. The guess has its own
  * screen and comes back on the result, and Help shows as the hint card it brings, so neither is echoed. */

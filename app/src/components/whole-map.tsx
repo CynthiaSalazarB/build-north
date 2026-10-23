@@ -5,7 +5,7 @@
 // In the website layout the fact desk is a column on the left and the map stands on the right with its Submit.
 import { MOVE_LABEL, MOVE_ORDER, type Item, type Mentefacto, type MoveId, type Turn } from "@build-north/agents";
 import { useRef, useState, type ReactNode } from "react";
-import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance } from "react-native";
+import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type PressableStateCallbackType, type ScrollViewInstance } from "react-native";
 import Animated from "react-native-reanimated";
 import { filledOf, hintPartOf, itemsOf, partMeaningOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
 import type { LearnerInput } from "../session/session-context.tsx";
@@ -192,12 +192,16 @@ function Asked({ n }: { n: number }) {
   );
 }
 
-/** The firefly beside "You ask now": dim, since the learner leads now, and still Help when tapped. */
+/** A Pressable's state; react-native-web adds hover to the press. */
+type Interaction = PressableStateCallbackType & { hovered?: boolean };
+
+/** The firefly beside "You ask now": dim, since the learner leads now, and still Help when tapped (it wakes under a
+ * finger or a pointer, and fades again). */
 function FireflyHelp({ help, pending, onHelp }: { help: ReturnType<typeof wholeMapHelpOf>; pending: boolean; onHelp: () => void }) {
   const c = useColors();
-  const drawing = (
+  const drawing = (glow: boolean) => (
     <>
-      <Firefly state="fades" size={30} />
+      <Firefly state="fades" size={30} glow={glow} />
       {help && (
         <Text style={[type.tag, styles.fireflyTag, { color: c.question }]} numberOfLines={1}>
           {pending ? "checking" : help.tag}
@@ -208,13 +212,13 @@ function FireflyHelp({ help, pending, onHelp }: { help: ReturnType<typeof wholeM
   if (!help || pending) {
     return (
       <View style={styles.firefly} role={pending ? "status" : undefined}>
-        {drawing}
+        {drawing(false)}
       </View>
     );
   }
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={help.label} onPress={onHelp} hitSlop={size.hitSlop} style={({ pressed }) => [styles.firefly, pressed && styles.pressed]}>
-      {drawing}
+      {({ pressed, hovered }: Interaction) => drawing(pressed || !!hovered)}
     </Pressable>
   );
 }
@@ -224,12 +228,14 @@ function FireflyHelp({ help, pending, onHelp }: { help: ReturnType<typeof wholeM
 function AskBar({ concept, pending, asking, flush, onAsk }: { concept: string; pending: boolean; asking: boolean; flush: boolean; onAsk: (question: string) => void }) {
   const [text, setText] = useState("");
   const question = text.trim();
+  const voice = useVoice({ text, onText: setText });
   const submit = () => {
     if (!question || pending) return;
+    // what is on screen is what goes; a phrase still being heard stops here instead of landing in the emptied field
+    if (voice.state.kind === "listening") voice.cancel();
     onAsk(question);
     setText("");
   };
-  const voice = useVoice({ text, onText: setText });
   return (
     <View style={[styles.bar, flush && styles.flush]}>
       <View style={styles.askRow}>

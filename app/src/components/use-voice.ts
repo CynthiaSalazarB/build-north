@@ -16,7 +16,7 @@ let owner: string | null = null;
 
 type Field = { text: string; onText: (text: string) => void };
 
-export function useVoice({ text, onText }: Field): { state: VoiceState; toggle: () => void } {
+export function useVoice({ text, onText }: Field): { state: VoiceState; toggle: () => void; cancel: () => void } {
   const me = useId();
   const [state, dispatch] = useReducer(voiceReducer, available ? { kind: "idle" } : { kind: "unsupported" });
   const field = useRef({ text, onText });
@@ -53,15 +53,19 @@ export function useVoice({ text, onText }: Field): { state: VoiceState; toggle: 
     dispatch({ type: "end" });
   });
 
-  // a field that goes away while its mic is on (the part editor closing) takes the recognizer down with it
-  useEffect(
-    () => () => {
+  // a field that goes away while its mic is on (the part editor closing) takes the recognizer down with it; one
+  // that goes away while the microphone permission is still being asked must not claim it afterwards (nothing
+  // would be left to release it, and every mic would then wait on a recognizer nobody owns)
+  const mounted = useRef(true);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
       if (owner !== me) return;
       owner = null;
       ExpoSpeechRecognitionModule.abort();
-    },
-    [me],
-  );
+    };
+  }, [me]);
 
   const toggle = useCallback(() => {
     if (state.kind === "unsupported" || starting.current) return;
@@ -80,6 +84,7 @@ export function useVoice({ text, onText }: Field): { state: VoiceState; toggle: 
       // error (docs/expo-log.md, Oct 22); the module's own web stub only logs a warning
       const permission = Platform.OS === "web" ? { granted: true, canAskAgain: true } : await ExpoSpeechRecognitionModule.requestPermissionsAsync().catch(() => null);
       starting.current = false;
+      if (!mounted.current) return;
       if (!permission?.granted) {
         dispatch({ type: "denied", canAskAgain: permission?.canAskAgain ?? true });
         return;
@@ -106,5 +111,11 @@ export function useVoice({ text, onText }: Field): { state: VoiceState; toggle: 
     })();
   }, [state, me]);
 
-  return { state, toggle };
+  // Send while listening: what is on screen goes, and the recognizer stops without delivering more, so a phrase
+  // still being heard can't land in the field after it was emptied. The abort's own events set the state to idle.
+  const cancel = useCallback(() => {
+    if (owner === me) ExpoSpeechRecognitionModule.abort();
+  }, [me]);
+
+  return { state, toggle, cancel };
 }
