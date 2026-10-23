@@ -540,7 +540,7 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   (`session`, `turn`, `writer`, the numbers). The read before the hint giver and the coach takes, per key, the
   newest row not written by the current session, so the coach of a session whose facts were just written still
   reads only earlier sessions. Facts are attributes of one entity per learner and concept, one key per fact
-  (`level.<move>`, `gap`, `help.<move>`), so a later session's write supersedes the earlier value and memory's own
+  (`level_<move>`, `gap`, `help_<move>`), so a later session's write supersedes the earlier value and memory's own
   history is the Memory sheet's chain. The message's `cites` go on the `Message` (optional, with `sources`), not on
   `Result`, and the result screen reads the summary message's `sources` from the same Turn.
 - **Instead of:** writing after the coach's Turn (the session's real end), or keeping the numbers in a side table

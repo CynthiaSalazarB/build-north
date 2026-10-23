@@ -68,16 +68,16 @@ const s2 = { session: "s2", turn: 15 };
 const EARLIER = "2026-10-22T18:40:05Z";
 // what session 1 left on API, then what session 2 wrote over it
 const rows: MemoryRow[] = [
-  row("attr_sup1", "level.supraordinate", "You moved up to level 2 on 'Bigger group' for API on Oct 22.", { ...s1, writer: "evaluator", move: "supraordinate", level: 2 }, { since: EARLIER, until: AT }),
-  row("attr_sup2", "level.supraordinate", "You moved up to level 3 on 'Bigger group' for API on Oct 23.", { ...s2, writer: "evaluator", move: "supraordinate", level: 3 }, { supersedes: "attr_sup1" }),
-  row("attr_exc1", "level.exclusion", "You moved up to level 2 on 'What it isn't' for API on Oct 22.", { ...s1, writer: "evaluator", move: "exclusion", level: 2 }, { since: EARLIER }),
+  row("attr_sup1", "level_supraordinate", "You moved up to level 2 on 'Bigger group' for API on Oct 22.", { ...s1, writer: "evaluator", move: "supraordinate", level: 2 }, { since: EARLIER, until: AT }),
+  row("attr_sup2", "level_supraordinate", "You moved up to level 3 on 'Bigger group' for API on Oct 23.", { ...s2, writer: "evaluator", move: "supraordinate", level: 3 }, { supersedes: "attr_sup1" }),
+  row("attr_exc1", "level_exclusion", "You moved up to level 2 on 'What it isn't' for API on Oct 22.", { ...s1, writer: "evaluator", move: "exclusion", level: 2 }, { since: EARLIER }),
   row("attr_gap1", "gap", "Last time on API you guessed 7 and proved 4.", { ...s1, writer: "coach", predicted: 7, score: 4 }, { since: EARLIER, until: AT }),
   row("attr_gap2", "gap", "Last time on API you guessed 7 and proved 3.", { ...s2, writer: "coach", predicted: 7, score: 3 }, { supersedes: "attr_gap1" }),
-  row("attr_help_exc1", "help.exclusion", "'What it isn't' took 1 Help on API last time.", { ...s1, writer: "hint_giver", move: "exclusion", helps: 1 }, { since: EARLIER }),
-  row("attr_help_iso1", "help.isoordinate", "'What it needs' took 2 Helps on API last time.", { ...s1, writer: "hint_giver", move: "isoordinate", helps: 2 }, { since: EARLIER }),
-  row("attr_help_sup1", "help.supraordinate", "'Bigger group' took no Help on API last time.", { ...s1, writer: "hint_giver", move: "supraordinate", helps: 0 }, { since: EARLIER }),
+  row("attr_help_exc1", "help_exclusion", "'What it isn't' took 1 Help on API last time.", { ...s1, writer: "hint_giver", move: "exclusion", helps: 1 }, { since: EARLIER }),
+  row("attr_help_iso1", "help_isoordinate", "'What it needs' took 2 Helps on API last time.", { ...s1, writer: "hint_giver", move: "isoordinate", helps: 2 }, { since: EARLIER }),
+  row("attr_help_sup1", "help_supraordinate", "'Bigger group' took no Help on API last time.", { ...s1, writer: "hint_giver", move: "supraordinate", helps: 0 }, { since: EARLIER }),
   // rows this API never writes: no session label, or a key it doesn't know
-  row("attr_other", "level.exclusion", "Level 4", { writer: "evaluator", move: "exclusion", level: 4 }),
+  row("attr_other", "level_exclusion", "Level 4", { writer: "evaluator", move: "exclusion", level: 4 }),
   row("attr_stray", "favourite_colour", "amber", { ...s1 }),
 ];
 
@@ -103,13 +103,13 @@ test("a learner's scope and entity carry the testers' pseudonym, never the Clerk
 
 test("a finished session leaves the level changes, the gap and the Helps, as plain sentences with the numbers in labels", () => {
   assert.deepEqual(factsToWrite(finished, AT), [
-    { key: "level.supraordinate", value: "You moved up to level 3 on 'Bigger group' for API on Oct 23.", labels: { writer: "evaluator", move: "supraordinate", level: 3 } },
-    { key: "level.exclusion", value: "You moved down to level 1 on 'What it isn't' for API on Oct 23.", labels: { writer: "evaluator", move: "exclusion", level: 1 } },
+    { key: "level_supraordinate", value: "You moved up to level 3 on 'Bigger group' for API on Oct 23.", labels: { writer: "evaluator", move: "supraordinate", level: 3 } },
+    { key: "level_exclusion", value: "You moved down to level 1 on 'What it isn't' for API on Oct 23.", labels: { writer: "evaluator", move: "exclusion", level: 1 } },
     { key: "gap", value: "Last time on API you guessed 7 and proved 3.", labels: { writer: "coach", predicted: 7, score: 3 } },
-    { key: "help.supraordinate", value: "'Bigger group' took no Help on API last time.", labels: { writer: "hint_giver", move: "supraordinate", helps: 0 } },
-    { key: "help.exclusion", value: "'What it isn't' took 2 Helps on API last time.", labels: { writer: "hint_giver", move: "exclusion", helps: 2 } },
-    { key: "help.isoordinate", value: "'What it needs' took 1 Help on API last time.", labels: { writer: "hint_giver", move: "isoordinate", helps: 1 } },
-    { key: "help.infraordinate", value: "'Its types' took no Help on API last time.", labels: { writer: "hint_giver", move: "infraordinate", helps: 0 } },
+    { key: "help_supraordinate", value: "'Bigger group' took no Help on API last time.", labels: { writer: "hint_giver", move: "supraordinate", helps: 0 } },
+    { key: "help_exclusion", value: "'What it isn't' took 2 Helps on API last time.", labels: { writer: "hint_giver", move: "exclusion", helps: 2 } },
+    { key: "help_isoordinate", value: "'What it needs' took 1 Help on API last time.", labels: { writer: "hint_giver", move: "isoordinate", helps: 1 } },
+    { key: "help_infraordinate", value: "'Its types' took no Help on API last time.", labels: { writer: "hint_giver", move: "infraordinate", helps: 0 } },
   ]);
   // Cynthia's three sentences (#112), word for word
   assert.equal(factText.gap("API", 7, 3), "Last time on API you guessed 7 and proved 3.");
@@ -145,9 +145,9 @@ test("the facts an agent gets: the level per part, the latest gap, the Helps tha
   // at most 8, so with all four Helps written only the three costliest fit
   const full = [
     ...rows,
-    row("attr_iso1", "level.isoordinate", "x", { ...s1, writer: "evaluator", move: "isoordinate", level: 2 }, { since: EARLIER }),
-    row("attr_inf1", "level.infraordinate", "x", { ...s1, writer: "evaluator", move: "infraordinate", level: 2 }, { since: EARLIER }),
-    row("attr_help_inf1", "help.infraordinate", "x", { ...s1, writer: "hint_giver", move: "infraordinate", helps: 3 }, { since: EARLIER }),
+    row("attr_iso1", "level_isoordinate", "x", { ...s1, writer: "evaluator", move: "isoordinate", level: 2 }, { since: EARLIER }),
+    row("attr_inf1", "level_infraordinate", "x", { ...s1, writer: "evaluator", move: "infraordinate", level: 2 }, { since: EARLIER }),
+    row("attr_help_inf1", "help_infraordinate", "x", { ...s1, writer: "hint_giver", move: "infraordinate", helps: 3 }, { since: EARLIER }),
   ];
   const eight = factsOf(full, "API", "s3");
   assert.equal(eight.length, 8);
@@ -237,7 +237,7 @@ test("an entity memory doesn't have is an empty history, a scope never registere
   });
   assert.deepEqual(await api.history(entityOf("a1b2c3d4", "API"), signal()), []);
   assert.equal(await api.forgetScope("learner/nobody", signal()), 0);
-  await assert.rejects(api.write("learner/x", [], [], signal()), { name: "MemoryError", status: 422, message: "unknown scope node learner/x" });
+  await assert.rejects(api.write("learner/x", [], [], signal()), { name: "MemoryError", status: 422, message: "memory answered 422: unknown scope node learner/x" });
   await assert.rejects(api.registerScope("learner/x", signal()), { status: 500, message: "memory answered 500" });
 });
 
@@ -272,7 +272,7 @@ test(`a read gives up after ${MEMORY_READ_MS} ms, and the agent runs without mem
   assert.equal(await empty.recall("user_2leo", "API", "s2"), undefined);
 });
 
-test("remembering a session registers its learner's scope once, writes one triple per fact with the session on it, and reports a write that failed", async () => {
+test("remembering a session registers its learner's scope once, writes one triple per fact with the session on it, one after another, and reports a write that failed", async () => {
   const calls: { method: string; path: string; body: unknown }[] = [];
   let failWrites = false;
   const api: MemoryApi = {
@@ -302,7 +302,7 @@ test("remembering a session registers its learner's scope once, writes one tripl
   assert.equal(expectedScope, "learner/");
   assert.deepEqual(writes[0]?.body, {
     labels: ["session=s2", "turn=15", "writer=evaluator", "move=supraordinate", "level=3"],
-    triples: [{ entity: { type: "topic", name: `${writes[0]!.path.slice("learner/".length)}_api` }, key: "level.supraordinate", value: `You moved up to level 3 on 'Bigger group' for API on ${dateOf(new Date())}.`, occurred_at: (writes[0]!.body as { triples: { occurred_at: string }[] }).triples[0]!.occurred_at }],
+    triples: [{ entity: { type: "topic", name: `${writes[0]!.path.slice("learner/".length)}_api` }, key: "level_supraordinate", value: `You moved up to level 3 on 'Bigger group' for API on ${dateOf(new Date())}.`, occurred_at: (writes[0]!.body as { triples: { occurred_at: string }[] }).triples[0]!.occurred_at }],
   });
   assert.deepEqual(writes[7]?.body && (writes[7].body as { labels: string[] }).labels.slice(0, 2), ["session=s3", "turn=16"]);
   // a session with no result leaves nothing to write

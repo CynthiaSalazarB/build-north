@@ -119,7 +119,10 @@ writes from a template, sent as a triple (`infer: "triples"`: memory runs no mod
 learner's words never go in. The scope is `learner/<pseudonym>`, the entity `topic/<pseudonym>_<concept>`,
 and each row carries its provenance in labels (`session`, `turn`, `writer`, and the numbers). A later
 session's write of the same key supersedes the earlier value; memory keeps the chain, and the Memory
-sheet shows it.
+sheet shows it. Two things the live context taught us (Oct 23): a dot in a key is folded into an
+underscore, so the keys are `level_<move>`, `gap` and `help_<move>` from the start; and parallel writes
+on one entity fail with "unknown error", so the writes go one after another (about 5 s for a session's
+seven facts, off the request path).
 
 What comes out: before the hint giver and the coach, up to 8 facts from the learner's earlier sessions
 on the concept (the current level per part, the latest gap, the Helps that cost most), read once per

@@ -63,7 +63,7 @@ const slug = (concept: string) => concept.toLowerCase().replace(/[^a-z0-9]+/g, "
 
 export type MemoryEntity = { type: "topic"; name: string };
 
-/** One entity per learner and concept; its attributes are the facts, one key per fact (below). */
+/** One entity per learner and concept; its attributes are the facts, one key per fact (below; underscores, since memory folds a dot in a key to one). */
 export const entityOf = (pseudonym: string, concept: string): MemoryEntity => ({ type: "topic", name: `${pseudonym}_${slug(concept)}` });
 
 type FactKind = "level" | "gap" | "help";
@@ -74,8 +74,8 @@ const WRITER: Record<FactKind, AgentName> = { level: "evaluator", gap: "coach", 
 
 function kindOf(key: string): FactKind | null {
   if (key === "gap") return "gap";
-  if (key.startsWith("level.")) return "level";
-  if (key.startsWith("help.")) return "help";
+  if (key.startsWith("level_")) return "level";
+  if (key.startsWith("help_")) return "help";
   return null;
 }
 
@@ -108,7 +108,7 @@ export function factsToWrite(session: Session, at: string): FactWrite[] {
   const { result, concept } = session;
   if (!result) return [];
   const writes: FactWrite[] = result.masteryChanges.map((change) => ({
-    key: `level.${change.move}`,
+    key: `level_${change.move}`,
     value: factText.level(concept, change.move, change.from, change.to, at),
     labels: { writer: WRITER.level, move: change.move, level: change.to },
   }));
@@ -119,7 +119,7 @@ export function factsToWrite(session: Session, at: string): FactWrite[] {
   });
   for (const move of MOVE_ORDER) {
     const helps = session.hintsPerMove[move];
-    writes.push({ key: `help.${move}`, value: factText.help(concept, move, helps), labels: { writer: WRITER.help, move, helps } });
+    writes.push({ key: `help_${move}`, value: factText.help(concept, move, helps), labels: { writer: WRITER.help, move, helps } });
   }
   return writes;
 }
@@ -180,7 +180,7 @@ export function createMemoryApi({ endpoint, context, apiKey }: Omit<MemoryConfig
     const json = (await res.json().catch(() => null)) as T | null;
     if (!res.ok && !accepted.includes(res.status)) {
       const message = (json as { message?: unknown } | null)?.message;
-      throw new MemoryError(res.status, typeof message === "string" ? message : `memory answered ${res.status}`);
+      throw new MemoryError(res.status, `memory answered ${res.status}${typeof message === "string" ? `: ${message}` : ""}`);
     }
     return { status: res.status, json };
   }
@@ -281,13 +281,13 @@ export function factsOf(rows: readonly MemoryRow[], concept: string, exceptSessi
     const fact = row ? factOf(row, concept) : null;
     return fact ? [fact] : [];
   };
-  const levels = MOVE_ORDER.flatMap((move) => current(`level.${move}`));
-  const helps = MOVE_ORDER.flatMap((move) => current(`help.${move}`)).sort((a, b) => helpsOf(chains, b) - helpsOf(chains, a));
+  const levels = MOVE_ORDER.flatMap((move) => current(`level_${move}`));
+  const helps = MOVE_ORDER.flatMap((move) => current(`help_${move}`)).sort((a, b) => helpsOf(chains, b) - helpsOf(chains, a));
   return [...levels, ...current("gap"), ...helps].slice(0, MEMORY_FACTS_MAX);
 }
 
 const helpsOf = (chains: Map<string, MemoryRow[]>, fact: MemoryFact): number => {
-  const row = chains.get(`help.${fact.move}`)?.[0];
+  const row = chains.get(`help_${fact.move}`)?.[0];
   return row ? numberLabelOf(row, "helps") : 0;
 };
 
@@ -317,7 +317,7 @@ function gapOf(row: MemoryRow): MemoryGap | null {
 export function viewOf(concept: string, rows: readonly MemoryRow[], readBy: ReadonlyMap<string, number>): MemoryView["concepts"][number] {
   const chains = chainsOf(rows);
   const moves = MOVE_ORDER.map((move) => {
-    const history = (chains.get(`level.${move}`) ?? []).flatMap((row) => historyRowOf(row, readBy) ?? []);
+    const history = (chains.get(`level_${move}`) ?? []).flatMap((row) => historyRowOf(row, readBy) ?? []);
     return { move, level: history[0]?.level ?? null, history };
   });
   const gaps = (chains.get("gap") ?? []).flatMap((row) => gapOf(row) ?? []);
@@ -380,14 +380,17 @@ export function createLearnerMemory(api: MemoryApi, { salt, readMs = MEMORY_READ
         await api.registerScope(scope, AbortSignal.timeout(WRITE_MS));
         registered.add(scope);
       }
-      // one write per fact, so each row carries its own numbers in its labels
-      const results = await Promise.allSettled(
-        writes.map((write) =>
-          api.write(scope, labelsOf({ session: session.id, turn: session.turn, ...write.labels }), [{ entity, key: write.key, value: write.value, occurred_at: at }], AbortSignal.timeout(WRITE_MS)),
-        ),
-      );
-      const failed = results.filter((result) => result.status === "rejected");
-      if (failed.length > 0) throw new Error(`${failed.length} of ${writes.length} memory writes failed: ${reason(failed[0]!.reason)}`);
+      // One write per fact, so each row carries its own numbers in its labels, and one after another: the live
+      // context answered "unknown error" to parallel writes on the same entity (Oct 23), one transaction each.
+      const failures: unknown[] = [];
+      for (const write of writes) {
+        try {
+          await api.write(scope, labelsOf({ session: session.id, turn: session.turn, ...write.labels }), [{ entity, key: write.key, value: write.value, occurred_at: at }], AbortSignal.timeout(WRITE_MS));
+        } catch (error) {
+          failures.push(error);
+        }
+      }
+      if (failures.length > 0) throw new Error(`${failures.length} of ${writes.length} memory writes failed: ${reason(failures[0])}`);
     },
 
     async view(user, concepts, reads) {

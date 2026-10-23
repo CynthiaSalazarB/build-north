@@ -79,11 +79,11 @@ await check(`session 2 reads session 1's facts within ${MEMORY_READ_MS} ms`, asy
 await check("session 2's write supersedes session 1's level, and memory keeps the chain", async () => {
   await memory.remember(user, finished("smoke2", 15, 6, 5, [{ move: "supraordinate", from: 3, to: 4 }], [0, 1, 0, 0]));
   const rows = await api.history(entityOf(pseudonym, concept), AbortSignal.timeout(5_000));
-  const chain = rows.filter((row) => row.key === "level.supraordinate");
+  const chain = rows.filter((row) => row.key === "level_supraordinate");
   const closed = chain.find((row) => row.validUntil);
   const open = chain.find((row) => !row.validUntil);
   const linked = open?.supersedes === closed?.id;
-  return { ok: chain.length === 2 && !!closed && !!open && linked, detail: `${rows.length} rows, level.supraordinate: ${chain.length} in the chain, closed ${closed ? "yes" : "no"}, supersedes ${linked ? "links" : "missing"}` };
+  return { ok: chain.length === 2 && !!closed && !!open && linked, detail: `${rows.length} rows, level_supraordinate: ${chain.length} in the chain, closed ${closed ? "yes" : "no"}, supersedes ${linked ? "links" : "missing"}` };
 });
 
 await check("a third session reads the current facts, with what they superseded", async () => {

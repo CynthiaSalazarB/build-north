@@ -272,10 +272,10 @@ type MemoryFact = {
 - **What the API writes, after a session reaches its result** (one scope per learner, `learner/<pseudonym>`,
   each fact an attribute of the entity `topic/<pseudonym>_<concept>` sent as a triple with its provenance in
   labels: `session`, `turn`, `writer`, and the numbers):
-  - `level.<move>`, for each part whose level changed: "You moved up to level 3 on 'What it isn't' for API on
+  - `level_<move>`, for each part whose level changed: "You moved up to level 3 on 'What it isn't' for API on
     Oct 22." (`writtenBy: evaluator`)
   - `gap`: "Last time on API you guessed 7 and proved 3." (`writtenBy: coach`)
-  - `help.<move>`, for each part: "'Its types' took 2 Helps on API last time." (`writtenBy: hint_giver`)
+  - `help_<move>`, for each part: "'Its types' took 2 Helps on API last time." (`writtenBy: hint_giver`)
   A later session's write supersedes the earlier value of the same key, and memory keeps the chain. The
   facts are written when the result Turn is saved, so the coach of the same session reads only facts from
   earlier sessions (its own session's rows are skipped by their `session` label).
