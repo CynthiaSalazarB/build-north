@@ -301,7 +301,9 @@ In: `AgentContext & { answer: string }`
 - `accepted`: the `Item`s to write into the mentefacto (empty when not accepted).
 - `issue`: `too_broad | not_a_class | same_level | is_a_subtype | is_a_characteristic | off_topic | none`.
   Code keeps it (`session.lastIssue`) for the learner's next Help; the hint giver uses it to aim the hint.
-- `reason` is for logs and for us. `feedback` is shown, and must never contain the answer.
+- `reason` is for logs and for us. `feedback` is shown, and must never contain the answer before the move is
+  correct. Once it is, the feedback names what makes it right and may add what the learner left out of the same
+  criterion (a missing type, a missing characteristic); the points don't change (DECISIONS.md, Oct 23).
 - When the answer isn't right, `feedback` says what is off. At levels 2 and 3 it ends with a nudge: a
   question that sends the learner back to their own answer, with no new information (free, the
   ladder's first step). At levels 4 and 5 it stops there. Pointing where to look is a hint, and hints

@@ -45,19 +45,26 @@ the answer is right.
 \`same_level\` (a sibling, not the group), \`is_a_subtype\`, \`is_a_characteristic\` (answered another
 move), \`off_topic\`, or \`none\` when correct.
 
-\`feedback\`: what the learner reads next. When correct, confirm in a few words why it works. When not,
-say what is right in their answer and what is off (when a bigger group fails the "is a kind of" test,
-name what the learner mixed up), then go by <level>:
-- Levels 2 and 3: end with one short question that sends them back to their own answer, with no new
-  information (a nudge): "Planets are related to astronomy, but a planet isn't a kind of astronomy. So
-  what kind of thing is a planet?"
-- Levels 4 and 5: stop after what is off. The learner is ready to work without the nudge.
-At every level: no examples of the right answer, no other members of the group, no "think of ...",
-nothing the learner still has to find. Pointing where to look is a hint: it comes from another agent,
-only when the learner taps Help, and it costs a point. An exclusion with a close concept but no
-difference gets no nudge either: the app asks for the difference itself.`,
+\`feedback\`: what the learner reads next.
+- When correct, confirm in a few words why it works, naming what makes it right (for types, the
+  criterion that splits them: "split by who is allowed to use them"). The move is done, so this is the
+  one time feedback adds what the learner left out, in one short sentence after the confirmation: a
+  type of the same criterion they didn't name ("By who uses them there is also partner."), an essential
+  characteristic still missing, or what would make a quality 1 answer exact. Add only what belongs to
+  the learner's own criterion, never a type sorted by another one (a list that mixes criteria is the
+  mistake this move teaches against). When nothing is missing, add nothing.
+- When not correct, say what is right in their answer and what is off (when a bigger group fails the
+  "is a kind of" test, name what the learner mixed up), then go by <level>:
+  - Levels 2 and 3: end with one short question that sends them back to their own answer, with no new
+    information (a nudge): "Planets are related to astronomy, but a planet isn't a kind of astronomy.
+    So what kind of thing is a planet?"
+  - Levels 4 and 5: stop after what is off. The learner is ready to work without the nudge.
+  At every level: no examples of the right answer, no other members of the group, no "think of ...",
+  nothing the learner still has to find. Pointing where to look is a hint: it comes from another agent,
+  only when the learner taps Help, and it costs a point. An exclusion with a close concept but no
+  difference gets no nudge either: the app asks for the difference itself.`,
   output:
-    "`verdict`, `quality`, `accepted`, `issue`, `reason` (one sentence for the team, not shown to the learner) and `feedback` (under 30 words, for the learner).",
+    "`verdict`, `quality`, `accepted`, `issue`, `reason` (one sentence for the team, not shown to the learner) and `feedback` (for the learner: under 30 words, or under 45 when a correct answer gets what it left out).",
 });
 
 export function renderEvaluator(input: EvaluatorInputType): string {

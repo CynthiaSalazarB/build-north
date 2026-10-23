@@ -543,3 +543,33 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   noise. The moment belongs where it happens, at the end of the session.
 - **Pattern / trade-off:** one home for each piece of information. If memory's flag stays off, the levels
   have no screen of their own; the result still marks each level-up.
+
+### 2026-10-23 · After a part is right, its feedback says what makes it right and what was left out
+- **Decision:** when the evaluator marks a part correct, its feedback names what makes the answer right (for
+  types, the criterion that splits them) and adds, in one sentence, what the learner left out of that same
+  criterion: a missing type, a missing essential characteristic, or what would make a quality 1 answer exact.
+  Never a type sorted by another criterion. Before a part is correct nothing changes (no answers, no other
+  members of the group), and the points don't change. The part answered last, whose feedback came with the
+  result and never showed, now shows on the result with those words. The self-test (the testers' pre-test and
+  post-test) keeps its notes as they were.
+- **Instead of:** confirming in a few words and nothing more, or adding every type a search lists (those lists
+  mix criteria: "composite" is how an API is built, not who uses it).
+- **Why:** if a part passes, I'd think that's all there is: I said three types, so there are three. I want it to
+  be accurate and tell me: you said this, and specifically it's this.
+- **Pattern / trade-off:** elaborated feedback, given after the attempt: I do the thinking first, and what I
+  missed arrives once the part is scored, so it teaches without doing the work for me. The feedback gets
+  longer (up to 45 words) and holds things I didn't find myself. The self-test stays as it was, so a pre-test
+  can't hand a tester the post-test's answers.
+
+### 2026-10-23 · Agent Memory goes on for the testers
+- **Decision:** the Agent Memory flag goes on before the first tester, in Leo's rollout order (the app update
+  with #130 ships first, then the flag on Render), instead of after the testers.
+- **Instead of:** keeping it off on tester day and turning it on tonight.
+- **Why:** it's better if the testers test the memory layer as well: every session they finish writes real
+  facts, and the Memory sheet and Delete my data get real use, instead of only a smoke test.
+- **Pattern / trade-off:** a feature flag with a kill switch, turned on for real users early. Its first
+  production run happens with the testers; the design bounds that (a read over 1.5 s or a failed write and the
+  session goes on without memory) and so does the switch (one Render variable, about a minute, no deploy). An
+  app without the update rejects a Turn that cites memory, so the order is ship, check, then the flag. A
+  tester's four sessions are on four different concepts (`docs/tester-protocol.md`), so no agent cites memory
+  during a slot: the remembering itself shows from a second session on the same concept.
