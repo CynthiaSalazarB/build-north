@@ -16,7 +16,8 @@ import { Firefly } from "./firefly.tsx";
 import { FactCard, Failure, FlushReplies, HintCard, LearnerMessage, useSlow, Waiting } from "./messages.tsx";
 import { SessionBar } from "./session-bar.tsx";
 import { SiteHeader } from "./site-header.tsx";
-import { Body, Button, IconButton, KeyboardSafe, Label, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useColors, useEntrance, useWide } from "./ui.tsx";
+import { Body, Button, IconButton, KeyboardSafe, Label, MicButton, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useColors, useEntrance, useWide, VoiceNote, type Interaction } from "./ui.tsx";
+import { useVoice } from "./use-voice.ts";
 
 /** Rows a list part can hold in the editor. */
 const MAX_ITEMS = 6;
@@ -61,7 +62,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
   const you = (
     <View style={styles.you}>
       <FireflyHelp help={help} pending={pending} onHelp={() => send({ action: "help" })} />
-      <Reply style={styles.flex}>{state.mode === "test" ? "Self-test: you build the map alone. I only answer facts." : "You ask now. I only answer facts."}</Reply>
+      <Reply style={styles.flex}>{state.mode === "test" ? "Self-test: write your answers on the map. Ask me facts here." : "You ask now. Write your answers on the map; I only answer facts."}</Reply>
     </View>
   );
   const thread = (
@@ -191,54 +192,67 @@ function Asked({ n }: { n: number }) {
   );
 }
 
-/** The firefly beside "You ask now": dim, since the learner leads now, and still Help when tapped. */
+/** The firefly beside "You ask now": dim, since the learner leads now, and still Help when tapped (it wakes under a
+ * finger or a pointer, and fades again). */
 function FireflyHelp({ help, pending, onHelp }: { help: ReturnType<typeof wholeMapHelpOf>; pending: boolean; onHelp: () => void }) {
   const c = useColors();
-  const drawing = (
+  const drawing = (glow: boolean) => (
     <>
-      <Firefly state="fades" size={30} />
-      {help && <Text style={[type.tag, { color: c.question }]}>{pending ? "checking" : help.tag}</Text>}
+      <Firefly state="fades" size={30} glow={glow} />
+      {help && (
+        <Text style={[type.tag, styles.fireflyTag, { color: c.question }]} numberOfLines={1}>
+          {pending ? "checking" : help.tag}
+        </Text>
+      )}
     </>
   );
   if (!help || pending) {
     return (
       <View style={styles.firefly} role={pending ? "status" : undefined}>
-        {drawing}
+        {drawing(false)}
       </View>
     );
   }
   return (
     <Pressable accessibilityRole="button" accessibilityLabel={help.label} onPress={onHelp} hitSlop={size.hitSlop} style={({ pressed }) => [styles.firefly, pressed && styles.pressed]}>
-      {drawing}
+      {({ pressed, hovered }: Interaction) => drawing(pressed || !!hovered)}
     </Pressable>
   );
 }
 
-/** The question field: it glows amber, because the light is the learner's own now. */
+/** The question field: it glows amber, because the light is the learner's own now. A question can be spoken too:
+ * it lands in the field, editable, and still needs Ask. */
 function AskBar({ concept, pending, asking, flush, onAsk }: { concept: string; pending: boolean; asking: boolean; flush: boolean; onAsk: (question: string) => void }) {
   const [text, setText] = useState("");
   const question = text.trim();
+  const voice = useVoice({ text, onText: setText });
   const submit = () => {
     if (!question || pending) return;
+    // what is on screen is what goes; a phrase still being heard stops here instead of landing in the emptied field
+    if (voice.state.kind === "listening") voice.cancel();
     onAsk(question);
     setText("");
   };
   return (
     <View style={[styles.bar, flush && styles.flush]}>
-      <PromptField
-        glow
-        value={text}
-        onChangeText={setText}
-        placeholder="Ask a question"
-        multiline
-        maxLength={500}
-        editable={!pending}
-        accessibilityLabel={`Your question about ${concept}`}
-        onSubmitEditing={submit}
-        submitBehavior="submit"
-        style={pending && styles.dim}
-        end={<SendButton amber busy={asking} disabled={!question || pending} onPress={submit} label="Ask" />}
-      />
+      <View style={styles.askRow}>
+        <MicButton state={voice.state} onPress={voice.toggle} disabled={pending && voice.state.kind !== "listening"} />
+        <PromptField
+          glow
+          value={text}
+          onChangeText={setText}
+          placeholder={voice.state.kind === "listening" ? "Listening" : "Ask me a fact"}
+          multiline
+          maxLength={500}
+          editable={!pending}
+          accessibilityLabel={`Your question about ${concept}`}
+          onSubmitEditing={submit}
+          submitBehavior="submit"
+          style={[styles.flex, pending && styles.dim]}
+          end={<SendButton amber busy={asking} disabled={!question || pending} onPress={submit} label="Ask" />}
+        />
+      </View>
+      <VoiceNote state={voice.state} />
     </View>
   );
 }
@@ -253,6 +267,12 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
   const change = (i: number, patch: Partial<Item>) => setRows((now) => now.map((row, j) => (j === i ? { ...row, ...patch } : row)));
   const remove = (i: number) => setRows((now) => (now.length > 1 ? now.filter((_, j) => j !== i) : [{ value: "", note: null }]));
   const done = () => onDone(rows);
+  // the mic in the head dictates into the field last focused (the first item until one is)
+  const [focus, setFocus] = useState<{ i: number; part: "value" | "note" }>({ i: 0, part: "value" });
+  const voice = useVoice({
+    text: rows[focus.i]?.[focus.part] ?? "",
+    onText: (text) => change(focus.i, focus.part === "value" ? { value: text } : { note: text }),
+  });
   // no custom line height on these fields: on Android a multiline one would show only its last line
   const field = [styles.input, { fontFamily: type.input.fontFamily, fontSize: type.input.fontSize, color: c.onSurface, backgroundColor: c.surface, borderColor: c.fieldEdge }];
   const scrim = <Pressable style={[wide ? StyleSheet.absoluteFill : styles.flex, { backgroundColor: c.scrim }]} onPress={done} accessibilityRole="button" accessibilityLabel="Save and close" />;
@@ -268,8 +288,10 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
               <Title style={styles.title}>{PARTS[move].label}</Title>
               <Small dim>{partMeaningOf(move, concept)}</Small>
             </View>
+            <MicButton state={voice.state} onPress={voice.toggle} />
             <Button kind="secondary" label="Done" onPress={done} />
           </View>
+          <VoiceNote state={voice.state} />
           <ScrollView contentContainerStyle={styles.rows} keyboardShouldPersistTaps="handled">
             {rows.map((row, i) => (
               <View key={i} style={styles.row}>
@@ -285,6 +307,7 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
                     style={field}
                     returnKeyType="done"
                     onSubmitEditing={done}
+                    onFocus={() => setFocus({ i, part: "value" })}
                   />
                   {move === "exclusion" && (
                     <TextInput
@@ -296,6 +319,7 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
                       multiline
                       accessibilityLabel={`How item ${i + 1} is different`}
                       style={[field, styles.note]}
+                      onFocus={() => setFocus({ i, part: "note" })}
                     />
                   )}
                 </View>
@@ -343,11 +367,14 @@ const styles = StyleSheet.create({
   status: { flexDirection: "row", alignItems: "center", gap: space.m, marginTop: space.xs },
   you: { flexDirection: "row", alignItems: "center", gap: space.m, marginTop: space.s },
   firefly: { width: size.iconButton, alignItems: "center", gap: 2 },
+  // "help −1" is wider than the firefly's column, so the tag overflows it evenly instead of wrapping
+  fireflyTag: { textAlign: "center", minWidth: size.iconButton + 16, marginHorizontal: -8 },
   pressed: { opacity: 0.8 },
   asked: { flexDirection: "row", alignItems: "center", gap: space.xs },
   square: { width: 8, height: 8, borderRadius: radius.point },
   bar: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.margin },
   flush: { paddingHorizontal: 0, paddingBottom: space.xl },
+  askRow: { flexDirection: "row", alignItems: "flex-end", gap: space.s },
   dim: { opacity: 0.55 },
   sheet: {
     borderTopLeftRadius: radius.sheet,

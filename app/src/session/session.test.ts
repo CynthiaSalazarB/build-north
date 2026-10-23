@@ -8,7 +8,8 @@ import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type
 import { createApiClient } from "./api-client.ts";
 import { ClientError } from "./client.ts";
 import { createFixtureClient } from "./fixture-client.ts";
-import { blankMap, drafted, echoFor, failed, initialState, received, sent, startedWith, withRevealed } from "./transcript.ts";
+import { resultMessagesOf } from "./present.ts";
+import { blankMap, drafted, echoFor, failed, initialState, received, resendOf, sent, startedWith, withRevealed } from "./transcript.ts";
 
 const fixtureTurns = sessionOne.map((step) => Turn.parse(step.turn));
 const first = fixtureTurns[0]!;
@@ -25,6 +26,8 @@ test("the fixture client clicks through the whole recorded API session, then sto
   assert.equal(state.turn!.expects, "none");
   assert.equal(state.turn!.result!.score, 5);
   await assert.rejects(client.send("x", { turn: 99, action: "continue" }), ClientError);
+  // a second run is its own session to the screens, so the coach is asked again (demo mode's Try again)
+  assert.notEqual((await client.start({ concept: "API" })).sessionId, state.turn!.sessionId);
 });
 
 test("the transcript adds a Turn's messages once, and echoes what the learner sent", () => {
@@ -47,6 +50,16 @@ test("the worked example's map joins the conversation once, ahead of its message
   const exampleTurn = fixtureTurns.find((t) => t.example)!;
   assert.equal(state.entries.filter((e) => e.from === "map").length, 1);
   assert.equal(state.entries[at + 1]!.id, `turn-${exampleTurn.turn}-0`);
+});
+
+test("the result comes first without the coach's words; the next Turn brings them, and the result's lines stay", () => {
+  let state = initialState;
+  for (const turn of fixtureTurns.slice(0, -1)) state = received(state, turn);
+  assert.deepEqual([state.turn!.phase, state.turn!.expects, state.turn!.result!.coach], ["result", "continue", null]);
+  const shown = resultMessagesOf(state.entries);
+  state = received(state, fixtureTurns.at(-1)!);
+  assert.equal(state.turn!.expects, "none");
+  assert.deepEqual(resultMessagesOf(state.entries), [...shown, { agent: "coach", kind: "summary", text: state.turn!.result!.coach!.message }]);
 });
 
 test("an error Turn keeps the screen and offers to send the same body again, without echoing it twice", () => {
@@ -102,6 +115,37 @@ test("a 409 with the latest Turn is drawn; other errors carry the server's messa
   await assert.rejects(down.start({ concept: "x" }), { status: null, retryable: true });
 });
 
+test("a call that outlasts the timeout says so, and is worth trying again", async () => {
+  const hangs = ((_: string, init: RequestInit) => new Promise<Response>((_resolve, reject) => init.signal?.addEventListener("abort", () => reject(new Error("aborted"))))) as unknown as typeof fetch;
+  await assert.rejects(createApiClient({ baseUrl: "http://api.test", fetch: hangs, timeoutMs: 5 }).start({ concept: "x" }), { message: /taking too long/, status: null, retryable: true });
+});
+
+test("the notes a session started with stay in its state, so Try again can send them", () => {
+  const state = startedWith(first, "learn", "my notes");
+  assert.equal(state.material, "my notes");
+  assert.equal(received(sent(state, { turn: 1, prediction: 7 }), first).material, "my notes");
+  assert.equal(startedWith(first).material, null);
+  assert.equal(initialState.material, null);
+});
+
+test("the delete button sends DELETE /me/data with the credentials, no body, and takes the 204", async () => {
+  const calls: Call[] = [];
+  const fetch = (async (url: string, init: RequestInit) => {
+    calls.push({ url, init });
+    return new Response(null, { status: 204 });
+  }) as unknown as typeof globalThis.fetch;
+  await createApiClient({ baseUrl: "http://api.test", getToken: async () => "tok", fetch }).deleteData();
+  assert.equal(calls[0]!.url, "http://api.test/me/data");
+  assert.equal(calls[0]!.init.method, "DELETE");
+  assert.equal(calls[0]!.init.body, undefined);
+  assert.deepEqual(calls[0]!.init.headers, { authorization: "Bearer tok" });
+
+  const refused = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(401, { error: "Sign in first" }).fetch });
+  await assert.rejects(refused.deleteData(), { message: "Sign in first", status: 401, retryable: false });
+  // demo mode has nothing to delete, and says nothing
+  await createFixtureClient(0).deleteData();
+});
+
 /** A level-5 Turn: the whole map, as the orchestrator sends it after the guess. */
 function wholeMap(over: Partial<Turn> = {}): Turn {
   return Turn.parse({
@@ -155,4 +199,20 @@ test("the map goes once the result comes back, and only a level-5 Turn takes edi
   assert.equal(state.draft, null);
   assert.equal(drafted(state, blankMap("x")).draft, null);
   assert.equal(drafted(received(initialState, first), blankMap("x")).draft, null);
+});
+
+test("a retry sends the same body, except that a map goes as the learner has it now", () => {
+  let state = startedWith(wholeMap());
+  const before = { ...blankMap("CORS"), supraordinate: { value: "a browser rule", note: null } };
+  state = drafted(state, before);
+  state = failed(sent(state, { turn: 2, mentefacto: before }), "offline", true);
+  assert.deepEqual(resendOf(state), { turn: 2, mentefacto: before });
+  // the failure note says the map is saved, so a part fixed before Try again is what goes
+  const fixed = { ...before, supraordinate: { value: "a browser security rule", note: null } };
+  assert.deepEqual(resendOf(drafted(state, fixed)), { turn: 2, mentefacto: fixed });
+  // a text answer goes as it was, and nothing goes without a retryable failure
+  const text = failed(sent(startedWith(first), { turn: 1, text: "a rule" }), "down", true);
+  assert.deepEqual(resendOf(text), { turn: 1, text: "a rule" });
+  assert.equal(resendOf(failed(sent(startedWith(first), { turn: 1, text: "a rule" }), "spent", false)), null);
+  assert.equal(resendOf(state.failure ? { ...state, failure: null } : state), null);
 });

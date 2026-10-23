@@ -20,8 +20,10 @@ npm install
 npm run start -w app        # then scan the QR code with Expo Go, or press w for the browser
 ```
 
-With no `app/.env`, the app runs in **demo mode**: it replays the democracy session from
-`agents/fixtures/session-1.json`, one Turn per action, whatever you type (#6). To use the API, create
+With no `app/.env`, the app runs in **demo mode**: it replays the API session recorded with Claude from
+`agents/fixtures/session-api.json`, one Turn per action, whatever you type (#6). "Your data" at the top of
+Start holds the privacy note and the delete button (`DELETE /me/data`, then sign-out; #43), and the mic by
+every answer, question and part field turns speech into editable text that still needs Send. To use the API, create
 `app/.env` (Expo reads the `.env` in this folder, not the repo root's):
 
 ```bash

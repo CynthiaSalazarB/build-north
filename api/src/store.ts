@@ -44,6 +44,7 @@ export type Store = {
   saveSession(session: Session, previousTurn: number): Promise<boolean>;
   // every move, in session order; a move the learner hasn't touched yet is at level 1
   getMastery(user: string): Promise<Mastery>;
+  // the moves given, one row each; moves left out keep their rows (a Turn writes only what it changed)
   saveMastery(user: string, mastery: Mastery): Promise<void>;
   logAgentCall(entry: AgentLogEntry): Promise<void>;
   // DELETE /me/data: sessions, their agent logs, and mastery

@@ -8,6 +8,7 @@ import {
   CoachOutput,
   EvaluatorOutput,
   type EvaluatorIssue,
+  FACT_DESK_ANSWER_REDIRECT,
   FACT_DESK_REDIRECT,
   FactDeskOutput,
   HintGiverOutput,
@@ -101,6 +102,7 @@ async function route(s: Session, m: Mastery, input: TurnInput, call: CallAgent):
       }
       break;
     case "result":
+      if ("action" in input && input.action === "continue" && s.result?.coach === null) return coachSession(s, call);
       break;
   }
   throw new UnexpectedInput(`${Object.keys(input).join(", ")} doesn't fit the ${s.phase} phase`);
@@ -246,7 +248,7 @@ async function hint(
 async function finishMove(s: Session, m: Mastery, move: MoveId, quality: Quality, lead: Message[], call: CallAgent): Promise<Step> {
   record(s, m, move, quality, true);
   const next = nextMove(move);
-  return next ? startMove(s, m, next, lead, call) : finishSession(s, lead, call);
+  return next ? startMove(s, m, next, lead, call) : finishSession(s, lead);
 }
 
 // ---------- Whole map (level 5 on every move, or a test session) ----------
@@ -255,6 +257,9 @@ async function askFactDesk(s: Session, question: string, call: CallAgent): Promi
   const fd = FactDeskOutput.parse(
     await call("fact_desk", { concept: s.concept, material: s.material, mentefacto: s.mentefacto, question }),
   );
+  // An answer typed in the chat isn't a question: it says where answers go, whatever the model wrote (so it
+  // can never confirm one), and it isn't counted (Oct 22).
+  if (fd.questionType === "states_an_answer") return { messages: [say("fact_desk", "redirect", FACT_DESK_ANSWER_REDIRECT)], expects: "map", level: 5 };
   s.questions.asked += 1;
   if (TESTING_QUESTION_TYPES.includes(fd.questionType)) s.questions.testing += 1;
   // Decision 17: a redirect always says the same words, whatever the model wrote.
@@ -283,7 +288,7 @@ async function submitMap(s: Session, m: Mastery, map: Mentefacto, call: CallAgen
     record(s, m, move, row?.quality ?? 0, (row?.quality ?? 0) === 2);
     if (row) feedback.push(say("evaluator", "feedback", `${MOVE_LABEL[move]}: ${row.feedback}`));
   }
-  return finishSession(s, feedback, call);
+  return finishSession(s, feedback);
 }
 
 // ---------- Ending ----------
@@ -305,7 +310,7 @@ function record(s: Session, m: Mastery, move: MoveId, quality: Quality, done: bo
   s.moveLog.push({ move, points: pointsFor(quality, hints, retries), hints, retries, from, to });
 }
 
-async function finishSession(s: Session, lead: Message[], call: CallAgent): Promise<Step> {
+function finishSession(s: Session, lead: Message[]): Step {
   const rubric = MOVE_ORDER.map((move) => ({ move, points: s.moveLog.find((r) => r.move === move)?.points ?? 0 }));
   const score = rubric.reduce((sum, r) => sum + r.points, 0);
   const predictedScore = s.predictedScore ?? 0;
@@ -320,19 +325,29 @@ async function finishSession(s: Session, lead: Message[], call: CallAgent): Prom
     masteryChanges: s.moveLog.filter((r) => r.to !== r.from).map(({ move, from, to }) => ({ move, from, to })),
     questions: { ...s.questions },
   };
-  let coach: Result["coach"];
-  try {
-    coach = CoachOutput.parse(await call("coach", { concept: s.concept, mentefacto: s.mentefacto, result: withoutCoach }));
-  } catch {
-    // The coach is words only; the numbers are already in the result, so a fixed line will do (#44).
-    const weakest = score < 8 ? [...rubric].sort((a, b) => a.points - b.points)[0]!.move : null;
-    coach = { message: text.coachFallback(score, hintsUsed, weakest), nextFocus: weakest };
-  }
-  s.result = { ...withoutCoach, coach };
+  // The result shows first: every number is code's, so it's ready now. The coach's words come in the next
+  // Turn, which the app asks for at once with `continue` (decided Oct 22: the last answer used to wait for two
+  // calls in a row, 9.2 s against the 8 s ceiling).
+  s.result = { ...withoutCoach, coach: null };
   s.phase = "result";
   s.move = null;
   s.recent = [];
-  return { messages: [...lead, say("coach", "summary", coach.message)], expects: "none", level: null };
+  return { messages: lead, expects: "continue", level: null };
+}
+
+/** The coach's message on the result already shown, which ends the session. */
+async function coachSession(s: Session, call: CallAgent): Promise<Step> {
+  const { coach: _none, ...result } = s.result!;
+  let coach: NonNullable<Result["coach"]>;
+  try {
+    coach = CoachOutput.parse(await call("coach", { concept: s.concept, mentefacto: s.mentefacto, result }));
+  } catch {
+    // The coach is words only; the numbers are already in the result, so a fixed line will do (#44).
+    const weakest = result.score < 8 ? [...result.rubric].sort((a, b) => a.points - b.points)[0]!.move : null;
+    coach = { message: text.coachFallback(result.score, result.hintsUsed, weakest), nextFocus: weakest };
+  }
+  s.result = { ...result, coach: { message: coach.message, nextFocus: coach.nextFocus } };
+  return { messages: [say("coach", "summary", coach.message)], expects: "none", level: null };
 }
 
 // ---------- Helpers ----------

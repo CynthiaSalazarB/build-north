@@ -22,14 +22,17 @@ export type SessionState = {
   failure: Failure | null;
   /** "test" for a self-test (the testers' pre-test and post-test): every part at level 5. */
   mode: SessionMode;
+  /** The notes the session started with (pasted text), so Try again on the result keeps them. The Turn doesn't
+   * carry them back. */
+  material: string | null;
   /** Level 5: the learner's map, kept on the phone until they submit it (`expects: "map"`). */
   draft: Mentefacto | null;
 };
 
-export const initialState: SessionState = { turn: null, entries: [], pending: null, failure: null, mode: "learn", draft: null };
+export const initialState: SessionState = { turn: null, entries: [], pending: null, failure: null, mode: "learn", material: null, draft: null };
 
-/** A session that just started, in learn or test mode. */
-export const startedWith = (turn: Turn, mode: SessionMode = "learn"): SessionState => received({ ...initialState, mode }, turn);
+/** A session that just started, in learn or test mode, with the notes it was given. */
+export const startedWith = (turn: Turn, mode: SessionMode = "learn", material: string | null = null): SessionState => received({ ...initialState, mode, material }, turn);
 
 /** The learner's side of the conversation, as it shows in the transcript. The guess has its own
  * screen and comes back on the result, and Help shows as the hint card it brings, so neither is echoed. */
@@ -81,6 +84,14 @@ export function received(state: SessionState, turn: Turn): SessionState {
 /** The call failed before any Turn came back. */
 export function failed(state: SessionState, message: string, retryable: boolean): SessionState {
   return state.pending ? { ...state, pending: null, failure: { message, retryable, body: state.pending } } : state;
+}
+
+/** The body to send again after a failure: the same one, except that a map goes as the learner has it now, since
+ * the failure note says their map is saved and they may have fixed a part before trying again. */
+export function resendOf(state: SessionState): TurnBody | null {
+  const { failure, draft } = state;
+  if (!failure?.retryable) return null;
+  return "mentefacto" in failure.body && draft ? { ...failure.body, mentefacto: draft } : failure.body;
 }
 
 /** The learner changed their map (level 5). Nothing is sent until they submit it. */

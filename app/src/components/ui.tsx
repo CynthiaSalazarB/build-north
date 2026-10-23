@@ -29,6 +29,7 @@ import { SafeAreaView, useSafeAreaInsets, type Edge } from "react-native-safe-ar
 import { isWeb, lightFor, maxContentWidth, motion, page, palette, radius, size, space, type, wideFrom, type Colors, type Mode } from "../theme.ts";
 import { Icon, type IconName } from "./icons.tsx";
 import { Light } from "./light.tsx";
+import { voiceLabel, type VoiceState } from "./voice.ts";
 
 const LightContext = createContext(0);
 
@@ -38,7 +39,7 @@ export function useWide(): boolean {
 }
 
 /** A Pressable's state; react-native-web adds hover and focus to the press. */
-type Interaction = PressableStateCallbackType & { hovered?: boolean; focused?: boolean };
+export type Interaction = PressableStateCallbackType & { hovered?: boolean; focused?: boolean };
 
 /** On the web a control eases between rest, hover and press instead of snapping (react-native-web passes these
  * style properties through to CSS; React Native's own types don't list them). */
@@ -217,6 +218,47 @@ export function IconButton({ icon, label, onPress, disabled, big = false }: { ic
   );
 }
 
+/** The mic beside a field: an icon button that turns amber with a stop square while listening. Hidden where there
+ * is no speech recognition; dimmed, not removed, while a call is in flight, so the bar keeps its shape. The field
+ * itself shows the words; this never sends. */
+export function MicButton({ state, onPress, disabled = false }: { state: VoiceState; onPress: () => void; disabled?: boolean }) {
+  const c = useColors();
+  if (state.kind === "unsupported") return null;
+  const listening = state.kind === "listening";
+  const { label, hint } = voiceLabel(state, isWeb);
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      accessibilityState={{ selected: listening, disabled }}
+      disabled={disabled}
+      onPress={onPress}
+      hitSlop={size.hitSlop}
+      style={({ pressed, hovered }: Interaction) => [
+        styles.iconButton,
+        { backgroundColor: c.controlFill, borderColor: listening ? c.questionOutline : hovered && !disabled ? c.onSurfaceVariant : c.outline },
+        listening && styles.listening,
+        easeOnWeb,
+        disabled && styles.faint,
+        pressed && !disabled && styles.pressed,
+      ]}
+    >
+      <Icon name={listening ? "stop" : "mic"} color={listening ? c.firefly : c.onSurface} />
+    </Pressable>
+  );
+}
+
+/** Under a field with a mic: why listening stopped, when it did (a refusal, an error), and the way out. */
+export function VoiceNote({ state }: { state: VoiceState }) {
+  if (state.kind !== "denied" && state.kind !== "error") return null;
+  return (
+    <View style={styles.voiceNote} accessibilityLiveRegion="polite">
+      <Small dim>{voiceLabel(state, isWeb).hint}</Small>
+    </View>
+  );
+}
+
 /** A concept, picked in one tap; the picked one is amber. */
 export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const c = useColors();
@@ -359,6 +401,8 @@ const styles = StyleSheet.create({
   pressed: { transform: [{ scale: 0.97 }] },
   center: { alignItems: "center", justifyContent: "center", padding: space.xl },
   iconButton: { width: size.iconButton, height: size.iconButton, borderRadius: radius.iconButton, borderWidth: 1, alignItems: "center", justifyContent: "center" },
+  listening: { borderWidth: 1.5 },
+  voiceNote: { paddingTop: space.s },
   bigIcon: { width: size.button, height: size.button },
   chip: { height: size.iconButton, borderRadius: radius.chip, borderWidth: 1, paddingHorizontal: 14, justifyContent: "center" },
   card: { borderRadius: radius.card, borderWidth: 1, padding: space.l },

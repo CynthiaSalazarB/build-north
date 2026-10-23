@@ -34,7 +34,7 @@ local files with their `.ts` extension, and use `import type` for types. The typ
 | `GET /health/db` | Asks SurrealDB for its clock and returns it with how many milliseconds that took. Read-only. `503` when the database is not configured, refuses the login or takes over 5 s; the cause goes to the server log, not the response |
 | `POST /sessions` | `{ concept, material?, mode? }`: saves a new session and returns its first `Turn`, the prediction question. `mode: "test"` (the testers' pre-test and post-test) puts every move at level 5: after the prediction the learner asks the fact desk with `{ question }` and builds the whole map, and the session never writes mastery. `400` for a bad body, `413` for notes over 8,000 characters |
 | `GET /sessions/:id` | The session's latest `Turn`. `404` if it doesn't exist or belongs to someone else |
-| `POST /sessions/:id/turns` | One of the bodies in CONTRACTS.md section 1, plus `turn`, the number of the `Turn` it answers. Returns the next `Turn`. An answer to an older `Turn` gets the latest one back and runs nothing, even when two copies arrive at once. `400` for a bad body, `404` if the session doesn't exist or belongs to someone else (both with `{ error }`). `409` with the latest `Turn` for a `turn` from the future or a body the latest `Turn` doesn't ask for; the reason goes to the server log |
+| `POST /sessions/:id/turns` | One of the bodies in CONTRACTS.md section 1, plus `turn`, the number of the `Turn` it answers. Returns the next `Turn`. An answer to an older `Turn` gets the latest one back and runs nothing; two copies of the same answer arriving at once both run, and the one that saves first is the one that counts. A `Turn` with `error` saves nothing. Mastery is written only for the moves the `Turn` changed, never for a test session. `400` for a bad body, `404` if the session doesn't exist or belongs to someone else (both with `{ error }`). `409` with the latest `Turn` for a `turn` from the future or a body the latest `Turn` doesn't ask for; the reason goes to the server log |
 | `GET /me/mastery` | The caller's `Mastery`: the four moves in session order, at level 1 until the orchestrator raises them |
 | `DELETE /me/data` | `204`. Deletes the caller's sessions, their agent logs and mastery (the delete button) |
 
@@ -49,7 +49,7 @@ Outside production, `x-dev-user` also works, but only together with an `x-dev-ke
 the server's `DEV_KEY` (CONTRACTS.md section 1). Without a `DEV_KEY`, or with `NODE_ENV=production`,
 the dev headers get `401`. Leo shares the key; it never goes in the repo or in the deployed web build.
 
-Every route except `/health` allows 60 requests a minute from one IP, then answers `429`.
+Every route except `/health` allows 60 requests a minute from one IP (`REQUESTS_PER_MINUTE` changes it), then answers `429`.
 
 The API's types and request schemas come from `@build-north/agents` (`agents/src/contracts.ts`), so
 a change to the contract shows up here as a type error. With Claude on (below), `/turns` runs
@@ -74,6 +74,7 @@ result's numbers instead.
 | `ANTHROPIC_API_KEY` | Turns Claude calls on. Render and your local `.env` only, never the app |
 | `AGENT_MODEL` | `claude-opus-5-5` (default) or `claude-sonnet-5-5`, the two models with a price in the code |
 | `AGENT_BUDGET_USD` | Required with the key: the Claude budget in dollars |
+| `REQUESTS_PER_MINUTE` | Per IP, every route except `/health`; 60 when unset. Raise it for a room of testers on one Wi-Fi, who share an IP |
 
 Following DECISIONS.md (Oct 20), calls stop at 95% of the budget, and while any of Anthropic's
 rate-limit windows is 95% used, until it refills. Both come back as a `rate_limited` error in the
@@ -112,6 +113,34 @@ stay.
 - **The database** is the one the `SURREAL_*` variables name. With the root `.env` that's `dev`. For
   demo day, set `SURREAL_DATABASE=prod` in the shell for that one run (a variable set in the shell wins
   over `.env`), with a user that can write to `prod`.
+
+## The testers' numbers (#50)
+
+```bash
+npm run export:testers -w api -- testers.csv
+```
+
+Reads every finished test session (the pre-test and the post-test of each tester,
+[`docs/tester-protocol.md`](../docs/tester-protocol.md)) from the database the `SURREAL_*` variables
+name, and writes two files: `testers.csv`, the rows of [`docs/grading-sheet.csv`](../docs/grading-sheet.csv)
+with the evaluator's four scores, the prediction, the questions and the hints filled in (the human
+columns stay empty for #49), and `testers.maps.json`, each map to grade by hand. Testers appear as
+`L1`, `L2`... in the order their first test session started, plus a pseudonym in the notes (8 hex
+characters of a salted hash of their user id; set `LEARNER_ID_SALT` to salt it). No name or Clerk id
+is written. The first finished test session of a tester is the pre-test, the last the post-test.
+
+## The smoke test (#45, #37)
+
+```bash
+npm run smoke -w api                                          # the live API and web build
+npm run smoke -w api -- http://localhost:3000 http://localhost:8081   # or any pair
+```
+
+Seven checks with no credentials, exit code 1 on any failure: `/health`, `/health/db` (writes to the
+database), a call with no token and one with the dev headers both answer 401, the web build's origin
+passes the CORS preflight, the web build answers with Lumente's title, and its bundle names this API's
+host (a demo-mode export would not). A full session on the public URL is still a person's walk through
+the web build; this is the part before and after it, and the warm-up before the testers.
 
 ## Deploy on Render
 

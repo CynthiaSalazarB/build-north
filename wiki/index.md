@@ -2,7 +2,7 @@
 title: Project Wiki Index
 type: index
 updated: 2026-10-22
-total_pages: 6
+total_pages: 8
 ---
 
 # Build North project wiki
@@ -35,6 +35,8 @@ page under a Sources heading, the way the SurrealDB prize page does.
 | [SurrealDB sponsor prize](context/surrealdb-sponsor-prize.md) | SurrealDB sponsors the Agent Memory prize: what judges want, the $50 credit code, the Oct 25 deadline | 2026-10-19 |
 | [Hosting setup](context/hosting-setup.md) | The SurrealDB Cloud instance and the Render service for the API: plans, regions, settings, the #8 numbers | 2026-10-20 |
 | [Evidence](context/evidence.md) | The problem, the buyers and the competitors: what learners describe, the research, prices, and what it doesn't prove yet | 2026-10-21 |
+| [Status, Oct 22 night](context/status-oct22.md) | What is live (API, web, APK, updates, the demo account, the first real numbers), the open PRs and what each waits on, what is open on Cynthia and on Leo, the dates to the freeze | 2026-10-22 |
+| [Submission checklist](context/submission-checklist.md) | What Devpost and each prize ask for, read from the source pages: the dates, who can enter, what the page must include, each prize's evidence, the criteria, with an owner and a date per line | 2026-10-22 |
 
 ## Synthesis
 

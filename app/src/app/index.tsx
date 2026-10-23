@@ -27,9 +27,27 @@ const MAX_NOTES = 8000;
 
 /** The web page's title and description, in the static HTML, so a shared link previews well. */
 export function generateMetadata(): Metadata {
-  const title = `${brand.name}: can you explain the code your AI wrote?`;
-  const description = "Pick a concept from your project. An AI tutor asks questions and never hands you the answer; each answer in your own words brings more light.";
+  const title = `${brand.name}: can you explain the ideas behind the code your AI wrote?`;
+  const description = `${SUBTITLE} ${GUIDED} Or you lead the investigation.`;
   return { title, description, openGraph: { title, description } };
+}
+
+/** Start's words (Cynthia, Oct 23): the question, the line under it, and what each way to start means. */
+const QUESTION = "Can you explain the ideas behind the code your AI wrote?";
+const SUBTITLE = "Choose a concept and start figuring it out.";
+const GUIDED = "AI guides you with questions.";
+const ALONE = "You lead the investigation.";
+
+/** One way to start, with what it means under it. */
+function Choice({ line, children }: { line: string; children: ReactNode }) {
+  return (
+    <View style={styles.choice}>
+      {children}
+      <Small dim style={styles.choiceLine}>
+        {line}
+      </Small>
+    </View>
+  );
 }
 
 export default function StartScreen() {
@@ -43,7 +61,8 @@ export default function StartScreen() {
   const [askOpen, setAskOpen] = useState(false);
   const [starting, setStarting] = useState<SessionMode | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const unfinished = state.turn && state.turn.expects !== "none" ? state.turn : null;
+  // a result on screen is finished, even while the coach's words are on their way
+  const unfinished = state.turn && state.turn.expects !== "none" && state.turn.phase !== "result" ? state.turn : null;
   // at level 5 the parts fill on the phone until the map is submitted
   const draft = unfinished?.expects === "map" ? state.draft : null;
   const done = draft ? filledOf(draft) : (unfinished?.progress.movesDone ?? 0);
@@ -62,7 +81,7 @@ export default function StartScreen() {
     else router.push("/session");
   };
 
-  const startButton = <Button label={name ? `Start with ${name}` : "Pick a concept"} fit={wide} busy={starting === "learn"} disabled={!name || secret || starting !== null} onPress={() => void begin("learn")} />;
+  const startButton = <Button label={name ? "Explore with guidance" : "Pick a concept"} hint={GUIDED} fit={wide} busy={starting === "learn"} disabled={!name || secret || starting !== null} onPress={() => void begin("learn")} />;
   const testButton = !offline && (
     <Button
       kind={wide ? "secondary" : "text"}
@@ -86,7 +105,7 @@ export default function StartScreen() {
               </Body>
               <Label dim>{`${done} of ${unfinished.progress.movesTotal} parts`}</Label>
             </View>
-            <Button kind="secondary" label="Resume" onPress={() => router.push("/session")} />
+            <Button kind="secondary" label="Resume" disabled={starting !== null} onPress={() => router.push("/session")} />
           </Card>
         </Rise>
       )}
@@ -126,7 +145,7 @@ export default function StartScreen() {
             style={[styles.notes, { color: c.onSurface, backgroundColor: c.surfaceContainer, borderColor: secret ? c.gap : c.fieldEdge }]}
           />
           <Label dim style={styles.count}>{`${notes.length.toLocaleString("en-US")} / 8,000`}</Label>
-          {secret && <Failure message={`Line ${secretLine} looks like it has a key, a token or a password. Take it out before you start: your notes go to the AI tutor.`} />}
+          {secret && <Failure message={`Line ${secretLine} looks like it has a key, a token or a password. Take it out before you start: your notes go to the AI.`} />}
         </View>
       )}
       {error && <Failure message={error} />}
@@ -146,18 +165,19 @@ export default function StartScreen() {
   if (wide) {
     return (
       <Screen>
-        <SiteHeader end={clerkKey && <SignOut solid />} />
+        <SiteHeader end={<Account solid />} />
         <View style={styles.split}>
           <ScrollView style={styles.words} contentContainerStyle={styles.wordsContent} keyboardShouldPersistTaps="handled">
-            <Rise>
+            <Rise style={styles.heading}>
               <Text style={[type.display, { color: c.onSurface }]} accessibilityRole="header">
-                Can you explain the code your AI wrote?
+                {QUESTION}
               </Text>
+              <Text style={[type.lead, { color: c.onSurfaceVariant }]}>{SUBTITLE}</Text>
             </Rise>
             {choices}
             <Rise order={5} style={styles.actions}>
-              {startButton}
-              {testButton}
+              <Choice line={GUIDED}>{startButton}</Choice>
+              {testButton && <Choice line={ALONE}>{testButton}</Choice>}
             </Rise>
           </ScrollView>
           <View style={styles.stage}>
@@ -181,19 +201,24 @@ export default function StartScreen() {
             <Text style={[type.wordmark, { color: c.onSurface }]} accessibilityRole="header">
               {brand.name}
             </Text>
-            {clerkKey && <SignOut />}
+            <Account />
           </View>
           <Rise>
             <CodePreview concept={name} />
           </Rise>
-          <Rise order={1}>
-            <Title>Can you explain the code your AI wrote?</Title>
+          <Rise order={1} style={styles.heading}>
+            <Title>{QUESTION}</Title>
+            <Body dim>{SUBTITLE}</Body>
           </Rise>
           {choices}
         </ScrollView>
         <View style={styles.foot}>
-          {startButton}
-          {testButton && <View style={styles.footRow}>{testButton}</View>}
+          <Choice line={GUIDED}>{startButton}</Choice>
+          {testButton && (
+            <View style={styles.footRow}>
+              <Choice line={ALONE}>{testButton}</Choice>
+            </View>
+          )}
         </View>
       </KeyboardSafe>
       {sheet}
@@ -229,16 +254,105 @@ function AskYourAi({ open, onClose, onPaste }: { open: boolean; onClose: () => v
   );
 }
 
-// Only rendered with Clerk on (#22), since useAuth needs the ClerkProvider in the root layout
-function SignOut({ solid = false }: { solid?: boolean }): ReactNode {
+/** The account's controls, at the top of Start: "Your data" (what is kept, and the delete button, #43) and, with
+ * Clerk on, "Sign out". `solid` is the website header's opaque look. */
+function Account({ solid = false }: { solid?: boolean }): ReactNode {
+  // useAuth needs the ClerkProvider in the root layout, which is only there with a Clerk key (#22)
+  return clerkKey ? <ClerkAccount solid={solid} /> : <AccountButtons solid={solid} signOut={null} />;
+}
+
+function ClerkAccount({ solid }: { solid: boolean }) {
   const { signOut } = useAuth();
-  return <Button kind={solid ? "secondary" : "text"} solid={solid} label="Sign out" onPress={() => void signOut()} style={!solid && styles.signOut} />;
+  // a sign-out that fails (offline, say) leaves the learner signed in, with nothing to show for it
+  return <AccountButtons solid={solid} signOut={() => signOut().catch(() => undefined)} />;
+}
+
+function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Promise<void>) | null }) {
+  const { offline, deleteData } = useSession();
+  const [open, setOpen] = useState(false);
+  return (
+    <View style={styles.account}>
+      <Button kind="text" label="Your data" onPress={() => setOpen(true)} style={!solid && styles.signOut} />
+      {signOut && <Button kind={solid ? "secondary" : "text"} solid={solid} label="Sign out" onPress={() => void signOut()} style={!solid && styles.signOut} />}
+      <YourData
+        open={open}
+        onClose={() => setOpen(false)}
+        offline={offline}
+        signsOut={signOut !== null}
+        onDelete={async () => {
+          const problem = await deleteData();
+          // the data is gone either way: a sign-out that fails (offline, say) isn't a failed delete
+          if (!problem && signOut) await signOut().catch(() => undefined);
+          return problem;
+        }}
+      />
+    </View>
+  );
+}
+
+/** What the app keeps and where a learner's words go, in plain words (the privacy note, #43), and the way to
+ * delete it all: one tap, then a confirmation that says what goes. Demo mode keeps nothing. */
+const KEPT = "We keep each session (the concept, the notes you pasted, your guess, your answers and questions, the AI's replies and the score) and your level on each of the four parts.";
+const TO_CLAUDE = "Your answers and questions go to Claude, Anthropic's model, through our server, which holds the key. The app never has it.";
+const VOICE = "While the mic is on, the audio goes to your device's speech service, which turns it into words: on most Android phones that is Google's, and in a browser the browser's own. Only the words reach us, and only when you send them. We never receive or keep the audio; the speech service handles it under its own terms.";
+const DEMO = "Demo mode keeps nothing: this is a recorded session, and what you type stays on this device.";
+const WHO_ASKS = "The questions come from an AI. It asks, and it never hands you the answer.";
+
+function YourData({ open, onClose, offline, signsOut, onDelete }: { open: boolean; onClose: () => void; offline: boolean; signsOut: boolean; onDelete: () => Promise<string | null> }) {
+  const [confirming, setConfirming] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const close = () => {
+    if (busy) return;
+    setConfirming(false);
+    setError(null);
+    onClose();
+  };
+  const remove = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      const problem = await onDelete();
+      if (problem) setError(problem);
+      else close();
+    } finally {
+      setBusy(false);
+    }
+  };
+  return (
+    <Sheet open={open} onClose={close} label="your data">
+      <Title style={styles.sheetTitle}>Your data</Title>
+      {offline ? (
+        <Body>{DEMO}</Body>
+      ) : (
+        <>
+          <Body>{KEPT}</Body>
+          <Small dim>{TO_CLAUDE}</Small>
+          <Small dim>{VOICE}</Small>
+        </>
+      )}
+      <Small dim>{WHO_ASKS}</Small>
+      {!offline &&
+        (confirming ? (
+          <View style={styles.confirm}>
+            <Body>{`This deletes every session and your levels${signsOut ? ", and signs you out" : ""}. It can't be undone.`}</Body>
+            {error && <Failure message={error} />}
+            <Button label={signsOut ? "Delete and sign out" : "Delete my data"} busy={busy} onPress={() => void remove()} />
+            <Button kind="text" label="Keep my data" disabled={busy} onPress={() => setConfirming(false)} />
+          </View>
+        ) : (
+          <Button kind="secondary" label="Delete my data" onPress={() => setConfirming(true)} style={styles.left} />
+        ))}
+    </Sheet>
+  );
 }
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.xl, gap: space.l },
   top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: size.touch },
+  account: { flexDirection: "row", alignItems: "center", gap: space.l },
   signOut: { paddingHorizontal: 0 },
+  confirm: { gap: space.m, marginTop: space.s },
   flex: { flex: 1 },
   resume: { gap: space.m },
   resumeHead: { flexDirection: "row", alignItems: "center", gap: space.m },
@@ -257,7 +371,10 @@ const styles = StyleSheet.create({
   split: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },
   words: { width: page.words, flexGrow: 0 },
   wordsContent: { flexGrow: 1, justifyContent: "center", paddingTop: space.xxl, paddingBottom: page.header, gap: space.xl },
-  actions: { flexDirection: "row", alignItems: "center", gap: space.m, marginTop: space.s },
+  actions: { flexDirection: "row", alignItems: "flex-start", gap: space.m, marginTop: space.s },
+  heading: { gap: space.m },
+  choice: { gap: space.xs, alignItems: "center" },
+  choiceLine: { textAlign: "center" },
   tall: { height: 56 },
   stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: page.header },
   spot: { width: "100%", maxWidth: page.map },

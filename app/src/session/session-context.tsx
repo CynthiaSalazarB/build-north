@@ -4,7 +4,7 @@
 import type { CreateSessionBody, Mentefacto, TurnInput } from "@build-north/agents";
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { ClientError, type SessionClient } from "./client.ts";
-import { drafted, failed, initialState, received, sent, startedWith, type SessionState } from "./transcript.ts";
+import { drafted, failed, initialState, received, resendOf, sent, startedWith, type SessionState } from "./transcript.ts";
 
 /** What the learner can send: a /turns body without its `turn` number, which the provider adds. */
 export type LearnerInput = Exclude<TurnInput, { action: "start" }>;
@@ -18,6 +18,9 @@ type SessionApi = {
   retry(): void;
   /** Level 5: keeps the learner's map; `send({ mentefacto })` submits it. */
   edit(draft: Mentefacto): void;
+  /** The delete button (#43): everything the server kept goes, and so does the session on this device.
+   * Resolves with an error message to show, or null when it's done. */
+  deleteData(): Promise<string | null>;
 };
 
 const SessionContext = createContext<SessionApi | null>(null);
@@ -32,9 +35,12 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     const sessionId = state.turn?.sessionId;
     if (!sessionId || state.pending) return;
     setState((s) => sent(s, body, retry));
+    // a reply for a session no longer on screen (the learner started another, say before the coach's words
+    // came) changes nothing
+    const same = (s: SessionState) => s.turn?.sessionId === sessionId;
     client.send(sessionId, body).then(
-      (turn) => setState((s) => received(s, turn)),
-      (error: unknown) => setState((s) => failed(s, messageOf(error), retryableOf(error))),
+      (turn) => setState((s) => (same(s) ? received(s, turn) : s)),
+      (error: unknown) => setState((s) => (same(s) ? failed(s, messageOf(error), retryableOf(error)) : s)),
     );
   };
 
@@ -44,7 +50,7 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     async start(body) {
       try {
         const turn = await client.start(body);
-        setState(startedWith(turn, body.mode));
+        setState(startedWith(turn, body.mode, body.material ?? null));
         return null;
       } catch (error) {
         return messageOf(error);
@@ -54,10 +60,20 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
       if (state.turn) deliver({ turn: state.turn.turn, ...input }, false);
     },
     retry() {
-      if (state.failure?.retryable) deliver(state.failure.body, true);
+      const body = resendOf(state);
+      if (body) deliver(body, true);
     },
     edit(draft) {
       setState((s) => drafted(s, draft));
+    },
+    async deleteData() {
+      try {
+        await client.deleteData();
+        setState(initialState);
+        return null;
+      } catch (error) {
+        return messageOf(error);
+      }
     },
   };
 

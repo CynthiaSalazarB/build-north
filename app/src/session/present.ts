@@ -1,7 +1,7 @@
 // What the screens say and draw, as pure functions of the Turns and the transcript: the map's parts and their
 // points, the light (points proved so far), the hint card, Help's price, the reveal, and the gap. No React here,
 // so it's tested under Node. The rules behind the words are in CONTRACTS.md section 3.
-import { MOVE_LABEL, MOVE_ORDER, type Item, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
+import { MOVE_LABEL, MOVE_ORDER, WORKED_EXAMPLE, type Item, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
 import type { Entry } from "./transcript.ts";
 
 /** The concepts Start offers (Lumente's board): what coding agents put in student projects. */
@@ -41,15 +41,35 @@ export function sinceLastQuestion(entries: readonly Entry[]): Entry[] {
 
 const turnOf = (entry: Entry) => /^turn-(\d+)-/.exec(entry.id)?.[1] ?? null;
 
-/** The Turn that asked the latest question (with the feedback and the named move that came with it) and
- * everything after: what the conversation under the map shows. Earlier parts live on the map. */
+/** The part the learner is on: every entry since the Turn that started the latest move, and everything
+ * after it, follow-up questions included (the exclusion's "what's the difference?" is asked on the same
+ * move, so the answer before it stays on screen). The previous part's feedback and its name arrive in that
+ * first Turn, before its question; the screen skips them, since the map shows how that part ended. Before
+ * the moves (the guess, the first attempt, the example) the part is what came since the latest question. */
 export function currentPartOf(entries: readonly Entry[]): Entry[] {
-  const part = sinceLastQuestion(entries);
-  const question = part[0];
-  if (!question || question.from !== "app") return part;
-  const asked = turnOf(question);
-  const start = entries.findIndex((e) => turnOf(e) === asked);
-  return start >= 0 ? entries.slice(start) : part;
+  const latest = [...entries].reverse().find((e): e is Extract<Entry, { from: "app" }> => e.from === "app");
+  if (!latest || latest.phase !== "move") return sinceLastQuestion(entries);
+  let start = 0;
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const e = entries[i]!;
+    if (e.from === "app" && (e.phase !== "move" || e.move !== latest.move)) {
+      start = i + 1;
+      break;
+    }
+  }
+  // the learner's last answer on the previous move came before this move's first Turn
+  while (start < entries.length && entries[start]!.from !== "app") start += 1;
+  return entries.slice(start);
+}
+
+/** True for feedback that comes with a question of the same Turn: the exclusion's follow-up, which isn't a
+ * retry and doesn't cap the part (agents/src/orchestrator/advance.ts). */
+export function isFollowUpFeedback(entries: readonly Entry[], i: number): boolean {
+  const entry = entries[i];
+  const next = entries[i + 1];
+  return (
+    !!entry && entry.from === "app" && entry.message.kind === "feedback" && !!next && next.from === "app" && next.message.kind === "question" && turnOf(next) === turnOf(entry)
+  );
 }
 
 /** A hint that gave the answer away: the last step of the ladder (0 points). */
@@ -73,7 +93,7 @@ function hintsFor(entries: readonly Entry[], move: MoveId) {
  * at most. A right answer's feedback comes with the next question, so it's never after the latest one. */
 export function cappedOf(part: readonly Entry[]): boolean {
   const asked = part.findIndex((e) => e.from === "app" && e.message.kind === "question");
-  return part.slice(asked + 1).some((e) => e.from === "app" && (e.message.kind === "feedback" || e.message.kind === "hint"));
+  return part.some((e, i) => i > asked && e.from === "app" && (e.message.kind === "hint" || (e.message.kind === "feedback" && !isFollowUpFeedback(part, i))));
 }
 
 /** Each finished part's points. The Turn carries them (`progress.points`); a Turn saved before that field
@@ -95,33 +115,40 @@ export const provedOf = (turn: Turn, entries: readonly Entry[]) => pointsOf(turn
 export const itemsOf = (map: Mentefacto, move: MoveId): Item[] =>
   move === "supraordinate" ? (map.supraordinate ? [map.supraordinate] : []) : map[move];
 
+/** A part's items in the learner's words, with "not" in front of what it isn't. */
+export function partItemsOf(map: Mentefacto, move: MoveId): string[] {
+  const values = itemsOf(map, move).map((item) => item.value.trim()).filter(Boolean);
+  if (move !== "exclusion") return values;
+  return values.map((value) => (/^not\b/i.test(value) ? value : `not ${value}`));
+}
+
 /** What a filled part shows: the learner's words, with "not" in front of what it isn't. */
 export function partTextOf(map: Mentefacto, move: MoveId): string | null {
-  const values = itemsOf(map, move).map((item) => item.value.trim()).filter(Boolean);
-  if (values.length === 0) return null;
-  if (move !== "exclusion") return values.join(", ");
-  return values.map((value) => (/^not\b/i.test(value) ? value : `not ${value}`)).join(", ");
+  const values = partItemsOf(map, move);
+  return values.length ? values.join(", ") : null;
 }
 
 export type PartState = "unasked" | "asked" | "lit" | "revealed";
 export type Pip = "earned" | "open" | "capped" | "claimed" | "missed";
 /** `pips` is null where nothing is scored yet: the whole map at level 5, until it's submitted. */
-export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] | null };
+/** `badge` is a short line under the part's words: on the result, a part that moved up a level. */
+export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] | null; badge?: string | null };
 
 const pipsFor = (points: number, capped = false): [Pip, Pip] => [points >= 1 ? "earned" : "open", points >= 2 ? "earned" : capped ? "capped" : "open"];
 
 /** The map during a session: finished parts lit with the learner's words (or revealed, 0 points), the part being
- * asked, and the parts still to come. `held` keeps the next part unasked while a reveal waits to be read. */
+ * asked (the Turn names it; a Turn without a name means the next one in order), and the parts still to come.
+ * `held` keeps the next part unasked while a reveal waits to be read. */
 export function partsOf(turn: Turn, entries: readonly Entry[], { held = false, map = turn.mentefacto } = {}): PartView[] {
   const points = pointsOf(turn, entries);
   const capped = cappedOf(currentPartOf(entries));
-  return MOVE_ORDER.map((move, i) => {
+  const asked = !held && turn.phase === "move" ? (turn.move ?? MOVE_ORDER[turn.progress.movesDone] ?? null) : null;
+  return MOVE_ORDER.map((move) => {
     const done = points.find((p) => p.move === move);
-    if (done) {
-      const revealed = hintsFor(entries, move).some((h) => h.message.hintStep === "reveal");
-      return { move, state: revealed ? "revealed" : "lit", text: partTextOf(map, move), pips: pipsFor(done.points) };
-    }
-    if (!held && turn.phase === "move" && i === turn.progress.movesDone) return { move, state: "asked", text: null, pips: pipsFor(0, capped) };
+    // a finished part with no points was shown by Help (the reveal arrives in the Turn that names the next
+    // move, so the points, not the hint's Turn, say which part it was), as on the result
+    if (done) return { move, state: done.points === 0 ? "revealed" : "lit", text: partTextOf(map, move), pips: pipsFor(done.points) };
+    if (move === asked) return { move, state: "asked", text: null, pips: pipsFor(0, capped) };
     return { move, state: "unasked", text: null, pips: pipsFor(0) };
   });
 }
@@ -129,6 +156,37 @@ export function partsOf(turn: Turn, entries: readonly Entry[], { held = false, m
 /** The worked example's map: every part shown by the tutor, so none is lit and none scores. */
 export const exampleParts = (map: Mentefacto): PartView[] =>
   MOVE_ORDER.map((move) => ({ move, state: "revealed", text: partTextOf(map, move), pips: ["open", "open"] }));
+
+/** "First: what kind of thing is a planet? "A thing" is too broad…" becomes the question and the reasoning after it. */
+export function exampleQuestionOf(text: string): { question: string | null; rest: string } {
+  const match = /^(?:\w+[:,]\s+)?([^?.]{3,80}\?)\s*(.*)$/s.exec(text.trim());
+  if (!match) return { question: null, rest: text.trim() };
+  const question = match[1]!;
+  return { question: question.charAt(0).toUpperCase() + question.slice(1), rest: match[2]! };
+}
+
+/** One part of the worked example: the question it asks, what it puts on the map, and the reasoning. */
+export type ExampleStep = { move: MoveId; question: string | null; items: string[]; reasoning: string };
+
+/** The worked example's lines, grouped by the part each one builds (WORKED_EXAMPLE says which), so the screen
+ * shows four steps, not eight paragraphs. Null when a line isn't one of its steps: the lines then show as they came. */
+export function exampleStepsOf(lines: readonly string[]): ExampleStep[] | null {
+  const steps: ExampleStep[] = [];
+  for (const line of lines) {
+    const step = WORKED_EXAMPLE.steps.find((s) => s.thinkAloud === line);
+    if (!step) return null;
+    const item = step.move === "exclusion" ? `not ${step.item.value}` : step.item.value;
+    const last = steps.at(-1);
+    if (last?.move === step.move) {
+      last.items.push(item);
+      last.reasoning = `${last.reasoning} ${line}`.trim();
+      continue;
+    }
+    const { question, rest } = exampleQuestionOf(line);
+    steps.push({ move: step.move, question, items: [item], reasoning: rest });
+  }
+  return steps.length > 0 ? steps : null;
+}
 
 /** The result's map: proved points filled; the points the guess claimed but didn't prove are dashed coral,
  * taken from the first unproved points in the parts' order. */
@@ -142,8 +200,28 @@ export function resultPartsOf(result: Result, map: Mentefacto): PartView[] {
       return "missed";
     }) as [Pip, Pip];
     const text = partTextOf(map, move);
-    return { move, state: points === 0 && text ? "revealed" : text ? "lit" : "unasked", text, pips };
+    // the part moved up a level this session (CONTRACTS.md section 3): the help on it fades next time
+    const up = result.masteryChanges.find((c) => c.move === move && c.to > c.from);
+    const badge = up ? (up.to === 5 ? "you can do this alone now" : "less help next time") : null;
+    return { move, state: points === 0 && text ? "revealed" : text ? "lit" : "unasked", text, pips, badge };
   });
+}
+
+/** One part of the result, the way the worked example reads: its points as the map shows them, the learner's
+ * words and the whole-map evaluator's note. */
+export type ResultStep = { move: MoveId; pips: [Pip, Pip]; points: number; items: string[]; note: string | null };
+
+/** The result part by part. Empty when there are no notes: a session at levels 1 to 4 already went through it
+ * part by part in the conversation. */
+export function resultStepsOf(result: Result, map: Mentefacto, notes: Partial<Record<MoveId, string>>): ResultStep[] {
+  if (!Object.values(notes).some(Boolean)) return [];
+  return resultPartsOf(result, map).map((part) => ({
+    move: part.move,
+    pips: part.pips ?? ["open", "open"],
+    points: result.rubric.find((r) => r.move === part.move)?.points ?? 0,
+    items: partItemsOf(map, part.move),
+    note: notes[part.move] || null,
+  }));
 }
 
 /** The part that just lit: the latest Turn finished a part (it names the move) without revealing it. */
@@ -167,7 +245,8 @@ export function helpOf(part: readonly Entry[]): { tag: string; label: string; mo
   // only what came after the question counts: a reveal before it ended the last part
   const since = part.slice(part.findIndex((e) => e.from === "app" && e.message.kind === "question") + 1);
   if (since.some((e) => e.from === "app" && e.message.kind === "hint")) return { tag: "help", label: "More help", more: true };
-  if (since.some((e) => e.from === "learner")) return { tag: "help", label: "Help", more: false };
+  // once a retry capped the part at 1 point, Help costs nothing more; a follow-up question isn't a retry
+  if (cappedOf(part)) return { tag: "help", label: "Help", more: false };
   return { tag: "help −1", label: "Help, costs a point", more: false };
 }
 
@@ -199,13 +278,18 @@ export function waitingLineOf(body: TurnBody | null): string {
 
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 
-/** The calibration gap as the result shows it: a signed number and one sentence, never a failure. */
-export function gapOf(result: Pick<Result, "calibrationGap">): { sign: "+" | "−" | null; amount: number; sentence: string; over: boolean } {
+/** The calibration gap as the result shows it (decided Oct 22): in words with its direction, under the guess
+ * and the score side by side, never as a bare signed number a learner could read as a grade. `note` is the
+ * line under it; `over` is a guess above the score. */
+export function gapOf(result: Pick<Result, "calibrationGap">): { headline: string; note: string | null; over: boolean } {
   const gap = result.calibrationGap;
-  if (gap > 0) return { sign: "+", amount: gap, sentence: `You felt ${plural(gap, "point")} surer than you were.`, over: true };
-  if (gap < 0) return { sign: "−", amount: -gap, sentence: `You did ${plural(-gap, "point")} better than you felt.`, over: false };
-  return { sign: null, amount: 0, sentence: "Your guess was exactly right.", over: false };
+  if (gap > 0) return { headline: `You felt ${plural(gap, "point")} surer than you could explain.`, note: "That's normal: explaining is how you find out.", over: true };
+  if (gap < 0) return { headline: `You knew more than you felt: ${plural(-gap, "point")} more.`, note: null, over: false };
+  return { headline: "Your guess was exactly right.", note: "You know what you know.", over: false };
 }
+
+/** How a part earns its points (CONTRACTS.md section 3, `pointsFor`), in one line for the screens. */
+export const POINTS_RULE = "Each part is worth 2 points: 2 if your answer holds up on your own, 1 if it partly does or took a retry or Help, 0 if it was shown to you or doesn't hold up.";
 
 /** Pasted notes go to Claude, so the start screen stops at anything that looks like a key, a token or a
  * password: a known key's shape, or a password, secret, token or key name set to a value with a digit in it
@@ -278,6 +362,11 @@ const LABELED = new RegExp(`^(${MOVE_ORDER.map((m) => MOVE_LABEL[m]).join("|")})
 
 /** The whole-map evaluator's note on each part. The orchestrator writes each one as "Bigger group: …"
  * (submitMap in agents/src/orchestrator/advance.ts). */
+/** What came with the result and after it: the result's Turn (the part notes are there), then the coach's
+ * words, which come in their own Turn. */
+export const resultMessagesOf = (entries: readonly Entry[]): Message[] =>
+  entries.flatMap((e) => (e.from === "app" && e.phase === "result" ? [e.message] : []));
+
 export function partNotesOf(messages: readonly Message[]): Partial<Record<MoveId, string>> {
   const notes: Partial<Record<MoveId, string>> = {};
   for (const message of messages) {

@@ -1,4 +1,4 @@
-import { CreateSessionBody, TurnBody, UnexpectedInput, type Advance, type CallAgent, type Expects } from "@build-north/agents";
+import { CreateSessionBody, TurnBody, UnexpectedInput, type Advance, type CallAgent, type Expects, type Mastery } from "@build-north/agents";
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
 import { rateLimit } from "express-rate-limit";
@@ -48,6 +48,15 @@ const describe = (issues: readonly { path: readonly PropertyKey[]; message: stri
   issues.map((issue) => `${issue.path.join(".") || "body"}: ${issue.message}`).join("; ");
 
 type Parsed<T> = { ok: true; value: T } | { ok: false; status: number; error: string };
+
+/** The moves whose level or count of unassisted successes `after` changed from `before`: what a Turn writes
+ * back, so the moves it left alone keep whatever a parallel session saved meanwhile. */
+export function changedMoves(before: Mastery, after: Mastery): Mastery["moves"] {
+  return after.moves.filter((m) => {
+    const was = before.moves.find((b) => b.move === m.move);
+    return !was || was.level !== m.level || was.unassistedSuccesses !== m.unassistedSuccesses;
+  });
+}
 
 // The body schema is Cynthia's (@build-north/agents). The API adds what the schema leaves to it: 413
 // for notes over 8,000 characters, a cap on the concept's length, and trimming.
@@ -139,11 +148,14 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     }
     // CONTRACTS.md section 3: load, advance, save what comes back, return the Turn
     const session = await who.store.createSession(who.user, parsed.value);
-    const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, { action: "start" }, callAgentFor(session.id));
+    const mastery = await who.store.getMastery(who.user);
+    const next = await advance({ session, mastery }, { action: "start" }, callAgentFor(session.id));
     // nothing else knows this session's id yet, so this save can't lose to another request
     await who.store.saveSession(next.session, session.turn);
-    // CONTRACTS.md section 3: a test session never writes mastery
-    if (session.mode !== "test") await who.store.saveMastery(who.user, next.mastery);
+    // CONTRACTS.md section 3: a test session never writes mastery, and a start changes none, so this writes
+    // nothing in practice; the rule is the same as /turns
+    const changed = changedMoves(mastery, next.mastery);
+    if (session.mode !== "test" && changed.length > 0) await who.store.saveMastery(who.user, { moves: changed });
     res.status(201).json(next.turn);
   });
 
@@ -197,15 +209,20 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       conflict(expects === "none" ? "This session is over" : sent === "help" ? "Help works during the moves" : `Turn ${turn} expects ${expects}, not ${sent}`);
       return;
     }
-    const next = await advance({ session, mastery: await who.store.getMastery(who.user) }, input, callAgentFor(session.id)).catch(
-      (error: unknown) => {
-        // input that doesn't fit the phase changes nothing
-        if (error instanceof UnexpectedInput) return error;
-        throw error;
-      },
-    );
+    const mastery = await who.store.getMastery(who.user);
+    const next = await advance({ session, mastery }, input, callAgentFor(session.id)).catch((error: unknown) => {
+      // input that doesn't fit the phase changes nothing
+      if (error instanceof UnexpectedInput) return error;
+      throw error;
+    });
     if (next instanceof UnexpectedInput) {
       conflict(next.message);
+      return;
+    }
+    // CONTRACTS.md section 5: an agent failed, so nothing moved on and there is nothing to save. Writing the
+    // unchanged session and mastery back here could overwrite what a parallel request saved meanwhile.
+    if (next.turn.error) {
+      res.json(next.turn);
       return;
     }
     if (!(await who.store.saveSession(next.session, session.turn))) {
@@ -215,9 +232,11 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       else res.status(404).json({ error: "No such session" });
       return;
     }
-    // CONTRACTS.md section 3: a test session never writes mastery. advance hands it back unchanged, but
-    // that copy predates the Claude call, and saving it could undo a level another session saved since.
-    if (session.mode !== "test") await who.store.saveMastery(who.user, next.mastery);
+    // CONTRACTS.md section 3: a test session never writes mastery. Only the moves this Turn changed are written:
+    // the copy read before the Claude call is seconds old, and writing all four back could undo a level another
+    // session saved since.
+    const changed = changedMoves(mastery, next.mastery);
+    if (session.mode !== "test" && changed.length > 0) await who.store.saveMastery(who.user, { moves: changed });
     res.json(next.turn);
   });
 

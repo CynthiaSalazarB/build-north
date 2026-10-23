@@ -7,6 +7,7 @@ import {
   advance,
   type AgentName,
   type CallAgent,
+  FACT_DESK_ANSWER_REDIRECT,
   FACT_DESK_REDIRECT,
   type Mastery,
   type Mentefacto,
@@ -137,6 +138,8 @@ describe("session 1 from the brief (democracy)", async () => {
     { text: "Free elections, rights, other parties." },
     { text: "Direct?" },
     { text: "Direct and representative." },
+    // the result is on screen; the app asks for the coach's words at once, with no button
+    { action: "continue" },
   ];
   const { turns, session, mastery } = await play(newSession("democracy"), masteryAt(1), inputs, call);
 
@@ -155,6 +158,15 @@ describe("session 1 from the brief (democracy)", async () => {
     expect(result.calibrationGap).toBe(2);
     expect(result.hintsUsed).toBe(2);
     expect(result.rubric.map((r) => r.points)).toEqual([1, 2, 1, 1]);
+  });
+
+  it("shows the result first, with no coach; the coach's words come in the next Turn, which ends the session", () => {
+    const [shown, coached] = turns.slice(-2) as [Turn, Turn];
+    expect([shown.phase, shown.expects, shown.result!.coach]).toEqual(["result", "continue", null]);
+    expect(shown.messages.some((m) => m.kind === "summary")).toBe(false);
+    expect([coached.phase, coached.expects]).toEqual(["result", "none"]);
+    expect(coached.messages).toEqual([{ agent: "coach", kind: "summary", text: "You found the bigger group and a real exclusion. 'What it needs' is next." }]);
+    expect(coached.result).toEqual({ ...shown.result, coach: { message: "You found the bigger group and a real exclusion. 'What it needs' is next.", nextFocus: "isoordinate" } });
   });
 
   it("a wrong answer gets the evaluator's feedback only; the Help after it goes on from the nudge to 'hint'", () => {
@@ -209,6 +221,7 @@ describe("whole map (decision 16, level-5 decision)", () => {
       { question: "If gas goes up, is that inflation?" },
       { action: "help" },
       { mentefacto: { ...empty("inflation"), supraordinate: item("rise in prices") } },
+      { action: "continue" },
     ], call);
 
     expect(turns[1]!.expects).toBe("map");
@@ -219,6 +232,19 @@ describe("whole map (decision 16, level-5 decision)", () => {
     expect(result.rubric.map((r) => r.points)).toEqual([1, 2, 1, 2]); // the hinted move is capped at 1
     expect(result.calibrationGap).toBe(0);
     expect(mastery).toEqual(start);
+  });
+
+  it("an answer typed in the chat gets its own fixed line, never the model's words, and isn't counted", async () => {
+    const { call } = scripted([
+      // even if the model confirms it, the learner only sees where answers go
+      ["fact_desk", { kind: "fact", answer: "Yes, that's its bigger group.", questionType: "states_an_answer" }],
+    ]);
+    const { turns, session } = await play(newSession("inflation", "test"), masteryAt(1), [
+      { action: "start" }, { prediction: 6 }, { question: "a rise in prices" },
+    ], call);
+    expect(turns[2]!.messages).toEqual([{ agent: "fact_desk", kind: "redirect", text: FACT_DESK_ANSWER_REDIRECT }]);
+    expect(turns[2]!.expects).toBe("map");
+    expect(session.questions).toEqual({ asked: 0, testing: 0 });
   });
 
   it("a learner at level 5 on every move gets the map, with no attempt and no example", async () => {
@@ -354,7 +380,7 @@ describe("failures and limits", () => {
       // no coach entry: the scripted callAgent throws when the coach is called
     ]);
     const { turns } = await play(newSession("inflation", "test"), masteryAt(1), [
-      { action: "start" }, { prediction: 8 }, { mentefacto: empty("inflation") },
+      { action: "start" }, { prediction: 8 }, { mentefacto: empty("inflation") }, { action: "continue" },
     ], call);
     const result = turns.at(-1)!.result!;
     expect(result.score).toBe(6);
@@ -366,6 +392,17 @@ describe("failures and limits", () => {
     await expect(advance({ session: newSession("democracy"), mastery: masteryAt(2) }, { text: "hi" }, scripted([]).call)).rejects.toBeInstanceOf(
       UnexpectedInput,
     );
+  });
+
+  it("asks the coach once: after its Turn the session is over, and continue is refused", async () => {
+    const { call } = scripted([
+      ["evaluator_full", { rubric: MOVE_ORDER.map((move) => ({ move, quality: 2, feedback: "ok" })) }],
+      ["coach", { message: "The whole map holds up.", nextFocus: null }],
+    ]);
+    const { session, mastery } = await play(newSession("inflation", "test"), masteryAt(1), [
+      { action: "start" }, { prediction: 8 }, { mentefacto: empty("inflation") }, { action: "continue" },
+    ], call);
+    await expect(advance({ session, mastery }, { action: "continue" }, call)).rejects.toBeInstanceOf(UnexpectedInput);
   });
 });
 

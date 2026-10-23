@@ -71,8 +71,8 @@ describe("the recorded API session (demo mode)", () => {
 describe("fixtures", () => {
   const steps = JSON.parse(read("../fixtures/session-1.json")) as { note: string; input: unknown; turn: unknown }[];
 
-  it("session 1 has 9 Turns", () => {
-    expect(steps).toHaveLength(9);
+  it("session 1 has 10 Turns: the result, then the coach's words", () => {
+    expect(steps).toHaveLength(10);
   });
 
   it.each(steps.map((s, i) => [i, s] as const))("step %i: input and Turn parse", (i, step) => {

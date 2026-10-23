@@ -24,5 +24,6 @@ const styles = StyleSheet.create({
   bar: { flexDirection: "row", alignItems: "center", gap: space.s, minHeight: size.touch, paddingHorizontal: space.margin, marginTop: space.s },
   middle: { flex: 1, alignItems: "center" },
   pill: { paddingVertical: 2, paddingHorizontal: 10, borderRadius: radius.chip, overflow: "hidden", maxWidth: "100%" },
-  side: { width: size.iconButton, minWidth: size.iconButton, alignItems: "flex-end" },
+  // at least as wide as Close, so the concept stays centered; grows for the level-5 question squares
+  side: { minWidth: size.iconButton, alignItems: "flex-end" },
 });

@@ -14,7 +14,7 @@ import { Composer } from "../components/composer.tsx";
 import { ConceptMap, Trace, type MapGeometry } from "../components/concept-map.tsx";
 import { GuessScreen } from "../components/guess.tsx";
 import { decorative } from "../components/icons.tsx";
-import { Ask, Aside, FactCard, Failure, FlushReplies, HintCard, LearnerMessage, Nudge, Revealed, useSlow, Waiting } from "../components/messages.tsx";
+import { Ask, Aside, ExampleIntro, ExampleSteps, FactCard, Failure, FlushReplies, HintCard, LearnerMessage, Nudge, Revealed, useSlow, Waiting } from "../components/messages.tsx";
 import { ResultScreen } from "../components/result.tsx";
 import { SessionBar } from "../components/session-bar.tsx";
 import { SiteHeader } from "../components/site-header.tsx";
@@ -26,13 +26,16 @@ import {
   cappedOf,
   currentPartOf,
   exampleParts,
+  exampleStepsOf,
   eyebrowOf,
   helpOf,
+  isFollowUpFeedback,
   isReveal,
   justLitOf,
   partNotesOf,
   partsOf,
   provedOf,
+  resultMessagesOf,
   revealHoldOf,
   waitingLineOf,
 } from "../session/present.ts";
@@ -45,6 +48,19 @@ export default function SessionScreen() {
   const { state, send, retry, start, edit } = useSession();
   const [again, setAgain] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null });
   const { turn } = state;
+  // The result shows first (decided Oct 22); its Turn expects continue, and the app asks for the coach's words
+  // at once, with no button, once per Turn. A failed ask shows Try again where the words go.
+  const coachDue = turn?.phase === "result" && turn.expects === "continue" && turn.result?.coach === null;
+  // keyed by session as well as Turn: the screen stays mounted across Try again, and the next session can end
+  // on the same turn number (demo mode always does)
+  const askedCoach = useRef<string | null>(null);
+  useEffect(() => {
+    if (!turn || !coachDue || state.pending || state.failure) return;
+    const key = `${turn.sessionId}/${turn.turn}`;
+    if (askedCoach.current === key) return;
+    askedCoach.current = key;
+    send({ action: "continue" });
+  }, [turn, coachDue, state.pending, state.failure, send]);
   if (!turn) return <Redirect href="/" />;
 
   const close = () => (router.canGoBack() ? router.back() : router.replace("/"));
@@ -57,17 +73,16 @@ export default function SessionScreen() {
         pending={state.pending !== null}
         failure={state.failure}
         onLock={(prediction) => send({ prediction })}
-        onRetry={retry}
         onClose={close}
       />
     );
   }
-  if (turn.result && turn.expects === "none") {
+  if (turn.phase === "result" && turn.result) {
     const concept = turn.mentefacto.concept;
-    // a self-test is tried again as a self-test
+    // the same concept with the same notes; a self-test is tried again as a self-test
     const tryAgain = async () => {
       setAgain({ busy: true, error: null });
-      const problem = await start({ concept, ...(state.mode === "test" ? { mode: state.mode } : {}) });
+      const problem = await start({ concept, ...(state.material ? { material: state.material } : {}), ...(state.mode === "test" ? { mode: state.mode } : {}) });
       setAgain({ busy: false, error: problem });
     };
     return (
@@ -75,7 +90,9 @@ export default function SessionScreen() {
         concept={concept}
         result={turn.result}
         map={turn.mentefacto}
-        notes={partNotesOf(turn.messages)}
+        notes={partNotesOf(resultMessagesOf(state.entries))}
+        coachFailure={coachDue && state.failure ? state.failure.message : null}
+        onRetryCoach={retry}
         onAgain={() => void tryAgain()}
         againBusy={again.busy}
         againError={again.error}
@@ -295,16 +312,21 @@ type ConversationProps = {
   onAskLayout: (y: number) => void;
 };
 
-/** The part on screen: the firefly's question, then the answers, nudges, hints, a revealed answer and facts after
- * it. What came before the question (the last part's feedback and its name) isn't repeated: the map shows how
- * that part ended, as the board does. Each line rises in once, when it arrives. */
+/** The part on screen: the firefly's question, then the answers, nudges, hints, a revealed answer, facts and the
+ * firefly's follow-up questions after it. What came before the question (the last part's feedback and its name)
+ * isn't repeated: the map shows how that part ended, as the board does. Each line rises in once, when it arrives. */
 function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, onHelp, onAskLayout }: ConversationProps) {
   const entrance = useEntrance();
   const asked = entries.findIndex((e) => e.from === "app" && e.message.kind === "question");
   const hints = entries.filter((e) => e.from === "app" && e.message.kind === "hint" && e.message.hintStep !== "reveal").map((e) => e.id);
-  // the cap note goes with the first nudge or hint of the part, once
-  const capAt = entries.findIndex((e, i) => i > asked && e.from === "app" && (e.message.kind === "feedback" || (e.message.kind === "hint" && e.message.hintStep !== "reveal")));
+  // the cap note goes with the first retry's nudge or the first hint of the part, once
+  const capAt = entries.findIndex(
+    (e, i) => i > asked && e.from === "app" && ((e.message.kind === "feedback" && !isFollowUpFeedback(entries, i)) || (e.message.kind === "hint" && e.message.hintStep !== "reveal")),
+  );
   const active = !held && turn.phase === "move";
+  // the worked example's lines show as four steps, drawn where its first line is
+  const thinking = entries.flatMap((e) => (e.from === "app" && e.message.kind === "example" && e.message.agent !== "app" ? [e] : []));
+  const steps = exampleStepsOf(thinking.map((e) => e.message.text));
 
   const line = (entry: Entry, i: number): ReactNode => {
     if (entry.from === "map") return null;
@@ -312,6 +334,8 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
     const { message } = entry;
     if (message.kind === "question") {
       const { eyebrow, text } = eyebrowOf(message.text);
+      // the part's first question carries Help, the firefly; a follow-up is the firefly asking again
+      if (i !== asked) return <Ask text={text} eyebrow={eyebrow} firefly={{ state: "asks", tag: null }} fireflyAfter={fireflyAfter} />;
       // Help is the firefly during a part; while an answer is checked it says so
       const firefly = pending
         ? { state: "asks" as const, tag: "checking", busy: true }
@@ -330,11 +354,13 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
     if (asked >= 0 && i < asked) return null;
     switch (message.kind) {
       case "feedback":
-        return <Nudge text={message.text} capNote={i === capAt} />;
+        return <Nudge text={message.text} capNote={i === capAt} tag={isFollowUpFeedback(entries, i) ? "almost" : undefined} />;
       case "hint":
         return isReveal(entry) ? <Revealed text={message.text} /> : <HintCard message={message} n={hints.indexOf(entry.id) + 1} capNote={i === capAt} />;
       case "example":
-        return <Body>{message.text}</Body>;
+        if (message.agent === "app") return <ExampleIntro text={message.text} />;
+        if (!steps) return <Body>{message.text}</Body>;
+        return entry.id === thinking[0]?.id ? <ExampleSteps steps={steps} /> : null;
       case "fact":
       case "redirect":
         return <FactCard kind={message.kind} text={message.text} />;

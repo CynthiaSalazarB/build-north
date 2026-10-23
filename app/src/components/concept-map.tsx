@@ -6,14 +6,14 @@
 // map appears, a part eases into its new state, and the firefly's line draws itself to each new part.
 import type { MoveId } from "@build-north/agents";
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type LayoutRectangle, type PressableStateCallbackType } from "react-native";
-import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type LayoutRectangle } from "react-native";
+import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming, type CSSTransitionProperties } from "react-native-reanimated";
 import Svg, { Circle, Defs, Line, Mask, Path } from "react-native-svg";
 import type { PartView, Pip } from "../session/present.ts";
 import { firefly, map, motion, palette, parts as PARTS, radius, size, space, type } from "../theme.ts";
 import { decorative, PartIcon } from "./icons.tsx";
 import type { Box, Point } from "./trace.ts";
-import { useColors, useEntrance, useMode } from "./ui.tsx";
+import { useColors, useEntrance, useMode, type Interaction } from "./ui.tsx";
 
 const boxOf = (l: LayoutRectangle, dx = 0, dy = 0): Box => ({ x: l.x + dx, y: l.y + dy, w: l.width, h: l.height });
 const sameLayout = (a: LayoutRectangle | undefined, b: LayoutRectangle) => !!a && a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
@@ -165,7 +165,7 @@ const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
 /** A part or a point eases into its new state (amber when asked, warm light when lit) instead of snapping. */
-const ease = { transitionProperty: ["backgroundColor", "borderColor"], transitionDuration: motion.lightStep / 2 };
+const ease: CSSTransitionProperties = { transitionProperty: ["backgroundColor", "borderColor"], transitionDuration: motion.lightStep / 2 };
 
 /** The firefly's dashed amber line, drawn in from the firefly over 320 ms whenever it points somewhere new
  * (`drawKey`), with the dot at the part. With Reduce Motion it is simply there. Goes inside an <Svg>. */
@@ -198,9 +198,6 @@ export function Trace({ d, length, end, drawKey, color }: { d: string; length: n
   );
 }
 
-/** A Pressable's state; react-native-web adds hover to the press. */
-type Interaction = PressableStateCallbackType & { hovered?: boolean };
-
 type PartProps = { view: PartView; width: number; ring: boolean; onPress?: () => void; onLayout: (e: LayoutChangeEvent) => void };
 
 function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
@@ -227,7 +224,7 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
       onLayout={onPress ? undefined : onLayout}
       // a part that opens for editing is labeled by its button instead
       accessible={!onPress}
-      accessibilityLabel={onPress ? undefined : `${label}: ${said}. ${points}${view.state === "revealed" ? ", shown to you" : ""}.`}
+      accessibilityLabel={onPress ? undefined : `${label}: ${said}. ${points}${view.state === "revealed" ? ", shown to you" : ""}.${view.badge ? ` ${view.badge}.` : ""}`}
     >
       <View style={styles.partHead}>
         <PartIcon d={icon} color={look.labelInk} />
@@ -248,6 +245,8 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
       ) : (
         <Text style={[type.partUnknown, { color: look.ink }]}>?</Text>
       )}
+      {/* on the result, a part that moved up a level: the help fades there next time */}
+      {view.badge && <Text style={[type.partLabel, styles.badge, { color: look.labelInk }]}>{`↑ ${view.badge}`}</Text>}
       {ring && <Sparks />}
     </Animated.View>
   );
@@ -326,6 +325,7 @@ const styles = StyleSheet.create({
   part: { minHeight: map.partMinHeight, borderRadius: radius.part, paddingTop: space.s, paddingHorizontal: 10, paddingBottom: 10, gap: space.xs },
   partHead: { flexDirection: "row", alignItems: "center", gap: 6 },
   partLabel: { flex: 1 },
+  badge: { marginTop: 4 },
   pips: { flexDirection: "row", gap: 3 },
   dim: { opacity: 0.8 },
   pressed: { opacity: 0.8 },

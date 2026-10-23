@@ -428,7 +428,7 @@
     }
   },
   {
-    "note": "Turns 12 and 13 are skipped: 'Direct?' got feedback with a nudge. The last move is named, then the result: predicted 7, scored 5, gap +2, 2 Helps.",
+    "note": "Turns 12 and 13 are skipped: 'Direct?' got feedback with a nudge. The last move is named, then the result, shown first: predicted 7, scored 5, gap +2, 2 Helps. The coach's words aren't in yet.",
     "input": {
       "turn": 13,
       "text": "Direct and representative."
@@ -449,7 +449,129 @@
           "agent": "app",
           "kind": "named_move",
           "text": "Those are called infraordinate classes: its types. You found them."
+        }
+      ],
+      "expects": "continue",
+      "scaffold": null,
+      "mentefacto": {
+        "concept": "democracy",
+        "supraordinate": {
+          "value": "form of government",
+          "note": null
         },
+        "exclusion": [
+          {
+            "value": "dictatorship",
+            "note": "who holds the power"
+          }
+        ],
+        "isoordinate": [
+          {
+            "value": "free elections",
+            "note": null
+          },
+          {
+            "value": "rights",
+            "note": null
+          },
+          {
+            "value": "more than one party",
+            "note": null
+          }
+        ],
+        "infraordinate": [
+          {
+            "value": "direct democracy",
+            "note": null
+          },
+          {
+            "value": "representative democracy",
+            "note": null
+          }
+        ]
+      },
+      "example": null,
+      "progress": {
+        "movesDone": 4,
+        "movesTotal": 4,
+        "hintsUsed": 2,
+        "points": [
+          {
+            "move": "supraordinate",
+            "points": 1
+          },
+          {
+            "move": "exclusion",
+            "points": 2
+          },
+          {
+            "move": "isoordinate",
+            "points": 1
+          },
+          {
+            "move": "infraordinate",
+            "points": 1
+          }
+        ]
+      },
+      "result": {
+        "predictedScore": 7,
+        "score": 5,
+        "maxScore": 8,
+        "calibrationGap": 2,
+        "hintsUsed": 2,
+        "rubric": [
+          {
+            "move": "supraordinate",
+            "points": 1
+          },
+          {
+            "move": "exclusion",
+            "points": 2
+          },
+          {
+            "move": "isoordinate",
+            "points": 1
+          },
+          {
+            "move": "infraordinate",
+            "points": 1
+          }
+        ],
+        "masteryChanges": [
+          {
+            "move": "exclusion",
+            "from": 2,
+            "to": 3
+          },
+          {
+            "move": "infraordinate",
+            "from": 2,
+            "to": 3
+          }
+        ],
+        "questions": {
+          "asked": 0,
+          "testing": 0
+        },
+        "coach": null
+      },
+      "error": null
+    }
+  },
+  {
+    "note": "The app asks for the coach's words at once, with no button. Its message ends the session.",
+    "input": {
+      "turn": 14,
+      "action": "continue"
+    },
+    "turn": {
+      "sessionId": "ses_demo_democracy",
+      "turn": 15,
+      "phase": "result",
+      "move": null,
+      "level": null,
+      "messages": [
         {
           "agent": "coach",
           "kind": "summary",

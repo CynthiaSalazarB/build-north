@@ -1,15 +1,15 @@
 // One line of the conversation under the map (round 9 "Lumente"): the firefly's question beside it (tapping the
 // firefly is Help), a free nudge after a wrong answer, an amber hint card that says what it costs, a revealed
-// answer (0 points), a fact, and the learner's answers on the right. The learner sees what kind of message it is,
-// never which agent wrote it.
-import type { Message } from "@build-north/agents";
+// answer (0 points), a fact, the worked example in four steps, and the learner's answers on the right. The learner
+// sees what kind of message it is, never which agent wrote it.
+import { MOVE_LABEL, type Message } from "@build-north/agents";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { hintCardOf, inlineCodeOf } from "../session/present.ts";
+import { hintCardOf, inlineCodeOf, type ExampleStep } from "../session/present.ts";
 import { radius, size, space, type } from "../theme.ts";
 import { Firefly, type FireflyState } from "./firefly.tsx";
 import { Icon } from "./icons.tsx";
-import { Body, Label, Reply, Tag, useColors, useMode } from "./ui.tsx";
+import { Body, Label, Reply, Tag, useColors, useMode, type Interaction } from "./ui.tsx";
 
 /** The firefly's column is 44 wide and the question starts 14 after it, so replies line up with the question. */
 const COLUMN = size.iconButton;
@@ -53,21 +53,26 @@ function WithCode({ text, style }: { text: string; style: object }) {
  * In the website layout the firefly sits after the question, next to the map its line runs to (`fireflyAfter`). */
 export function Ask({ text, eyebrow = null, firefly, fireflyAfter = false }: { text: string; eyebrow?: string | null; firefly: FireflyProps; fireflyAfter?: boolean }) {
   const c = useColors();
-  const drawing = (
+  // Help: the firefly's light answers a finger or a pointer on it
+  const drawing = (glow: boolean) => (
     <>
-      <Firefly state={firefly.state} />
-      {firefly.tag && <Text style={[type.tag, styles.fireflyTag, { color: c.question }]}>{firefly.tag}</Text>}
+      <Firefly state={firefly.state} glow={glow} />
+      {firefly.tag && (
+        <Text style={[type.tag, styles.fireflyTag, { color: c.question }]} numberOfLines={1}>
+          {firefly.tag}
+        </Text>
+      )}
     </>
   );
   return (
     <View style={[styles.ask, fireflyAfter && styles.reverse]}>
       {firefly.onPress && !firefly.busy ? (
         <Pressable accessibilityRole="button" accessibilityLabel={firefly.label ?? "Help"} onPress={firefly.onPress} hitSlop={size.hitSlop} style={({ pressed }) => [styles.firefly, pressed && styles.pressed]}>
-          {drawing}
+          {({ pressed, hovered }: Interaction) => drawing(pressed || !!hovered)}
         </Pressable>
       ) : (
         <View style={styles.firefly} role={firefly.busy ? "status" : undefined} accessibilityLabel={firefly.busy ? "Checking your answer" : undefined}>
-          {drawing}
+          {drawing(false)}
         </View>
       )}
       <View style={styles.askText}>
@@ -90,12 +95,13 @@ export function Aside({ text }: { text: string }) {
 }
 
 /** The evaluator's word on an answer that didn't light the part: a free nudge at levels 2 and 3, a plain "not
- * yet" after that. `capNote` says the part can now light 1 point at most (said once per part). */
-export function Nudge({ text, capNote }: { text: string; capNote: boolean }) {
+ * yet" after that. `capNote` says the part can now light 1 point at most (said once per part). `tag` replaces
+ * the head: "almost" for the word that comes with a follow-up question, which isn't a retry. */
+export function Nudge({ text, capNote, tag }: { text: string; capNote: boolean; tag?: string }) {
   const c = useColors();
   return (
     <View style={useIndent()}>
-      <Tag style={{ color: c.question }}>{text.trim().endsWith("?") ? "nudge · free" : "not yet"}</Tag>
+      <Tag style={{ color: c.question }}>{tag ?? (text.trim().endsWith("?") ? "nudge · free" : "not yet")}</Tag>
       <Reply style={styles.replyText}>{text}</Reply>
       {capNote && <Label dim style={styles.note}>this part can now light 1 point at most</Label>}
     </View>
@@ -138,6 +144,46 @@ export function Revealed({ text }: { text: string }) {
         <Reply>{`Here's this part, so you can keep going: ${lowerFirst(text.trim())}`}</Reply>
         <Label dim style={styles.note}>shown · 0 points</Label>
       </View>
+    </View>
+  );
+}
+
+/** The worked example's first line, as the heading of what follows. */
+export function ExampleIntro({ text }: { text: string }) {
+  const c = useColors();
+  return (
+    <View style={styles.exampleIntro}>
+      <Tag style={{ color: c.question }}>worked example</Tag>
+      <Text style={[type.question, { color: c.onSurface }]}>{text}</Text>
+    </View>
+  );
+}
+
+/** The worked example in four steps, so a glance reads the questions and the answers: each part's name as on the
+ * map, the question it asks, what it puts on the map (dashed, like the map: shown, not earned), and the reasoning,
+ * dim, for whoever wants the why. */
+export function ExampleSteps({ steps }: { steps: ExampleStep[] }) {
+  const c = useColors();
+  return (
+    <View style={styles.exampleSteps}>
+      {steps.map((step, i) => (
+        <View key={step.move} style={[styles.exampleStep, { borderLeftColor: c.partEdge }]}>
+          <Tag style={{ color: c.question }}>{`${i + 1} · ${MOVE_LABEL[step.move].toLowerCase()}`}</Tag>
+          {step.question && <Reply>{step.question}</Reply>}
+          <View style={styles.exampleItems}>
+            {step.items.map((item) => (
+              <View key={item} style={[styles.exampleItem, { borderColor: c.partEdge, backgroundColor: c.partFill }]}>
+                <Text style={[type.ui, { color: c.onSurface }]}>{item}</Text>
+              </View>
+            ))}
+          </View>
+          {step.reasoning !== "" && (
+            <Body dim style={type.bubble}>
+              {step.reasoning}
+            </Body>
+          )}
+        </View>
+      ))}
     </View>
   );
 }
@@ -212,7 +258,8 @@ const styles = StyleSheet.create({
   ask: { flexDirection: "row", alignItems: "flex-start", gap: 14 },
   reverse: { flexDirection: "row-reverse" },
   firefly: { width: COLUMN, alignItems: "center", gap: 2 },
-  fireflyTag: { textAlign: "center" },
+  // "help −1" is wider than the firefly's column, so the tag overflows it evenly instead of wrapping
+  fireflyTag: { textAlign: "center", minWidth: COLUMN + 16, marginHorizontal: -8 },
   askText: { flex: 1, gap: space.xs, paddingTop: 2 },
   code: { borderRadius: 4, borderWidth: 1, overflow: "hidden" },
   indent: { marginLeft: INDENT },
@@ -224,6 +271,11 @@ const styles = StyleSheet.create({
   hintSteps: { flexDirection: "row", gap: space.xs },
   step: { width: 7, height: 7, borderRadius: radius.point },
   hintText: { marginTop: 6, lineHeight: 25 },
+  exampleIntro: { gap: space.xs },
+  exampleSteps: { gap: space.xl },
+  exampleStep: { gap: space.s, borderLeftWidth: 2, paddingLeft: space.l },
+  exampleItems: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
+  exampleItem: { paddingVertical: 6, paddingHorizontal: 10, borderWidth: 1, borderStyle: "dashed", borderRadius: radius.chip },
   fact: { maxWidth: "88%", gap: 2 },
   learner: { alignSelf: "flex-end", maxWidth: "78%", paddingVertical: 10, paddingHorizontal: 14, borderWidth: 1, borderRadius: radius.bubble, borderBottomRightRadius: 2 },
   asking: { maxWidth: "82%", backgroundColor: "rgba(242, 184, 75, 0.1)", boxShadow: "0 0 14px rgba(242, 184, 75, 0.18)" },

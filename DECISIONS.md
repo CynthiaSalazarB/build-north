@@ -417,6 +417,8 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   learners' text that we haven't settled.
 - **Pattern / trade-off:** a scope cut to protect the core. One prize fewer; a memory of each learner's
   habits, for the coach and the hint giver, is parked in the Vision and Scope doc.
+- **Superseded the same day** by "Agent Memory contract: facts the agents read, ids they may cite, a view
+  the app shows" (below): we enter the prize, with no learner text in memory.
 
 ### 2026-10-22 · The light grows over all 8 points
 - **Decision:** the light grows over all 8 points in smaller steps: the dark stages spread over 0 to 6
@@ -462,3 +464,82 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   not the words. Motion is one-shot (blocks rise in, a part eases into its new state, the line draws
   itself, the guess rolls, Start's code line types itself in); nothing loops, blinks or pulses, and Reduce
   Motion leaves only the light.
+
+### 2026-10-22 · Agent Memory contract: facts the agents read, ids they may cite, a view the app shows
+- **Decision:** `AgentContext` gets an optional `memory: { facts: MemoryFact[] }` (at most 8), built by the
+  API from SurrealDB Agent Memory before the coach and the hint giver run. A `MemoryFact` is one line from a
+  template ("Level 3 on infraordinate for CORS, since Oct 22"), with its id, when it became current, the id
+  it superseded, which agent wrote it and which session. The coach's and the hint giver's outputs get an
+  optional `cites: string[]`, the fact ids the message relies on; the API keeps only ids it passed in.
+  `MemoryView` is what `GET /me/memory` returns and the app's Memory sheet shows: per concept and move the
+  level now, its history (level, since, until, source kind, writer, how many times other agents read it),
+  and the latest whole-map gap next to the one before. Reverses "We don't enter the SurrealDB Agent Memory
+  prize" (2026-10-22), on the privacy point it raised: no learner text ever goes to memory, the learner id
+  is a salted hash of the Clerk id, the flag is off by default, and Delete my data purges the scope.
+- **Instead of:** memory inside the orchestrator's state, or raw memory rows passed to the prompts, or the
+  Oct 21 draft that stored the learner's own words beside each fact.
+- **Why:** the prize asks for facts that replace older facts with the history kept, answers traced to a
+  source, and memory shared across agents. Each lands on a field here: `supersedes` and `history`, `cites`
+  and `source`, `writtenBy` and `readBy`. Keeping memory out of the orchestrator keeps "numbers in code,
+  words in the model": a level still comes from `rules.ts`, memory only remembers it.
+- **Pattern / trade-off:** a read model beside the system of record, with provenance on every row. The
+  agents' inputs grow by one optional field, so every existing fixture and prompt stays valid; the cost is
+  one more read before two of the six agent calls, bounded by the API at 1.5 s.
+
+### 2026-10-22 · The result shows first; the coach's words come right after
+- **Decision:** a session ends in two Turns. The last answer's Turn shows the result (every number is
+  code's) with `result.coach: null` and `expects: "continue"`; the app sends `continue` at once, with no
+  button, and the next Turn brings the coach's message. The result screen says "Reading your map…"
+  until it arrives, and Try again if the call fails. If the coach itself fails, its Turn carries the fixed
+  text built from the numbers, as before.
+- **Instead of:** a faster model for the coach, or the API running the coach in the background while the
+  app polls for it.
+- **Why:** the last answer waited for two calls in a row, the evaluator and then the coach: 9.2 s, over the
+  8 s ceiling. The numbers are ready the moment the evaluator answers, and they're the moment of the
+  session (the gap), so they shouldn't wait for words. A faster coach would save less time and write
+  weaker messages. Memory adds its read before the coach, and now that wait is hidden too.
+- **Pattern / trade-off:** take the slow, non-critical call off the critical path (progressive rendering),
+  done as one more request from the app rather than a background job. Every session gets one more Turn
+  and request; in exchange there's no job queue and no polling, and the turn numbers already make the
+  extra request safe to resend.
+
+### 2026-10-22 · An answer typed in the fact desk's chat gets its own fixed line
+- **Decision:** when a learner types an answer in the level-5 chat ("software interface") instead of a
+  question, the fact desk marks it `states_an_answer`, and code shows one fixed line: "That looks like an
+  answer. Answers go on the map, and the whole map is scored when you submit. If you need a fact, ask me."
+  It isn't counted in `questions`. Decision 17's redirect stays for questions that fish for the structure.
+  The coach also stops repeating the prediction, which the screen already shows, unless memory compares it
+  with last time.
+- **Instead of:** the same redirect for everything ("That part is yours to decide…"), which repeated word
+  for word when I typed answers in the chat, or a check in the app for a missing question mark.
+- **Why:** in my own self-test I typed answers in the chat, and the screen kept giving the same line
+  without saying where answers go. Answers belong on the map, and this line says so without ever saying
+  whether the answer is right. A statement isn't a question, so counting it would inflate the testers'
+  "questions asked". The app can't tell a claim worth checking ("an API always uses HTTP") from an
+  answer by its punctuation; the model can.
+- **Pattern / trade-off:** a fixed reply chosen by a classification (the model classifies, code speaks),
+  as in decision 17. One more value in `questionType`; a learner whose claim gets misread as an answer
+  sees the line instead of a fact, and can ask it as a question.
+
+### 2026-10-22 · The result leads with the gap in words, over the guess and the score
+- **Decision:** the result's headline is the gap in words, with its direction ("You felt 2 points surer
+  than you could explain", "You knew more than you felt: 2 points more", "Your guess was exactly right"),
+  over two rows of eight points: my guess and what I proved. The big signed number is gone, and the screen
+  says how a part earns its points.
+- **Instead of:** the gap as one big signed number ("−2", "0", "+2") with a sentence beside it.
+- **Why:** Leo showed me that a learner reads the biggest number as their grade: "0" looks like nothing and
+  "−2" like losing points, when 0 is the best calibration there is. The pitch says AI gives false
+  confidence, so the screen has to say plainly that this number is about my confidence, not my map.
+- **Pattern / trade-off:** show both values and name the direction, the way certainty-based marking keeps
+  "how much you got right" apart from "how well your confidence matched". The gap stays the message, and
+  it loses the drama of one big number.
+
+### 2026-10-22 · No mastery screen: a level-up shows on the result, the levels live in the Memory sheet
+- **Decision:** the mastery screen (#42) is cut. On the result, a part that moved up a level says so under
+  its words ("less help next time", or "you can do this alone now" at level 5), and the Memory sheet (#112)
+  is the one place to see every level and how it changed.
+- **Instead of:** a separate screen with the level per part and a "you did this alone" moment.
+- **Why:** I want a clean experience that doesn't repeat itself, and the same levels on two screens is
+  noise. The moment belongs where it happens, at the end of the session.
+- **Pattern / trade-off:** one home for each piece of information. If memory's flag stays off, the levels
+  have no screen of their own; the result still marks each level-up.

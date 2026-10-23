@@ -264,6 +264,15 @@ help on every part.
 talk about first: one group, won first (a beachhead market). An engine that works on any concept is how
 it reaches the next groups, each behind a gate (see Where it goes).
 
+What every learner shares isn't "not knowing concepts", which nobody feels as pain. It's the moment
+someone asks them to explain something they thought they understood, and they can't: the illusion of
+explanatory depth, from a biology student's oral exam to a junior developer's code review. AI makes that
+moment more common, because the feeling of understanding grows faster than the understanding. Programming
+students who build with AI agents are first because they meet it most often and at the highest cost:
+their agent writes their work every day, and code reviews, project defenses and interviews check it every
+week. The result screen measures exactly this: the gap between the score they felt and the one they
+proved.
+
 **Why concepts, and not the student's whole project?** Understanding a project has layers: the
 concepts, the decisions, the flow, the code. The concepts are the foundation: you can't judge why the
 agent chose a pattern you don't understand. This build covers that layer completely, which is why the
