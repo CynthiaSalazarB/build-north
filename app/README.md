@@ -61,6 +61,7 @@ signs in and the app works as before.
 ```bash
 npm test -w app             # the session logic under Node: fixture replay, API client, transcript
 npm run typecheck -w app
+npm exec -w app -- eslint src # Expo's ESLint rules; direct command preserves the Android runtime fingerprint
 npm run export:web -w app   # the static web build in app/dist
 ```
 

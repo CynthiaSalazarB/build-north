@@ -1,27 +1,23 @@
-// Level 5 (#26, round 9 "Lumente"): back in the dark, the learner builds the whole map alone. The firefly only
-// answers facts now ("You ask now"), the learner's questions glow amber, and a tap on a part opens it for writing.
-// Help, tapping the firefly, costs a point and gives a hint on the first part that still has one. Submit sends
-// the map to the whole-map evaluator. A self-test (the testers' pre-test and post-test) runs here from the start.
-// In the website layout the fact desk is a column on the left and the map stands on the right with its Submit.
+// The learner writes answers on the map; the optional fact desk answers factual questions.
+// Firefly's navigation cue highlights the next empty area without giving conceptual help or changing scores.
 import { MOVE_LABEL, MOVE_ORDER, type Item, type Mentefacto, type MoveId, type Turn } from "@build-north/agents";
 import { useRef, useState, type ReactNode } from "react";
-import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance } from "react-native";
+import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from "react-native";
 import Animated from "react-native-reanimated";
-import { filledOf, hintNumberOf, hintPartOf, itemsOf, partMeaningOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
+import { filledOf, hintNumberOf, hintPartOf, itemsOf, nextPartOf, partMeaningOf, partTextOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
 import type { LearnerInput } from "../session/session-context.tsx";
 import type { Entry, SessionState } from "../session/transcript.ts";
-import { maxContentWidth, page, parts as PARTS, radius, size, space, type } from "../theme.ts";
-import { ConceptMap } from "./concept-map.tsx";
+import { maxContentWidth, parts as PARTS, radius, size, space, type } from "../theme.ts";
+import { ConceptMap, type MapGeometry } from "./concept-map.tsx";
 import { Firefly } from "./firefly.tsx";
-import { FactCard, Failure, FlushReplies, HintCard, LearnerMessage, useSlow, Waiting } from "./messages.tsx";
+import { FactCard, Failure, HintCard, LearnerMessage, Revealed, useSlow, Waiting } from "./messages.tsx";
 import { SessionBar } from "./session-bar.tsx";
 import { SiteHeader } from "./site-header.tsx";
-import { Body, Button, IconButton, KeyboardSafe, Label, MicButton, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useColors, useEntrance, useWide, VoiceNote, type Interaction } from "./ui.tsx";
+import { WideStage } from "./work-stage.tsx";
+import { Body, Button, IconButton, KeyboardSafe, Label, MicButton, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useEntrance, useColors, useWide, VoiceNote } from "./ui.tsx";
 import { useVoice } from "./use-voice.ts";
 
-/** Rows a list part can hold in the editor. */
 const MAX_ITEMS = 6;
-
 type Props = {
   turn: Turn;
   state: SessionState;
@@ -37,59 +33,101 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
   const scroll = useRef<ScrollViewInstance>(null);
   const [editing, setEditing] = useState<MoveId | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [hintOpen, setHintOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
+  const [mapHeight, setMapHeight] = useState(0);
   const pending = state.pending !== null;
   const slow = useSlow(pending);
   const map = state.draft ?? turn.mentefacto;
   const concept = turn.mentefacto.concept;
   const filled = filledOf(map);
+  const next = nextPartOf(map);
   const submitting = state.pending !== null && "mentefacto" in state.pending;
   const help = wholeMapHelpOf(turn.progress.hintsUsed);
+  const hintMove = hintPartOf(turn.progress.hintsUsed);
   const desk = deskOf(state.entries);
-  // the n-th hint of the session is about a known part, so its card can say which and show the price once
   const hints = desk.filter((e) => e.from === "app" && e.message.kind === "hint").map((e) => e.id);
   const asked = desk.filter((e) => e.from === "learner").length;
   const { failure } = state;
   const saved = failure && "mentefacto" in failure.body ? " Your map is saved." : "";
+  const openPart = (move: MoveId) => { if (!pending) setEditing(move); };
 
-  const conceptMap = <ConceptMap concept={concept} parts={wholeMapPartsOf(map, turn.mentefacto)} onPartPress={pending ? undefined : setEditing} />;
+  const conceptMap = (onGeometry?: (geometry: MapGeometry) => void, leader = false) => (
+    <ConceptMap
+      concept={concept}
+      parts={wholeMapPartsOf(map, turn.mentefacto)}
+      activePart={next}
+      onPartPress={openPart}
+      onGeometry={onGeometry}
+      leaderFrom={leader && next ? { x: size.iconButton / 2, y: mapHeight + space.l + 20 } : null}
+    />
+  );
   const status = (
     <View style={styles.status}>
-      {/* how to fill the map is said until a part is filled; then only how much is */}
-      <Label dim style={styles.flex}>{filled === 0 ? "Tap a part to write it" : `${filled} of 4 filled`}</Label>
-      <Button kind="secondary" label="Submit" busy={submitting} disabled={pending || filled === 0} hint="Send your map to be scored. The session ends." onPress={() => setConfirming(true)} />
+      <View style={styles.statusText} accessibilityLiveRegion="polite">
+        <Small>{`${filled} of 4 areas filled`}</Small>
+        <Small dim>Scored together when you submit.</Small>
+      </View>
+      <Button kind={filled === 4 ? "primary" : "secondary"} fit={wide} label="Review & submit" busy={submitting} disabled={pending || filled === 0} hint="Review your answers before submitting your map for scoring." onPress={() => setConfirming(true)} />
     </View>
   );
-  const you = (
-    <View style={styles.you}>
-      <FireflyHelp help={help} pending={pending} onHelp={() => send({ action: "help" })} />
-      <Reply style={styles.flex}>{state.mode === "test" ? "Self-test: write your answers on the map. Ask me facts here." : "You ask now. Write your answers on the map; I only answer facts."}</Reply>
+  const intro = (
+    <>
+      <Label dim>{state.mode === "test" ? "Test myself" : "Independent practice"}</Label>
+      <Title>Build your map</Title>
+      <Body dim>Select an area and write your answer. Fill the four areas, then submit your map.</Body>
+    </>
+  );
+  const guide = (
+    <View style={styles.guideGroup}>
+      <View style={[styles.you, wide && styles.reverse]}>
+        <View style={styles.firefly}><Firefly state="asks" /></View>
+        <View style={styles.guideText} accessibilityLiveRegion="polite">
+          <Label dim>{next ? `Area ${MOVE_ORDER.indexOf(next) + 1} of 4` : "All four areas filled"}</Label>
+          <Reply>{next ? `${filled === 0 ? "Start with" : "Next:"} ${MOVE_LABEL[next]}` : "Ready to review your map"}</Reply>
+        </View>
+      </View>
+      {next && <Button label={`${filled === 0 ? "Start:" : "Write:"} ${MOVE_LABEL[next]}`} fit={wide} disabled={pending} onPress={() => openPart(next)} />}
+      <Small dim>{"You can edit any area. Following the highlight is free; it doesn't use a hint."}</Small>
     </View>
   );
   const thread = (
     <>
-      {desk.map((entry) => {
+      {chatOpen && desk.map((entry) => {
         let line: ReactNode = null;
         if (entry.from === "learner") line = <LearnerMessage text={entry.text} asking />;
         else if (entry.from === "app") {
           const { message } = entry;
           if (message.kind === "fact" || message.kind === "redirect") line = <FactCard kind={message.kind} text={message.text} />;
           else if (message.kind === "hint") {
-            // counted from the Turn's total, so a session picked up after a reload still names the right part
+            // Count from the Turn's total so a resumed session still names the correct area.
             const n = hintNumberOf(turn.progress.hintsUsed, hints.length, hints.indexOf(entry.id));
-            line = <HintCard message={message} n={(n % 4) + 1} capNote={n % 4 === 0} part={PARTS[hintPartOf(n)].label} concept={concept} />;
+            line = message.hintStep === "reveal"
+              ? <View style={styles.guideText}><Label dim>{`${MOVE_LABEL[hintPartOf(n)]} · 0 points`}</Label><Revealed text={message.text} /></View>
+              : <HintCard message={message} n={(n % 4) + 1} capNote={n % 4 === 0} part={PARTS[hintPartOf(n)].label} concept={concept} />;
           } else line = <Body>{message.text}</Body>;
         }
-        return line ? (
-          <Animated.View key={entry.id} style={entrance()}>
-            {line}
-          </Animated.View>
-        ) : null;
+        return line ? <Animated.View key={entry.id} style={entrance()}>{line}</Animated.View> : null;
       })}
       {pending && <Waiting line={waitingLineOf(state.pending)} slow={slow} />}
       {failure && <Failure message={`${failure.message}${saved}`}>{failure.retryable && <Button kind="secondary" label="Try again" onPress={retry} />}</Failure>}
     </>
   );
-  const askBar = <AskBar concept={concept} pending={pending} asking={state.pending !== null && "question" in state.pending} flush={wide} onAsk={(question) => send({ question })} />;
+  const deskControls = (
+    <View style={[styles.deskControls, !wide && styles.bar]}>
+      <Button kind={chatOpen ? "text" : "secondary"} label={chatOpen ? "Close fact chat" : "Ask a fact (optional)"} onPress={() => setChatOpen((open) => !open)} style={chatOpen ? styles.start : undefined} />
+      <View style={[styles.chat, !chatOpen && styles.hidden]}>
+        <Small dim>{"Fact questions only. Write your answers on the map. Asking facts doesn't reduce your score."}</Small>
+        <AskBar concept={concept} pending={pending} asking={state.pending !== null && "question" in state.pending} onAsk={(question) => send({ question })} />
+      </View>
+      {help && (
+        <View style={styles.hintControl}>
+          <Button kind="hintLink" label={help.tag === "help −1" ? "Get a hint · −1 point" : "More help"} disabled={pending} onPress={() => setHintOpen(true)} style={styles.start} />
+          <Small dim>{`For ${MOVE_LABEL[hintMove]}. See the scoring effect before you confirm.`}</Small>
+        </View>
+      )}
+    </View>
+  );
   const sheets = (
     <>
       {editing && (
@@ -104,46 +142,41 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
           }}
         />
       )}
-      <SubmitSheet
-        open={confirming}
-        map={map}
-        onClose={() => setConfirming(false)}
-        onSubmit={() => {
-          setConfirming(false);
-          send({ mentefacto: { ...map, concept } });
+      <HintSheet
+        open={hintOpen}
+        move={hintMove}
+        hintsUsed={turn.progress.hintsUsed}
+        onClose={() => setHintOpen(false)}
+        onConfirm={() => {
+          setHintOpen(false);
+          setChatOpen(true);
+          send({ action: "help" });
         }}
       />
+      <SubmitSheet open={confirming} map={map} onClose={() => setConfirming(false)} onSubmit={() => {
+        setConfirming(false);
+        send({ mentefacto: { ...map, concept } });
+      }} />
     </>
   );
 
   if (wide) {
     return (
       <Screen>
-        <SiteHeader concept={concept} end={
-          <>
-            <Asked n={asked} />
-            <Button kind="secondary" solid label="Save and close" onPress={onClose} />
-          </>
-        } />
-        <View style={styles.split}>
-          <View style={styles.words}>
-            <KeyboardSafe>
-              <FlushReplies value>
-                <View style={styles.pinned}>{you}</View>
-                <ScrollView ref={scroll} style={styles.flex} contentContainerStyle={styles.thread} keyboardShouldPersistTaps="handled" onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })}>
-                  {thread}
-                </ScrollView>
-                {askBar}
-              </FlushReplies>
-            </KeyboardSafe>
-          </View>
-          <View style={styles.stage}>
-            <View style={styles.spot}>
-              {conceptMap}
-              {status}
-            </View>
-          </View>
-        </View>
+        <SiteHeader concept={concept} end={<><Asked n={asked} /><Button kind="secondary" solid label="Save and close" onPress={onClose} /></>} />
+        <WideStage
+          asked={next}
+          fireflySize={40}
+          intro={intro}
+          question={guide}
+          thread={<View style={styles.thread}>{thread}</View>}
+          composer={deskControls}
+          scrollWords
+          followWords={chatOpen}
+          mapHeader={<Label dim>Your answers · select an area to write</Label>}
+          map={(onGeometry) => conceptMap(onGeometry)}
+          mapFooter={status}
+        />
         {sheets}
       </Screen>
     );
@@ -153,19 +186,16 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
     <Screen>
       <SessionBar concept={concept} onClose={onClose} end={<Asked n={asked} />} />
       <KeyboardSafe>
-        <ScrollView
-          ref={scroll}
-          style={styles.flex}
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          onContentSizeChange={() => scroll.current?.scrollToEnd({ animated: true })}
-        >
-          {conceptMap}
+        <ScrollView ref={scroll} style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+          <View style={styles.intro}>{intro}</View>
+          <View onLayout={(e) => setMapHeight(e.nativeEvent.layout.height)}>
+            {conceptMap(undefined, true)}
+          </View>
+          {guide}
           {status}
-          {you}
           {thread}
         </ScrollView>
-        {askBar}
+        {deskControls}
       </KeyboardSafe>
       {sheets}
     </Screen>
@@ -193,37 +223,8 @@ function Asked({ n }: { n: number }) {
   );
 }
 
-/** The firefly beside "You ask now": dim, since the learner leads now, and still Help when tapped (it wakes under a
- * finger or a pointer, and fades again). */
-function FireflyHelp({ help, pending, onHelp }: { help: ReturnType<typeof wholeMapHelpOf>; pending: boolean; onHelp: () => void }) {
-  const c = useColors();
-  const drawing = (glow: boolean) => (
-    <>
-      <Firefly state="fades" size={30} glow={glow} />
-      {help && (
-        <Text style={[type.tag, styles.fireflyTag, { color: c.question }]} numberOfLines={1}>
-          {pending ? "checking" : help.tag}
-        </Text>
-      )}
-    </>
-  );
-  if (!help || pending) {
-    return (
-      <View style={styles.firefly} role={pending ? "status" : undefined}>
-        {drawing(false)}
-      </View>
-    );
-  }
-  return (
-    <Pressable accessibilityRole="button" accessibilityLabel={help.label} onPress={onHelp} hitSlop={size.hitSlop} style={({ pressed }) => [styles.firefly, pressed && styles.pressed]}>
-      {({ pressed, hovered }: Interaction) => drawing(pressed || !!hovered)}
-    </Pressable>
-  );
-}
-
-/** The question field: it glows amber, because the light is the learner's own now. A question can be spoken too:
- * it lands in the field, editable, and still needs Ask. */
-function AskBar({ concept, pending, asking, flush, onAsk }: { concept: string; pending: boolean; asking: boolean; flush: boolean; onAsk: (question: string) => void }) {
+/** Optional fact question input. A spoken question still needs the learner to press Ask. */
+function AskBar({ concept, pending, asking, onAsk }: { concept: string; pending: boolean; asking: boolean; onAsk: (question: string) => void }) {
   const [text, setText] = useState("");
   const question = text.trim();
   const voice = useVoice({ text, onText: setText });
@@ -235,14 +236,13 @@ function AskBar({ concept, pending, asking, flush, onAsk }: { concept: string; p
     setText("");
   };
   return (
-    <View style={[styles.bar, flush && styles.flush]}>
+    <View>
       <View style={styles.askRow}>
         <MicButton state={voice.state} onPress={voice.toggle} disabled={pending && voice.state.kind !== "listening"} />
         <PromptField
-          glow
           value={text}
           onChangeText={setText}
-          placeholder={voice.state.kind === "listening" ? "Listening" : "Ask me a fact"}
+          placeholder={voice.state.kind === "listening" ? "Listening" : "Ask a factual question"}
           multiline
           maxLength={500}
           editable={!pending}
@@ -250,7 +250,7 @@ function AskBar({ concept, pending, asking, flush, onAsk }: { concept: string; p
           onSubmitEditing={submit}
           submitBehavior="submit"
           style={[styles.flex, pending && styles.dim]}
-          end={<SendButton amber busy={asking} disabled={!question || pending} onPress={submit} label="Ask" />}
+          end={<SendButton busy={asking} disabled={!question || pending} onPress={submit} label="Ask a fact" />}
         />
       </View>
       <VoiceNote state={voice.state} />
@@ -282,16 +282,17 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
     <Modal visible transparent animationType={wide ? "fade" : "slide"} onRequestClose={done}>
       <KeyboardAvoidingView style={[styles.flex, wide && styles.center]} behavior="padding">
         {scrim}
-        <View style={[wide ? styles.dialog : styles.sheet, { backgroundColor: c.surfaceContainer, borderColor: c.fieldEdge }]}>
+        <View style={[wide ? styles.dialog : styles.sheet, { backgroundColor: c.surfaceContainer, borderColor: c.fieldEdge }]} accessibilityViewIsModal>
           {!wide && <View style={[styles.grabber, { backgroundColor: c.outline }]} />}
           <View style={styles.sheetHead}>
-            <View style={[styles.flex, styles.sheetTitle]}>
-              <Title style={styles.title}>{PARTS[move].label}</Title>
+            <View style={[styles.flex, styles.sheetTitle, !wide && styles.fullTitle]}>
+              <Title style={styles.title}>{`${MOVE_ORDER.indexOf(move) + 1} · ${MOVE_LABEL[move]}`}</Title>
               <Small dim>{partMeaningOf(move, concept)}</Small>
             </View>
             <MicButton state={voice.state} onPress={voice.toggle} />
-            <Button kind="secondary" label="Done" onPress={done} />
+            <Button kind="secondary" label="Save answer" onPress={done} />
           </View>
+          <Small dim>This saves your answer on the map. It is scored when you submit the whole map.</Small>
           <VoiceNote state={voice.state} />
           <ScrollView contentContainerStyle={styles.rows} keyboardShouldPersistTaps="handled">
             {rows.map((row, i) => (
@@ -344,70 +345,83 @@ const PLACEHOLDER: Record<MoveId, string> = {
   infraordinate: "One kind of it",
 };
 
-/** Submitting ends the session, so it asks once and names the parts still empty. */
-function SubmitSheet({ open, map, onClose, onSubmit }: { open: boolean; map: Mentefacto; onClose: () => void; onSubmit: () => void }) {
-  const empty = MOVE_ORDER.filter((move) => itemsOf(map, move).length === 0).map((move) => PARTS[move].label);
-  const list = empty.join(", ");
-  const line =
-    empty.length === 0
-      ? "All four parts get scored, and the session ends."
-      : `${list.charAt(0).toUpperCase()}${list.slice(1)} ${empty.length === 1 ? "is" : "are"} still empty and ${empty.length === 1 ? "scores" : "score"} 0. The session ends when you submit.`;
+/** The confirmation names the actual hint target; it never follows the navigation highlight. */
+function HintSheet({ open, move, hintsUsed, onClose, onConfirm }: { open: boolean; move: MoveId; hintsUsed: number; onClose: () => void; onConfirm: () => void }) {
+  const reveal = hintsUsed % 4 === 3;
+  const first = hintsUsed % 4 === 0;
   return (
-    <Sheet open={open} onClose={onClose} label="the question">
-      <Title style={styles.title}>Submit your map?</Title>
-      <Body>{line}</Body>
+    <Sheet open={open} onClose={onClose} label="hint">
+      <Title style={styles.title}>{`${reveal ? "Reveal" : "Hint for"} ${MOVE_LABEL[move]}?`}</Title>
+      <Body>{reveal ? "This shows the answer. This area will score 0 points." : first ? "This hint limits this area to 1 point instead of 2. Your other areas are unaffected." : "This area is already limited to 1 point. This hint doesn't reduce it further."}</Body>
+      <Small dim>{"Hints follow the map's area order, even if you are editing another area."}</Small>
+      <Button label={reveal ? "Reveal answer · 0 points" : "Get hint"} onPress={onConfirm} />
+      <Button kind="text" label="Keep working" onPress={onClose} />
+    </Sheet>
+  );
+}
+
+/** Review before a final submit, with a clear warning for empty areas. */
+function SubmitSheet({ open, map, onClose, onSubmit }: { open: boolean; map: Mentefacto; onClose: () => void; onSubmit: () => void }) {
+  const empty = MOVE_ORDER.filter((move) => partTextOf(map, move) === null).map((move) => MOVE_LABEL[move]);
+  return (
+    <Sheet open={open} onClose={onClose} label="map review">
+      <Title style={styles.title}>Review your map</Title>
+      <ScrollView style={styles.review} contentContainerStyle={styles.reviewRows}>
+        {MOVE_ORDER.map((move) => (
+          <View key={move} style={styles.reviewRow}>
+            <Small>{MOVE_LABEL[move]}</Small>
+            <Small dim>{itemsOf(map, move).map((item) => item.value + (item.note ? ` — ${item.note}` : "")).join("; ") || "Left empty · 0 points"}</Small>
+          </View>
+        ))}
+      </ScrollView>
+      <Small dim>{empty.length ? `${empty.join(", ")}: still empty. Empty areas score 0.` : "All four areas are filled."}</Small>
+      <Body>Submitting scores all four areas and ends this session.</Body>
       <Button label="Submit my map" onPress={onSubmit} />
-      <Button kind="text" label="Keep building" onPress={onClose} />
+      <Button kind="text" label="Keep editing" onPress={onClose} />
     </Sheet>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  content: { paddingHorizontal: space.margin, paddingTop: 26, paddingBottom: space.l, gap: space.l },
-  status: { flexDirection: "row", alignItems: "center", gap: space.m, marginTop: space.xs },
-  you: { flexDirection: "row", alignItems: "center", gap: space.m, marginTop: space.s },
-  firefly: { width: size.iconButton, alignItems: "center", gap: 2 },
-  // "help −1" is wider than the firefly's column, so the tag overflows it evenly instead of wrapping
-  fireflyTag: { textAlign: "center", minWidth: size.iconButton + 16, marginHorizontal: -8 },
-  pressed: { opacity: 0.8 },
+  content: { paddingHorizontal: space.margin, paddingTop: space.l, paddingBottom: space.l, gap: space.l },
+  intro: { gap: space.s },
+  guideGroup: { gap: space.m },
+  guideText: { flex: 1, gap: space.xs },
+  status: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: space.m },
+  statusText: { gap: space.xs },
+  you: { flexDirection: "row", alignItems: "flex-start", gap: space.m },
+  reverse: { flexDirection: "row-reverse" },
+  firefly: { width: size.iconButton, alignItems: "center" },
   asked: { flexDirection: "row", alignItems: "center", gap: space.xs },
   square: { width: 8, height: 8, borderRadius: radius.point },
-  bar: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.margin },
-  flush: { paddingHorizontal: 0, paddingBottom: space.xl },
+  bar: { paddingHorizontal: space.margin, paddingBottom: space.m },
+  deskControls: { gap: space.s, paddingBottom: space.l },
+  chat: { gap: space.s },
+  hidden: { display: "none" },
+  hintControl: { gap: space.xs },
   askRow: { flexDirection: "row", alignItems: "flex-end", gap: space.s },
   dim: { opacity: 0.55 },
   sheet: {
-    borderTopLeftRadius: radius.sheet,
-    borderTopRightRadius: radius.sheet,
-    borderWidth: 1,
-    borderBottomWidth: 0,
-    paddingHorizontal: space.margin,
-    paddingTop: space.m,
-    paddingBottom: space.xxl,
-    gap: space.l,
-    width: "100%",
-    maxWidth: maxContentWidth,
-    maxHeight: "85%",
-    alignSelf: "center",
+    borderTopLeftRadius: radius.sheet, borderTopRightRadius: radius.sheet, borderWidth: 1, borderBottomWidth: 0,
+    paddingHorizontal: space.margin, paddingTop: space.m, paddingBottom: space.xxl, gap: space.l,
+    width: "100%", maxWidth: maxContentWidth, maxHeight: "85%", alignSelf: "center",
   },
   center: { alignItems: "center", justifyContent: "center", padding: space.xl },
   dialog: { borderRadius: radius.sheet, borderWidth: 1, padding: space.xxl, gap: space.l, width: "100%", maxWidth: 560, maxHeight: "90%" },
   grabber: { alignSelf: "center", width: 36, height: 4, borderRadius: 2 },
-  sheetHead: { flexDirection: "row", alignItems: "flex-start", gap: space.m },
-  sheetTitle: { gap: space.xs },
+  sheetHead: { flexDirection: "row", flexWrap: "wrap", alignItems: "flex-start", gap: space.m },
+  sheetTitle: { gap: space.xs, flexShrink: 1 },
+  fullTitle: { flexBasis: "100%" },
   title: { fontSize: 24, lineHeight: 30 },
   rows: { gap: space.m, paddingBottom: space.s },
   row: { flexDirection: "row", alignItems: "flex-start", gap: space.s },
   rowFields: { flex: 1, gap: space.s },
   input: { minHeight: size.button, paddingHorizontal: space.l, paddingVertical: space.m, borderRadius: radius.field, borderWidth: 1 },
-  // the difference can run to a sentence, so it wraps instead of scrolling sideways
   note: { maxHeight: 112, textAlignVertical: "top" },
   start: { alignSelf: "flex-start", paddingHorizontal: 0 },
-  split: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },
-  words: { width: page.words },
-  pinned: { paddingTop: space.xl, paddingBottom: space.l },
-  thread: { gap: space.l, paddingBottom: space.l },
-  stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: page.header },
-  spot: { width: "100%", maxWidth: page.map, gap: space.l },
+  thread: { gap: space.l, paddingVertical: space.s },
+  review: { maxHeight: 260, flexShrink: 1 },
+  reviewRows: { gap: space.l },
+  reviewRow: { gap: space.xs },
 });

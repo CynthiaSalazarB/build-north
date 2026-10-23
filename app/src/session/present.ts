@@ -188,17 +188,12 @@ export function exampleStepsOf(lines: readonly string[]): ExampleStep[] | null {
   return steps.length > 0 ? steps : null;
 }
 
-/** The result's map: proved points filled; the points the guess claimed but didn't prove are dashed coral,
- * taken from the first unproved points in the parts' order. */
+/** The result's map shows actual points per area. A total prediction can't assign confidence to an area;
+ * its gap is shown only on the overall result scale. */
 export function resultPartsOf(result: Result, map: Mentefacto): PartView[] {
-  let missed = Math.max(0, result.predictedScore - result.score);
   return MOVE_ORDER.map((move) => {
     const points = result.rubric.find((r) => r.move === move)?.points ?? 0;
-    const pips = pipsFor(points).map((pip) => {
-      if (pip !== "open" || missed === 0) return pip;
-      missed -= 1;
-      return "missed";
-    }) as [Pip, Pip];
+    const pips = pipsFor(points);
     const text = partTextOf(map, move);
     // the part moved up a level this session (CONTRACTS.md section 3): the help on it fades next time
     const up = result.masteryChanges.find((c) => c.move === move && c.to > c.from);
@@ -288,8 +283,8 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 export function gapOf(result: Pick<Result, "calibrationGap">): { headline: string; note: string | null; over: boolean } {
   const gap = result.calibrationGap;
   if (gap > 0) return { headline: `You felt ${plural(gap, "point")} surer than you could explain.`, note: "That's normal: explaining is how you find out.", over: true };
-  if (gap < 0) return { headline: `You knew more than you felt: ${plural(-gap, "point")} more.`, note: null, over: false };
-  return { headline: "Your guess was exactly right.", note: "You know what you know.", over: false };
+  if (gap < 0) return { headline: `You knew more than you felt: ${plural(-gap, "point")} more.`, note: "You explained more than you expected in this session.", over: false };
+  return { headline: "Your prediction matched your score.", note: "Your confidence matched what you could explain in this session.", over: false };
 }
 
 /** What a learner shares from the result: the concept, the guess against the score, the tagline and the address.
@@ -300,7 +295,13 @@ export function shareLineOf(concept: string, result: Pick<Result, "predictedScor
 }
 
 /** How a part earns its points (CONTRACTS.md section 3, `pointsFor`), in one line for the screens. */
-export const POINTS_RULE = "Each part is worth 2 points: 2 if your answer holds up on your own, 1 if it partly does or took a retry or Help, 0 if it was shown to you or doesn't hold up.";
+export const POINTS_RULE = "4 areas × 2 points = 8 points total. Points reflect what you can explain; your prediction records how confident you feel.";
+
+export const SCORING = [
+  { points: 2, text: "A clear, complete answer on your first try, without a hint." },
+  { points: 1, text: "A partly correct answer, or a correct one after a retry or hint." },
+  { points: 0, text: "An incorrect answer, an empty area, or an answer revealed to you." },
+] as const;
 
 /** Pasted notes go to Claude, so the start screen stops at anything that looks like a key, a token or a
  * password: a known key's shape, or a password, secret, token or key name set to a value with a digit in it
@@ -318,7 +319,10 @@ export function secretLineOf(text: string): number | null {
 // ---------- Level 5: the learner builds the whole map and asks the fact desk ----------
 
 /** How many of the four parts have something in them. */
-export const filledOf = (map: Mentefacto): number => MOVE_ORDER.filter((move) => itemsOf(map, move).length > 0).length;
+export const filledOf = (map: Mentefacto): number => MOVE_ORDER.filter((move) => partTextOf(map, move) !== null).length;
+
+/** Interface guidance only: suggest the first empty area, without judging an answer or using a hint. */
+export const nextPartOf = (map: Mentefacto): MoveId | null => MOVE_ORDER.find((move) => partTextOf(map, move) === null) ?? null;
 
 /** The whole map while the learner builds it: their words light a part (nothing is scored until they submit),
  * an answer Help revealed stays dim, and an empty part is a "?". */
