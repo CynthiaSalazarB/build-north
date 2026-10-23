@@ -66,7 +66,7 @@ function AnswerBar({ pending, placeholder, moreHelp, onSend, style }: AnswerProp
     <View style={style}>
       <View style={styles.row}>
         {moreHelp && <Button kind="hint" label="More help" disabled={pending} onPress={() => onSend({ action: "help" })} />}
-        <MicButton state={voice.state} onPress={voice.toggle} disabled={pending} />
+        <MicButton state={voice.state} onPress={voice.toggle} disabled={pending && voice.state.kind !== "listening"} />
         <PromptField
           value={text}
           onChangeText={setText}

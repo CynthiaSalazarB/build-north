@@ -23,8 +23,11 @@ export function useVoice({ text, onText }: Field): { state: VoiceState; toggle: 
   useEffect(() => {
     field.current = { text, onText };
   }, [text, onText]);
-  // the field's text when listening started: each interim result replaces the last one after it, not adds to it
-  const typedAt = useRef("");
+  // the field as it was when listening started: each interim result replaces the last one after its text, not
+  // adds to it, and the words keep landing in that field even if focus moves to another one mid-phrase
+  const target = useRef<Field>({ text: "", onText: () => {} });
+  // a tap while the first one is still asking for the microphone starts nothing more
+  const starting = useRef(false);
   const mine = () => owner === me;
   const release = () => {
     if (mine()) owner = null;
@@ -36,7 +39,7 @@ export function useVoice({ text, onText }: Field): { state: VoiceState; toggle: 
   useSpeechRecognitionEvent("result", (event) => {
     if (!mine()) return;
     const heard = event.results[0]?.transcript ?? "";
-    field.current.onText(withHeard(typedAt.current, heard));
+    target.current.onText(withHeard(target.current.text, heard));
     dispatch({ type: event.isFinal ? "final" : "interim", text: heard });
   });
   useSpeechRecognitionEvent("error", (event) => {
@@ -61,7 +64,7 @@ export function useVoice({ text, onText }: Field): { state: VoiceState; toggle: 
   );
 
   const toggle = useCallback(() => {
-    if (state.kind === "unsupported") return;
+    if (state.kind === "unsupported" || starting.current) return;
     if (state.kind === "listening") {
       tick();
       ExpoSpeechRecognitionModule.stop();
@@ -71,18 +74,28 @@ export function useVoice({ text, onText }: Field): { state: VoiceState; toggle: 
       void Linking.openSettings();
       return;
     }
+    starting.current = true;
     void (async () => {
       // the web has no permission call: the browser asks at start(), and a refusal arrives as the not-allowed
       // error (docs/expo-log.md, Oct 22); the module's own web stub only logs a warning
       const permission = Platform.OS === "web" ? { granted: true, canAskAgain: true } : await ExpoSpeechRecognitionModule.requestPermissionsAsync().catch(() => null);
+      starting.current = false;
       if (!permission?.granted) {
         dispatch({ type: "denied", canAskAgain: permission?.canAskAgain ?? true });
         return;
       }
-      // another field's mic still on: it stops, and this one takes over
-      if (owner && owner !== me) ExpoSpeechRecognitionModule.abort();
+      // another field's mic still on: it stops (its own end event releases it), and the next tap starts this
+      // one. Starting right over its abort would hand that abort's error and end events to this field.
+      if (owner && owner !== me) {
+        ExpoSpeechRecognitionModule.abort();
+        return;
+      }
       owner = me;
-      typedAt.current = field.current.text;
+      target.current = field.current;
+      // listening from the tap, not from the module's start event (the web waits for the microphone first, and
+      // Chrome's permission prompt can hold it for seconds): a second tap stops, instead of starting a second
+      // recognizer under the same owner
+      dispatch({ type: "start" });
       try {
         ExpoSpeechRecognitionModule.start({ interimResults: true, continuous: false, maxAlternatives: 1 });
         tick();

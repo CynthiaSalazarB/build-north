@@ -51,10 +51,14 @@ export default function SessionScreen() {
   // The result shows first (decided Oct 22); its Turn expects continue, and the app asks for the coach's words
   // at once, with no button, once per Turn. A failed ask shows Try again where the words go.
   const coachDue = turn?.phase === "result" && turn.expects === "continue" && turn.result?.coach === null;
-  const askedCoach = useRef<number | null>(null);
+  // keyed by session as well as Turn: the screen stays mounted across Try again, and the next session can end
+  // on the same turn number (demo mode always does)
+  const askedCoach = useRef<string | null>(null);
   useEffect(() => {
-    if (!turn || !coachDue || state.pending || state.failure || askedCoach.current === turn.turn) return;
-    askedCoach.current = turn.turn;
+    if (!turn || !coachDue || state.pending || state.failure) return;
+    const key = `${turn.sessionId}/${turn.turn}`;
+    if (askedCoach.current === key) return;
+    askedCoach.current = key;
     send({ action: "continue" });
   }, [turn, coachDue, state.pending, state.failure, send]);
   if (!turn) return <Redirect href="/" />;
@@ -69,7 +73,6 @@ export default function SessionScreen() {
         pending={state.pending !== null}
         failure={state.failure}
         onLock={(prediction) => send({ prediction })}
-        onRetry={retry}
         onClose={close}
       />
     );

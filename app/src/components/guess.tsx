@@ -33,23 +33,25 @@ type Props = {
   pending: boolean;
   failure: CallFailure | null;
   onLock: (prediction: number) => void;
-  onRetry: () => void;
   onClose: () => void;
 };
 
-export function GuessScreen({ turn, pending, failure, onLock, onRetry, onClose }: Props) {
+export function GuessScreen({ turn, pending, failure, onLock, onClose }: Props) {
   const wide = useWide();
   const [guess, setGuess] = useState(4);
   const [went, setWent] = useState<"up" | "down" | null>(null);
+  // the buttons are disabled while the lock is in flight; the keyboard goes through here too
   const step = (by: number) => {
+    if (pending) return;
     const next = Math.max(0, Math.min(MAX, guess + by));
     if (next === guess) return;
     setGuess(next);
     setWent(by > 0 ? "up" : "down");
     tick();
   };
+  // after a failed lock the number can still change, so Try again sends the guess on screen, not the old one
   const lock = () => {
-    if (!pending && !failure) onLock(guess);
+    if (!pending) onLock(guess);
   };
 
   // the website layout's keyboard: arrows or + and − change the guess, Enter locks it in
@@ -68,7 +70,7 @@ export function GuessScreen({ turn, pending, failure, onLock, onRetry, onClose }
   });
 
   const action = failure ? (
-    <Failure message={failure.message}>{failure.retryable && <Button kind="secondary" label="Try again" onPress={onRetry} />}</Failure>
+    <Failure message={failure.message}>{failure.retryable && <Button kind="secondary" label="Try again" onPress={lock} />}</Failure>
   ) : (
     <Button label="Lock in my guess" fit={wide} busy={pending} onPress={lock} />
   );

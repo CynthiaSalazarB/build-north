@@ -87,7 +87,7 @@ export default function StartScreen() {
               </Body>
               <Label dim>{`${done} of ${unfinished.progress.movesTotal} parts`}</Label>
             </View>
-            <Button kind="secondary" label="Resume" onPress={() => router.push("/session")} />
+            <Button kind="secondary" label="Resume" disabled={starting !== null} onPress={() => router.push("/session")} />
           </Card>
         </Rise>
       )}
@@ -256,7 +256,8 @@ function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Pr
         signsOut={signOut !== null}
         onDelete={async () => {
           const problem = await deleteData();
-          if (!problem && signOut) await signOut();
+          // the data is gone either way: a sign-out that fails (offline, say) isn't a failed delete
+          if (!problem && signOut) await signOut().catch(() => undefined);
           return problem;
         }}
       />
@@ -285,10 +286,13 @@ function YourData({ open, onClose, offline, signsOut, onDelete }: { open: boolea
   const remove = async () => {
     setBusy(true);
     setError(null);
-    const problem = await onDelete();
-    setBusy(false);
-    if (problem) setError(problem);
-    else close();
+    try {
+      const problem = await onDelete();
+      if (problem) setError(problem);
+      else close();
+    } finally {
+      setBusy(false);
+    }
   };
   return (
     <Sheet open={open} onClose={close} label="your data">

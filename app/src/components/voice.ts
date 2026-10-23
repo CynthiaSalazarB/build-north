@@ -19,6 +19,8 @@ export type VoiceEvent =
 
 /** Permission refusals come as an error on the web (its permission call is a no-op) and on Android alike. */
 const DENIED_CODE = "not-allowed";
+/** The recognizer was taken down on purpose (another field's mic, or this field went away): not a failure. */
+const ABORTED_CODE = "aborted";
 
 export function voiceReducer(state: VoiceState, event: VoiceEvent): VoiceState {
   if (state.kind === "unsupported") return state;
@@ -35,6 +37,7 @@ export function voiceReducer(state: VoiceState, event: VoiceEvent): VoiceState {
     case "denied":
       return { kind: "denied", canAskAgain: event.canAskAgain };
     case "error":
+      if (event.code === ABORTED_CODE) return state.kind === "listening" ? { kind: "idle" } : state;
       return event.code === DENIED_CODE ? { kind: "denied", canAskAgain: true } : { kind: "error", code: event.code };
   }
 }

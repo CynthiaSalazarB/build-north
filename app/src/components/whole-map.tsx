@@ -233,7 +233,7 @@ function AskBar({ concept, pending, asking, flush, onAsk }: { concept: string; p
   return (
     <View style={[styles.bar, flush && styles.flush]}>
       <View style={styles.askRow}>
-        <MicButton state={voice.state} onPress={voice.toggle} disabled={pending} />
+        <MicButton state={voice.state} onPress={voice.toggle} disabled={pending && voice.state.kind !== "listening"} />
         <PromptField
           glow
           value={text}

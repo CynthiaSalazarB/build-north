@@ -83,6 +83,14 @@ export function failed(state: SessionState, message: string, retryable: boolean)
   return state.pending ? { ...state, pending: null, failure: { message, retryable, body: state.pending } } : state;
 }
 
+/** The body to send again after a failure: the same one, except that a map goes as the learner has it now, since
+ * the failure note says their map is saved and they may have fixed a part before trying again. */
+export function resendOf(state: SessionState): TurnBody | null {
+  const { failure, draft } = state;
+  if (!failure?.retryable) return null;
+  return "mentefacto" in failure.body && draft ? { ...failure.body, mentefacto: draft } : failure.body;
+}
+
 /** The learner changed their map (level 5). Nothing is sent until they submit it. */
 export function drafted(state: SessionState, draft: Mentefacto): SessionState {
   return state.turn?.expects === "map" ? { ...state, draft } : state;

@@ -10,8 +10,11 @@ const STEPS: readonly Turn[] = sessionApi.map((step) => Turn.parse(step.turn));
 /** `delayMs` stands in for the wait on Claude, so the thinking indicator shows. */
 export function createFixtureClient(delayMs = 600): SessionClient {
   let next = 0;
+  // each replay is its own session to the screens (the coach is asked once per session and Turn), though the
+  // recording's id is the same every time
+  let run = 0;
   // a copy, as if it came over the network (Hermes has no structuredClone)
-  const after = (turn: Turn) => new Promise<Turn>((resolve) => setTimeout(() => resolve(JSON.parse(JSON.stringify(turn))), delayMs));
+  const after = (turn: Turn) => new Promise<Turn>((resolve) => setTimeout(() => resolve({ ...JSON.parse(JSON.stringify(turn)), sessionId: `${turn.sessionId}-${run}` }), delayMs));
 
   return {
     offline: true,
@@ -19,6 +22,7 @@ export function createFixtureClient(delayMs = 600): SessionClient {
     async deleteData() {},
     async start() {
       next = 1;
+      run += 1;
       return after(STEPS[0]!);
     },
     async send() {

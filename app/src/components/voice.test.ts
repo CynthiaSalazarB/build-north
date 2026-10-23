@@ -31,6 +31,11 @@ test("other errors keep their code, and a new start clears them", () => {
   assert.deepEqual(voiceReducer(failed, { type: "start" }), { kind: "listening", interim: "" });
 });
 
+test("an abort ends listening quietly: another field took the mic, or this one went away", () => {
+  assert.deepEqual(voiceReducer({ kind: "listening", interim: "so" }, { type: "error", code: "aborted" }), idle);
+  assert.deepEqual(voiceReducer(idle, { type: "error", code: "aborted" }), idle);
+});
+
 test("unsupported is final", () => {
   const none = voiceReducer(idle, { type: "unavailable" });
   assert.deepEqual(none, { kind: "unsupported" });
