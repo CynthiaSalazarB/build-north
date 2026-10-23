@@ -23,6 +23,9 @@ The first thing to do is the merge order under "Open on Cynthia".
 
 ## Open pull requests
 
+**Update, Oct 23 early:** #104, #124 and #103 are merged (see "Open on Cynthia", item 1); #106 stays a draft
+until the freeze.
+
 All three of Leo's are ready for review; one teammate reviews, the merge is the acceptance.
 
 | PR | What | Waits on |
@@ -36,16 +39,15 @@ Merged on Oct 22: #79, #81, #82, #88 to #100, #102, #105, #107 to #111, #113 to 
 
 ## Open on Cynthia
 
-1. **Merge order:** #104 (no runtime change), then #124 (Render deploys it; nothing to set unless the room is
-   bigger than five testers, then `REQUESTS_PER_MINUTE` on Render), then #103 when the timing rule allows. After
-   #103 merges, Leo redeploys the production and `testers` web from `main` and runs `.eas/workflows/ship.yml`
-   once by hand, so the phones take `main`'s JS instead of the branch's.
-2. Password at sign-up: Clerk's development instance still requires one. Email code only, or keep the password?
-   Testers sign up tomorrow.
-3. The Expo GitHub app on the repo (plan decision 11), so `ship.yml` runs on every merge to `main`. Until then
-   Leo runs it by hand.
-4. Issue #59: everything is done except a separate production Anthropic key (Render uses the same key as dev).
-   Say whether a separate key is still wanted, then it closes.
+1. **Merge order: done.** #104, #124 and #103 merged early on Oct 23, in that order, with every check green on
+   the merged result first (agents 102/102, api 47 pass + 1 skipped, app 49/49, tsc clean). Then, from `main` at
+   `d0d4a25`: `ship.yml` run by hand (the `preview` update for build 3 and the production web), and the
+   `testers` alias redeployed with the `production` environment. Both addresses checked for the new screens
+   (Your data, "Ask me a fact", the result's level-up marks, the new headline); `/health` 200.
+2. **Password at sign-up: decided,** email code and Google only (Cynthia, Oct 22). Leo turns the password off in
+   the Clerk dashboard before the testers sign up.
+3. **The Expo GitHub app:** after the testers (Cynthia). Until then `ship.yml` runs by hand.
+4. **#59: closed** on Oct 22: one Claude key for production and development (Cynthia).
 5. The slow `evaluator_full` turn: lower the effort first, then Sonnet for the questioner and the hint giver
    (plan, section 10). Prompts and effort are hers. Related, from the #124 review: the Anthropic client runs
    with a 30 s timeout and one retry, so a hung call holds a learner for about a minute before the error Turn.
