@@ -19,7 +19,7 @@ import {
 } from "@build-north/agents";
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import { advanceStub, callAgentStub } from "./advance-stub.ts";
-import { createApp, type AppOptions } from "./app.ts";
+import { changedMoves, createApp, type AppOptions } from "./app.ts";
 import { clerkUserFromToken } from "./clerk.ts";
 import { createCallAgent, type SendToClaude } from "./call-agent.ts";
 import { initialSession, type AgentLogEntry, type Store } from "./store.ts";
@@ -62,7 +62,9 @@ function memoryStore(): Store {
       return structuredClone(mastery.get(user) ?? fresh);
     },
     async saveMastery(user, saved) {
-      mastery.set(user, structuredClone(saved));
+      // one row per move, as the SurrealDB store upserts them: the moves given change, the others stay
+      const now = await this.getMastery(user);
+      mastery.set(user, { moves: now.moves.map((m) => structuredClone(saved.moves.find((s) => s.move === m.move) ?? m)) });
     },
     async logAgentCall() {},
     async deleteUserData(user) {
@@ -587,4 +589,49 @@ test("when the coach call fails, the session still ends, with fixed text built f
   assert.deepEqual(done.result.coach, fixed);
   assert.deepEqual(done.messages.at(-1), { agent: "coach", kind: "summary", text: fixed.message });
   assert.deepEqual(await (await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") })).json(), done);
+});
+
+test("mastery is written only for the moves a Turn changed, and an error Turn writes nothing", async (t) => {
+  const before: Mastery = { moves: MOVE_ORDER.map((move) => ({ move, level: 1, unassistedSuccesses: 0 })) };
+  const after: Mastery = {
+    moves: before.moves.map((m) => (m.move === "exclusion" ? { ...m, level: 2 } : m.move === "infraordinate" ? { ...m, unassistedSuccesses: 1 } : m)),
+  };
+  assert.deepEqual(changedMoves(before, after).map((m) => m.move), ["exclusion", "infraordinate"]);
+  assert.deepEqual(changedMoves(before, before), []);
+
+  // the stub orchestrator never raises a level: a start and an answer write mastery zero times
+  const store = memoryStore();
+  const masterySaves = t.mock.method(store, "saveMastery");
+  const sessionSaves = t.mock.method(store, "saveSession");
+  const url = await start(t, { ...noDb, store });
+  const first = await (await post(url, { concept: "democracy" })).json();
+  assert.equal((await answer(url, first.sessionId, { turn: 1, prediction: 7 })).status, 200);
+  assert.equal(masterySaves.mock.callCount(), 0);
+  assert.equal(sessionSaves.mock.callCount(), 2);
+
+  // a Claude call that fails: the error Turn goes back, and neither the session nor mastery is written, so
+  // nothing stale can overwrite what a parallel request saved meanwhile
+  const claude = fakeClaude([]);
+  const failing = await start(t, { ...noDb, store, advance, callAgentFor: claude.callAgentFor });
+  const session = await (await post(failing, { concept: "ecosystem" })).json();
+  // the steps before the moves (the guess, the first attempt, the example) need no Claude call; the first one
+  // that does (the evaluator, or the questioner) fails, and that Turn comes back with error and writes nothing
+  let latest = session;
+  let failed: { turn: number; error: unknown } | null = null;
+  for (let step = 0; step < 8 && !failed; step++) {
+    const body =
+      latest.expects === "prediction" ? { prediction: 5 } : latest.expects === "text" ? { text: "a web of living things" } : latest.expects === "continue" ? { action: "continue" } : null;
+    assert.ok(body, "expects " + latest.expects);
+    const before = { sessions: sessionSaves.mock.callCount(), mastery: masterySaves.mock.callCount() };
+    const res = await answer(failing, latest.sessionId, { turn: latest.turn, ...body });
+    assert.equal(res.status, 200);
+    const turn = await res.json();
+    if (turn.error) {
+      failed = turn;
+      assert.equal(turn.turn, latest.turn);
+      assert.equal(sessionSaves.mock.callCount(), before.sessions);
+      assert.equal(masterySaves.mock.callCount(), before.mastery);
+    } else latest = turn;
+  }
+  assert.ok(failed, "no step called Claude");
 });

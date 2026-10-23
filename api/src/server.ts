@@ -40,6 +40,8 @@ createApp({
   callAgentFor,
   userFromToken: clerk ? clerkUserFromToken(clerk) : null,
   devKey,
+  // per IP: a room of testers on one Wi-Fi shares one, so the limit can be raised for the day
+  requestsPerMinute: Number(process.env.REQUESTS_PER_MINUTE) || undefined,
 }).listen(port, (error) => {
   if (error) throw error;
   const dbInfo = surreal ? `${new URL(surreal.url).host} (${surreal.namespace}/${surreal.database})` : "not configured";
