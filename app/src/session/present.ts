@@ -378,6 +378,17 @@ export function partNotesOf(messages: readonly Message[]): Partial<Record<MoveId
   return notes;
 }
 
+/** Levels 1 to 4: the evaluator's words on the part answered last come in the result's own Turn, and the result
+ * opens at once, so the result shows that part with them (Cynthia, Oct 23: the last answer never got its "that
+ * works"). The part is the one the last Turn before the result asked. Nothing after a reveal (no words came) and
+ * nothing in a self-test, whose notes are labeled (`partNotesOf`). */
+export function lastPartNoteOf(entries: readonly Entry[]): Partial<Record<MoveId, string>> {
+  const app = entries.filter((e): e is Extract<Entry, { from: "app" }> => e.from === "app");
+  const words = app.find((e) => e.phase === "result" && e.message.agent === "evaluator" && e.message.kind === "feedback" && !LABELED.test(e.message.text));
+  const asked = [...app].reverse().find((e) => e.phase !== "result" && e.move !== null);
+  return words && asked?.move ? { [asked.move]: words.message.text } : {};
+}
+
 /** What to paste into a coding agent in your project, so its answer can go in your notes. */
 /** The dim line under a hint or the coach's words with memory on (#112): the facts the text relies on, in their
  * own sentences, which code wrote from the session's numbers. */

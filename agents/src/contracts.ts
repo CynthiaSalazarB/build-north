@@ -243,7 +243,8 @@ export const EvaluatorOutput = z.strictObject({
   issue: EvaluatorIssue,
   /** For logs and the team. */
   reason: z.string(),
-  /** Shown to the learner; never contains the answer. */
+  /** Shown to the learner; never contains the answer before the move is correct, and after it, may add what the
+   * learner left out of the same criterion. */
   feedback: z.string(),
 });
 export type EvaluatorOutput = z.infer<typeof EvaluatorOutput>;

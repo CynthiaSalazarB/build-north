@@ -32,6 +32,7 @@ import {
   isFollowUpFeedback,
   isReveal,
   justLitOf,
+  lastPartNoteOf,
   partNotesOf,
   partsOf,
   provedOf,
@@ -91,6 +92,7 @@ export default function SessionScreen() {
         result={turn.result}
         map={turn.mentefacto}
         notes={partNotesOf(resultMessagesOf(state.entries))}
+        lastPart={lastPartNoteOf(state.entries)}
         coachFailure={coachDue && state.failure ? state.failure.message : null}
         coachSources={turn.messages.find((message) => message.kind === "summary")?.sources}
         onRetryCoach={retry}
