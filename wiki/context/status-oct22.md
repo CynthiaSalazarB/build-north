@@ -62,7 +62,8 @@ Merged on Oct 22: #79, #81, #82, #88 to #100, #102, #105, #107 to #111, #113 to 
 - A full session on his phone with voice, and on the web with a real microphone.
 - Clerk's Android tab: the package `ca.buildnorth.realitycheck` and build 3's SHA-256, so Google sign-in works
   on the phone. Email code works without it.
-- After #103 merges: the production web deploy (above), and one `ship.yml` run by hand.
+- After #103 merges: the production web deploy (above), and one `ship.yml` run by hand. Done early on Oct 23 (above).
+- **Oct 23, #129** (`leo/alive-polish`, review requested from Cynthia): the firefly's light answers hover and touch, and five fixes from a review of `main` (a mic that could stay stuck, Send mid-phrase, the timeout's words at 90 s, Try again keeping the notes, sign-out). App only, fingerprint unchanged. Leo's standing OK: as soon as it merges, a `preview` update from `main` and the production and `testers` web redeploys, logged in `docs/expo-log.md`.
 - Oct 23: `npm run smoke -w api` in the morning (#37), on call for the API, fixes as `eas update` from a branch
   whose fingerprint matches build 3 (`main` after #103, or `leo/final-polish` before); after the post-tests,
   `npm run export:testers -w api` against `prod` (#50).

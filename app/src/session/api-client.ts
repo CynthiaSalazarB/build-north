@@ -15,8 +15,14 @@ export type ApiClientOptions = {
 };
 
 const OFFLINE = "Can't reach the server. Check your connection and try again.";
+const SLOW = "The server is taking too long. Try again.";
 
-export function createApiClient({ baseUrl, devUser, devKey, getToken, fetch: send = fetch, timeoutMs = 60_000 }: ApiClientOptions): SessionClient {
+/** The server gives each Claude call 30 s and one retry (api/src/server.ts), so one slow turn can take a minute;
+ * the app waits a little past that before giving up. An answer sent again after this is judged once: the `turn`
+ * number tells the server it already has it (CONTRACTS.md section 1). */
+const TIMEOUT_MS = 90_000;
+
+export function createApiClient({ baseUrl, devUser, devKey, getToken, fetch: send = fetch, timeoutMs = TIMEOUT_MS }: ApiClientOptions): SessionClient {
   const root = baseUrl.replace(/\/+$/, "");
 
   /** One call with the learner's credentials; the answer's body is parsed as JSON when there is one. */
@@ -37,7 +43,8 @@ export function createApiClient({ baseUrl, devUser, devKey, getToken, fetch: sen
     try {
       res = await send(`${root}${path}`, { method, headers, ...(body !== undefined ? { body: JSON.stringify(body) } : {}), signal: abort.signal });
     } catch {
-      throw new ClientError(OFFLINE, null, true);
+      // the timer fired, or the network did: both are worth trying again, and the words say which
+      throw new ClientError(abort.signal.aborted ? SLOW : OFFLINE, null, true);
     } finally {
       clearTimeout(timer);
     }

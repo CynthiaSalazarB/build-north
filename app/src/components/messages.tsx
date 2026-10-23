@@ -10,7 +10,7 @@ import { radius, size, space, type } from "../theme.ts";
 import { Firefly, type FireflyState } from "./firefly.tsx";
 import { Icon } from "./icons.tsx";
 import { MemorySheet } from "./memory-sheet.tsx";
-import { Body, Label, Reply, Tag, useColors, useMode } from "./ui.tsx";
+import { Body, Label, Reply, Tag, useColors, useMode, type Interaction } from "./ui.tsx";
 
 /** The firefly's column is 44 wide and the question starts 14 after it, so replies line up with the question. */
 const COLUMN = size.iconButton;
@@ -54,9 +54,10 @@ function WithCode({ text, style }: { text: string; style: object }) {
  * In the website layout the firefly sits after the question, next to the map its line runs to (`fireflyAfter`). */
 export function Ask({ text, eyebrow = null, firefly, fireflyAfter = false }: { text: string; eyebrow?: string | null; firefly: FireflyProps; fireflyAfter?: boolean }) {
   const c = useColors();
-  const drawing = (
+  // Help: the firefly's light answers a finger or a pointer on it
+  const drawing = (glow: boolean) => (
     <>
-      <Firefly state={firefly.state} />
+      <Firefly state={firefly.state} glow={glow} />
       {firefly.tag && (
         <Text style={[type.tag, styles.fireflyTag, { color: c.question }]} numberOfLines={1}>
           {firefly.tag}
@@ -68,11 +69,11 @@ export function Ask({ text, eyebrow = null, firefly, fireflyAfter = false }: { t
     <View style={[styles.ask, fireflyAfter && styles.reverse]}>
       {firefly.onPress && !firefly.busy ? (
         <Pressable accessibilityRole="button" accessibilityLabel={firefly.label ?? "Help"} onPress={firefly.onPress} hitSlop={size.hitSlop} style={({ pressed }) => [styles.firefly, pressed && styles.pressed]}>
-          {drawing}
+          {({ pressed, hovered }: Interaction) => drawing(pressed || !!hovered)}
         </Pressable>
       ) : (
         <View style={styles.firefly} role={firefly.busy ? "status" : undefined} accessibilityLabel={firefly.busy ? "Checking your answer" : undefined}>
-          {drawing}
+          {drawing(false)}
         </View>
       )}
       <View style={styles.askText}>
