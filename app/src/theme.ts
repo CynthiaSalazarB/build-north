@@ -2,9 +2,23 @@
 // docs/design/09-lumente/lumente-tokens.ts. Questions are the light: a near-black screen with a warm light that
 // grows from the top-right corner, one stage per point proved, and the ink turns dark at 7 points, when the light
 // fills the screen (full light at 8). Nothing blinks or pulses. Screens take colors only through useColors() in components/ui.tsx.
+import type { Metadata } from "expo-router/server";
 import { Platform } from "react-native";
 
-export const brand = { name: "Lumente", tagline: "Build with AI. Understand the concepts yourself." } as const;
+/** `site` is the production web build on EAS Hosting: link previews need absolute image addresses. */
+export const brand = { name: "Lumente", tagline: "Build with AI. Understand the concepts yourself.", site: "https://reality-check.expo.app" } as const;
+
+/** A web page's metadata, in the static HTML: the title and description, and the same card (`public/og.png`) for a
+ *  link shared in a chat or a post. Called only in Node, when the pages are exported. */
+export function pageMetadata(title: string, description: string): Metadata {
+  const image = { url: `${brand.site}/og.png`, width: 1200, height: 630, alt: `${brand.name}: can you explain the ideas behind the code your AI wrote?` };
+  return {
+    title,
+    description,
+    openGraph: { title, description, type: "website", siteName: brand.name, images: [image] },
+    twitter: { card: "summary_large_image", title, description, images: [image] },
+  };
+}
 
 /** Dark (0 to 6 points): light ink on near-black. */
 const night = {

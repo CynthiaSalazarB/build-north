@@ -5,6 +5,7 @@
 // conversation is a column on the left, under its pinned question, and the map stands on the right, where the
 // light falls; the firefly's line runs across the gap between them.
 import type { MoveId, Turn } from "@build-north/agents";
+import { ObserveInteractiveMarker } from "expo-observe";
 import { Redirect, useRouter } from "expo-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ScrollView, StyleSheet, View, type LayoutChangeEvent, type LayoutRectangle, type ScrollViewInstance } from "react-native";
@@ -42,7 +43,12 @@ import {
 } from "../session/present.ts";
 import { useSession } from "../session/session-context.tsx";
 import type { Entry, SessionState } from "../session/transcript.ts";
-import { firefly as FIREFLY, page, size, space } from "../theme.ts";
+import { brand, firefly as FIREFLY, page, pageMetadata, size, space } from "../theme.ts";
+
+/** The web page's title and card: a session opened or shared by its address, before the app sends it home. */
+export function generateMetadata() {
+  return pageMetadata(`${brand.name}: build the concept's map yourself`, "Your guess, the AI's questions, the help that costs a point, and the gap between how sure you felt and what you proved.");
+}
 
 export default function SessionScreen() {
   const router = useRouter();
@@ -67,28 +73,21 @@ export default function SessionScreen() {
   const close = () => (router.canGoBack() ? router.back() : router.replace("/"));
   const home = () => router.replace("/");
 
-  if (turn.phase === "predict") {
-    return (
-      <GuessScreen
-        turn={turn}
-        pending={state.pending !== null}
-        failure={state.failure}
-        onLock={(prediction) => send({ prediction })}
-        onClose={close}
-      />
-    );
-  }
-  if (turn.phase === "result" && turn.result) {
+  // the same concept with the same notes; a self-test is tried again as a self-test
+  const tryAgain = async () => {
     const concept = turn.mentefacto.concept;
-    // the same concept with the same notes; a self-test is tried again as a self-test
-    const tryAgain = async () => {
-      setAgain({ busy: true, error: null });
-      const problem = await start({ concept, ...(state.material ? { material: state.material } : {}), ...(state.mode === "test" ? { mode: state.mode } : {}) });
-      setAgain({ busy: false, error: problem });
-    };
-    return (
+    setAgain({ busy: true, error: null });
+    const problem = await start({ concept, ...(state.material ? { material: state.material } : {}), ...(state.mode === "test" ? { mode: state.mode } : {}) });
+    setAgain({ busy: false, error: problem });
+  };
+
+  let screen: ReactNode;
+  if (turn.phase === "predict") {
+    screen = <GuessScreen turn={turn} pending={state.pending !== null} failure={state.failure} onLock={(prediction) => send({ prediction })} onClose={close} />;
+  } else if (turn.phase === "result" && turn.result) {
+    screen = (
       <ResultScreen
-        concept={concept}
+        concept={turn.mentefacto.concept}
         result={turn.result}
         map={turn.mentefacto}
         notes={partNotesOf(resultMessagesOf(state.entries))}
@@ -102,11 +101,18 @@ export default function SessionScreen() {
         onDone={home}
       />
     );
+  } else if (turn.expects === "map") {
+    screen = <WholeMapScreen turn={turn} state={state} send={send} retry={retry} edit={edit} onClose={close} />;
+  } else {
+    screen = <WorkScreen turn={turn} state={state} send={send} retry={retry} onClose={close} />;
   }
-  if (turn.expects === "map") {
-    return <WholeMapScreen turn={turn} state={state} send={send} retry={retry} edit={edit} onClose={close} />;
-  }
-  return <WorkScreen turn={turn} state={state} send={send} retry={retry} onClose={close} />;
+  return (
+    <>
+      {screen}
+      {/* the session is interactive as soon as it draws: its Turn is already here (Expo Observe's time to interactive) */}
+      <ObserveInteractiveMarker />
+    </>
+  );
 }
 
 type WorkProps = { turn: Turn; state: SessionState; send: ReturnType<typeof useSession>["send"]; retry: () => void; onClose: () => void };

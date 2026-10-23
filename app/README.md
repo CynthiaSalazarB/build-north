@@ -86,7 +86,8 @@ npx expo export --platform web && npx eas-cli@latest deploy --prod  # the web bu
 | `src/app/` | The routes: `index.tsx` (start: concept + optional notes), `session.tsx` (the session) and `sign-in.tsx` / `sign-in.web.tsx` (#22). No id in a path, so the web build stays static |
 | `src/session/` | The session logic, no React: the two clients (`api-client.ts`, `fixture-client.ts`), what the transcript shows (`transcript.ts`), what the screens say (`present.ts`), and the tests |
 | `src/components/` | The light behind every screen (`light.tsx`), the map (`concept-map.tsx`), the firefly (`firefly.tsx`), the guess (`guess.tsx`), the session's top bar, messages, the input for each `expects`, the result (`result.tsx`) and icons |
-| `src/theme.ts` | Every color, font and size from round 9 "Lumente" (#14): the dark and lit palettes and the nine stages of the light |
+| `src/theme.ts` | Every color, font and size from round 9 "Lumente" (#14): the dark and lit palettes and the nine stages of the light, and `pageMetadata()` for the web pages' title, description and link card |
+| `public/` | Copied as is into the web build: the web app manifest and icons (`manifest.json`, `icon-*.png`, `apple-touch-icon.png`), so an iPhone or a laptop can add Lumente to its home screen, and `og.png`, the card a shared link shows |
 
 ## Credits
 

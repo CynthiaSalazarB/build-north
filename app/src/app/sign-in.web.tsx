@@ -1,20 +1,17 @@
 // Sign-in on the web build (#22), which is also its landing page: what Lumente is for, one line on how it works
 // (Cynthia's words, Oct 23), and Clerk's prebuilt SignIn in round 9's dark colors; in the website layout, beside the code and the map
 // the learner is about to light. The methods come from the Clerk dashboard. Android uses sign-in.tsx.
-import type { Metadata } from "expo-router/server";
 import { SignIn } from "@clerk/expo/web";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { CodePreview } from "../components/code-preview.tsx";
 import { Firefly } from "../components/firefly.tsx";
 import { SiteHeader } from "../components/site-header.tsx";
 import { Rise, Screen, Small, Title, useColors, useWide } from "../components/ui.tsx";
-import { brand, page, radius, space, type, webSans } from "../theme.ts";
+import { brand, page, pageMetadata, radius, space, type, webSans } from "../theme.ts";
 
-/** The web page's title and description, in the static HTML, so a shared link previews well. */
-export function generateMetadata(): Metadata {
-  const title = `${brand.name}: ${HEADLINE.toLowerCase().replace(/\.$/, "")}`;
-  const description = HOW;
-  return { title, description, openGraph: { title, description } };
+/** The web page's title, description and card, in the static HTML, so a shared link previews well. */
+export function generateMetadata() {
+  return pageMetadata(`${brand.name}: ${HEADLINE.toLowerCase().replace(/\.$/, "")}`, HOW);
 }
 
 /** The landing page's headline and the line under it (Cynthia, Oct 23). */
