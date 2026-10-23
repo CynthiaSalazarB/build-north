@@ -4,15 +4,12 @@
 // sees what kind of message it is, never which agent wrote it.
 import { MOVE_LABEL, type Message } from "@build-north/agents";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View, type PressableStateCallbackType } from "react-native";
+import { Pressable, StyleSheet, Text, View } from "react-native";
 import { hintCardOf, inlineCodeOf, type ExampleStep } from "../session/present.ts";
 import { radius, size, space, type } from "../theme.ts";
 import { Firefly, type FireflyState } from "./firefly.tsx";
 import { Icon } from "./icons.tsx";
-import { Body, Label, Reply, Tag, useColors, useMode } from "./ui.tsx";
-
-/** A Pressable's state; react-native-web adds hover to the press. */
-type Interaction = PressableStateCallbackType & { hovered?: boolean };
+import { Body, Label, Reply, Tag, useColors, useMode, type Interaction } from "./ui.tsx";
 
 /** The firefly's column is 44 wide and the question starts 14 after it, so replies line up with the question. */
 const COLUMN = size.iconButton;

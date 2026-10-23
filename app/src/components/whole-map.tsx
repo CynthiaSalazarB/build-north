@@ -5,7 +5,7 @@
 // In the website layout the fact desk is a column on the left and the map stands on the right with its Submit.
 import { MOVE_LABEL, MOVE_ORDER, type Item, type Mentefacto, type MoveId, type Turn } from "@build-north/agents";
 import { useRef, useState, type ReactNode } from "react";
-import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type PressableStateCallbackType, type ScrollViewInstance } from "react-native";
+import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ScrollViewInstance } from "react-native";
 import Animated from "react-native-reanimated";
 import { filledOf, hintPartOf, itemsOf, partMeaningOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
 import type { LearnerInput } from "../session/session-context.tsx";
@@ -16,7 +16,7 @@ import { Firefly } from "./firefly.tsx";
 import { FactCard, Failure, FlushReplies, HintCard, LearnerMessage, useSlow, Waiting } from "./messages.tsx";
 import { SessionBar } from "./session-bar.tsx";
 import { SiteHeader } from "./site-header.tsx";
-import { Body, Button, IconButton, KeyboardSafe, Label, MicButton, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useColors, useEntrance, useWide, VoiceNote } from "./ui.tsx";
+import { Body, Button, IconButton, KeyboardSafe, Label, MicButton, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useColors, useEntrance, useWide, VoiceNote, type Interaction } from "./ui.tsx";
 import { useVoice } from "./use-voice.ts";
 
 /** Rows a list part can hold in the editor. */
@@ -191,9 +191,6 @@ function Asked({ n }: { n: number }) {
     </View>
   );
 }
-
-/** A Pressable's state; react-native-web adds hover to the press. */
-type Interaction = PressableStateCallbackType & { hovered?: boolean };
 
 /** The firefly beside "You ask now": dim, since the learner leads now, and still Help when tapped (it wakes under a
  * finger or a pointer, and fades again). */

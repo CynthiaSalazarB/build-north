@@ -6,14 +6,14 @@
 // map appears, a part eases into its new state, and the firefly's line draws itself to each new part.
 import type { MoveId } from "@build-north/agents";
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type LayoutRectangle, type PressableStateCallbackType } from "react-native";
+import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type LayoutRectangle } from "react-native";
 import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming, type CSSTransitionProperties } from "react-native-reanimated";
 import Svg, { Circle, Defs, Line, Mask, Path } from "react-native-svg";
 import type { PartView, Pip } from "../session/present.ts";
 import { firefly, map, motion, palette, parts as PARTS, radius, size, space, type } from "../theme.ts";
 import { decorative, PartIcon } from "./icons.tsx";
 import type { Box, Point } from "./trace.ts";
-import { useColors, useEntrance, useMode } from "./ui.tsx";
+import { useColors, useEntrance, useMode, type Interaction } from "./ui.tsx";
 
 const boxOf = (l: LayoutRectangle, dx = 0, dy = 0): Box => ({ x: l.x + dx, y: l.y + dy, w: l.width, h: l.height });
 const sameLayout = (a: LayoutRectangle | undefined, b: LayoutRectangle) => !!a && a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
@@ -197,9 +197,6 @@ export function Trace({ d, length, end, drawKey, color }: { d: string; length: n
     </>
   );
 }
-
-/** A Pressable's state; react-native-web adds hover to the press. */
-type Interaction = PressableStateCallbackType & { hovered?: boolean };
 
 type PartProps = { view: PartView; width: number; ring: boolean; onPress?: () => void; onLayout: (e: LayoutChangeEvent) => void };
 
