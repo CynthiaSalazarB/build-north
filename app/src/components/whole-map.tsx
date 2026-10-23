@@ -168,8 +168,10 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
           fireflySize={40}
           intro={intro}
           question={guide}
-          thread={<ScrollView ref={scroll} style={styles.flex} contentContainerStyle={styles.thread} keyboardShouldPersistTaps="handled" onContentSizeChange={() => { if (chatOpen) scroll.current?.scrollToEnd({ animated: true }); }}>{thread}</ScrollView>}
+          thread={<View style={styles.thread}>{thread}</View>}
           composer={deskControls}
+          scrollWords
+          followWords={chatOpen}
           mapHeader={<Label dim>Your answers · select an area to write</Label>}
           map={(onGeometry) => conceptMap(onGeometry)}
           mapFooter={status}

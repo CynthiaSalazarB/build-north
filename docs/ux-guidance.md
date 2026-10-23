@@ -16,7 +16,7 @@ The prediction has no default selection. Learners choose 0–8 after seeing the 
 - Submission: disabled while empty or busy; review shows all four areas and exclusion differences; empty areas warn that they score zero; Keep editing preserves everything; only Submit my map sends the map.
 - Guided mode: the input is labeled with the current answer area; Firefly's connection still points to the current area; retries, hints, reveals, and the final answer's feedback retain their existing behavior.
 - Result: prediction and map score are labeled separately; both use the 0–8 scale; the rubric matches the prediction screen; the zero-gap wording refers only to this session.
-- Responsive/accessibility: check desktop and narrow phone widths, long concepts and answers, keyboard navigation, modal closing, reduced motion, and no horizontal overflow.
+- Responsive/accessibility: check desktop and narrow phone widths, long concepts and answers, keyboard navigation, modal closing, reduced motion, and no horizontal overflow. In short desktop windows and at higher browser zoom, send a fact question and check that the reply is visible through its scroll ancestors, not merely present in the page. The self-test's left column scrolls as one unit so the instructions and input cannot shrink the replies to zero height; Firefly's connection follows its scroll position and hides when Firefly is offscreen.
 
 The login and start-page headlines stay as Cynthia wrote them on October 23. Only the two mode descriptions on Start explain where answers go.
 
