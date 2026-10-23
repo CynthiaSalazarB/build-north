@@ -41,15 +41,35 @@ export function sinceLastQuestion(entries: readonly Entry[]): Entry[] {
 
 const turnOf = (entry: Entry) => /^turn-(\d+)-/.exec(entry.id)?.[1] ?? null;
 
-/** The Turn that asked the latest question (with the feedback and the named move that came with it) and
- * everything after: what the conversation under the map shows. Earlier parts live on the map. */
+/** The part the learner is on: every entry since the Turn that started the latest move, and everything
+ * after it, follow-up questions included (the exclusion's "what's the difference?" is asked on the same
+ * move, so the answer before it stays on screen). The previous part's feedback and its name arrive in that
+ * first Turn, before its question; the screen skips them, since the map shows how that part ended. Before
+ * the moves (the guess, the first attempt, the example) the part is what came since the latest question. */
 export function currentPartOf(entries: readonly Entry[]): Entry[] {
-  const part = sinceLastQuestion(entries);
-  const question = part[0];
-  if (!question || question.from !== "app") return part;
-  const asked = turnOf(question);
-  const start = entries.findIndex((e) => turnOf(e) === asked);
-  return start >= 0 ? entries.slice(start) : part;
+  const latest = [...entries].reverse().find((e): e is Extract<Entry, { from: "app" }> => e.from === "app");
+  if (!latest || latest.phase !== "move") return sinceLastQuestion(entries);
+  let start = 0;
+  for (let i = entries.length - 1; i >= 0; i--) {
+    const e = entries[i]!;
+    if (e.from === "app" && (e.phase !== "move" || e.move !== latest.move)) {
+      start = i + 1;
+      break;
+    }
+  }
+  // the learner's last answer on the previous move came before this move's first Turn
+  while (start < entries.length && entries[start]!.from !== "app") start += 1;
+  return entries.slice(start);
+}
+
+/** True for feedback that comes with a question of the same Turn: the exclusion's follow-up, which isn't a
+ * retry and doesn't cap the part (agents/src/orchestrator/advance.ts). */
+export function isFollowUpFeedback(entries: readonly Entry[], i: number): boolean {
+  const entry = entries[i];
+  const next = entries[i + 1];
+  return (
+    !!entry && entry.from === "app" && entry.message.kind === "feedback" && !!next && next.from === "app" && next.message.kind === "question" && turnOf(next) === turnOf(entry)
+  );
 }
 
 /** A hint that gave the answer away: the last step of the ladder (0 points). */
@@ -73,7 +93,7 @@ function hintsFor(entries: readonly Entry[], move: MoveId) {
  * at most. A right answer's feedback comes with the next question, so it's never after the latest one. */
 export function cappedOf(part: readonly Entry[]): boolean {
   const asked = part.findIndex((e) => e.from === "app" && e.message.kind === "question");
-  return part.slice(asked + 1).some((e) => e.from === "app" && (e.message.kind === "feedback" || e.message.kind === "hint"));
+  return part.some((e, i) => i > asked && e.from === "app" && (e.message.kind === "hint" || (e.message.kind === "feedback" && !isFollowUpFeedback(part, i))));
 }
 
 /** Each finished part's points. The Turn carries them (`progress.points`); a Turn saved before that field
@@ -117,17 +137,18 @@ export type PartView = { move: MoveId; state: PartState; text: string | null; pi
 const pipsFor = (points: number, capped = false): [Pip, Pip] => [points >= 1 ? "earned" : "open", points >= 2 ? "earned" : capped ? "capped" : "open"];
 
 /** The map during a session: finished parts lit with the learner's words (or revealed, 0 points), the part being
- * asked, and the parts still to come. `held` keeps the next part unasked while a reveal waits to be read. */
+ * asked (the Turn names it; a Turn without a name means the next one in order), and the parts still to come.
+ * `held` keeps the next part unasked while a reveal waits to be read. */
 export function partsOf(turn: Turn, entries: readonly Entry[], { held = false, map = turn.mentefacto } = {}): PartView[] {
   const points = pointsOf(turn, entries);
   const capped = cappedOf(currentPartOf(entries));
-  return MOVE_ORDER.map((move, i) => {
+  const asked = !held && turn.phase === "move" ? (turn.move ?? MOVE_ORDER[turn.progress.movesDone] ?? null) : null;
+  return MOVE_ORDER.map((move) => {
     const done = points.find((p) => p.move === move);
-    if (done) {
-      const revealed = hintsFor(entries, move).some((h) => h.message.hintStep === "reveal");
-      return { move, state: revealed ? "revealed" : "lit", text: partTextOf(map, move), pips: pipsFor(done.points) };
-    }
-    if (!held && turn.phase === "move" && i === turn.progress.movesDone) return { move, state: "asked", text: null, pips: pipsFor(0, capped) };
+    // a finished part with no points was shown by Help (the reveal arrives in the Turn that names the next
+    // move, so the points, not the hint's Turn, say which part it was), as on the result
+    if (done) return { move, state: done.points === 0 ? "revealed" : "lit", text: partTextOf(map, move), pips: pipsFor(done.points) };
+    if (move === asked) return { move, state: "asked", text: null, pips: pipsFor(0, capped) };
     return { move, state: "unasked", text: null, pips: pipsFor(0) };
   });
 }
@@ -224,7 +245,8 @@ export function helpOf(part: readonly Entry[]): { tag: string; label: string; mo
   // only what came after the question counts: a reveal before it ended the last part
   const since = part.slice(part.findIndex((e) => e.from === "app" && e.message.kind === "question") + 1);
   if (since.some((e) => e.from === "app" && e.message.kind === "hint")) return { tag: "help", label: "More help", more: true };
-  if (since.some((e) => e.from === "learner")) return { tag: "help", label: "Help", more: false };
+  // once a retry capped the part at 1 point, Help costs nothing more; a follow-up question isn't a retry
+  if (cappedOf(part)) return { tag: "help", label: "Help", more: false };
   return { tag: "help −1", label: "Help, costs a point", more: false };
 }
 

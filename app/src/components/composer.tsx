@@ -7,7 +7,8 @@ import { useState } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import type { LearnerInput } from "../session/session-context.tsx";
 import { space } from "../theme.ts";
-import { Button, PromptField, SendButton } from "./ui.tsx";
+import { Button, MicButton, PromptField, SendButton, VoiceNote } from "./ui.tsx";
+import { useVoice } from "./use-voice.ts";
 
 type Props = {
   turn: Turn;
@@ -59,21 +60,27 @@ function AnswerBar({ pending, placeholder, moreHelp, onSend, style }: AnswerProp
     onSend({ text: answer });
     setText("");
   };
+  // speech lands in the same field, editable, and still needs Send
+  const voice = useVoice({ text, onText: setText });
   return (
-    <View style={[style, styles.row]}>
-      {moreHelp && <Button kind="hint" label="More help" disabled={pending} onPress={() => onSend({ action: "help" })} />}
-      <PromptField
-        value={text}
-        onChangeText={setText}
-        placeholder={placeholder}
-        multiline
-        editable={!pending}
-        accessibilityLabel="Your answer"
-        onSubmitEditing={submit}
-        submitBehavior="submit"
-        style={[styles.flex, pending && styles.dim]}
-        end={<SendButton busy={false} disabled={!answer || pending} onPress={submit} />}
-      />
+    <View style={style}>
+      <View style={styles.row}>
+        {moreHelp && <Button kind="hint" label="More help" disabled={pending} onPress={() => onSend({ action: "help" })} />}
+        <MicButton state={voice.state} onPress={voice.toggle} disabled={pending && voice.state.kind !== "listening"} />
+        <PromptField
+          value={text}
+          onChangeText={setText}
+          placeholder={voice.state.kind === "listening" ? "Listening" : placeholder}
+          multiline
+          editable={!pending}
+          accessibilityLabel="Your answer"
+          onSubmitEditing={submit}
+          submitBehavior="submit"
+          style={[styles.flex, pending && styles.dim]}
+          end={<SendButton busy={false} disabled={!answer || pending} onPress={submit} />}
+        />
+      </View>
+      <VoiceNote state={voice.state} />
     </View>
   );
 }

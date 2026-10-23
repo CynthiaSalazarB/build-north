@@ -19,6 +19,7 @@ import {
   hintCardOf,
   hintPartOf,
   inlineCodeOf,
+  isFollowUpFeedback,
   itemsOf,
   justLitOf,
   partMeaningOf,
@@ -120,12 +121,53 @@ test("Help costs a point only while the part could still score 2; after a hint i
   const nudge = { id: "turn-5-0", from: "app", message: { agent: "evaluator", kind: "feedback", text: "Not quite. So what kind of thing is it?" }, phase: "move", move: "supraordinate", level: 2 } as const;
   const hint = { id: "turn-6-0", from: "app", message: { agent: "hint_giver", kind: "hint", text: "Think of monarchy.", hintStep: "hint" }, phase: "move", move: "supraordinate", level: 2 } as const;
   assert.deepEqual(helpOf([question]), { tag: "help −1", label: "Help, costs a point", more: false });
-  assert.deepEqual(helpOf([question, answer]), { tag: "help", label: "Help", more: false });
+  // an answer alone hasn't capped anything yet; the evaluator's nudge on it has
+  assert.deepEqual(helpOf([question, answer]), { tag: "help −1", label: "Help, costs a point", more: false });
+  assert.deepEqual(helpOf([question, answer, nudge]), { tag: "help", label: "Help", more: false });
   assert.equal(helpOf([question, answer, hint]).more, true);
   // a reveal that ended the last part came before this question, so Help costs a point again
   assert.equal(helpOf([{ ...hint, message: { ...hint.message, hintStep: "reveal" } }, { ...question, id: "turn-9-2" }]).tag, "help −1");
   assert.equal(cappedOf([question, answer]), false);
   assert.equal(cappedOf([question, answer, nudge]), true);
+});
+
+test("the exclusion's follow-up question stays in the part, with the answer before it, and isn't a retry", () => {
+  const at = (id: string, kind: "question" | "feedback" | "named_move", text: string, move: "supraordinate" | "exclusion" = "exclusion"): Entry => ({
+    id,
+    from: "app",
+    message: { agent: kind === "feedback" ? "evaluator" : "app", kind, text },
+    phase: "move",
+    move,
+    level: 2,
+  });
+  const learner = (id: string, text: string): Entry => ({ id, from: "learner", text });
+  const entries = [
+    at("turn-6-0", "question", "What group?", "supraordinate"),
+    learner("learner-1", "A software interface."),
+    // turn 7 ends the bigger group and asks about the exclusion
+    at("turn-7-0", "feedback", "Yes.", "exclusion"),
+    at("turn-7-1", "named_move", "That's the bigger group.", "exclusion"),
+    at("turn-7-2", "question", "What looks like an API but isn't one?"),
+    learner("learner-2", "A server."),
+    // turn 8 accepts the exclusion and asks for its difference, on the same move
+    at("turn-8-0", "feedback", "A server is close."),
+    at("turn-8-1", "question", "What's the key difference between API and server?"),
+    learner("learner-3", "Server."),
+    at("turn-9-0", "feedback", "That names it again, not the difference."),
+    at("turn-9-1", "question", "What's the key difference between API and server?"),
+  ];
+  const part = currentPartOf(entries);
+  assert.deepEqual(part.map((e) => e.id), ["turn-7-0", "turn-7-1", "turn-7-2", "learner-2", "turn-8-0", "turn-8-1", "learner-3", "turn-9-0", "turn-9-1"]);
+  assert.equal(isFollowUpFeedback(part, 4), true);
+  assert.equal(isFollowUpFeedback(part, 7), true);
+  assert.equal(isFollowUpFeedback(part, 0), false);
+  // follow-ups don't cap the part, so Help still costs a point
+  assert.equal(cappedOf(part), false);
+  assert.equal(helpOf(part).tag, "help −1");
+  // a plain retry nudge does
+  const retried = [...part, learner("learner-4", "Server!"), at("turn-10-0", "feedback", "Not yet: what does a server do that an API doesn't?")];
+  assert.equal(cappedOf(retried), true);
+  assert.equal(helpOf(retried).tag, "help");
 });
 
 test("the hint card counts the Helps on the part, and the first one shows its price", () => {

@@ -56,7 +56,11 @@ export function Ask({ text, eyebrow = null, firefly, fireflyAfter = false }: { t
   const drawing = (
     <>
       <Firefly state={firefly.state} />
-      {firefly.tag && <Text style={[type.tag, styles.fireflyTag, { color: c.question }]}>{firefly.tag}</Text>}
+      {firefly.tag && (
+        <Text style={[type.tag, styles.fireflyTag, { color: c.question }]} numberOfLines={1}>
+          {firefly.tag}
+        </Text>
+      )}
     </>
   );
   return (
@@ -90,12 +94,13 @@ export function Aside({ text }: { text: string }) {
 }
 
 /** The evaluator's word on an answer that didn't light the part: a free nudge at levels 2 and 3, a plain "not
- * yet" after that. `capNote` says the part can now light 1 point at most (said once per part). */
-export function Nudge({ text, capNote }: { text: string; capNote: boolean }) {
+ * yet" after that. `capNote` says the part can now light 1 point at most (said once per part). `tag` replaces
+ * the head: "almost" for the word that comes with a follow-up question, which isn't a retry. */
+export function Nudge({ text, capNote, tag }: { text: string; capNote: boolean; tag?: string }) {
   const c = useColors();
   return (
     <View style={useIndent()}>
-      <Tag style={{ color: c.question }}>{text.trim().endsWith("?") ? "nudge · free" : "not yet"}</Tag>
+      <Tag style={{ color: c.question }}>{tag ?? (text.trim().endsWith("?") ? "nudge · free" : "not yet")}</Tag>
       <Reply style={styles.replyText}>{text}</Reply>
       {capNote && <Label dim style={styles.note}>this part can now light 1 point at most</Label>}
     </View>
@@ -252,7 +257,8 @@ const styles = StyleSheet.create({
   ask: { flexDirection: "row", alignItems: "flex-start", gap: 14 },
   reverse: { flexDirection: "row-reverse" },
   firefly: { width: COLUMN, alignItems: "center", gap: 2 },
-  fireflyTag: { textAlign: "center" },
+  // "help −1" is wider than the firefly's column, so the tag overflows it evenly instead of wrapping
+  fireflyTag: { textAlign: "center", minWidth: COLUMN + 16, marginHorizontal: -8 },
   askText: { flex: 1, gap: space.xs, paddingTop: 2 },
   code: { borderRadius: 4, borderWidth: 1, overflow: "hidden" },
   indent: { marginLeft: INDENT },
