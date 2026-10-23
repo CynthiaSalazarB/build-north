@@ -114,14 +114,14 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
   );
   const deskControls = (
     <View style={[styles.deskControls, !wide && styles.bar]}>
-      <Button kind="text" label={chatOpen ? "Close fact chat" : "Ask a fact (optional)"} onPress={() => setChatOpen((open) => !open)} style={styles.start} />
+      <Button kind={chatOpen ? "text" : "secondary"} label={chatOpen ? "Close fact chat" : "Ask a fact (optional)"} onPress={() => setChatOpen((open) => !open)} style={chatOpen ? styles.start : undefined} />
       <View style={[styles.chat, !chatOpen && styles.hidden]}>
         <Small dim>{"Fact questions only. Write your answers on the map. Asking facts doesn't reduce your score."}</Small>
         <AskBar concept={concept} pending={pending} asking={state.pending !== null && "question" in state.pending} onAsk={(question) => send({ question })} />
       </View>
       {help && (
         <View style={styles.hintControl}>
-          <Button kind="hint" label={help.tag === "help −1" ? "Get a hint · −1 point" : "More help"} disabled={pending} onPress={() => setHintOpen(true)} />
+          <Button kind="hintLink" label={help.tag === "help −1" ? "Get a hint · −1 point" : "More help"} disabled={pending} onPress={() => setHintOpen(true)} style={styles.start} />
           <Small dim>{`For ${MOVE_LABEL[hintMove]}. See the scoring effect before you confirm.`}</Small>
         </View>
       )}

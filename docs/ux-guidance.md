@@ -11,7 +11,7 @@ The prediction has no default selection. Learners choose 0–8 after seeing the 
 - Prediction: nothing selected initially; Save disabled until a number is chosen; choosing 0 works; keyboard digits and arrows work; a failed save preserves the current choice.
 - Self-test: Start opens Bigger group; Save answer adds the learner's words and highlights What it isn't; saving the remaining areas moves the highlight in order; no points are awarded before submission.
 - Editing: clicking any area works; returning to a saved area keeps its text; removing an answer makes it the next suggested area again; exclusion differences survive editing.
-- Chat: collapsed initially; opening it labels factual questions as optional; questions don't write map answers or consume a hint; collapsing and reopening preserves an unsent question.
+- Chat: collapsed initially; its neutral secondary button is more prominent than the underlined hint action, while map writing stays primary; opening it labels factual questions as optional; questions don't write map answers or consume a hint; collapsing and reopening preserves an unsent question.
 - Hints: opening and cancelling the confirmation sends nothing; the target matches the server's hint order, even when another area is highlighted; the first hint explains the one-point cap; revealing explains zero points.
 - Submission: disabled while empty or busy; review shows all four areas and exclusion differences; empty areas warn that they score zero; Keep editing preserves everything; only Submit my map sends the map.
 - Guided mode: the input is labeled with the current answer area; Firefly's connection still points to the current area; retries, hints, reveals, and the final answer's feedback retain their existing behavior.
