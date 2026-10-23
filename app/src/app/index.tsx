@@ -268,7 +268,7 @@ function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Pr
  * delete it all: one tap, then a confirmation that says what goes. Demo mode keeps nothing. */
 const KEPT = "We keep each session (the concept, the notes you pasted, your guess, your answers and questions, the tutor's replies and the score) and your level on each of the four parts.";
 const TO_CLAUDE = "Your answers and questions go to Claude, Anthropic's model, through our server, which holds the key. The app never has it.";
-const VOICE = "While the mic is on, the audio goes to your device's speech service (in a browser, the browser's own), which turns it into words. The audio isn't kept.";
+const VOICE = "While the mic is on, the audio goes to your device's speech service, which turns it into words: on most Android phones that is Google's, and in a browser the browser's own. Only the words reach us, and only when you send them. We never receive or keep the audio; the speech service handles it under its own terms.";
 const DEMO = "Demo mode keeps nothing: this is a recorded session, and what you type stays on this device.";
 const TUTOR = "The tutor is an AI. It asks, and it never hands you the answer.";
 

@@ -62,7 +62,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
   const you = (
     <View style={styles.you}>
       <FireflyHelp help={help} pending={pending} onHelp={() => send({ action: "help" })} />
-      <Reply style={styles.flex}>{state.mode === "test" ? "Self-test: you build the map alone. I only answer facts." : "You ask now. I only answer facts."}</Reply>
+      <Reply style={styles.flex}>{state.mode === "test" ? "Self-test: write your answers on the map. Ask me facts here." : "You ask now. Write your answers on the map; I only answer facts."}</Reply>
     </View>
   );
   const thread = (
@@ -238,7 +238,7 @@ function AskBar({ concept, pending, asking, flush, onAsk }: { concept: string; p
           glow
           value={text}
           onChangeText={setText}
-          placeholder={voice.state.kind === "listening" ? "Listening" : "Ask a question"}
+          placeholder={voice.state.kind === "listening" ? "Listening" : "Ask me a fact"}
           multiline
           maxLength={500}
           editable={!pending}
