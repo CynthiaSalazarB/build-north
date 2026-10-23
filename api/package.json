@@ -8,7 +8,9 @@
     "start": "node src/server.ts",
     "seed:demo": "node --env-file-if-exists=../.env src/demo-seed.ts",
     "test": "node --test",
-    "typecheck": "tsc"
+    "typecheck": "tsc",
+    "export:testers": "node --env-file-if-exists=../.env src/export-testers.ts",
+    "smoke": "node src/smoke.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.135.0",

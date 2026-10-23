@@ -113,6 +113,34 @@ stay.
   demo day, set `SURREAL_DATABASE=prod` in the shell for that one run (a variable set in the shell wins
   over `.env`), with a user that can write to `prod`.
 
+## The testers' numbers (#50)
+
+```bash
+npm run export:testers -w api -- testers.csv
+```
+
+Reads every finished test session (the pre-test and the post-test of each tester,
+[`docs/tester-protocol.md`](../docs/tester-protocol.md)) from the database the `SURREAL_*` variables
+name, and writes two files: `testers.csv`, the rows of [`docs/grading-sheet.csv`](../docs/grading-sheet.csv)
+with the evaluator's four scores, the prediction, the questions and the hints filled in (the human
+columns stay empty for #49), and `testers.maps.json`, each map to grade by hand. Testers appear as
+`L1`, `L2`... in the order their first test session started, plus a pseudonym in the notes (8 hex
+characters of a salted hash of their user id; set `LEARNER_ID_SALT` to salt it). No name or Clerk id
+is written. The first finished test session of a tester is the pre-test, the last the post-test.
+
+## The smoke test (#45, #37)
+
+```bash
+npm run smoke -w api                                          # the live API and web build
+npm run smoke -w api -- http://localhost:3000 http://localhost:8081   # or any pair
+```
+
+Seven checks with no credentials, exit code 1 on any failure: `/health`, `/health/db` (writes to the
+database), a call with no token and one with the dev headers both answer 401, the web build's origin
+passes the CORS preflight, the web build answers with Lumente's title, and its bundle names this API's
+host (a demo-mode export would not). A full session on the public URL is still a person's walk through
+the web build; this is the part before and after it, and the warm-up before the testers.
+
 ## Deploy on Render
 
 Render dashboard → **New → Web Service**:
