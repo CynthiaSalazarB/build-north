@@ -7,6 +7,9 @@ export type SessionClient = {
   start(body: CreateSessionBody): Promise<Turn>;
   /** POST /sessions/:id/turns: the next Turn. */
   send(sessionId: string, body: TurnBody): Promise<Turn>;
+  /** GET /sessions/:id: the session's latest Turn, to pick it up after a reload or a restart (saved.ts). Rejects
+   * with a 404 ClientError once the server no longer has it. */
+  resume(sessionId: string): Promise<Turn>;
   /** DELETE /me/data: the learner's sessions, their logs, their levels and their memory are gone (the delete button, #43). */
   deleteData(): Promise<void>;
   /** GET /me/memory: what Lumente remembers of the learner, the Memory sheet (#112). Empty with memory off. */

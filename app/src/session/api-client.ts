@@ -64,15 +64,24 @@ export function createApiClient({ baseUrl, devUser, devKey, getToken, fetch: sen
     if (res.ok || res.status === 409) {
       const turn = Turn.safeParse(json);
       if (turn.success) return turn.data;
-      if (res.ok) throw new ClientError("The server sent something unexpected. Try again.", res.status, true);
+      if (res.ok) throw unexpected(res.status);
     }
     throw errorOf(res, json);
   }
+
+  const unexpected = (status: number) => new ClientError("The server sent something unexpected. Try again.", status, true);
 
   return {
     offline: false,
     start: (body: CreateSessionBody) => post("/sessions", body),
     send: (sessionId: string, body: TurnBody) => post(`/sessions/${encodeURIComponent(sessionId)}/turns`, body),
+    async resume(sessionId: string) {
+      const { res, json } = await call("GET", `/sessions/${encodeURIComponent(sessionId)}`);
+      if (!res.ok) throw errorOf(res, json);
+      const turn = Turn.safeParse(json);
+      if (!turn.success) throw unexpected(res.status);
+      return turn.data;
+    },
     async deleteData() {
       const { res, json } = await call("DELETE", "/me/data");
       if (!res.ok) throw errorOf(res, json);
@@ -81,7 +90,7 @@ export function createApiClient({ baseUrl, devUser, devKey, getToken, fetch: sen
       const { res, json } = await call("GET", "/me/memory");
       if (!res.ok) throw errorOf(res, json);
       const view = MemoryView.safeParse(json);
-      if (!view.success) throw new ClientError("The server sent something unexpected. Try again.", res.status, true);
+      if (!view.success) throw unexpected(res.status);
       return view.data;
     },
   };

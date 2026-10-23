@@ -252,6 +252,38 @@ describe("whole map (decision 16, level-5 decision)", () => {
     expect(turns[1]!.messages[0]!.text).toBe("Build the mentefacto for inflation. Ask me any facts you need.");
     expect(turns[1]!.level).toBe(5);
   });
+
+  it("a question for the structure gets the fixed redirect even when the model answered it as a fact", async () => {
+    const { call } = scripted([
+      // the model sorted the question right (it asks for the bigger group) but answered anyway, with the group in it
+      ["fact_desk", { kind: "fact", answer: "Inflation is a kind of economic phenomenon.", questionType: "asks_for_structure" }],
+    ]);
+    const { turns, session } = await play(newSession("inflation", "test"), masteryAt(1), [
+      { action: "start" }, { prediction: 6 }, { question: "What's the bigger group of inflation?" },
+    ], call);
+    expect(turns[2]!.messages).toEqual([{ agent: "fact_desk", kind: "redirect", text: FACT_DESK_REDIRECT }]);
+    expect(session.questions).toEqual({ asked: 1, testing: 0 });
+  });
+});
+
+describe("level 3 (the scaffold)", () => {
+  const scaffolded = (blanks: number) => scripted([
+    ["questioner", { question: "Moons and asteroids are there too. What are they all?", scaffold: { given: ["moon", "asteroid"], blanks } }],
+  ]);
+  const inputs: TurnInput[] = [{ action: "start" }, { prediction: 5 }, { text: "Rule by the people." }];
+
+  it("the questioner's scaffold reaches the Turn", async () => {
+    const { turns } = await play(newSession("democracy"), masteryAt(3), inputs, scaffolded(1).call);
+    expect(turns.at(-1)!.scaffold).toEqual({ given: ["moon", "asteroid"], blanks: 1 });
+  });
+
+  it("a scaffold that leaves nothing to find is dropped, so the Turn and the saved session still fit the contract", async () => {
+    // a Turn's scaffold needs at least one blank; a session saved with one that has none would fail every read after it
+    const { turns, session } = await play(newSession("democracy"), masteryAt(3), inputs, scaffolded(0).call);
+    expect(turns.at(-1)!.scaffold).toBeNull();
+    expect(turns.at(-1)!.messages.at(-1)!.text).toBe("Moons and asteroids are there too. What are they all?");
+    expect(() => Session.parse(session)).not.toThrow();
+  });
 });
 
 describe("mixed levels (decision 16)", () => {

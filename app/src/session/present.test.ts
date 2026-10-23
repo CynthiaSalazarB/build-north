@@ -18,6 +18,7 @@ import {
   gapOf,
   helpOf,
   hintCardOf,
+  hintNumberOf,
   hintPartOf,
   inlineCodeOf,
   isFollowUpFeedback,
@@ -37,6 +38,7 @@ import {
   resultStepsOf,
   revealHoldOf,
   secretLineOf,
+  shareLineOf,
   waitingLineOf,
   wholeMapHelpOf,
   wholeMapPartsOf,
@@ -134,6 +136,12 @@ test("Help costs a point only while the part could still score 2; after a hint i
   assert.equal(helpOf([{ ...hint, message: { ...hint.message, hintStep: "reveal" } }, { ...question, id: "turn-9-2" }]).tag, "help −1");
   assert.equal(cappedOf([question, answer]), false);
   assert.equal(cappedOf([question, answer, nudge]), true);
+  // a part picked up after a reload shows the latest Turn's lines only: no question, so no firefly to tap. Help
+  // goes by the input instead, as it does after a hint, whether that Turn was a nudge or a hint
+  assert.equal(helpOf([nudge]).more, true);
+  assert.equal(helpOf([hint]).more, true);
+  // before the moves nothing changes: the worked example has no question line and no Help
+  assert.equal(helpOf([{ ...nudge, message: { agent: "app", kind: "example", text: "Before democracy, watch planet." }, phase: "example", move: null, level: null }]).more, false);
 });
 
 test("the exclusion's follow-up question stays in the part, with the answer before it, and isn't a retry", () => {
@@ -229,6 +237,11 @@ test("the gap is a signed number and one sentence", () => {
   assert.deepEqual(gapOf({ calibrationGap: 0 } as Pick<Result, "calibrationGap">), { headline: "Your prediction matched your score.", note: "Your confidence matched what you could explain in this session.", over: false });
 });
 
+test("what a learner shares is the concept and the numbers with the tagline and the address, never their words", () => {
+  const brand = { name: "Lumente", tagline: "Build with AI. Understand the concepts yourself.", site: "https://example.test" };
+  assert.equal(shareLineOf("JWT", { predictedScore: 6, score: 4 }, brand), "JWT on Lumente: I guessed 6 of 8 and proved 4. Build with AI. Understand the concepts yourself. https://example.test");
+});
+
 test("notes with a key, a token or a password stop at the phone, and the warning says which line", () => {
   // fakes, put together at run time so this file never holds a secret-shaped string
   const fake = (...parts: string[]) => parts.join("");
@@ -269,6 +282,13 @@ test("on the whole map, Help costs a point on each new part, then names the part
   assert.equal(wholeMapHelpOf(16), null);
   assert.deepEqual([0, 3, 4, 8, 15].map(hintPartOf), ["supraordinate", "supraordinate", "exclusion", "isoordinate", "infraordinate"]);
   assert.deepEqual([0, 1, 4, 5].map(firstOnPart), [true, false, true, false]);
+  // the hint cards count from the Turn's total: in a session on screen from the start the transcript holds every
+  // hint, and one picked up after a reload holds only the latest Turn's, so its one hint is still the sixth
+  assert.deepEqual([0, 1].map((i) => hintNumberOf(2, 2, i)), [0, 1]);
+  assert.equal(hintNumberOf(6, 1, 0), 5);
+  assert.equal(hintPartOf(hintNumberOf(6, 1, 0)), "exclusion");
+  assert.equal(firstOnPart(hintNumberOf(6, 1, 0)), false);
+  assert.equal(hintNumberOf(0, 0, 0), 0);
 });
 
 test("a part is written back clean: blanks go, and only an exclusion keeps its difference", () => {

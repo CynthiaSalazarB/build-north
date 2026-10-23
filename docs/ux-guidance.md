@@ -22,7 +22,9 @@ The login and start-page headlines stay as Cynthia wrote them on October 23. Onl
 
 ## Verified locally
 
-- Unit suites: 59 app tests, 60 API tests, 103 agents tests passed. The real-SurrealDB integration test was skipped because no test database was configured.
-- App typecheck and static web export passed. Lint has zero errors; six pre-existing React Compiler diagnostics remain warnings.
+- Unit suites after integrating main: 64 app tests, 61 API tests, 106 agents tests passed. The real-SurrealDB integration test was skipped because no test database was configured.
+- All three workspace typechecks passed. The initial static web export passed. App lint has zero errors; seven existing React Compiler diagnostics remain warnings after main's session-resume feature. Run `npm exec -w app -- eslint src` directly: adding a lint script to the app's package changes Expo's native fingerprint and would prevent updates reaching the installed Android build.
 - Browser interaction checks passed at 1440, 1000, 390 and 320 pixels, including reduced motion, long concepts and answers, reopening and clearing saved answers, prediction zero, prediction and map retries, and no horizontal page overflow.
 - The browser checks used local mocked API replies. They didn't call production or a live AI model. Native Android keyboard and authentication behavior still require a device check.
+- Reload/resume integration: the map draft and next-area guidance survive a reload, and a resumed sixth hint is labelled for the exclusion area using the Turn's cumulative hint count.
+- EAS fingerprint comparison against installed Android build 3 (`93910cdd-2d88-4da3-8250-a3de32cc4d46`), using the preview environment: both hashes are `56eeb40fb5a207446053818ae3785913a3d4ffc5`. No build or update was published by this check.

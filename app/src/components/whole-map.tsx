@@ -4,7 +4,7 @@ import { MOVE_LABEL, MOVE_ORDER, type Item, type Mentefacto, type MoveId, type T
 import { useRef, useState, type ReactNode } from "react";
 import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from "react-native";
 import Animated from "react-native-reanimated";
-import { filledOf, hintPartOf, itemsOf, nextPartOf, partMeaningOf, partTextOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
+import { filledOf, hintNumberOf, hintPartOf, itemsOf, nextPartOf, partMeaningOf, partTextOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
 import type { LearnerInput } from "../session/session-context.tsx";
 import type { Entry, SessionState } from "../session/transcript.ts";
 import { maxContentWidth, parts as PARTS, radius, size, space, type } from "../theme.ts";
@@ -100,7 +100,8 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
           const { message } = entry;
           if (message.kind === "fact" || message.kind === "redirect") line = <FactCard kind={message.kind} text={message.text} />;
           else if (message.kind === "hint") {
-            const n = hints.indexOf(entry.id);
+            // Count from the Turn's total so a resumed session still names the correct area.
+            const n = hintNumberOf(turn.progress.hintsUsed, hints.length, hints.indexOf(entry.id));
             line = message.hintStep === "reveal"
               ? <View style={styles.guideText}><Label dim>{`${MOVE_LABEL[hintPartOf(n)]} · 0 points`}</Label><Revealed text={message.text} /></View>
               : <HintCard message={message} n={(n % 4) + 1} capNote={n % 4 === 0} part={PARTS[hintPartOf(n)].label} concept={concept} />;

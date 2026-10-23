@@ -89,8 +89,21 @@ organization.
   `build-north-api` → Manual Deploy → Deploy latest commit (`main`). `/health` answering `{ "ok": true }`
   means it's up; it doesn't say which version.
 - **The testers' website:** `npx eas-cli env:pull --environment production` (it writes `app/.env.local`),
-  `npx expo export --platform web`, `npx eas-cli deploy --alias testers`. Then delete `app/.env.local`:
+  `npx expo export --platform web --clear`, `npx eas-cli deploy --alias testers`. Then delete `app/.env.local`:
   Expo reads it before `app/.env`, so local runs would otherwise talk to the production API.
+- **Always `--clear`, and check the bundle before `eas deploy` or `eas update`.** On Oct 23 an export
+  reused its cache after an env pull that printed nothing, so a web deploy went out in demo mode (no API
+  URL, no Clerk key) for about five minutes on production and `testers`. Export with `--clear`, then make sure
+  the API host is in the bundle before deploying; from `app/`:
+
+  ```bash
+  grep -l "build-north-api.onrender.com" dist/_expo/static/js/web/*.js
+  ```
+
+  In PowerShell: `Select-String -List -Path dist/_expo/static/js/web/*.js -Pattern "build-north-api.onrender.com"`.
+  No file listed means the environment wasn't inlined: don't deploy. The same check applies to an Android
+  export before `eas update --skip-bundler`: the host string sits in `dist/_expo/static/js/android/entry-*.hbc`
+  (checked Oct 23 on an export with the URL set).
 
 ## What could be automatic
 

@@ -3,8 +3,9 @@
 // learner's notes (pasted text only, up to 8,000 characters: decision 12). "Ask your AI what to map" gives a
 // prompt to paste into a coding agent, so the concepts come from the learner's own project; notes that look like a
 // key or a password never leave the phone. "Test myself" starts a self-test instead: the whole map alone, the
-// testers' pre-test and post-test. In the website layout the choices are a column on the left and the code and
-// the map stand on the right.
+// testers' pre-test and post-test. A session closed early, or kept on this device through a reload or a killed app,
+// is offered back at the top. In the website layout the choices are a column on the left and the code and the map
+// stand on the right.
 import type { SessionMode } from "@build-north/agents";
 import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
@@ -18,7 +19,7 @@ import { SiteHeader } from "../components/site-header.tsx";
 import { Body, Button, Card, Chip, KeyboardSafe, Label, PromptField, Rise, Screen, Sheet, Small, Title, useColors, useWide } from "../components/ui.tsx";
 import { UpdateNotice } from "../components/update-notice.tsx";
 import { VersionLine } from "../components/version-line.tsx";
-import { AI_PROMPT, CONCEPTS, filledOf, secretLineOf } from "../session/present.ts";
+import { AI_PROMPT, CONCEPTS, filledOf, secretLineOf, shortDateOf } from "../session/present.ts";
 import { clerkKey } from "../session/config.ts";
 import { useSession } from "../session/session-context.tsx";
 import { brand, page, pageMetadata, radius, size, space, type } from "../theme.ts";
@@ -53,25 +54,29 @@ export default function StartScreen() {
   const router = useRouter();
   const c = useColors();
   const wide = useWide();
-  const { start, offline, state } = useSession();
+  const { start, offline, state, saved, resume } = useSession();
   const [concept, setConcept] = useState<string>("API");
   const [notes, setNotes] = useState("");
   const [notesOpen, setNotesOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [starting, setStarting] = useState<SessionMode | null>(null);
+  const [resuming, setResuming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // a result on screen is finished, even while the coach's words are on their way
   const unfinished = state.turn && state.turn.expects !== "none" && state.turn.phase !== "result" ? state.turn : null;
   // at level 5 the parts fill on the phone until the map is submitted
   const draft = unfinished?.expects === "map" ? state.draft : null;
   const done = draft ? filledOf(draft) : (unfinished?.progress.movesDone ?? 0);
+  // the session this device kept from before a reload or a restart: offered while nothing is on screen
+  const kept = !state.turn && saved ? saved : null;
+  const busy = starting !== null || resuming;
   const secretLine = secretLineOf(notes);
   const secret = secretLine !== null;
   const name = concept.trim();
   const picked = CONCEPTS.find((chip) => chip === name) ?? null;
 
   const begin = async (mode: SessionMode) => {
-    if (!name || starting || secret) return;
+    if (!name || busy || secret) return;
     setStarting(mode);
     setError(null);
     const problem = await start({ concept: name, ...(notes.trim() ? { material: notes } : {}), ...(mode === "test" ? { mode } : {}) });
@@ -79,15 +84,24 @@ export default function StartScreen() {
     if (problem) setError(problem);
     else router.push("/session");
   };
+  const pickUp = async () => {
+    if (busy) return;
+    setResuming(true);
+    setError(null);
+    const problem = await resume();
+    setResuming(false);
+    if (problem) setError(problem);
+    else router.push("/session");
+  };
 
-  const startButton = <Button label={name ? "Explore with guidance" : "Pick a concept"} hint={GUIDED} fit={wide} busy={starting === "learn"} disabled={!name || secret || starting !== null} onPress={() => void begin("learn")} />;
+  const startButton = <Button label={name ? "Explore with guidance" : "Pick a concept"} hint={GUIDED} fit={wide} busy={starting === "learn"} disabled={!name || secret || busy} onPress={() => void begin("learn")} />;
   const testButton = !offline && (
     <Button
       kind={wide ? "secondary" : "text"}
       label="Test myself"
       hint="Write your answers in the four map areas. The optional chat answers factual questions. Your levels don't change."
       busy={starting === "test"}
-      disabled={!name || secret || starting !== null}
+      disabled={!name || secret || busy}
       onPress={() => void begin("test")}
       style={wide && styles.tall}
     />
@@ -104,7 +118,20 @@ export default function StartScreen() {
               </Body>
               <Label dim>{`${done} of ${unfinished.progress.movesTotal} parts`}</Label>
             </View>
-            <Button kind="secondary" label="Resume" disabled={starting !== null} onPress={() => router.push("/session")} />
+            <Button kind="secondary" label="Resume" disabled={busy} onPress={() => router.push("/session")} />
+          </Card>
+        </Rise>
+      )}
+      {kept && (
+        <Rise order={1}>
+          <Card style={styles.resume}>
+            <View style={styles.resumeHead}>
+              <Body style={styles.flex} numberOfLines={1}>
+                {kept.concept}
+              </Body>
+              <Label dim>{`${kept.mode === "test" ? "self-test" : "session"} saved${shortDateOf(kept.savedAt) ? ` ${shortDateOf(kept.savedAt)}` : ""}`}</Label>
+            </View>
+            <Button kind="secondary" label="Resume" hint="Picks the session up where you left it" busy={resuming} disabled={busy} onPress={() => void pickUp()} />
           </Card>
         </Rise>
       )}
@@ -229,17 +256,21 @@ export default function StartScreen() {
 }
 
 /** The prompt for your coding agent: copied on the web, shared on a phone (the copy button needs a native
- * module, which waits for the next build). */
+ * module, which waits for the next build). A browser that refuses the clipboard says so, and the text stays
+ * selectable. */
 function AskYourAi({ open, onClose, onPaste }: { open: boolean; onClose: () => void; onPaste: () => void }) {
   const c = useColors();
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"no" | "yes" | "refused">("no");
   const copy = async () => {
-    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
-      await navigator.clipboard.writeText(AI_PROMPT).then(() => setCopied(true), () => setCopied(false));
+    if (Platform.OS === "web") {
+      const clipboard = typeof navigator === "undefined" ? undefined : navigator.clipboard;
+      const ok = clipboard ? await clipboard.writeText(AI_PROMPT).then(() => true, () => false) : false;
+      setCopied(ok ? "yes" : "refused");
     } else {
       await Share.share({ message: AI_PROMPT }).catch(() => undefined);
     }
   };
+  const copyLabel = copied === "yes" ? "Copied" : copied === "refused" ? "Select the text and copy it" : "Copy the prompt";
   return (
     <Sheet open={open} onClose={onClose} label="the prompt">
       <Title style={styles.sheetTitle}>Ask your AI what to map</Title>
@@ -249,7 +280,7 @@ function AskYourAi({ open, onClose, onPaste }: { open: boolean; onClose: () => v
           {AI_PROMPT}
         </Text>
       </View>
-      <Button label={Platform.OS === "web" ? (copied ? "Copied" : "Copy the prompt") : "Share the prompt"} onPress={() => void copy()} />
+      <Button label={Platform.OS === "web" ? copyLabel : "Share the prompt"} onPress={() => void copy()} />
       <Button kind="text" label="Paste its answer" onPress={onPaste} />
     </Sheet>
   );
@@ -264,8 +295,10 @@ function Account({ solid = false }: { solid?: boolean }): ReactNode {
 
 function ClerkAccount({ solid }: { solid: boolean }) {
   const { signOut } = useAuth();
-  // a sign-out that fails (offline, say) leaves the learner signed in, with nothing to show for it
-  return <AccountButtons solid={solid} signOut={() => signOut().catch(() => undefined)} />;
+  const { forget } = useSession();
+  // a sign-out that fails (offline, say) leaves the learner signed in, with nothing to show for it; one that works
+  // takes the session with it, since the next learner on this device isn't this one
+  return <AccountButtons solid={solid} signOut={() => signOut().then(forget, () => undefined)} />;
 }
 
 function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Promise<void>) | null }) {

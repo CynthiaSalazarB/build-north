@@ -161,7 +161,7 @@ async function startMove(s: Session, m: Mastery, move: MoveId, lead: Message[], 
   } else {
     const q = ahead ?? QuestionerOutput.parse(await call("questioner", context(s, move, level)));
     question = say("questioner", "question", q.question);
-    if (level === 3) scaffold = q.scaffold;
+    if (level === 3) scaffold = usableScaffold(q.scaffold);
   }
   s.recent.push({ from: "app", text: question.text });
   return { messages: [...lead, question], expects: "text", level, scaffold };
@@ -262,8 +262,10 @@ async function askFactDesk(s: Session, question: string, call: CallAgent): Promi
   if (fd.questionType === "states_an_answer") return { messages: [say("fact_desk", "redirect", FACT_DESK_ANSWER_REDIRECT)], expects: "map", level: 5 };
   s.questions.asked += 1;
   if (TESTING_QUESTION_TYPES.includes(fd.questionType)) s.questions.testing += 1;
-  // Decision 17: a redirect always says the same words, whatever the model wrote.
-  const message = fd.kind === "redirect" ? say("fact_desk", "redirect", FACT_DESK_REDIRECT) : say("fact_desk", "fact", fd.answer);
+  // Decision 17: a redirect always says the same words, whatever the model wrote. A question the model sorted as
+  // asking for the structure is one too, even when it answered it as a fact: that answer would hold the structure.
+  const redirect = fd.kind === "redirect" || fd.questionType === "asks_for_structure";
+  const message = redirect ? say("fact_desk", "redirect", FACT_DESK_REDIRECT) : say("fact_desk", "fact", fd.answer);
   return { messages: [message], expects: "map", level: 5 };
 }
 
@@ -364,6 +366,13 @@ function cited(cites: readonly string[] | undefined): Pick<Message, "cites"> {
 
 function context(s: Session, move: MoveId, level: Level): AgentContext {
   return { concept: s.concept, material: s.material, move, level, mentefacto: s.mentefacto, recent: [...s.recent] };
+}
+
+/** The questioner's scaffold as the Turn carries it. A Turn's scaffold needs at least one blank (CONTRACTS.md
+ * section 1), and the questioner's output doesn't promise one; a Turn saved with none would fail every read of
+ * the session after it. So a scaffold that leaves nothing to find is dropped, and the question stands alone. */
+function usableScaffold(scaffold: QuestionerOutput["scaffold"]): Turn["scaffold"] {
+  return scaffold && scaffold.blanks >= 1 ? scaffold : null;
 }
 
 function totalHints(s: Session): number {

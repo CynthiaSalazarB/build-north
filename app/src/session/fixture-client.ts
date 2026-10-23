@@ -34,5 +34,9 @@ export function createFixtureClient(delayMs = 600): SessionClient {
       next += 1;
       return after(turn);
     },
+    // nothing is kept, so there is nothing to pick up; the provider never saves a demo session either
+    async resume() {
+      throw new ClientError("Demo mode keeps nothing to resume.", null, false);
+    },
   };
 }

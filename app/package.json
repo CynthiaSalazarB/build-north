@@ -50,8 +50,7 @@
     "web": "expo start --web",
     "export:web": "expo export --platform web",
     "test": "node --disable-warning=MODULE_TYPELESS_PACKAGE_JSON --test \"src/**/*.test.ts\"",
-    "typecheck": "tsc --noEmit",
-    "lint": "eslint src"
+    "typecheck": "tsc --noEmit"
   },
   "private": true
 }

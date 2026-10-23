@@ -1,4 +1,4 @@
-import { CreateSessionBody, TurnBody, UnexpectedInput, type Advance, type CallAgent, type Expects, type Mastery } from "@build-north/agents";
+import { CreateSessionBody, Turn, TurnBody, UnexpectedInput, type Advance, type CallAgent, type Expects, type Mastery } from "@build-north/agents";
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
 import { rateLimit } from "express-rate-limit";
@@ -235,6 +235,16 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     }
     // the words of the facts a hint or the coach cited, so the app can show where they came from
     if (remembered) fillSources(next.turn, remembered.given());
+    // The Turn is what the app draws and what the session keeps as its lastTurn, so one off the contract (an agent's
+    // output reaching a stricter Turn field, as #139 found) would be refused by the app and fail every later read of
+    // the session. It is never saved: the learner gets the latest Turn again with error set, and the retry runs
+    // the agents again (CONTRACTS.md section 5).
+    const checked = Turn.safeParse(next.turn);
+    if (!checked.success) {
+      console.error(`Turn ${next.turn.turn} of session ${session.id} is off the contract and wasn't saved: ${describe(checked.error.issues)}`);
+      res.json({ ...latest, error: { code: "agent_failed", retryable: true } });
+      return;
+    }
     if (!(await who.store.saveSession(next.session, session.turn))) {
       // another request answering the same Turn saved first, and its Turn is the one that counts
       const saved = await who.store.getSession(who.user, session.id);
