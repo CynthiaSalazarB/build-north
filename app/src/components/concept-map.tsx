@@ -4,7 +4,7 @@
 // (0 points); and the part that just lit gets an amber ring and six short sparks for 700 ms, like a bulb clicking
 // on. The layout follows the text, so long answers and narrow phones never overlap. The rows rise in once when the
 // map appears, a part eases into its new state, and the firefly's line draws itself to each new part.
-import type { MoveId } from "@build-north/agents";
+import { MOVE_ORDER, type MoveId } from "@build-north/agents";
 import { useEffect, useId, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type LayoutRectangle } from "react-native";
 import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming, type CSSTransitionProperties } from "react-native-reanimated";
@@ -12,7 +12,7 @@ import Svg, { Circle, Defs, Line, Mask, Path } from "react-native-svg";
 import type { PartView, Pip } from "../session/present.ts";
 import { firefly, map, motion, palette, parts as PARTS, radius, size, space, type } from "../theme.ts";
 import { decorative, PartIcon } from "./icons.tsx";
-import type { Box, Point } from "./trace.ts";
+import { roundedPath, tracePoints, type Box, type Point } from "./trace.ts";
 import { useColors, useEntrance, useMode, type Interaction } from "./ui.tsx";
 
 const boxOf = (l: LayoutRectangle, dx = 0, dy = 0): Box => ({ x: l.x + dx, y: l.y + dy, w: l.width, h: l.height });
@@ -33,10 +33,12 @@ type Props = {
   leaderFrom?: Point | null;
   /** Level 5 and the self-test: a tap on a part opens it for editing. */
   onPartPress?: (move: MoveId) => void;
+  /** Navigation highlight in the self-test. It doesn't judge the answer or award points. */
+  activePart?: MoveId | null;
   onGeometry?: (geometry: MapGeometry) => void;
 };
 
-export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom = null, onPartPress, onGeometry }: Props) {
+export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom = null, onPartPress, activePart = null, onGeometry }: Props) {
   const c = useColors();
   const entrance = useEntrance();
   const [width, setWidth] = useState(0);
@@ -86,33 +88,30 @@ export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom =
       { move: "exclusion" as const, x1: right.x, y1: midY, x2: word.x + word.w + space.s, y2: midY },
       { move: "infraordinate" as const, x1: width / 2, y1: bottom.y, x2: width / 2, y2: word.y + word.h + 2 },
     ];
-    // the firefly's line meets the asked part just below it; the bigger group's, at its lower-left corner
-    const anchors: Record<MoveId, Point> = {
-      supraordinate: { x: top.x + 18, y: top.y + top.h + 6 },
-      isoordinate: { x: left.x + left.w / 2, y: left.y + left.h + 6 },
-      exclusion: { x: right.x + right.w / 2, y: right.y + right.h + 6 },
-      infraordinate: { x: bottom.x + bottom.w / 2, y: bottom.y + bottom.h + 6 },
-    };
-    const asked = parts.find((p) => p.state === "asked");
-    const to = asked && leaderFrom ? anchors[asked.move] : null;
+    const asked = parts.find((p) => p.move === activePart) ?? parts.find((p) => p.state === "asked");
+    // Run along the edge and between rows, so the phone's connection doesn't cross an answer's text.
+    const boxes: Record<MoveId, Box> = { supraordinate: top, isoordinate: left, exclusion: right, infraordinate: bottom };
+    const points = asked && leaderFrom ? tracePoints(leaderFrom, boxes[asked.move], asked.move === "exclusion" ? "top" : "left", { gutter: 4, above: top.y + top.h + space.s }) : null;
+    const to = points?.at(-1);
+    const path = points ? roundedPath(points, 8) : null;
     const height = Math.max(bottom.y + bottom.h, leaderFrom ? leaderFrom.y + 4 : 0);
     drawing = (
       <Svg width={width} height={height} style={styles.drawing} {...decorative}>
-        {to && leaderFrom && asked && (
+        {to && path && asked && (
           <Trace
-            d={`M${leaderFrom.x} ${leaderFrom.y} L${to.x} ${to.y}`}
-            length={Math.hypot(to.x - leaderFrom.x, to.y - leaderFrom.y)}
+            d={path.d}
+            length={path.length}
             end={to}
             drawKey={asked.move}
             color={c.questionOutline}
           />
         )}
         {joins.map(({ move, x1, y1, x2, y2 }) => {
-          const look = lineOf(view(move).state);
+          const look = lineOf(move === activePart ? "asked" : view(move).state);
           return <Line key={move} x1={x1} y1={y1} x2={x2} y2={y2} stroke={look.stroke} strokeWidth={look.width} strokeDasharray={look.dash} />;
         })}
         {joins.map(({ move, x1, y1 }) => (
-          <Circle key={`${move}-dot`} cx={x1} cy={y1} r={map.dot} fill={lineOf(view(move).state).dot} />
+          <Circle key={`${move}-dot`} cx={x1} cy={y1} r={map.dot} fill={lineOf(move === activePart ? "asked" : view(move).state).dot} />
         ))}
       </Svg>
     );
@@ -121,7 +120,7 @@ export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom =
   const side = (width * map.side) / map.width;
   const middle = (width * map.middle) / map.width;
   const part = (move: MoveId, w: number) => (
-    <PartBox key={move} view={view(move)} width={w} ring={ring === move} onPress={onPartPress && (() => onPartPress(move))} onLayout={keep(move)} />
+    <PartBox key={move} view={view(move)} width={w} ring={ring === move} active={move === activePart} onPress={onPartPress && (() => onPartPress(move))} onLayout={keep(move)} />
   );
 
   return (
@@ -198,9 +197,9 @@ export function Trace({ d, length, end, drawKey, color }: { d: string; length: n
   );
 }
 
-type PartProps = { view: PartView; width: number; ring: boolean; onPress?: () => void; onLayout: (e: LayoutChangeEvent) => void };
+type PartProps = { view: PartView; width: number; ring: boolean; active: boolean; onPress?: () => void; onLayout: (e: LayoutChangeEvent) => void };
 
-function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
+function PartBox({ view, width, ring, active, onPress, onLayout }: PartProps) {
   const c = useColors();
   const night = useMode() === "night";
   const { label, icon } = PARTS[view.move];
@@ -209,7 +208,7 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
     asked: { borderWidth: 1.5, borderStyle: "solid", borderColor: c.questionOutline, backgroundColor: c.questionContainer, ink: c.question, labelInk: c.question, glow: "0 0 14px rgba(242, 184, 75, 0.4)" },
     lit: { borderWidth: 1, borderStyle: "solid", borderColor: c.litEdge, backgroundColor: c.lit, ink: c.onLit, labelInk: c.litLabel, glow: c.litShadow },
     revealed: { borderWidth: 1, borderStyle: "dashed", borderColor: c.partEdge, backgroundColor: c.partFill, ink: c.onSurface, labelInk: c.onSurfaceVariant, glow: undefined },
-  }[view.state];
+  }[active ? "asked" : view.state];
   const glow = ring ? "0 0 0 3px rgba(242, 184, 75, 0.6), 0 0 22px rgba(255, 236, 205, 0.45)" : look.glow;
   const points = view.pips ? `${view.pips.filter((p) => p === "earned").length} of 2 points` : "not scored yet";
   const said = view.text ?? (view.state === "asked" ? "being asked now" : "not answered yet");
@@ -228,7 +227,7 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
     >
       <View style={styles.partHead}>
         <PartIcon d={icon} color={look.labelInk} />
-        <Text style={[type.partLabel, styles.partLabel, { color: look.labelInk }]}>{label}</Text>
+        <Text style={[type.partLabel, styles.partLabel, { color: look.labelInk }]}>{onPress ? `${MOVE_ORDER.indexOf(view.move) + 1} · ${label}` : label}</Text>
         {view.pips && (
           <View style={styles.pips}>
             {view.pips.map((pip, i) => (
@@ -247,6 +246,7 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
       )}
       {/* on the result, a part that moved up a level: the help fades there next time */}
       {view.badge && <Text style={[type.partLabel, styles.badge, { color: look.labelInk }]}>{`↑ ${view.badge}`}</Text>}
+      {onPress && <Text style={[type.partLabel, { color: look.labelInk }]}>{view.text ? "Edit answer" : active ? "Write here →" : "Write answer"}</Text>}
       {ring && <Sparks />}
     </Animated.View>
   );
@@ -256,8 +256,8 @@ function PartBox({ view, width, ring, onPress, onLayout }: PartProps) {
       onPress={onPress}
       onLayout={onLayout}
       accessibilityRole="button"
-      accessibilityLabel={`${label}: ${said}`}
-      accessibilityHint="Opens this part, so you can fill it in"
+      accessibilityLabel={`${label}: ${said}${active ? ". Suggested next area" : ""}`}
+      accessibilityHint="Opens this area to write or edit your answer. Your map is scored when you submit it."
       style={({ pressed }) => pressed && styles.pressed}
     >
       {({ hovered }: Interaction) => box(!!hovered)}

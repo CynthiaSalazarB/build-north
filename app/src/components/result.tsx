@@ -1,6 +1,6 @@
 // The end of a session (round 9 "Lumente", #34): the gap in words, over the guess and the score side by side (a
 // bare signed number read as a grade, decided Oct 22), the map in the light the learner reached with the points
-// proved, the ones felt sure but not proved and the parts that moved up a level, how points work, and the coach's
+// proved and the parts that moved up a level, how points work, and the coach's
 // next step, which comes a moment after the numbers. Every number comes from Turn.result, computed by code. The
 // firefly is barely there: it never reacts to a score. The gap arrives first, then the map, then the rest, one
 // after another. In the website layout the words are a column on the left and the map stands on the right.
@@ -14,8 +14,9 @@ import { ConceptMap, PointSquare } from "./concept-map.tsx";
 import { Firefly } from "./firefly.tsx";
 import { Failure, Remembered } from "./messages.tsx";
 import { SessionBar } from "./session-bar.tsx";
+import { ScoringGuide } from "./scoring-guide.tsx";
 import { SiteHeader } from "./site-header.tsx";
-import { Body, Button, Label, Rise, Screen, Tag, useColors, useMode, useWide } from "./ui.tsx";
+import { Body, Button, Label, Rise, Screen, Small, Tag, useColors, useMode, useWide } from "./ui.tsx";
 
 type Props = {
   concept: string;
@@ -56,7 +57,7 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFail
   const gap = gapOf(result);
   const missed = Math.max(0, result.predictedScore - result.score);
   // eight points each: the guess in amber, as on the guess screen; the score filled, and the points the guess
-  // claimed but didn't prove dashed coral, as on the map
+  // claimed but didn't prove dashed coral on this total scale only
   const guessed = Array.from({ length: 8 }, (_, i): Pip => (i < result.predictedScore ? "claimed" : "open"));
   const proved = Array.from({ length: 8 }, (_, i): Pip => (i < result.score ? "earned" : i < result.predictedScore ? "missed" : "open"));
   const all = resultStepsOf(result, map, notes);
@@ -78,9 +79,10 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFail
         <View style={styles.headline} accessible accessibilityLabel={`You guessed ${result.predictedScore}. You proved ${result.score} of 8. ${gap.headline}${gap.note ? ` ${gap.note}` : ""}`}>
           <Text style={[type.question, { color: c.onSurface }]}>{gap.headline}</Text>
           <View style={styles.scales}>
-            <Scale label="you guessed" value={result.predictedScore} pips={guessed} dark={lit} />
-            <Scale label="you proved" value={result.score} pips={proved} dark={lit} />
+            <Scale label="prediction" value={result.predictedScore} pips={guessed} dark={lit} />
+            <Scale label="map score" value={result.score} pips={proved} dark={lit} />
           </View>
+          <Small dim>Your prediction captured your confidence. Your map score reflects what you could explain in this session.</Small>
           {gap.note && <Body dim>{gap.note}</Body>}
         </View>
       </Rise>
@@ -94,11 +96,12 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFail
           {missed > 0 && (
             <View style={styles.legendRow}>
               <PointSquare pip="missed" dark={lit} />
-              <Label dim>felt sure, not proved</Label>
+            <Label dim>prediction gap</Label>
             </View>
           )}
         </View>
-        <Label dim>{POINTS_RULE}</Label>
+        <Small dim>{POINTS_RULE}</Small>
+        <ScoringGuide />
         {result.questions.asked > 0 && (
           <Label dim>{`you asked ${result.questions.asked} ${result.questions.asked === 1 ? "question" : "questions"}, ${result.questions.testing} testing the idea`}</Label>
         )}

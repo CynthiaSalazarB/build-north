@@ -34,8 +34,8 @@ export function generateMetadata() {
 /** Start's words (Cynthia, Oct 23): the question, the line under it, and what each way to start means. */
 const QUESTION = "Can you explain the ideas behind the code your AI wrote?";
 const SUBTITLE = "Choose a concept and start figuring it out.";
-const GUIDED = "AI guides you with questions.";
-const ALONE = "You lead the investigation.";
+const GUIDED = "Answer questions. Your map fills as you go.";
+const ALONE = "Write on the map. Ask facts if you need them.";
 
 /** One way to start, with what it means under it. */
 function Choice({ line, children }: { line: string; children: ReactNode }) {
@@ -85,7 +85,7 @@ export default function StartScreen() {
     <Button
       kind={wide ? "secondary" : "text"}
       label="Test myself"
-      hint="The whole map on your own, with only the facts. Your levels don't change."
+      hint="Write your answers in the four map areas. The optional chat answers factual questions. Your levels don't change."
       busy={starting === "test"}
       disabled={!name || secret || starting !== null}
       onPress={() => void begin("test")}
@@ -384,7 +384,7 @@ const styles = StyleSheet.create({
   wordsContent: { flexGrow: 1, justifyContent: "center", paddingTop: space.xxl, paddingBottom: page.header, gap: space.xl },
   actions: { flexDirection: "row", alignItems: "flex-start", gap: space.m, marginTop: space.s },
   heading: { gap: space.m },
-  choice: { gap: space.xs, alignItems: "center" },
+  choice: { gap: space.xs, alignItems: "center", flexShrink: 1 },
   choiceLine: { textAlign: "center" },
   tall: { height: 56 },
   stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: page.header },

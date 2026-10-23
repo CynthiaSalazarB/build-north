@@ -58,6 +58,7 @@ signs in and the app works as before.
 ```bash
 npm test -w app             # the session logic under Node: fixture replay, API client, transcript
 npm run typecheck -w app
+npm run lint -w app         # Expo's ESLint rules; existing React Compiler diagnostics are warnings
 npm run export:web -w app   # the static web build in app/dist
 ```
 

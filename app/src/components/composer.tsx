@@ -2,12 +2,12 @@
 // the firefly itself until the first hint; after it, "More help" sits by the input. A revealed answer holds the
 // next question behind "Next question". Everything waits while a call is pending (decision 18). The guess has its
 // own screen (guess.tsx), and so does the whole map at level 5 (whole-map.tsx).
-import type { Turn } from "@build-north/agents";
+import { MOVE_LABEL, type Turn } from "@build-north/agents";
 import { useState } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import type { LearnerInput } from "../session/session-context.tsx";
 import { space } from "../theme.ts";
-import { Button, MicButton, PromptField, SendButton, VoiceNote } from "./ui.tsx";
+import { Button, MicButton, PromptField, SendButton, Small, VoiceNote } from "./ui.tsx";
 import { useVoice } from "./use-voice.ts";
 
 type Props = {
@@ -35,7 +35,7 @@ export function Composer({ turn, pending, placeholder, moreHelp, onNext, onSend,
   }
   switch (turn.expects) {
     case "text":
-      return <AnswerBar pending={pending} placeholder={placeholder} moreHelp={turn.phase === "move" && moreHelp} onSend={onSend} style={bar} />;
+      return <AnswerBar pending={pending} placeholder={placeholder} label={turn.move ? `Your answer · ${MOVE_LABEL[turn.move]}` : "Your first explanation"} moreHelp={turn.phase === "move" && moreHelp} onSend={onSend} style={bar} />;
     case "continue":
       return (
         <View style={bar}>
@@ -50,9 +50,9 @@ export function Composer({ turn, pending, placeholder, moreHelp, onNext, onSend,
   }
 }
 
-type AnswerProps = { pending: boolean; placeholder: string; moreHelp: boolean; onSend: (input: LearnerInput) => void; style: StyleProp<ViewStyle> };
+type AnswerProps = { pending: boolean; placeholder: string; label: string; moreHelp: boolean; onSend: (input: LearnerInput) => void; style: StyleProp<ViewStyle> };
 
-function AnswerBar({ pending, placeholder, moreHelp, onSend, style }: AnswerProps) {
+function AnswerBar({ pending, placeholder, label, moreHelp, onSend, style }: AnswerProps) {
   const [text, setText] = useState("");
   const answer = text.trim();
   // speech lands in the same field, editable, and still needs Send
@@ -66,6 +66,7 @@ function AnswerBar({ pending, placeholder, moreHelp, onSend, style }: AnswerProp
   };
   return (
     <View style={style}>
+      <Small dim style={styles.label}>{label}</Small>
       <View style={styles.row}>
         {moreHelp && <Button kind="hint" label="More help" disabled={pending} onPress={() => onSend({ action: "help" })} />}
         <MicButton state={voice.state} onPress={voice.toggle} disabled={pending && voice.state.kind !== "listening"} />
@@ -75,7 +76,7 @@ function AnswerBar({ pending, placeholder, moreHelp, onSend, style }: AnswerProp
           placeholder={voice.state.kind === "listening" ? "Listening" : placeholder}
           multiline
           editable={!pending}
-          accessibilityLabel="Your answer"
+          accessibilityLabel={label}
           onSubmitEditing={submit}
           submitBehavior="submit"
           style={[styles.flex, pending && styles.dim]}
@@ -93,4 +94,5 @@ const styles = StyleSheet.create({
   row: { flexDirection: "row", alignItems: "flex-end", gap: space.s },
   flex: { flex: 1 },
   dim: { opacity: 0.55 },
+  label: { marginBottom: space.s },
 });

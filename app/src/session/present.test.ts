@@ -24,6 +24,7 @@ import {
   itemsOf,
   justLitOf,
   memoryConceptOf,
+  nextPartOf,
   partMeaningOf,
   partNotesOf,
   partsOf,
@@ -77,12 +78,12 @@ test("a Turn saved before progress.points falls back to the rule: 2 alone, 1 aft
   ]);
 });
 
-test("the result marks the points the guess claimed but didn't prove, first unproved first", () => {
+test("the result map shows earned points per area without assigning the total confidence gap to an area", () => {
   const last = turnAt(14);
   const parts = resultPartsOf(last.result!, last.mentefacto);
   assert.deepEqual(
     parts.map((p) => `${p.state}:${p.pips?.join("+")}`),
-    ["lit:earned+missed", "lit:earned+earned", "lit:earned+missed", "lit:earned+open"],
+    ["lit:earned+open", "lit:earned+earned", "lit:earned+open", "lit:earned+open"],
   );
   assert.equal(parts[1]!.text, "not dictatorship");
   assert.equal(parts[2]!.text, "free elections, rights, more than one party");
@@ -224,8 +225,8 @@ test("the worked example's eight lines become four steps: a question, what goes 
 
 test("the gap is a signed number and one sentence", () => {
   assert.deepEqual(gapOf({ calibrationGap: 2 }), { headline: "You felt 2 points surer than you could explain.", note: "That's normal: explaining is how you find out.", over: true });
-  assert.deepEqual(gapOf({ calibrationGap: -1 }), { headline: "You knew more than you felt: 1 point more.", note: null, over: false });
-  assert.deepEqual(gapOf({ calibrationGap: 0 } as Pick<Result, "calibrationGap">), { headline: "Your guess was exactly right.", note: "You know what you know.", over: false });
+  assert.deepEqual(gapOf({ calibrationGap: -1 }), { headline: "You knew more than you felt: 1 point more.", note: "You explained more than you expected in this session.", over: false });
+  assert.deepEqual(gapOf({ calibrationGap: 0 } as Pick<Result, "calibrationGap">), { headline: "Your prediction matched your score.", note: "Your confidence matched what you could explain in this session.", over: false });
 });
 
 test("notes with a key, a token or a password stop at the phone, and the warning says which line", () => {
@@ -296,6 +297,31 @@ test("the whole map lights the learner's words unscored, and keeps what Help rev
     wholeMapPartsOf(draft, server).map((p) => `${p.state}:${p.text}:${p.pips}`),
     ["lit:a browser security rule:null", "revealed:not a firewall:null", "unasked:null:null", "unasked:null:null"],
   );
+});
+
+test("navigation suggests each empty area in order without scoring answers or changing the map", () => {
+  let map = blankMap("CORS");
+  const order = ["supraordinate", "exclusion", "isoordinate", "infraordinate"] as const;
+  for (const [i, move] of order.entries()) {
+    const before = JSON.stringify(map);
+    assert.equal(nextPartOf(map), move);
+    assert.equal(filledOf(map), i);
+    assert.equal(JSON.stringify(map), before);
+    // Interface completion accepts any text; only the evaluator can judge an answer.
+    map = withPart(map, move, [{ value: "my ungraded answer", note: null }]);
+  }
+  assert.equal(nextPartOf(map), null);
+  assert.equal(filledOf(map), 4);
+  assert.equal(nextPartOf(withPart(map, "exclusion", [])), "exclusion");
+});
+
+test("out-of-order edits, whitespace, and revealed answers keep navigation and the count consistent", () => {
+  const map = { ...blankMap("CORS"), supraordinate: { value: "  ", note: null }, infraordinate: [{ value: "draft", note: null }] };
+  assert.equal(nextPartOf(map), "supraordinate");
+  assert.equal(filledOf(map), 1);
+  const revealed = withPart(map, "supraordinate", [{ value: "shown answer", note: null }]);
+  assert.equal(nextPartOf(revealed), "exclusion");
+  assert.equal(filledOf(revealed), 2);
 });
 
 test("the whole-map evaluator's note on each part comes off its label", () => {

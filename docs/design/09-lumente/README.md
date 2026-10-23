@@ -3,6 +3,10 @@
 The app's design from October 22, 2026, replacing round 8 (Open Box). **Lumente** is the working name
 (*lumen*, the unit of light, plus *mente*, Spanish for mind).
 
+October 23 implementation update: [UX guidance](../../ux-guidance.md) documents the explicit confidence
+prediction, map-first self-test, free navigation highlight, optional fact chat, and hint confirmations.
+The board and descriptions below preserve the original round 9 design; that update describes the current flow.
+
 - **Board:** [Lumente canvas](https://claude.ai/artifact/QmCoNJiS5w8tg3vkkGHeGw), page "v4 · Lumente, black
   (current)". It holds every screen below, built on the demo's API session (guess 7, proved 5, gap +2). Pages v1 to
   v3 are earlier versions kept as history.
