@@ -16,7 +16,7 @@ export default function NotFoundScreen() {
       {wide && <SiteHeader />}
       <View style={styles.content}>
         <Label dim>404</Label>
-        <Title>This page doesn't exist.</Title>
+        <Title>{"This page doesn't exist."}</Title>
         <Button label={`Go to ${brand.name}`} fit={wide} onPress={() => router.replace("/")} />
       </View>
     </Screen>
