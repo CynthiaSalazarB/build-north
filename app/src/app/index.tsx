@@ -27,9 +27,27 @@ const MAX_NOTES = 8000;
 
 /** The web page's title and description, in the static HTML, so a shared link previews well. */
 export function generateMetadata(): Metadata {
-  const title = `${brand.name}: can you explain the idea behind the code your AI wrote?`;
-  const description = "Pick a concept from your project. An AI tutor asks questions and never hands you the answer; each answer in your own words brings more light.";
+  const title = `${brand.name}: can you explain the ideas behind the code your AI wrote?`;
+  const description = `${SUBTITLE} ${GUIDED} Or you lead the investigation.`;
   return { title, description, openGraph: { title, description } };
+}
+
+/** Start's words (Cynthia, Oct 23): the question, the line under it, and what each way to start means. */
+const QUESTION = "Can you explain the ideas behind the code your AI wrote?";
+const SUBTITLE = "Choose a concept and start figuring it out.";
+const GUIDED = "AI guides you with questions.";
+const ALONE = "You lead the investigation.";
+
+/** One way to start, with what it means under it. */
+function Choice({ line, children }: { line: string; children: ReactNode }) {
+  return (
+    <View style={styles.choice}>
+      {children}
+      <Small dim style={styles.choiceLine}>
+        {line}
+      </Small>
+    </View>
+  );
 }
 
 export default function StartScreen() {
@@ -63,7 +81,7 @@ export default function StartScreen() {
     else router.push("/session");
   };
 
-  const startButton = <Button label={name ? `Start with ${name}` : "Pick a concept"} fit={wide} busy={starting === "learn"} disabled={!name || secret || starting !== null} onPress={() => void begin("learn")} />;
+  const startButton = <Button label={name ? "Explore with guidance" : "Pick a concept"} hint={GUIDED} fit={wide} busy={starting === "learn"} disabled={!name || secret || starting !== null} onPress={() => void begin("learn")} />;
   const testButton = !offline && (
     <Button
       kind={wide ? "secondary" : "text"}
@@ -150,15 +168,16 @@ export default function StartScreen() {
         <SiteHeader end={<Account solid />} />
         <View style={styles.split}>
           <ScrollView style={styles.words} contentContainerStyle={styles.wordsContent} keyboardShouldPersistTaps="handled">
-            <Rise>
+            <Rise style={styles.heading}>
               <Text style={[type.display, { color: c.onSurface }]} accessibilityRole="header">
-                Can you explain the idea behind the code your AI wrote?
+                {QUESTION}
               </Text>
+              <Text style={[type.lead, { color: c.onSurfaceVariant }]}>{SUBTITLE}</Text>
             </Rise>
             {choices}
             <Rise order={5} style={styles.actions}>
-              {startButton}
-              {testButton}
+              <Choice line={GUIDED}>{startButton}</Choice>
+              {testButton && <Choice line={ALONE}>{testButton}</Choice>}
             </Rise>
           </ScrollView>
           <View style={styles.stage}>
@@ -187,14 +206,19 @@ export default function StartScreen() {
           <Rise>
             <CodePreview concept={name} />
           </Rise>
-          <Rise order={1}>
-            <Title>Can you explain the idea behind the code your AI wrote?</Title>
+          <Rise order={1} style={styles.heading}>
+            <Title>{QUESTION}</Title>
+            <Body dim>{SUBTITLE}</Body>
           </Rise>
           {choices}
         </ScrollView>
         <View style={styles.foot}>
-          {startButton}
-          {testButton && <View style={styles.footRow}>{testButton}</View>}
+          <Choice line={GUIDED}>{startButton}</Choice>
+          {testButton && (
+            <View style={styles.footRow}>
+              <Choice line={ALONE}>{testButton}</Choice>
+            </View>
+          )}
         </View>
       </KeyboardSafe>
       {sheet}
@@ -346,7 +370,10 @@ const styles = StyleSheet.create({
   split: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },
   words: { width: page.words, flexGrow: 0 },
   wordsContent: { flexGrow: 1, justifyContent: "center", paddingTop: space.xxl, paddingBottom: page.header, gap: space.xl },
-  actions: { flexDirection: "row", alignItems: "center", gap: space.m, marginTop: space.s },
+  actions: { flexDirection: "row", alignItems: "flex-start", gap: space.m, marginTop: space.s },
+  heading: { gap: space.m },
+  choice: { gap: space.xs, alignItems: "center" },
+  choiceLine: { textAlign: "center" },
   tall: { height: 56 },
   stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: page.header },
   spot: { width: "100%", maxWidth: page.map },

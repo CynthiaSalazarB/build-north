@@ -362,7 +362,7 @@ The same order as the Team Brief's pitch, with its rehearsal answers:
 1. The hook (20 s): "Can you explain the code your AI wrote?" The moment someone asks, and the mind
    goes blank. Then the scope, in the next breath: "Not line by line. The ideas underneath it: the API,
    the token, the CORS rule. That's what you defend in an interview or a code review." The app's
-   headline carries that scope in one line: "Can you explain the idea behind the code your AI wrote?"
+   headline carries that scope in one line: "Can you explain the ideas behind the code your AI wrote?"
 2. Why it's bigger (20 s): AI lends confidence the learner didn't earn (Aalto: about 4 points of
    overestimate) and lowers what they learn (Anthropic: 50% against 67%).
 3. Session 1, live, on API (60 s): the prediction, the questions, a Help that costs a point, and the
