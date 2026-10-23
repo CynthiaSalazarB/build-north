@@ -216,3 +216,26 @@ test("Claude calls are off without a key, and a key needs a budget and a model w
   assert.throws(() => agentConfigFromEnv({ ANTHROPIC_API_KEY: "test-key" }), /AGENT_BUDGET_USD/);
   assert.throws(() => agentConfigFromEnv({ ...key, AGENT_MODEL: "claude-opus-4-1" }), /AGENT_MODEL/);
 });
+
+test("the coach and the hint giver keep only the cites of facts they were given; the rest go to the log row as dropped, and with no memory every cite goes", async () => {
+  const fact = { id: "attr_gap", text: "Last time on democracy you guessed 7 and proved 4.", concept: "democracy", since: "2026-10-22T18:45:12Z", writtenBy: "coach" as const, sessionId: "s0" };
+  const result = { predictedScore: 6, score: 5, maxScore: 8, calibrationGap: 1, hintsUsed: 0, rubric: [], masteryChanges: [], questions: { asked: 0, testing: 0 } };
+  const coachInput = { concept: "democracy", mentefacto: context.mentefacto, result };
+  const { callAgent, logged } = setup(async () => reply(answer({ message: "Closer than last time.", nextFocus: null, cites: ["attr_gap", "attr_made_up", "attr_gap"] })));
+  const warned: unknown[] = [];
+  const original = console.warn;
+  console.warn = (...args: unknown[]) => void warned.push(args[0]);
+  try {
+    assert.deepEqual(await callAgent("coach", { ...coachInput, memory: { facts: [fact] } }), { message: "Closer than last time.", nextFocus: null, cites: ["attr_gap"] });
+    assert.deepEqual(await callAgent("coach", coachInput), { message: "Closer than last time.", nextFocus: null, cites: [] });
+  } finally {
+    console.warn = original;
+  }
+  assert.deepEqual(logged.map((row) => row.dropped), [["attr_made_up"], ["attr_gap", "attr_made_up", "attr_gap"]]);
+  assert.deepEqual((logged[0]?.output as { cites: string[] }).cites, ["attr_gap"]);
+  assert.match(String(warned[0]), /The coach cited 1 fact id\(s\) it wasn't given \(session s1\): attr_made_up/);
+  // a questioner's output is never checked, and its row has no dropped
+  const { callAgent: asker, logged: asked } = setup(async () => reply(answer(question)));
+  assert.deepEqual(await asker("questioner", context), question);
+  assert.equal("dropped" in asked[0]!, false);
+});

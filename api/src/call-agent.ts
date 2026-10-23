@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
-import { AGENTS, type AgentDefinition, type AgentName, type CallAgent } from "@build-north/agents";
+import { AGENTS, verifyCites, type AgentDefinition, type AgentName, type CallAgent, type CoachOutput, type HintGiverOutput, type LearnerMemory } from "@build-north/agents";
 import type { AgentLogEntry } from "./store.ts";
 
 // The only code that talks to Claude (#10). CONTRACTS.md section 2: one structured-output call per
@@ -165,8 +165,17 @@ export function createCallAgent({ send, model, budgetUsd, log }: CallAgentOption
       const reason = `The ${agent} reply didn't fit its schema (stop reason: ${stop_reason})`;
       throw new AgentCallError("agent_failed", true, reason, { cause: error });
     }
+    // CONTRACTS.md section 2, Memory: a message may cite only the facts it was given; the ids it made up are
+    // dropped here and kept on the log row, so a made-up source can never reach the screen
+    let dropped: string[] = [];
+    if (agent === "coach" || agent === "hint_giver") {
+      const verified = verifyCites(output as CoachOutput | HintGiverOutput, (parsed.data as { memory?: LearnerMemory }).memory);
+      output = verified.output;
+      dropped = verified.dropped;
+      if (dropped.length > 0) console.warn(`The ${agent} cited ${dropped.length} fact id(s) it wasn't given (session ${sessionId}): ${dropped.join(", ")}`);
+    }
     // a lost log row shouldn't cost the learner their turn
-    log({ session: sessionId, agent, input: parsed.data, output, ms, usd }).catch((error: unknown) => {
+    log({ session: sessionId, agent, input: parsed.data, output, ms, usd, ...(dropped.length > 0 ? { dropped } : {}) }).catch((error: unknown) => {
       console.error("agent_log write failed:", error);
     });
     return output;

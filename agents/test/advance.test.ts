@@ -432,3 +432,25 @@ describe("rules", () => {
     expect(WORKED_EXAMPLE).toEqual(WorkedExample.parse(JSON.parse(read("../fixtures/worked-example.json"))));
   });
 });
+
+describe("cites on the messages (Agent Memory, #112)", () => {
+  it("a hint and the coach's summary carry the cites the API verified; a message that cites nothing has no field", async () => {
+    const { call, finished } = scripted([
+      ["hint_giver", { ...hintOutput("nudge", "You found this part alone last time. What kind of thing is it?"), cites: ["attr_sup1"] }],
+      ["evaluator_full", { rubric: MOVE_ORDER.map((move) => ({ move, quality: 2, feedback: "Scripted." })) }],
+      ["coach", { message: "Closer than last time.", nextFocus: null, cites: [] }],
+    ]);
+    const { turns } = await play(newSession("inflation", "test"), masteryAt(1), [
+      { action: "start" },
+      { prediction: 6 },
+      { action: "help" },
+      { mentefacto: { ...empty("inflation"), supraordinate: item("rise in prices") } },
+      { action: "continue" },
+    ], call);
+    expect(finished()).toBe(true);
+    expect(turns[2]!.messages[0]).toEqual({ agent: "hint_giver", kind: "hint", text: "You found this part alone last time. What kind of thing is it?", hintStep: "nudge", cites: ["attr_sup1"] });
+    expect(turns.at(-1)!.messages).toEqual([{ agent: "coach", kind: "summary", text: "Closer than last time." }]);
+    // the coach's words on the result stay as they were: the cites live on the message
+    expect(turns.at(-1)!.result!.coach).toEqual({ message: "Closer than last time.", nextFocus: null });
+  });
+});

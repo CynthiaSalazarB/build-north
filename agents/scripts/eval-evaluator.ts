@@ -146,6 +146,46 @@ if (democracy) {
   extras = ` · exclusion ${exRight}/3 · kind of ${kindRight}/2`;
 }
 
+// After a pass (extra checks, Cynthia's API session, Oct 23): the move is done, so a correct answer's feedback
+// names its criterion and adds a type of that same criterion the learner left out, never one sorted by another
+// (composite is how an API is built, not who uses it). A wrong answer still gets no type at all.
+if (democracy) {
+  const TYPES_Q = "Sort APIs by who is allowed to use them. What types are there?";
+  const typesBase: EvaluatorInput = {
+    concept: "API",
+    material: null,
+    move: "infraordinate",
+    level: 2,
+    mentefacto: {
+      concept: "API",
+      supraordinate: { value: "software interface", note: null },
+      exclusion: [{ value: "library", note: "an API is the contract, a library is code you call" }],
+      isoordinate: [{ value: "defined requests and responses", note: null }],
+      infraordinate: [],
+    },
+    recent: [{ from: "app", text: TYPES_Q }],
+    answer: "",
+  };
+  const types = /internal|private|partner|public|open|composite/i;
+  const afterPassCases = [
+    { label: '"internal, partner and public" (complete)', answer: "Internal, partner and public", want: "correct", check: (f: string) => !/composite/i.test(f) },
+    { label: '"internal and public" (partner left out)', answer: "Internal and public", want: "correct", check: (f: string) => /partner/i.test(f) && !/composite/i.test(f) },
+    { label: '"HTTP" (not a type)', answer: "HTTP", want: "incorrect", check: (f: string) => !types.test(f) && f.trim().endsWith("?") },
+  ];
+  const passRuns = await Promise.all(afterPassCases.map((c) => runAgent(AGENTS.evaluator, { ...typesBase, answer: c.answer })));
+  let passRight = 0;
+  console.log("\nAfter a pass, API types (extra checks)\n");
+  afterPassCases.forEach((c, i) => {
+    const { output: o, ms } = passRuns[i]!;
+    const ok = o.verdict === c.want && c.check(o.feedback);
+    if (ok) passRight++;
+    console.log(`${ok ? "✔" : "✘"} ${c.label} → ${o.verdict} (quality ${o.quality}, ${ms} ms), want ${c.want}`);
+    console.log(`    feedback: ${o.feedback}`);
+  });
+  extraRuns.push(...passRuns);
+  extras += ` · after a pass ${passRight}/3`;
+}
+
 let feedbackRight = 0;
 console.log("\nFeedback by level (a nudge at 2 and 3, none at 4, never a leak)\n");
 for (const c of feedbackChecks) {

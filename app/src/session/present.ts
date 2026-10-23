@@ -1,7 +1,7 @@
 // What the screens say and draw, as pure functions of the Turns and the transcript: the map's parts and their
 // points, the light (points proved so far), the hint card, Help's price, the reveal, and the gap. No React here,
 // so it's tested under Node. The rules behind the words are in CONTRACTS.md section 3.
-import { MOVE_LABEL, MOVE_ORDER, WORKED_EXAMPLE, type Item, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
+import { MOVE_LABEL, MOVE_ORDER, WORKED_EXAMPLE, type Item, type MemoryGap, type MemoryView, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
 import type { Entry } from "./transcript.ts";
 
 /** The concepts Start offers (Lumente's board): what coding agents put in student projects. */
@@ -378,6 +378,51 @@ export function partNotesOf(messages: readonly Message[]): Partial<Record<MoveId
   return notes;
 }
 
+/** Levels 1 to 4: the evaluator's words on the part answered last come in the result's own Turn, and the result
+ * opens at once, so the result shows that part with them (Cynthia, Oct 23: the last answer never got its "that
+ * works"). The part is the one the last Turn before the result asked. Nothing after a reveal (no words came) and
+ * nothing in a self-test, whose notes are labeled (`partNotesOf`). */
+export function lastPartNoteOf(entries: readonly Entry[]): Partial<Record<MoveId, string>> {
+  const app = entries.filter((e): e is Extract<Entry, { from: "app" }> => e.from === "app");
+  const words = app.find((e) => e.phase === "result" && e.message.agent === "evaluator" && e.message.kind === "feedback" && !LABELED.test(e.message.text));
+  const asked = [...app].reverse().find((e) => e.phase !== "result" && e.move !== null);
+  return words && asked?.move ? { [asked.move]: words.message.text } : {};
+}
+
 /** What to paste into a coding agent in your project, so its answer can go in your notes. */
+/** The dim line under a hint or the coach's words with memory on (#112): the facts the text relies on, in their
+ * own sentences, which code wrote from the session's numbers. */
+export function rememberedLineOf(sources: readonly { text: string }[]): string {
+  return `From what Lumente remembers: ${sources.map((source) => source.text.trim()).join(" ")}`;
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "Oct 23" from an ISO date, in the device's time zone; "" for a date that doesn't parse. */
+export function shortDateOf(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "" : `${MONTHS[date.getMonth()]} ${date.getDate()}`;
+}
+
+export type MemoryMoveLines = { move: MoveId; label: string; now: string; history: string[]; reads: number };
+export type MemoryConceptLines = { concept: string; moves: MemoryMoveLines[]; gap: string | null };
+
+const gapLineOf = (gap: MemoryGap) => `${shortDateOf(gap.at)}: you guessed ${gap.predictedScore} and proved ${gap.score}`;
+
+/** The Memory sheet's words for one concept: per part the level now and how it got there, newest first, how many
+ * times the AI read it, and the latest guess against the score beside the one before. */
+export function memoryConceptOf(entry: MemoryView["concepts"][number]): MemoryConceptLines {
+  const moves = entry.moves.map((move) => ({
+    move: move.move,
+    label: MOVE_LABEL[move.move],
+    now: move.level === null ? "no level yet" : `level ${move.level}`,
+    history: move.history.map((row) => (row.until ? `level ${row.level} from ${shortDateOf(row.since)} to ${shortDateOf(row.until)}` : `level ${row.level} since ${shortDateOf(row.since)}`)),
+    reads: move.history.reduce((count, row) => count + row.readBy, 0),
+  }));
+  const { latest, previous } = entry.gap;
+  const gap = latest ? `Last time, ${gapLineOf(latest)}.${previous ? ` Before, ${gapLineOf(previous)}.` : ""}` : null;
+  return { concept: entry.concept, moves, gap };
+}
+
 export const AI_PROMPT =
   "List the technical concepts this project depends on that I should be able to explain, like JWT, CORS, a database index or RAG. For each one, write one line: the concept, then where the project uses it. Don't include code, file contents, keys, tokens, passwords, URLs or anyone's personal data.";

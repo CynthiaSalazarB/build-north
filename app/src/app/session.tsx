@@ -33,6 +33,7 @@ import {
   isFollowUpFeedback,
   isReveal,
   justLitOf,
+  lastPartNoteOf,
   partNotesOf,
   partsOf,
   provedOf,
@@ -90,7 +91,9 @@ export default function SessionScreen() {
         result={turn.result}
         map={turn.mentefacto}
         notes={partNotesOf(resultMessagesOf(state.entries))}
+        lastPart={lastPartNoteOf(state.entries)}
         coachFailure={coachDue && state.failure ? state.failure.message : null}
+        coachSources={turn.messages.find((message) => message.kind === "summary")?.sources}
         onRetryCoach={retry}
         onAgain={() => void tryAgain()}
         againBusy={again.busy}
@@ -362,7 +365,7 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
       case "feedback":
         return <Nudge text={message.text} capNote={i === capAt} tag={isFollowUpFeedback(entries, i) ? "almost" : undefined} />;
       case "hint":
-        return isReveal(entry) ? <Revealed text={message.text} /> : <HintCard message={message} n={hints.indexOf(entry.id) + 1} capNote={i === capAt} />;
+        return isReveal(entry) ? <Revealed text={message.text} /> : <HintCard message={message} n={hints.indexOf(entry.id) + 1} capNote={i === capAt} concept={turn.mentefacto.concept} />;
       case "example":
         if (message.agent === "app") return <ExampleIntro text={message.text} />;
         if (!steps) return <Body>{message.text}</Body>;

@@ -534,6 +534,25 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   "how much you got right" apart from "how well your confidence matched". The gap stays the message, and
   it loses the drama of one big number.
 
+### 2026-10-23 · Memory is written when the result is saved, and a session's coach reads only what came before it
+- **Decision:** the API writes a session's facts to Agent Memory the moment its result Turn is saved (the level
+  changes, the gap, the Helps per part), off the request path, with each fact's provenance in labels on the row
+  (`session`, `turn`, `writer`, the numbers). The read before the hint giver and the coach takes, per key, the
+  newest row not written by the current session, so the coach of a session whose facts were just written still
+  reads only earlier sessions. Facts are attributes of one entity per learner and concept, one key per fact
+  (`level_<move>`, `gap`, `help_<move>`), so a later session's write supersedes the earlier value and memory's own
+  history is the Memory sheet's chain. The message's `cites` go on the `Message` (optional, with `sources`), not on
+  `Result`, and the result screen reads the summary message's `sources` from the same Turn.
+- **Instead of:** writing after the coach's Turn (the session's real end), or keeping the numbers in a side table
+  of our own, or putting `sources` on `Result.coach`.
+- **Why:** the coach's Turn only arrives if the app asks for it; a learner who closes the app on the result would
+  leave no memory. Writing at the result and skipping the current session's rows on the read keeps both. Labels
+  keep each row self-describing, so the view and the agents read memory, not our tables, which is what the prize
+  judges. `Result` stays as it was for every saved session; only the Turn that carries the coach's words gains
+  a field, and only with memory on.
+- **Pattern / trade-off:** write early, filter on read. One more label per row; a read has to skip rows by
+  session instead of trusting "newest". A session with no result (abandoned) leaves nothing, as before.
+
 ### 2026-10-22 · No mastery screen: a level-up shows on the result, the levels live in the Memory sheet
 - **Decision:** the mastery screen (#42) is cut. On the result, a part that moved up a level says so under
   its words ("less help next time", or "you can do this alone now" at level 5), and the Memory sheet (#112)
@@ -543,6 +562,36 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   noise. The moment belongs where it happens, at the end of the session.
 - **Pattern / trade-off:** one home for each piece of information. If memory's flag stays off, the levels
   have no screen of their own; the result still marks each level-up.
+
+### 2026-10-23 · After a part is right, its feedback says what makes it right and what was left out
+- **Decision:** when the evaluator marks a part correct, its feedback names what makes the answer right (for
+  types, the criterion that splits them) and adds, in one sentence, what the learner left out of that same
+  criterion: a missing type, a missing essential characteristic, or what would make a quality 1 answer exact.
+  Never a type sorted by another criterion. Before a part is correct nothing changes (no answers, no other
+  members of the group), and the points don't change. The part answered last, whose feedback came with the
+  result and never showed, now shows on the result with those words. The self-test (the testers' pre-test and
+  post-test) keeps its notes as they were.
+- **Instead of:** confirming in a few words and nothing more, or adding every type a search lists (those lists
+  mix criteria: "composite" is how an API is built, not who uses it).
+- **Why:** if a part passes, I'd think that's all there is: I said three types, so there are three. I want it to
+  be accurate and tell me: you said this, and specifically it's this.
+- **Pattern / trade-off:** elaborated feedback, given after the attempt: I do the thinking first, and what I
+  missed arrives once the part is scored, so it teaches without doing the work for me. The feedback gets
+  longer (up to 45 words) and holds things I didn't find myself. The self-test stays as it was, so a pre-test
+  can't hand a tester the post-test's answers.
+
+### 2026-10-23 · Agent Memory goes on for the testers
+- **Decision:** the Agent Memory flag goes on before the first tester, in Leo's rollout order (the app update
+  with #130 ships first, then the flag on Render), instead of after the testers.
+- **Instead of:** keeping it off on tester day and turning it on tonight.
+- **Why:** it's better if the testers test the memory layer as well: every session they finish writes real
+  facts, and the Memory sheet and Delete my data get real use, instead of only a smoke test.
+- **Pattern / trade-off:** a feature flag with a kill switch, turned on for real users early. Its first
+  production run happens with the testers; the design bounds that (a read over 1.5 s or a failed write and the
+  session goes on without memory) and so does the switch (one Render variable, about a minute, no deploy). An
+  app without the update rejects a Turn that cites memory, so the order is ship, check, then the flag. A
+  tester's four sessions are on four different concepts (`docs/tester-protocol.md`), so no agent cites memory
+  during a slot: the remembering itself shows from a second session on the same concept.
 
 ### 2026-10-23 · On iPhones the web build installs as a web app
 - **Decision:** the web build ships a web app manifest, its icons and Apple's home-screen metas
