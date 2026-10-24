@@ -4,7 +4,7 @@ Started October 24, 2026, after the 6 PM freeze. Nothing here ships before Demo 
 research for the next version of the website and the app: what makes a screen understood at a glance, what makes
 it beautiful, and what slow learners need.
 
-Three parts, each on its own branch and pull request so Cynthia can review them one at a time:
+Four parts, all in one pull request (#175) so the links between them work from the first merge:
 
 | Part | File | What it holds |
 |---|---|---|
@@ -17,15 +17,18 @@ The term for "a user sees it and knows what to do" is **affordance** (what an ob
 **signifier** (the visible cue that tells you so), both from Don Norman's *The Design of Everyday Things*; Steve
 Krug's *Don't Make Me Think* calls the result a self-evident design.
 
-What stays fixed through all of it: the method in `wiki/synthesis/product-thesis.md` (the guess first, the four
-parts, help that costs points and fades level by level, the fact desk at level 5, the gap on the result) and the
-firefly, drawn as it is in the app. Where a mockup or a wording would change how the app works, it is listed as a
-question for the team (`stitch/README.md`, "questions for the team"), not made.
+What stays fixed through all of it: the method in `wiki/synthesis/product-thesis.md` (the prediction first, the
+first explanation, the four areas, help that costs points and fades level by level, the fact desk at level 5, the
+gap on the result), the decisions in `DECISIONS.md` from October 22 and 23 (the words "prediction", "map score"
+and "areas", the result that leads with the gap in words over two rows of eight points, the guess screen's nine
+numbers and rubric, level 5 with the map as the task and the chat collapsed, Help as a link with a confirmation),
+and the firefly, drawn as it is in the app. Where a mockup or a wording would change any of that, it is listed as a
+question for Cynthia (`stitch/README.md`, "questions for the team"; `copy-pass.md`, "Three questions"), not made.
 
 How the parts are used: the guide is the standard, the audit is the gap list, the mockups show one way to close
 it. A change to the app still goes through `design-check` (the gap list between the build and the mockup, signed
 off before coding), then the usual branch and pull request.
 
-Tools: the guide and the audit were researched in Claude Code cloud sessions; the mockups come from Google
-Stitch through its MCP server (`stitch.googleapis.com/mcp`, an API key per Google account, no charge on the free
+Tools: the guide and the audit were researched with Claude Code on Leo's machine (every source fetched and read
+before it is cited; every file and line re-checked); the mockups come from Google Stitch through its MCP server (`stitch.googleapis.com/mcp`, an API key per Google account, no charge on the free
 tier as of October 2026; Google does not publish the monthly limit).

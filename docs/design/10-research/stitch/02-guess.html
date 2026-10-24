@@ -161,7 +161,15 @@
       min-height: max(884px, 100dvh);
     }
   </style>
-  </head>
+<style id="lumente-air">
+/* more air between sections (Leo, Oct 24): the main column's gap and the card gaps grow one step */
+main{gap:2.25rem!important;padding-top:1.5rem!important;padding-bottom:3rem!important}
+main>section,main>div{gap:1.25rem}
+.gap-5{gap:1.5rem!important}.gap-6{gap:2rem!important}
+.space-y-4>:not([hidden])~:not([hidden]){margin-top:1.5rem!important}
+.space-y-6>:not([hidden])~:not([hidden]){margin-top:2.25rem!important}
+</style>
+</head>
 <body class="bg-surface-dark text-on-surface-dark min-h-screen flex flex-col font-body-md antialiased select-none">
 <!-- Canvas Frame: Mobile container (max-w-md, ~390px width layout) -->
 <div class="relative w-full max-w-md mx-auto min-h-screen flex flex-col justify-between overflow-hidden shadow-2xl lumente-grid border-x border-outline-variant/30">
@@ -174,36 +182,43 @@
 <!-- Brand Cluster with Firefly Guide -->
 <div class="flex items-center gap-2">
 <div class="relative flex items-center justify-center">
-<span class="w-2.5 h-2.5 rounded-full bg-firefly firefly-glow-anim inline-block"></span>
+<svg class="lumente-firefly " width="48" height="48" viewBox="0 0 112 112" aria-hidden="true" style="display:inline-block;vertical-align:middle;flex-shrink:0;opacity:1;"><defs><radialGradient id="ff3" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f2b84b" stop-opacity="0.55"/><stop offset="1" stop-color="#f2b84b" stop-opacity="0"/></radialGradient></defs><circle cx="56" cy="56" r="56" fill="url(#ff3)"/><g transform="translate(28 28)"><ellipse cx="19" cy="20" rx="8" ry="4.5" transform="rotate(-28 19 20)" fill="rgba(255, 240, 225, 0.4)"/><ellipse cx="37" cy="20" rx="8" ry="4.5" transform="rotate(28 37 20)" fill="rgba(255, 240, 225, 0.4)"/><path d="M24 18 L21 10 M32 18 L35 10" stroke="#c9c0b4" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="28" cy="30" r="10.5" fill="#f2b84b"/><circle cx="24.6" cy="28.6" r="1.7" fill="#111114"/><circle cx="31.4" cy="28.6" r="1.7" fill="#111114"/></g></svg>
 </div>
 <span class="font-headline-md text-headline-md font-semibold text-on-primary-light tracking-tight">Lumente</span>
 </div>
 <!-- Trailing Action: Plain Help button with upfront transparency -->
-<button class="text-firefly font-label-md text-label-md hover:text-secondary-fixed transition-colors duration-200 active:opacity-80 flex items-center gap-1" type="button">
-<span>Help</span>
-<span class="material-symbols-outlined text-[16px]">help</span>
-</button>
 </header>
 <!-- Main Step Flow -->
 <main class="px-margin pt-6 flex flex-col gap-6">
 <!-- Step Indicator Pill -->
 <div class="flex items-center">
-<span class="bg-surface-container-dark border border-[rgba(255,240,225,0.15)] text-on-surface-variant-dark font-label-sm text-label-sm px-3 py-1 rounded-full inline-flex items-center gap-2">
-<span class="w-1.5 h-1.5 rounded-full bg-firefly"></span>
-            Step 1 of 3: your guess
+<span class="bg-surface-container-dark border border-[rgba(255,240,225,0.15)] text-on-surface-variant-dark font-label-sm text-label-sm px-3 py-1 rounded-full inline-flex items-center gap-2"><span class="w-1.5 h-1.5 rounded-full bg-firefly"></span>
+            Step 1 of 3: your prediction
           </span>
 </div>
 <!-- Primary Question Section -->
 <section class="flex flex-col">
-<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-semibold text-on-surface-dark leading-tight tracking-tight">
-            How many points will you get?
-          </h1>
-<p class="font-body-md text-body-md text-on-surface-variant-dark leading-relaxed mt-2">
-            You will explain 4 parts of Recursion. Each part is worth 2 points, so 8 in all.
-          </p>
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-semibold text-on-surface-dark leading-tight tracking-tight">How much can you explain on your own?</h1>
+<p class="font-body-md text-body-md text-on-surface-variant-dark leading-relaxed mt-2">You will explain 4 areas of Recursion. Each area is worth 2 points, so 8 in all. Predict how many points you will get.</p>
 </section>
 <!-- Point Selector: 0 to 8 Selection Grid -->
-<section class="flex flex-col items-center mt-2">
+<div class="bg-surface-container border border-[rgba(255,240,225,0.12)] rounded-2xl p-4 flex flex-col gap-2.5">
+<h2 class="text-label-md font-medium text-on-surface-dark">Each area can get:</h2>
+<ul class="flex flex-col gap-2 font-label-sm text-label-sm text-on-surface-variant-dark">
+<li class="flex items-start gap-2.5">
+<span class="shrink-0 border border-[rgba(255,240,225,0.2)] px-2 py-0.5 rounded-full text-[12px] font-mono font-medium text-on-surface-dark">2 pts</span>
+<span class="leading-relaxed">A full answer on the first try, no hint.</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="shrink-0 border border-[rgba(255,240,225,0.2)] px-2 py-0.5 rounded-full text-[12px] font-mono font-medium text-on-surface-dark">1 pt</span>
+<span class="leading-relaxed">A partly right answer, or a right one after a retry or a hint.</span>
+</li>
+<li class="flex items-start gap-2.5">
+<span class="shrink-0 border border-[rgba(255,240,225,0.2)] px-2 py-0.5 rounded-full text-[12px] font-mono font-medium text-on-surface-dark">0 pts</span>
+<span class="leading-relaxed">A wrong answer, an empty area, or an answer shown to you.</span>
+</li>
+</ul>
+</div><section class="flex flex-col items-center mt-2">
 <div aria-label="Points guess" class="grid grid-cols-5 gap-3 w-full max-w-[340px] place-items-center" id="points-container" role="radiogroup">
 <button aria-checked="false" class="point-btn w-[52px] h-[52px] min-w-[46px] min-h-[46px] rounded-full bg-surface-container-dark/60 border border-[rgba(255,240,225,0.22)] text-on-surface-dark font-headline-md text-body-lg flex items-center justify-center transition-all duration-200 active:scale-95 hover:border-firefly/60" data-point="0" role="radio" type="button">
               0
@@ -233,9 +248,13 @@
               8
             </button>
 </div>
-<span class="font-label-sm text-label-sm text-on-surface-variant-dark mt-3 text-center transition-colors" id="selector-hint">
-            Tap a number.
-          </span>
+<div class="w-full max-w-[340px] flex justify-between text-label-sm text-[12px] text-on-surface-variant-dark px-1 mt-2 mb-1">
+<span>0 · I can't explain it yet</span>
+<span>8 · I can explain all four</span>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant-dark mt-1 text-center transition-colors" id="selector-hint">
+  Tap a number to predict.
+</span>
 </section>
 <!-- Muted Note: Light Preview Card -->
 <aside class="bg-surface-container-dark border border-[rgba(255,240,225,0.12)] rounded-2xl p-4 flex items-start gap-3 mt-1">
@@ -247,24 +266,11 @@
           </p>
 </aside>
 <!-- Secondary Guidance Container -->
-<section class="bg-surface-container-dark/40 border border-[rgba(255,240,225,0.08)] rounded-2xl p-4 flex flex-col">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-secondary text-[18px]">psychology</span>
-<h2 class="font-label-md text-label-md font-medium text-on-surface-dark">
-              What is a good guess?
-            </h2>
-</div>
-<p class="font-label-sm text-label-sm text-on-surface-variant-dark leading-relaxed mt-1.5">
-            Pick what you honestly expect. The gap between your guess and your score is what we learn from.
-          </p>
-</section>
 </main>
 </div>
 <!-- Bottom CTA Docked Area -->
 <footer class="fixed md:absolute bottom-0 left-0 right-0 max-w-md mx-auto px-margin pt-4 pb-6 bg-gradient-to-t from-surface-dark via-surface-dark/95 to-transparent z-20">
-<button class="w-full h-[52px] bg-on-primary-light/30 text-on-primary-dark cursor-not-allowed rounded-xl font-label-md text-label-md font-medium flex items-center justify-center transition-all duration-200" disabled="" id="lock-btn" type="button">
-        Lock in my guess
-      </button>
+<button class="w-full h-[52px] bg-on-primary-light/30 text-on-primary-dark cursor-not-allowed rounded-xl font-label-md text-label-md font-medium flex items-center justify-center transition-all duration-200" disabled="" id="lock-btn" type="button">Save my prediction</button>
 <p class="font-label-sm text-label-sm text-on-surface-variant-dark text-center mt-2 transition-opacity" id="cta-subtext">
         Pick a number first.
       </p>

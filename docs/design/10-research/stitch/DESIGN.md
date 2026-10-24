@@ -57,8 +57,15 @@ Rules:
 
 - **Primary button**: full width on phones, 52 px tall, `primary` fill, `onPrimary` text, one per screen.
 - **Secondary button**: outlined with `outline`, `onSurface` text, 48 px tall.
-- **Help**: the firefly itself, amber, with the label "Help" next to it and the cost stated before it is used
-  ("Help costs 1 point").
+- **Help**: in the guided levels (2 to 4) the firefly itself is Help, amber, with "Help, costs a point" next to
+  it. On the whole-map screen (level 5 and Test myself) the firefly is a guide that cannot be tapped; Help is an
+  underlined link ("Get a hint · −1 point") that opens a confirmation naming the area and the cost
+  (`DECISIONS.md`, 2026-10-23, "At level 5 the firefly is a guide, not Help").
+- **Words that are decided** (`DECISIONS.md`, October 22 and 23): the four places on the map are "areas" on
+  screen; the result's two rows are "prediction" and "map score" and its headline is the gap in words; the guess
+  screen says "How much can you explain on your own?", shows the 2/1/0 rubric before nine numbers with nothing
+  selected, and its button is "Save my prediction"; on the whole-map screen the intro is "Build your map", the
+  chat is collapsed behind "Ask a fact (optional)", and the last action is "Review & submit".
 - **The map**: the concept in a box in the middle, four parts around it in fixed places: bigger group above,
   what it needs on the left, what it isn't on the right, types below. Each part has a fixed 24 px icon and a
   label. Unasked parts are dashed boxes with a "?". The asked part has an amber outline, an amber glow and a
@@ -68,8 +75,10 @@ Rules:
   plain words, a "More help" link.
 - **Points**: small 8 px squares; filled when proved, dotted when "this part can now light 1 point at most",
   dashed coral when claimed in the guess but not proved.
-- **Result**: the map in the light the learner reached; the gap as a coral number with a plain sentence
-  ("You felt 2 points surer than you were").
+- **Result**: the headline is the gap in words ("You felt 2 points surer than you could explain."), then two
+  rows of eight small squares labelled "prediction" and "map score"; the points the prediction claimed but the
+  map did not prove are dashed coral squares on the map-score row only, with the legend "prediction gap". The
+  map below shows each area's earned points, filled or open, never coral.
 
 ## Motion
 

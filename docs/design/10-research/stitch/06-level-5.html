@@ -153,20 +153,20 @@
       min-height: max(884px, 100dvh);
     }
   </style>
+<style id="lumente-air">
+/* more air between sections (Leo, Oct 24): the main column's gap and the card gaps grow one step */
+main{gap:2.25rem!important;padding-top:1.5rem!important;padding-bottom:3rem!important}
+main>section,main>div{gap:1.25rem}
+.gap-5{gap:1.5rem!important}.gap-6{gap:2rem!important}
+.space-y-4>:not([hidden])~:not([hidden]){margin-top:1.5rem!important}
+.space-y-6>:not([hidden])~:not([hidden]){margin-top:2.25rem!important}
+</style>
 </head>
 <body class="bg-background text-on-surface antialiased min-h-screen flex justify-center selection:bg-firefly/30 selection:text-lit-dark">
 <!-- Mobile Frame Container -->
 <div class="relative w-full max-w-md min-h-screen bg-firefly-glow bg-graph-grid flex flex-col justify-between pb-8">
 <!-- Top App Bar (Shared Anchor: Task-focused sub-page with close and help action) -->
-<header class="w-full px-margin py-3 flex justify-between items-center bg-surface/90 backdrop-blur-md sticky top-0 z-40 border-b border-outline-variant/30">
-<!-- Left: Logo & Firefly Icon -->
-<div class="flex items-center gap-2">
-<span class="text-headline-md font-headline-md font-semibold text-primary tracking-tight">
-          Lumente
-        </span>
-</div>
-<!-- Right: Help Action Button -->
-</header>
+<header class="w-full px-margin py-3 flex justify-between items-center bg-surface/90 backdrop-blur-md sticky top-0 z-40 border-b border-outline-variant/30"><div class="flex items-center gap-2"><span class="text-headline-md font-headline-md font-semibold text-primary tracking-tight">Lumente</span></div></header>
 <!-- Main Content Canvas -->
 <main class="flex-1 px-margin flex flex-col gap-5 pt-4">
 <!-- Status Chips Row -->
@@ -192,18 +192,11 @@
 </div>
 </section>
 <!-- Plain English Subheader -->
-<div class="pt-1">
-<p class="text-[15px] leading-snug font-body-md text-on-surface-variant-dark">
-          You lead now. Ask for facts, then write each part yourself.
-        </p>
-</div>
+<div class="pt-1"><h1 class="text-[26px] font-semibold text-[#f4efe8] tracking-tight leading-tight">Build your map</h1><p class="text-[15px] font-body-md text-on-surface-variant-dark mt-1">Area 1 of 4 · Start with Bigger group</p></div>
 <!-- Concept Map Card -->
 <section aria-label="Concept Map" class="w-full bg-surface-container-dark rounded-2xl p-4 border border-outline-dark relative overflow-hidden">
 <!-- Card Header -->
-<div class="flex justify-between items-center mb-4">
-<span class="text-label-md font-label-md font-semibold text-on-surface-dark tracking-wide">Concept Map</span>
-<span class="text-label-sm font-label-sm text-on-surface-variant-dark">0 of 4 parts lit</span>
-</div>
+<div class="flex justify-between items-center mb-4"><span class="text-label-md font-label-md font-semibold text-on-surface-dark tracking-wide">Your map</span><span class="text-label-sm font-label-sm text-on-surface-variant-dark">0 of 4 areas written</span></div>
 <!-- Cross Layout Diagram -->
 <div class="relative w-full aspect-square max-w-[320px] mx-auto flex items-center justify-center p-2">
 <!-- Dashed connection lines (SVG overlay) -->
@@ -216,11 +209,7 @@
 <line stroke="rgba(255,240,225,0.25)" stroke-dasharray="4 4" stroke-width="1.5" x1="206" x2="242" y1="160" y2="160"></line>
 </svg>
 <!-- Top Node: 'bigger group' -->
-<button class="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-18 py-2 px-1 rounded-xl border border-dashed border-outline/50 bg-surface-container/60 hover:border-firefly/60 transition-colors flex flex-col items-center justify-center text-center group cursor-pointer focus:outline-none focus:border-firefly" type="button">
-<span class="material-symbols-outlined text-on-surface-variant text-[18px] mb-0.5">folder</span>
-<span class="text-label-sm font-label-sm font-medium text-on-surface-dark leading-tight">bigger group</span>
-<span class="text-[11px] text-on-surface-variant font-label-sm mt-0.5">Write here</span>
-</button>
+<div class="absolute top-0 left-1/2 -translate-x-1/2 flex flex-col items-center z-20"><div class="flex items-center gap-1 mb-1"><svg class="lumente-firefly " width="64" height="64" viewBox="0 0 112 112" aria-hidden="true" style="display:inline-block;vertical-align:middle;flex-shrink:0;opacity:1;margin:-14px 0"><defs><radialGradient id="ff10" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f2b84b" stop-opacity="0.55"/><stop offset="1" stop-color="#f2b84b" stop-opacity="0"/></radialGradient></defs><circle cx="56" cy="56" r="56" fill="url(#ff10)"/><g transform="translate(28 28)"><ellipse cx="19" cy="20" rx="8" ry="4.5" transform="rotate(-28 19 20)" fill="rgba(255, 240, 225, 0.4)"/><ellipse cx="37" cy="20" rx="8" ry="4.5" transform="rotate(28 37 20)" fill="rgba(255, 240, 225, 0.4)"/><path d="M24 18 L21 10 M32 18 L35 10" stroke="#c9c0b4" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="28" cy="30" r="10.5" fill="#f2b84b"/><circle cx="24.6" cy="28.6" r="1.7" fill="#111114"/><circle cx="31.4" cy="28.6" r="1.7" fill="#111114"/></g></svg><span class="h-2 w-px border-l border-dashed border-firefly inline-block"></span></div><button class="w-28 h-18 py-2 px-1 rounded-xl border-[1.5px] border-firefly bg-[rgba(40,28,14,0.85)] shadow-[0_0_12px_rgba(242,184,75,0.25)] flex flex-col items-center justify-center text-center group cursor-pointer focus:outline-none" type="button"><span class="material-symbols-outlined text-firefly text-[18px] mb-0.5">folder</span><span class="text-label-sm font-label-sm font-semibold text-firefly leading-tight">1 · bigger group</span><span class="text-[11px] text-[#f4efe8]/80 font-label-sm mt-0.5">Write here</span></button></div>
 <!-- Left Node: 'what it needs' -->
 <button class="absolute left-0 top-1/2 -translate-y-1/2 w-24 h-22 py-2 px-1 rounded-xl border border-dashed border-outline/50 bg-surface-container/60 hover:border-firefly/60 transition-colors flex flex-col items-center justify-center text-center group cursor-pointer focus:outline-none focus:border-firefly" type="button">
 <span class="material-symbols-outlined text-on-surface-variant text-[18px] mb-0.5">extension</span>
@@ -249,61 +238,7 @@
 </div>
 </section>
 <!-- Fact Desk Section -->
-<section aria-label="Fact Desk" class="flex flex-col gap-3 pt-1">
-<!-- Section Header -->
-<div class="flex items-center gap-2">
-<span class="w-2.5 h-2.5 rounded-full bg-firefly shrink-0 inline-block" style="box-shadow: 0 0 8px #f2b84b, 0 0 16px rgba(242,184,75,0.4);"></span>
-<h2 class="text-body-lg font-headline-md font-semibold text-[#f4efe8]">
-            Ask the firefly for a fact
-          </h2>
-</div>
-<!-- Q&A Transcript History Card -->
-<div class="w-full bg-surface-container rounded-xl p-3.5 border border-outline-variant/30 flex flex-col gap-2.5">
-<!-- Learner's prior question -->
-<div class="flex items-start gap-2">
-<span class="text-label-sm font-label-sm font-semibold text-on-surface-variant-dark shrink-0 pt-0.5">You:</span>
-<p class="text-label-sm font-body-md text-on-surface-dark leading-snug">
-              Does a closure keep a variable after the function ends?
-            </p>
-</div>
-<!-- Firefly's direct plain answer -->
-<div class="flex items-start gap-2 pt-1 border-t border-outline-variant/20">
-<div class="flex items-center gap-1 shrink-0 pt-0.5">
-<span class="w-2 h-2 rounded-full bg-firefly shrink-0 inline-block" style="box-shadow: 0 0 8px #f2b84b, 0 0 16px rgba(242,184,75,0.4);"></span>
-<span class="text-label-sm font-label-sm font-semibold text-firefly">Firefly:</span>
-</div>
-<p class="text-label-sm font-body-md text-[#f4efe8] leading-snug">
-              Yes. The inner function keeps a link to the variables around it.
-            </p>
-</div>
-</div>
-<!-- Interactive Input Field Glowing Amber -->
-<div class="relative w-full">
-<input class="w-full h-12 px-4 rounded-xl firefly-glow-input text-on-surface-dark placeholder-on-surface-variant/60 text-body-md font-body-md focus:outline-none focus:ring-1 focus:ring-firefly transition-all" id="fact-input" placeholder="Ask for a fact" style="background-color: #1f1d22; border: 1.5px solid #f2b84b; box-shadow: 0 0 12px rgba(242,184,75,0.25), 0 0 20px rgba(242,184,75,0.15); color: #f4efe8;" type="text"/>
-</div>
-<!-- Questions Asked Counter Row -->
-<div class="flex items-center justify-between px-1 text-label-sm font-label-sm text-on-surface-variant-dark">
-<span>Questions asked: 2</span>
-<!-- 4 small 8px squares (2 filled amber, 2 outlined empty) -->
-<div aria-label="2 of 4 questions used" class="flex items-center gap-1.5">
-<span class="w-2 h-2 rounded-[1px] bg-firefly" title="Used question"></span>
-<span class="w-2 h-2 rounded-[1px] bg-firefly" title="Used question"></span>
-<span class="w-2 h-2 rounded-[1px] border border-outline-variant" title="Available question"></span>
-<span class="w-2 h-2 rounded-[1px] border border-outline-variant" title="Available question"></span>
-</div>
-</div>
-<!-- Single Primary Action Button -->
-<button class="w-full h-[52px] mt-1 bg-[#f6f1ea] hover:bg-white active:scale-[0.99] transition-all rounded-xl flex items-center justify-center gap-2 text-on-primary-dark font-label-md font-semibold text-[16px] shadow-sm cursor-pointer" type="button">
-<span>Ask</span>
-<span class="material-symbols-outlined text-[18px]">
-            arrow_forward
-          </span>
-</button>
-<!-- Quiet Reassurance Line -->
-<p class="text-center text-[12px] font-body-md text-[#c9c0b4] pb-2">
-          Facts only. It never writes your answer for you.
-        </p>
-</section>
+<section aria-label="Actions and Fact Desk" class="flex flex-col gap-4 pt-1"><button class="w-full h-[52px] bg-[#f6f1ea] hover:bg-white active:scale-[0.99] transition-all rounded-xl flex items-center justify-center gap-2 text-on-primary-dark font-label-md font-semibold text-[16px] shadow-sm cursor-pointer" type="button"><span>Start: Bigger group</span><span class="material-symbols-outlined text-[18px]">arrow_forward</span></button><div class="flex flex-col gap-1.5 pt-1"><button class="w-full bg-surface-container rounded-xl p-3.5 border border-outline-variant/30 flex items-center justify-between text-left hover:border-outline-variant/60 transition-colors" type="button"><div class="flex items-center gap-2.5"><svg class="lumente-firefly " width="22" height="22" viewBox="0 0 56 56" aria-hidden="true" style="display:inline-block;vertical-align:middle;flex-shrink:0;opacity:1;"><g transform="translate(0 0)"><ellipse cx="19" cy="20" rx="8" ry="4.5" transform="rotate(-28 19 20)" fill="rgba(255, 240, 225, 0.4)"/><ellipse cx="37" cy="20" rx="8" ry="4.5" transform="rotate(28 37 20)" fill="rgba(255, 240, 225, 0.4)"/><path d="M24 18 L21 10 M32 18 L35 10" stroke="#c9c0b4" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="28" cy="30" r="10.5" fill="#f2b84b"/><circle cx="24.6" cy="28.6" r="1.7" fill="#111114"/><circle cx="31.4" cy="28.6" r="1.7" fill="#111114"/></g></svg><span class="text-label-md font-medium text-[#f4efe8]">Ask a fact (optional)</span></div><span class="material-symbols-outlined text-on-surface-variant text-[20px]">expand_more</span></button><p class="px-1 text-[12px] font-body-md text-[#c9c0b4]">Facts only. It never writes your answer for you.</p></div><div class="flex flex-col gap-1 pt-1"><button class="text-left text-label-md font-medium text-firefly underline underline-offset-4 hover:opacity-90 transition-opacity w-fit" type="button">Get a hint · −1 point</button><p class="text-[13px] font-body-md text-[#c9c0b4] leading-snug">For Bigger group. See the scoring effect before you confirm.</p></div><div class="pt-2 pb-2"><button class="w-full h-12 rounded-xl border border-outline/30 hover:border-outline-variant text-[#f4efe8] font-label-md font-medium text-[15px] flex items-center justify-center transition-colors active:scale-[0.99]" type="button">Review &amp; submit</button></div></section>
 </main>
 </div>
 </body></html>
