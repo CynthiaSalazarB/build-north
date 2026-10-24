@@ -324,6 +324,11 @@ export function shareLineOf(concept: string, result: Pick<Result, "predictedScor
 /** How a part earns its points (CONTRACTS.md section 3, `pointsFor`), in one line for the screens. */
 export const POINTS_RULE = "4 areas × 2 points = 8 points total. Points reflect what you can explain; your prediction records how confident you feel.";
 
+export const PREDICTION_TOTAL = "4 areas × 2 points = 8 possible points";
+export const PREDICTION_MEANING = "Your prediction reflects your confidence; your score reflects what you can explain.";
+export const predictionTaskOf = (concept: string): string => `Explain ${concept} across four areas of a concept map. Before you begin, predict your score out of 8.`;
+export const predictionStatusOf = (value: number | null): string => value === null ? "Choose a number first." : `Your prediction: ${value} of 8 points`;
+
 export const SCORING = [
   { points: 2, text: "A clear, complete answer on your first try, without a hint." },
   { points: 1, text: "A partly correct answer, or a correct one after a retry or hint." },
