@@ -29,7 +29,7 @@ in a pull request when it's done.
 | Item | What Devpost says | Owner | Date | Status |
 |---|---|---|---|---|
 | Public GitHub repo | "Your code, visible to judges and anyone else who wants to look." | Cynthia | done | public since Oct 19 |
-| Live link | "A deployed app, App Store listing, or test build" | Leo | Oct 24, at the freeze | https://reality-check.expo.app and the APK page |
+| Live link | "A deployed app, App Store listing, or test build" | Leo | Oct 24, at the freeze | https://lumente.expo.app and the APK page |
 | Demo video | Optional; "Four minutes or less, shareable link, no login required. Show what you built, how it works, and the key technology behind it." We plan 3:00 | Kyle (#48), script by Cynthia's Claude | Oct 24 evening, on the frozen build | |
 | Write-up | "What you built and why, your tech stack, and which partner platforms you used and how" | Cynthia and Kyle (#30, #51) | draft Oct 24 noon, numbers Oct 25 | |
 | Team | "List every team member by name, up to four." | Kyle | Oct 25 | |
