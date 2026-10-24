@@ -102,16 +102,16 @@ The free plan gives 15 Android builds a month, so builds are rare and updates ar
 
 Each merged app change goes out with `eas update --channel preview --environment preview` (the
 environment flag is required since SDK 55). The web build goes out with `npx expo export --platform
-web`, then `eas deploy --prod`, to `https://reality-check.expo.app`, which joins the API's `CORS_ORIGIN`
+web`, then `eas deploy --prod`, to `https://lumente.expo.app`, which joins the API's `CORS_ORIGIN`
 once #64 is live. Until then a copy in demo mode is up for review at
-`https://reality-check--review.expo.app`.
+`https://lumente--review.expo.app`.
 
 ## 4. Pillar 2: reach every judge
 
 | A judge with | Gets the app through | What we give them |
 |---|---|---|
 | An Android phone | The `preview` APK (EAS internal distribution) | The install link and a QR code on Devpost and in the README, with one line about allowing the install |
-| An iPhone or a laptop | The web build on EAS Hosting, which installs as a web app | `https://reality-check.expo.app`, with a page title, description and card from `generateMetadata()` so the link previews well. Share, then "Add to Home Screen": Lumente opens full screen with its own icon (`public/manifest.json`, `+html.tsx`) |
+| An iPhone or a laptop | The web build on EAS Hosting, which installs as a web app | `https://lumente.expo.app`, with a page title, description and card from `generateMetadata()` so the link previews well. Share, then "Add to Home Screen": Lumente opens full screen with its own icon (`public/manifest.json`, `+html.tsx`) |
 | No time | The video | Three minutes at most |
 
 There's no TestFlight: on Oct 21 the team decided against an Apple Developer account, since Apple's
@@ -243,7 +243,7 @@ Before we enter the Expo category:
 
 - [ ] The `preview` APK installs from the Devpost link on a phone that has never seen it, and a whole
       session works with Claude.
-- [ ] The web build at `reality-check.expo.app` plays a whole session, on a laptop and on an iPhone.
+- [ ] The web build at `lumente.expo.app` plays a whole session, on a laptop and on an iPhone.
 - [ ] At least one update shipped over the air and visible in the app.
 - [ ] A workflow run published an update and deployed the web build.
 - [ ] Nothing left from the template: icon, splash, Expo and React logos, tab icons.

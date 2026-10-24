@@ -6,7 +6,7 @@ import type { Metadata } from "expo-router/server";
 import { Platform } from "react-native";
 
 /** `site` is the production web build on EAS Hosting: link previews need absolute image addresses. */
-export const brand = { name: "Lumente", tagline: "Build with AI. Understand the concepts yourself.", site: "https://reality-check.expo.app" } as const;
+export const brand = { name: "Lumente", tagline: "Build with AI. Understand the concepts yourself.", site: "https://lumente.expo.app" } as const;
 
 /** A web page's metadata, in the static HTML: the title and description, and the same card (`public/og.png`) for a
  *  link shared in a chat or a post. Called only in Node, when the pages are exported. */

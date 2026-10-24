@@ -107,7 +107,7 @@ as closely as the code.
 | Innovation | An AI that won't do the thinking. The gap reveal and the role flip are the two demo moments | The new hook in the video and the deck |
 | Real-World Impact | One user, three sources, tester numbers, the cost of a session, who pays | The testers' sessions (P2). A session costs about $0.16 on Opus 5.5 (the API rehearsal, Oct 21) |
 | UI & Design | Lumente (round 9, Cynthia's design) in every screen, with its icon, splash and name (#81, #82, #89), and every state designed (waiting, error, empty, a small phone) | The new Android build with Lumente's icon (#89), and Reduce Motion |
-| Tech & Deployment | A contract-first monorepo with Zod at every boundary, the orchestrator in code, evals against Claude, 67 agent tests, 42 API tests and 28 app tests passing (Oct 22), budget and rate-limit stops | Everything deployed: the API on Render Starter, the web build at `reality-check.expo.app` (a review deploy is up), the Android builds (queued Oct 21), Clerk |
+| Tech & Deployment | A contract-first monorepo with Zod at every boundary, the orchestrator in code, evals against Claude, 67 agent tests, 42 API tests and 28 app tests passing (Oct 22), budget and rate-limit stops | Everything deployed: the API on Render Starter, the web build at `lumente.expo.app` (a review deploy is up), the Android builds (queued Oct 21), Clerk |
 | Security & Ethics | The Claude key only on the server, Clerk tokens checked without a network call, rate limits, the 95% budget stop, the learner's text fenced as data, 0 leaks in 10 from the fact desk, no streaks, adult testers who consent, tester data in its own database | Delete my data and the privacy note (#43), and a welcome line that says the tutor is an AI that asks and never hands over the answer |
 
 ## 4. The prizes we enter
@@ -218,7 +218,7 @@ web build, the demo seed on prod, and the testers' sessions, now on Oct 22 or 23
 | Done in #81 and #82: level 5 with the fact desk (#26) and the result screen with the gap (#34) | Leo |
 | Done: #77, #78 and #79 are merged. Still to do: load the demo seed on prod for the demo account | Leo |
 | Render Starter until Oct 30, paid with the Render credit (section 13), and the production settings (#59) | Leo |
-| The production web build at `reality-check.expo.app` with `CORS_ORIGIN` updated (E4), the `preview` APK on Kyle's phone, the first update, and the workflows' push trigger once Cynthia installs the Expo GitHub app (E7) | Leo, Cynthia |
+| The production web build at `lumente.expo.app` with `CORS_ORIGIN` updated (E4), the `preview` APK on Kyle's phone, the first update, and the workflows' push trigger once Cynthia installs the Expo GitHub app (E7) | Leo, Cynthia |
 | Delete my data and the privacy note (#43), since #81 already has the theme, icon, splash and haptics | Jonathan |
 | The Devpost draft and the slides (#30, #31) | Kyle |
 | Evening: a whole session with Claude on JWT, on an Android phone and on the web. Whatever breaks is the morning's list | Everyone |

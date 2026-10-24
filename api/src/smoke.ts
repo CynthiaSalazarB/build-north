@@ -4,7 +4,7 @@
 // npm run smoke -w api -- [api url] [web url]
 
 const API = process.argv[2]?.replace(/\/+$/, "") || "https://build-north-api.onrender.com";
-const WEB = process.argv[3]?.replace(/\/+$/, "") || "https://reality-check.expo.app";
+const WEB = process.argv[3]?.replace(/\/+$/, "") || "https://lumente.expo.app";
 
 type Check = { name: string; ok: boolean; detail: string };
 
