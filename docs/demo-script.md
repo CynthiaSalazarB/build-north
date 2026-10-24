@@ -92,7 +92,8 @@ In this order:
   it will reach level 5 and skip the questions.
 - Type the answers on stage. Voice works (the mic beside the field), but a room is noisy, and the words
   still need Send.
-- Google sign-in on the Android app needs Clerk's Android setting; the email code works without it. Sign
+- Google sign-in on the Android app uses Clerk's Android setting (added Oct 24, not yet tried on a phone);
+  the email code works either way. Sign
   both devices in before we go on, and keep them awake.
 - No tester names, no emails, on any screen or slide. The demo account's Memory sheet shows only numbers
   and dates.
