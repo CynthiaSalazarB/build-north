@@ -72,7 +72,8 @@ rejects both when `NODE_ENV=production` or when no `DEV_KEY` is set. Every route
 | `GET` | `/me/mastery` | | `Mastery` |
 | `GET` | `/me/memory` | | `MemoryView` (the Memory sheet; see [Memory](#memory-what-earlier-sessions-left)) |
 | `DELETE` | `/me/data` | | `204`, deletes sessions, logs and mastery, and purges the learner's memory (the delete button) |
-| `GET` | `/health` | | `{ ok: true }` |
+| `GET` | `/health` | | `{ ok: true, commit, memory }`: the running commit (7 characters, `null` locally) and `"on"` or `"off"` for Agent Memory (#143). Never touches the database, and the rate limit skips it |
+| `GET` | `/health/db` | | `{ ok: true, ... }` with SurrealDB's clock and the milliseconds it took (read-only); `503` when the database is not configured or does not answer. An ops check, not part of the app contract |
 
 One endpoint moves a session forward: `/turns`. The app sends the body the last `Turn`'s `expects`
 asks for: `prediction` → `{ prediction }`, `text` → `{ text }`, `continue` → `{ action: "continue" }`,
@@ -249,7 +250,7 @@ No other agent gets it.
 ```ts
 type MemoryFact = {
   id: string;            // what `cites` points at
-  text: string;          // one line from a template: "Level 3 on infraordinate for planet, since Oct 22."
+  text: string;          // one line from a template: "You moved up to level 3 on 'Its types' for planet on Oct 22."
   concept: string;
   move?: MoveId;         // facts about one move; absent on whole-map facts (the gap)
   level?: Level;

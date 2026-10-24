@@ -145,7 +145,7 @@ code, or with Google on the web. To skip the email, use any address that ends in
 `+clerk_test@example.com` and the code `424242`. Tap "API", then "Explore with guidance". Pick a
 prediction, explain the idea in your own words, and answer the four questions. Tap the firefly once to
 see what a hint costs. The result shows your prediction next to your score. "Your data" says what is
-kept, and "Delete my data" removes it. The full guide is [`docs/testing-notes.md`](testing-notes.md), which arrives with the README in PR #106.
+kept, and "Delete my data" removes it. The full guide is `docs/testing-notes.md`, which arrives with the README in PR #106 (not on `main` yet, so no link here).
 
 ## Team
 

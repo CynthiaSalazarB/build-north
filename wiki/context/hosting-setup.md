@@ -3,12 +3,21 @@ title: "Hosting setup: Render + SurrealDB Cloud"
 type: context
 related: ["[[surrealdb-sponsor-prize]]"]
 created: 2026-10-19
-updated: 2026-10-20
+updated: 2026-10-24
 ---
 
 Status on Oct 20, 12:35 AM: the API is live and locked until Clerk (#60). The #8 test passed on
 Oct 19: Render reached SurrealDB in 8 to 15 ms to write and 4 to 5 ms to read, and the whole request
 from Leo's laptop took 0.12 to 0.16 s.
+
+**Since Oct 20** (the sections below are the Oct 20 setup; the current settings are in `api/README.md`, "Deploy
+on Render", and the live state in [`status-oct22.md`](status-oct22.md)): the service runs `main`, Starter since
+Oct 22, with Auto-Deploy on every merge since Oct 22 (off from the Oct 24 freeze, `docs/deploy.md`). It sets no
+`NODE_ENV`, so every caller signs in with Clerk (#22, #23) and a `DEV_KEY` left there does nothing. `CORS_ORIGIN`
+lists the `lumente.expo.app` origins (#151). `REQUESTS_PER_MINUTE=240` since Oct 23. Agent Memory is on since
+Oct 23, 9:11 PM (`AGENT_MEMORY_*`, `LEARNER_ID_SALT`), and `/health` names the running commit and the memory
+state (#143). The API user is a database-level user (`SURREAL_AUTH_LEVEL=database`), and `/health/db` is
+read-only.
 
 ## SurrealDB Cloud
 
