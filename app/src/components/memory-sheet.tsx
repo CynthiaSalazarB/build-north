@@ -10,7 +10,7 @@ import { useSession } from "../session/session-context.tsx";
 import { space } from "../theme.ts";
 import { Body, Button, Label, Sheet, Small, Tag, Title, useColors } from "./ui.tsx";
 
-const INTRO = "Notes the app writes after each session: your level on each part, your guess against your score, the Helps a part took. Never your words. A level is how much help a part gets, from 1 (a worked example) to 5 (the whole map alone).";
+const INTRO = "Notes the app writes from each session's numbers, never your words. A level is how much help a part gets, from 1 (a worked example) to 5 (the whole map alone).";
 const DEMO = "Demo mode keeps nothing, so there is nothing to remember.";
 const EMPTY = "Nothing yet. Finish a session and come back.";
 

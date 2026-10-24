@@ -803,3 +803,16 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   trusted. The Android package `ca.buildnorth.realitycheck`, the app slug and the EAS project name stay as they are
   (a change there is a new app on every phone). The phones pick up the new Share link with the next update.
 
+### 2026-10-23 · The firefly hovers in place; its light still never pulses
+- **Decision:** the firefly drifts a few pixels around its spot, the way a firefly holds its place in the air: three
+  slow sines (3.4 s up and down, 5.2 s side to side, 4.3 s of tilt) whose periods never line up, at most 2.8 px, 1.8 px
+  and 2.5° at the 40 px size, each firefly starting at its own moment (`app/src/components/firefly.tsx`, `HOVER`).
+  Only `transform` moves, so nothing around it shifts; the dashed line keeps its anchor. With Reduce Motion the firefly
+  stays still.
+- **Instead of:** a firefly that never moves on its own (round 9: "nothing moves on its own"), or a pulsing glow.
+- **Why:** Leo, Oct 23 night: the screens should feel alive, and a living firefly is the one element that can move
+  without competing with the map or the light. The light rule of round 9 stands untouched: the halo and the body
+  never blink or pulse, and the light of the screen is still the score and nothing else.
+- **Pattern / trade-off:** motion on the UI thread (Reanimated), a few pixels, slow enough to read as holding still.
+  The hover's anchor is the layout box, so the leader line meets the firefly within 3 px rather than at its centre.
+

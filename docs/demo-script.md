@@ -24,9 +24,10 @@ in again between the two sessions costs about 15 seconds.
   questions. Start is open on API. The screen is mirrored; Do Not Disturb is on.
 - **The laptop** is signed in to the demo account, the one `npm run seed:demo -w api` put at level 5 on
   all four parts (today that is Leo's Google account: pick one Cynthia and Kyle can sign into `[account: Cynthia]`).
-  Two things have to be true for the Memory sheet to have something to show: one CORS session was
-  finished on this account before Demo Day with memory on, and PR #147 (the baseline level fact) is merged,
-  else each part reads "no level yet" and only the gap line shows.
+  One thing has to be true for the Memory sheet to have something to show: one CORS session was
+  finished on this account before Demo Day with memory on (on since Oct 23). #147, merged and on Render since
+  Oct 23 night, writes a level row for every finished part even when no level moved, so each part reads
+  "level 5 since …" instead of "no level yet"; a session finished before #147 left only the gap and the Helps.
 - During the warm-up, start the CORS session on the laptop ("Explore with guidance", predict 7, "Save my
   prediction") and fill three areas of the map with the answers Cynthia rehearsed: Bigger group, What it
   isn't, What it needs. Leave Its types empty. The draft survives a reload, and Start offers "Resume".
@@ -43,12 +44,12 @@ in again between the two sessions costs about 15 seconds.
 | 0:40 | **Session.** "Your first explanation" above the field; the map dark with its four areas | "First, your own words, before any help." | Type one sentence, rehearsed, for example "A way for one program to use another without seeing inside it" `[wording: Cynthia]`. Send. The firefly offers "See an example"; tap "Continue" |
 | 0:55 | **Bigger group.** The firefly's question, its dashed line to the Bigger group area; under the firefly the tag "help −1" | "The firefly asks about the four areas of the map, one at a time. It never writes the map. It is also Help, and help costs." | Tap the firefly. "Finding a hint." |
 | 1:05 | **The hint card.** Amber: "hint 1 of 3 · −1 pt", "this part can now light 1 point at most" | "One hint, and this area can now light one point instead of two. I'd have said 'a server'. An API runs on a server, but it isn't a kind of server. Related isn't the same as belonging." | Type "a software interface". Send. "Checking your answer." |
-| 1:18 | **The area lights.** One point square on Bigger group fills; the firefly's light grows a stage; the next question arrives | "Any answer you can defend passes. The light grows one stage per point. As you get areas right with little help, each one moves up a level and the help fades." | Tap the X, "Close and save". Start shows the card for API, "1 of 4 parts", with "Resume" |
+| 1:18 | **The area lights.** One point square on Bigger group fills; the firefly's light grows a stage; the evaluator's "Yes: …" line reads dim above the next question (#155) | "Any answer you can defend passes. The light grows one stage per point. As you get areas right with little help, each one moves up a level and the help fades." | Tap the X, "Close and save". Start shows the card for API, "1 of 4 parts", with "Resume" |
 | 1:30 | **Laptop, the whole map.** "Independent practice", "Build your map", three areas filled, Its types outlined, "3 of 4 areas filled", "Review & submit" | "After enough practice, all four areas reach level 5 and the roles flip. This account is there, on CORS. Now I ask the questions. I filled three areas in the warm-up; the last one goes in live." | Tap "Ask a fact (optional)" |
-| 1:40 | **The fact chat.** "Fact questions only. Write your answers on the map. Asking facts doesn't reduce your score." The field "Ask a factual question" | "The fact desk answers with facts only." | Type a fact question `[question: Cynthia]`, "Ask a fact". "Looking up the fact." Read the fact card aloud in a few words |
+| 1:40 | **The fact chat.** "Asking costs nothing. Answers go on the map." The field "Ask a factual question" | "The fact desk answers with facts only." | Type a fact question `[question: Cynthia]`, "Ask a fact". "Looking up the fact." Read the fact card aloud in a few words |
 | 1:50 | **The redirect.** The fact desk's fixed line: "That part is yours to decide. If you're stuck, tap Help (it costs a point)." | "And if I fish for the map, code answers, not the model." | Type a question that asks for the structure, for example "What is CORS a kind of?". "Ask a fact". An amber square per question appears in the header |
 | 2:00 | **Its types.** The area's sheet: "4 · Its types", the field "One kind of it", "Save answer" | "The last area, in my own words." | Tap Its types. Type `[Its types answer: Cynthia]`. "Save answer". "4 of 4 areas filled" |
-| 2:10 | **Review your map.** The four areas with their answers, "Submitting scores all four areas and ends this session." | "The whole map is scored together." | Tap "Review & submit", then "Submit my map". "Checking your map." |
+| 2:10 | **Review your map.** The four areas with their answers, "Submitting ends the session." | "The whole map is scored together." | Tap "Review & submit", then "Submit my map". "Checking your map." |
 | 2:20 | **The result.** The headline in words, for example "You felt 2 points surer than you could explain."; two rows of eight squares, "prediction 7 of 8" and "map score"; the questions line, "you asked N questions, M testing the idea"; the map in the light it reached; "for next time" with the coach's words | "The gap, in words. How sure I felt against what I could explain. The one number AI gets wrong for you. Every number on this screen comes from code, not from the model." | Point at the two rows. Wait for "for next time" |
 | 2:35 | **The Memory sheet.** "What Lumente remembers": CORS, the line "Last time, Oct 28: you guessed 7 and proved 5" `[real line: Cynthia]`, each part with "level 5 since …" and "the AI read this once" | "Between sessions, Lumente remembers your level on each area and your last gap. Notes code writes, never your words. A new level replaces the old one and keeps the history, and the coach you just read cited it." | Tap the dim line "From what Lumente remembers:" under the coach's words if it is there; else "Map another concept", then "Memory" at the top of Start |
 | 2:45 | **The deck, the numbers slide.** Then the closing slide | "Five students who code with AI tried it on Oct 23: `[numbers line: Cynthia]`. Next is Check the AI: the same loop pointed at what your coding agent wrote, so you judge its answer instead of trusting it. We're looking for a pilot with one CS program. The help fades. The understanding stays." | Switch to the deck |
@@ -66,7 +67,7 @@ says "Checking your answer." After 10 seconds the line adds "Taking longer than 
 | 10 to 15 | "Taking longer than usual." appears | "The server is slow tonight. Here is the same moment from our recording of this build." Switch the mirror to the laptop |
 | 15 to 30 | The video, at the chapter that matches the screen we left | Play it to the same point, then pause. Say it is the recording. When the phone catches up, switch back and go on from the script |
 
-Rules: we never show the replay as live. Demo mode ("Demo mode: a recorded session, no API") is a
+Rules: we never show the replay as live. Demo mode ("Demo mode: a recorded session") is a
 replay too, and if we ever open it on stage we say so. If the server is down for good, the video runs
 to the end and the deck takes the last 15 seconds.
 

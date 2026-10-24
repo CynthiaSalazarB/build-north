@@ -71,9 +71,8 @@ export function GuessScreen({ turn, pending, failure, onLock, onClose }: Props) 
             <ScrollView style={styles.words} contentContainerStyle={styles.wordsContent}>{form}</ScrollView>
             <View style={styles.stage}>
               <Rise order={1} style={styles.spot}>
-                <Label dim>Your map · 4 areas · 2 points each</Label>
+                <Label dim>Your map</Label>
                 <ConceptMap concept={turn.mentefacto.concept} parts={preview} />
-                <Small dim>Your answers will go here after you save your prediction.</Small>
               </Rise>
             </View>
           </View>
@@ -93,13 +92,12 @@ function Prediction({ concept, guess, pending, onChoose, footer, wide }: { conce
   const c = useColors();
   return (
     <Rise style={styles.column}>
-      <Label dim>Before you begin · your confidence</Label>
       <Title style={wide ? styles.display : styles.question}>How much can you explain on your own?</Title>
       <Body dim>{`You'll explain ${concept} across four areas of a concept map. Predict how many points your answers will earn.`}</Body>
       <Small>{POINTS_RULE}</Small>
-      {!wide && <Small dim>{MOVE_ORDER.map((move) => `${MOVE_LABEL[move]} · 2 pts`).join("\n")}</Small>}
+      {/* the phone has no map beside the numbers, so the areas are named once */}
+      {!wide && <Small dim>{`The four areas: ${MOVE_ORDER.map((move) => MOVE_LABEL[move].toLowerCase()).join(", ")}.`}</Small>}
       <View style={styles.picker}>
-        <Small>Choose your predicted score</Small>
         <View style={styles.numbers}>
           {Array.from({ length: MAX + 1 }, (_, value) => (
             <NumberChoice key={value} value={value} chosen={guess === value} pending={pending} onChoose={onChoose} />
@@ -114,7 +112,6 @@ function Prediction({ concept, guess, pending, onChoose, footer, wide }: { conce
         </View>
       </View>
       <ScoringGuide />
-      <Small dim>{"At the end, compare your prediction with your map's score to see how closely your confidence matches what you can explain."}</Small>
       {footer}
     </Rise>
   );

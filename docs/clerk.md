@@ -38,13 +38,15 @@ secrets here: the repo is public.
   (`api/src/store.ts`: `session.user`, `mastery.user`, both indexed). No email, no name, nothing else
   about the person is stored on our side.
 - **No token, no answer.** Every route except `/health` and `/health/db` answers `401` without a valid
-  token (`api/src/app.ts`), and `429` after 60 requests a minute from one address.
+  token (`api/src/app.ts`), and `429` past the rate limit: 60 requests a minute from one address by default
+  (`REQUESTS_PER_MINUTE`; 240 on Render since Oct 23, for a room on one Wi-Fi).
 
 ## Deleting yourself
 
-`DELETE /me/data` (`api/src/app.ts`) removes every session and mastery row keyed by the caller's Clerk
-user id. The app's "Delete my data" button (#43, in progress) calls it, then signs out. The Clerk
-account itself is the learner's to delete in Clerk's own account page.
+`DELETE /me/data` (`api/src/app.ts`) purges the caller's Agent Memory scope first, then removes every
+session, agent log and mastery row keyed by the caller's Clerk user id; if the purge fails, nothing is deleted
+and the answer is a `500`, so the learner can try again. The app's "Delete my data" button (#43, shipped in
+#103) calls it, then signs out. The Clerk account itself is the learner's to delete in Clerk's own account page.
 
 ## For judges: signing in without an inbox
 

@@ -3,11 +3,12 @@
 // "fades" is barely there on the result, where the learner's own light fills the screen. Its light does answer the
 // learner: under a finger or a pointer the halo spreads and the body warms (an asking firefly takes the "helps"
 // look, a fading one wakes to "asks"), eased in over 150 ms and back out, and on the web the glow leans a little
-// toward the pointer. Nothing moves on its own; with Reduce Motion the light still changes between the two looks,
-// instantly, and never leans.
-import { useEffect, useId, useState } from "react";
+// toward the pointer. It hovers in place, the way a firefly holds its spot in the air: a drift of a few pixels
+// (DECISIONS.md, Oct 23), while the light itself never moves on its own. With Reduce Motion it stays still and the
+// light still changes between the two looks, instantly, and never leans.
+import { useEffect, useId, useRef, useState } from "react";
 import { StyleSheet, type PointerEvent } from "react-native";
-import Animated, { Easing, interpolate, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming } from "react-native-reanimated";
+import Animated, { cancelAnimation, Easing, interpolate, useAnimatedStyle, useReducedMotion, useSharedValue, withDelay, withRepeat, withTiming } from "react-native-reanimated";
 import Svg, { Circle, Defs, Ellipse, G, Path, RadialGradient, Stop } from "react-native-svg";
 import { firefly, isWeb, motion } from "../theme.ts";
 import { decorative } from "./icons.tsx";
@@ -29,6 +30,15 @@ function litLook(state: FireflyState, size: number): { halo: number; reach: numb
 
 /** How far the glow leans toward the pointer at the firefly's edge, as a share of its size (4 px at 40 px). */
 const LEAN = 0.1;
+
+/** The hover: three slow sines whose periods never line up (ms), so the path never visibly repeats, with the reach
+ * of each as a share of the firefly's size (2.8 px up and down, 1.8 px side to side at 40 px) and a tilt in degrees.
+ * Slow enough to read as holding still, quick enough to read as alive. */
+const HOVER = { bob: 3400, sway: 5200, tilt: 4300, rise: 0.07, drift: 0.045, lean: 2.5 } as const;
+
+/** One leg of a sine: -1 to 1 and back, for ever, after its own delay so two fireflies never move in step. */
+const wave = (period: number, delay: number) =>
+  withDelay(delay, withRepeat(withTiming(1, { duration: period / 2, easing: Easing.inOut(Easing.sin) }), -1, true));
 
 const clamp = (n: number) => Math.max(-1, Math.min(1, n));
 
@@ -69,6 +79,31 @@ export function Firefly({ state = "asks", size, glow = false }: Props) {
     leanY.value = withTiming(y, { duration: motion.hover });
   };
 
+  // the hover, on the UI thread: each sine starts at its low point and at its own moment. With Reduce Motion, and
+  // on the result where the firefly has faded and the learner reads, the three stay at zero and nothing is scheduled
+  const bob = useSharedValue(-1);
+  const sway = useSharedValue(-1);
+  const tilt = useSharedValue(-1);
+  const phase = useRef(Math.random());
+  const rests = still || state === "fades";
+  useEffect(() => {
+    if (rests) {
+      bob.value = 0;
+      sway.value = 0;
+      tilt.value = 0;
+      return;
+    }
+    const start = phase.current * 1200;
+    bob.value = wave(HOVER.bob, start);
+    sway.value = wave(HOVER.sway, start * 0.6);
+    tilt.value = wave(HOVER.tilt, start * 1.3);
+    return () => {
+      cancelAnimation(bob);
+      cancelAnimation(sway);
+      cancelAnimation(tilt);
+    };
+  }, [rests, bob, sway, tilt]);
+
   // the halo is drawn at its lit size and opacity, and scaled and dimmed down to its resting look, so it never
   // blurs on the way up; a fading firefly's rests at nothing and comes up whole
   const haloReachMax = lit.reach;
@@ -76,7 +111,13 @@ export function Firefly({ state = "asks", size, glow = false }: Props) {
   const box = s + haloReachMax * 2;
   const restScale = (s + reach * 2) / box;
   const restOpacity = look.halo / haloOpacity;
-  const wholeStyle = useAnimatedStyle(() => ({ opacity: interpolate(g.value, [0, 1], [look.opacity, lit.opacity]) }), [look.opacity, lit.opacity]);
+  const wholeStyle = useAnimatedStyle(
+    () => ({
+      opacity: interpolate(g.value, [0, 1], [look.opacity, lit.opacity]),
+      transform: [{ translateY: bob.value * s * HOVER.rise }, { translateX: sway.value * s * HOVER.drift }, { rotate: `${tilt.value * HOVER.lean}deg` }],
+    }),
+    [look.opacity, lit.opacity, s],
+  );
   const haloStyle = useAnimatedStyle(
     () => ({
       opacity: interpolate(g.value, [0, 1], [restOpacity, 1]),

@@ -3,7 +3,7 @@ title: "Plan to win Build North"
 type: synthesis
 related: ["[[expo-prize-plan]]", "[[surrealdb-sponsor-prize]]", "[[hosting-setup]]"]
 created: 2026-10-20
-updated: 2026-10-23
+updated: 2026-10-24
 ---
 
 The team's plan until Demo Day. Leo wrote it on Oct 21, after the mentors told Cynthia the idea needs
@@ -106,9 +106,9 @@ as closely as the code.
 |---|---|---|
 | Innovation | An AI that won't do the thinking. The gap reveal and the role flip are the two demo moments | The new hook in the video and the deck |
 | Real-World Impact | One user, three sources, tester numbers, the cost of a session, who pays | The testers' sessions (P2). A session costs about $0.16 on Opus 5.5 (the API rehearsal, Oct 21) |
-| UI & Design | Lumente (round 9, Cynthia's design) in every screen, with its icon, splash and name (#81, #82, #89), and every state designed (waiting, error, empty, a small phone) | The new Android build with Lumente's icon (#89), and Reduce Motion |
-| Tech & Deployment | A contract-first monorepo with Zod at every boundary, the orchestrator in code, evals against Claude, 67 agent tests, 42 API tests and 28 app tests passing (Oct 22), budget and rate-limit stops | Everything deployed: the API on Render Starter, the web build at `lumente.expo.app` (a review deploy is up), the Android builds (queued Oct 21), Clerk |
-| Security & Ethics | The Claude key only on the server, Clerk tokens checked without a network call, rate limits, the 95% budget stop, the learner's text fenced as data, 0 leaks in 10 from the fact desk, no streaks, adult testers who consent, tester data in its own database | Delete my data and the privacy note (#43), and a welcome line that says the tutor is an AI that asks and never hands over the answer |
+| UI & Design | Lumente (round 9, Cynthia's design) in every screen, with its icon, splash and name (#81, #82, #89), and every state designed (waiting, error, empty, a small phone) | Done: build 3 with Lumente's icon (Oct 22, `docs/expo-log.md`); Reduce Motion is honoured everywhere, the firefly's hover included (#158). Judge-facing polish shipped Oct 23 night (#153, #154, #155) |
+| Tech & Deployment | A contract-first monorepo with Zod at every boundary, the orchestrator in code, evals against Claude, 67 agent tests, 42 API tests and 28 app tests passing (Oct 22), budget and rate-limit stops | Done: the API on Render Starter with Agent Memory on, the web build at `lumente.expo.app` (#151), build 3 on the phones, Clerk (`wiki/context/status-oct22.md`) |
+| Security & Ethics | The Claude key only on the server, Clerk tokens checked without a network call, rate limits, the 95% budget stop, the learner's text fenced as data, 0 leaks in 10 from the fact desk, no streaks, adult testers who consent, tester data in its own database | Done: Delete my data and the privacy note (#43, in #103). Open: a welcome line that says the tutor is an AI that asks and never hands over the answer |
 
 ## 4. The prizes we enter
 
@@ -145,6 +145,12 @@ installs as a web app, the live update check, the version line in Your data, Obs
 session survives a reload or a killed app, Share on the result) and #136 (the prediction picker, the map-first
 self-test, Expo's ESLint). What shipped when is in `docs/expo-log.md`.
 
+Oct 23 night: the site is `lumente.expo.app` (#151, the Share link follows), the judge-facing polish (#153: the
+phone's fact chat follows each reply, learner wording for a 401 and a 5xx, a visible focus edge), the guess light
+(#154), the feedback line above the next question (#155), one `preview` channel for every phone (#148, DECISIONS.md),
+all shipped by hand at about 11:05 PM from `main` at `6adbc84` (`docs/expo-log.md`). The firefly's hover (#158,
+#159) merged after that Ship and goes out with the next one.
+
 ### Best Use of Clerk
 
 Clerk asks teams to use it for sign-in and sessions instead of building their own. The API checks
@@ -170,8 +176,10 @@ history, a message traces back to the facts it cites, and more than one agent's 
 out. Levels still come from code, so memory never changes a score. Kill rule (decided): if it
 isn't working by Oct 24 noon, the flag stays off and the write-up doesn't claim it. **Oct 23: #130 merged**
 (the live smoke passes); the app update that carries it shipped the same day (`docs/expo-log.md`), and the flag
-on Render is the step left, decided to go on before the first tester (`DECISIONS.md`, Oct 23). What the live
-context does is on the [prize page](../context/surrealdb-sponsor-prize.md).
+went on in production at 9:11 PM, before the first tester (`DECISIONS.md`, Oct 23), so the kill rule was met.
+Oct 23 night: the evidence page for a judge, with each criterion's code pointers and unit tests (#144), and #147,
+so a part's first finished session leaves its level row even when no level moved (the demo account included).
+What the live context does is on the [prize page](../context/surrealdb-sponsor-prize.md).
 
 ### What we skip
 
@@ -210,6 +218,11 @@ web build, the demo seed on prod, and the testers' sessions, now on Oct 22 or 23
 web build is live at `lumente.expo.app` from `main`, and the demo account is seeded in `prod`
 (`wiki/context/status-oct22.md`, `docs/expo-log.md`). Merged on Oct 23: #103, #104, #124 to #130 and #132 to
 #141 (`git log main`).
+
+**Status on Oct 24, after the Oct 23 night merges:** #144 to #159 are in `main`, and everything up to #155 is
+on the phones and the website since the 11:05 PM Ship (`main` at `6adbc84`; `wiki/context/status-oct22.md`).
+Agent Memory has been on in production since Oct 23, 9:11 PM. Open from the plan: #106 (the README, a draft until
+the freeze), the Devpost numbers and the video.
 
 ### Oct 21: unblock
 
@@ -252,7 +265,7 @@ web build is live at `lumente.expo.app` from `main`, and the demo account is see
 |---|---|
 | Prompt fixes (#40) and the top three usability fixes. #43 is in (#103); the mastery screen (#42) was cut on Oct 22 (`DECISIONS.md`) | Cynthia, Jonathan |
 | The numbers export (#50, built in #104: `npm run export:testers -w api`) and the start of hand grading (#49) | Leo, Cynthia |
-| 6 PM freeze (#45): the `production` Android build, the last update, the last web deploy. Nothing ships after | Leo |
+| 6 PM freeze (#45): an Android build only if the fingerprint changed, with the `preview` profile (decided Oct 23, "One update channel for every phone", `DECISIONS.md`: the `production` profile stays unused), the last update, the last web deploy. Nothing ships after | Leo |
 | Evening: the rehearsal (#41) and the video (#48), both on the frozen build | Cynthia, Kyle |
 
 ### Oct 25: submit by 9 PM
@@ -320,7 +333,8 @@ Taken, each in `DECISIONS.md` or noted here:
 7. Toronto on Oct 29: Cynthia and Kyle go; Leo and Jonathan confirm.
 8. Sign-in by email code and Google (Cynthia, Oct 22).
 9. We enter the SurrealDB Agent Memory prize after all (Cynthia, Oct 22, reversing the same morning's
-   skip): facts built in code, never the learner's words (#99, #107, #112; section 4). #130 merged on Oct 23.
+   skip): facts built in code, never the learner's words (#99, #107, #112; section 4). #130 merged on Oct 23,
+   on in production since 9:11 PM that day; the evidence page (#144) and the baseline level row (#147) followed.
 
 Still open:
 

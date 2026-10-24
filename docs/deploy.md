@@ -56,8 +56,9 @@ that works with both the old and the new version of the other.**
 
 Example, #108 (the result shows before the coach's words): the new app works with the old API and the new
 one, while the old app with the new API would show a stray Continue button. So: Ship first, then the
-Render deploy. The same order holds for #130's memory fields: Ship first (a build without `cites` and `sources`
-rejects a Turn that carries them), then `AGENT_MEMORY_ENABLED=true` on Render.
+Render deploy. The same order held for #130's memory fields: Ship first (a build without `cites` and `sources`
+rejects a Turn that carries them), then `AGENT_MEMORY_ENABLED=true` on Render (done Oct 23: the update at about
+12:50 PM, the flag at 9:11 PM).
 
 With Auto-Deploy on, the API changes the moment the pull request merges, before anyone can Ship. So when
 the app has to go first, split the change in two pull requests: the app's part first (merge it and Ship),
@@ -111,7 +112,8 @@ organization.
 ## What could be automatic
 
 - **Ship on every merge:** the Ship workflow already says `on: push: main`; it only needs the Expo GitHub
-  app installed on the repository (the owner installs it).
+  app installed on the repository (the owner installs it). Until then every Ship is run by hand, the Oct 23
+  night one included (`expo-log.md`), so a merge to `main` alone changes nothing on the phones or the website.
 - **Render on every merge:** already on (Auto-Deploy). It goes off at the freeze (Oct 24), so nothing
   changes production during the demo unless a person chooses it.
 
