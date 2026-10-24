@@ -430,6 +430,30 @@ export function lastPartNoteOf(entries: readonly Entry[]): Partial<Record<MoveId
   return words && asked?.move ? { [asked.move]: words.message.text } : {};
 }
 
+/** What closed each part of a guided session, so a lit or revealed area can open and be read again (Cynthia, Oct
+ * 24): the evaluator's words on the right answer, or the answer shown to the learner. A part closes where its name
+ * comes (`named_move`); the part is the one the last question asked, and the words are the last feedback or reveal
+ * before the name. A session picked up after a reload holds only its latest Turn, so earlier parts have none. */
+export function partClosingsOf(entries: readonly Entry[]): Partial<Record<MoveId, { text: string; revealed: boolean }>> {
+  const closings: Partial<Record<MoveId, { text: string; revealed: boolean }>> = {};
+  let asking: MoveId | null = null;
+  let words: { text: string; revealed: boolean } | null = null;
+  for (const e of entries) {
+    if (e.from !== "app") continue;
+    const { message } = e;
+    if (message.kind === "question") {
+      if (e.move) asking = e.move;
+      words = null;
+    } else if (message.kind === "feedback" && message.agent === "evaluator") words = { text: message.text, revealed: false };
+    else if (message.kind === "hint" && message.hintStep === "reveal") words = { text: message.text, revealed: true };
+    else if (message.kind === "named_move" && asking && words) {
+      closings[asking] = words;
+      words = null;
+    }
+  }
+  return closings;
+}
+
 /** What to paste into a coding agent in your project, so its answer can go in your notes. */
 /** The dim line under a hint or the coach's words with memory on (#112): the facts the text relies on, in their
  * own sentences, which code wrote from the session's numbers. */

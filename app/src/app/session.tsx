@@ -4,7 +4,7 @@
 // stays static (decision 14, #27). Closing saves: the start screen offers to resume. In the website layout the
 // conversation is a column on the left, under its pinned question, and the map stands on the right, where the
 // light falls; the firefly's line runs across the gap between them.
-import type { Turn } from "@build-north/agents";
+import type { MoveId, Turn } from "@build-north/agents";
 import { ObserveInteractiveMarker } from "expo-observe";
 import { Redirect, useRouter } from "expo-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -14,6 +14,7 @@ import { Composer } from "../components/composer.tsx";
 import { ConceptMap } from "../components/concept-map.tsx";
 import { GuessScreen } from "../components/guess.tsx";
 import { Ask, Aside, ExampleIntro, ExampleSteps, FactCard, Failure, HintCard, LearnerMessage, Nudge, Revealed, useSlow, Waiting } from "../components/messages.tsx";
+import { PartSheet } from "../components/part-sheet.tsx";
 import { ResultScreen } from "../components/result.tsx";
 import { SessionBar } from "../components/session-bar.tsx";
 import { SiteHeader } from "../components/site-header.tsx";
@@ -33,6 +34,7 @@ import {
   justLitOf,
   lastPartNoteOf,
   leadOf,
+  partClosingsOf,
   partNotesOf,
   partsOf,
   provedOf,
@@ -91,6 +93,7 @@ export default function SessionScreen() {
         map={turn.mentefacto}
         notes={partNotesOf(resultMessagesOf(state.entries))}
         lastPart={lastPartNoteOf(state.entries)}
+        closings={partClosingsOf(state.entries)}
         coachFailure={coachDue && state.failure ? state.failure.message : null}
         coachSources={turn.messages.find((message) => message.kind === "summary")?.sources}
         onRetryCoach={retry}
@@ -134,6 +137,12 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   const shown = offered ? entries.filter((e) => !(e.from === "app" && e.phase === "example")) : entries;
   const example = turn.phase === "example" && turn.example && exampleOpen ? turn.example : null;
   const parts = example ? exampleParts(example) : partsOf(turn, all, { held });
+  // a lit or revealed area opens to be read again, with what closed it (Cynthia, Oct 24); the worked example's map
+  // has nothing of the learner's to open
+  const [openPart, setOpenPart] = useState<MoveId | null>(null);
+  const closings = partClosingsOf(all);
+  const partSheet = <PartSheet view={openPart && !example ? (parts.find((p) => p.move === openPart) ?? null) : null} closing={openPart ? (closings[openPart] ?? null) : null} onClose={() => setOpenPart(null)} />;
+  const onPartOpen = example ? undefined : setOpenPart;
   const lit = held ? null : justLitOf(turn);
   const pending = state.pending !== null;
 
@@ -203,8 +212,9 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
             </ScrollView>
           }
           composer={composer}
-          map={(onGeometry) => <ConceptMap concept={concept} parts={parts} justLit={lit} pulse={turn.turn} onGeometry={onGeometry} />}
+          map={(onGeometry) => <ConceptMap concept={concept} parts={parts} justLit={lit} pulse={turn.turn} onPartOpen={onPartOpen} onGeometry={onGeometry} />}
         />
+        {partSheet}
       </Screen>
     );
   }
@@ -223,6 +233,7 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
               justLit={lit}
               pulse={turn.turn}
               leaderFrom={askedNow ? { x: size.iconButton / 2, y: place.map + CONVERSATION_GAP + place.ask + 2 } : null}
+              onPartOpen={onPartOpen}
             />
           </View>
           <View style={styles.conversation}>
@@ -232,6 +243,7 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
         </ScrollView>
         {composer}
       </KeyboardSafe>
+      {partSheet}
     </Screen>
   );
 }
