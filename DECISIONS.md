@@ -648,8 +648,9 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   a custom domain (a paid EAS feature, and one more thing to own before Demo Day).
 - **Why:** the link is the first thing a judge or a Devpost reader sees, and it said the old name. Cynthia asked for
   the change the night the testers finished (Oct 23), the one window where no tester holds a live link.
-- **Pattern / trade-off:** Expo reserves a released subdomain for ever, so the old addresses stop working the moment
-  the name changes: every old link (the testers' message, the Oct 22 status page, #106's draft) is dead, and the
-  Android package `ca.buildnorth.realitycheck`, the app slug and the EAS project name stay as they are (a change
-  there is a new app on every phone). The phones pick up the new Share link with the next update.
+- **Pattern / trade-off:** Expo reserves a released subdomain for ever and allows three changes in all. Right after
+  the change the old addresses still answered (Expo says old deployments keep working), but we no longer own the
+  name, so every old link (the testers' message, the Oct 22 status page, #106's draft) gets replaced rather than
+  trusted. The Android package `ca.buildnorth.realitycheck`, the app slug and the EAS project name stay as they are
+  (a change there is a new app on every phone). The phones pick up the new Share link with the next update.
 
