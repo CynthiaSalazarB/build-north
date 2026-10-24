@@ -7,6 +7,7 @@ import {
   createMemoryApi,
   dateOf,
   entityOf,
+  factOf,
   factText,
   factsOf,
   factsToWrite,
@@ -17,6 +18,7 @@ import {
   viewOf,
   withMemory,
   type MemoryApi,
+  type MemoryEntity,
   type MemoryRow,
 } from "./memory.ts";
 import { initialSession } from "./store.ts";
@@ -382,4 +384,125 @@ test("only the hint giver and the coach receive memory, read once per Turn, and 
   assert.deepEqual(turn.messages[0]?.sources, [{ id: "attr_gap1", text: "Last time on API you guessed 7 and proved 4." }]);
   assert.equal("sources" in turn.messages[1]!, false);
   assert.equal("sources" in turn.messages[2]!, false);
+});
+
+// ---------- What the prize page points at (wiki/context/surrealdb-sponsor-prize.md): the chain, the keys, the order ----------
+
+// A stand-in for the store behind memory's REST API, doing to a second write of a key what the live context did on
+// Oct 23: the new row carries `supersedes`, and the earlier row of the same key is closed by `validUntil`.
+function supersedingMemory() {
+  const stored = new Map<string, MemoryRow[]>();
+  let ids = 0;
+  const { seen, api } = fakeMemory((method, path, body) => {
+    if (method === "POST" && path.endsWith("/scopes")) return { status: 201, json: body };
+    if (method === "POST" && path.endsWith("/facts")) {
+      const { labels, triples } = body as { labels: string[]; triples: { entity: MemoryEntity; key: string; value: string; occurred_at: string }[] };
+      for (const { entity, key, value, occurred_at } of triples) {
+        const rows = stored.get(entity.name) ?? [];
+        const earlier = rows.find((candidate) => candidate.key === key && !candidate.validUntil);
+        if (earlier) earlier.validUntil = occurred_at;
+        rows.push({ id: `attr_${++ids}`, key, value, createdAt: occurred_at, validFrom: occurred_at, validUntil: null, supersedes: earlier?.id ?? null, labels, source: { kind: "upsert" } });
+        stored.set(entity.name, rows);
+      }
+      return { status: 200, json: { mode: "triples" } };
+    }
+    if (method === "GET" && path.includes("/history")) {
+      const name = decodeURIComponent(path.slice(path.indexOf("/topic/") + "/topic/".length, path.indexOf("/history")));
+      const rows = stored.get(name);
+      return rows ? { status: 200, json: { history: rows, page: { hasMore: false } } } : { status: 404, json: { message: "entity not found" } };
+    }
+    return { status: 404, json: { message: "no" } };
+  });
+  return { seen, api, stored };
+}
+
+test("a later session's write of the same key supersedes the earlier one: the view shows the chain closed, and the next session's facts name what they replaced", async (t) => {
+  // the API stamps each write with its clock, so the clock is set per session
+  t.mock.timers.enable({ apis: ["Date"], now: new Date(EARLIER) });
+  const { api, stored } = supersedingMemory();
+  const memory = createLearnerMemory(api, { salt: "pepper" });
+  // session 1 on API: 'Bigger group' to level 2, 7 guessed and 4 proved; then session 2 (above): to level 3, 'What it isn't' down to 1, 7 and 3
+  await memory.remember("user_2leo", { ...finished, id: "s1", turn: 14, result: { ...finished.result!, score: 4, calibrationGap: 3, masteryChanges: [{ move: "supraordinate", from: 1, to: 2 }] } });
+  t.mock.timers.setTime(new Date(AT).getTime());
+  await memory.remember("user_2leo", finished);
+  const iso = (at: string) => new Date(at).toISOString();
+  const [rows] = [...stored.values()];
+  // memory holds both rows of the key: the earlier one closed the instant the later one started, the later one naming it
+  const chain = rows!.filter((entry) => entry.key === "level_supraordinate");
+  assert.deepEqual(
+    chain.map((entry) => [entry.validFrom, entry.validUntil, entry.supersedes]),
+    [
+      [iso(EARLIER), iso(AT), null],
+      [iso(AT), null, chain[0]!.id],
+    ],
+  );
+  // 13 rows: level_supraordinate twice, level_exclusion once, gap twice, each help_<move> twice; 6 of them replaced one
+  assert.equal(rows!.length, 13);
+  assert.equal(rows!.filter((entry) => entry.supersedes).length, 6);
+  // the Memory sheet: the chain newest first, the old level closed when the new one started, with who read each row
+  const view = await memory.view("user_2leo", ["API"], [[chain[0]!.id], [chain[0]!.id, chain[1]!.id]]);
+  assert.deepEqual(view.concepts[0]?.moves[0], {
+    move: "supraordinate",
+    level: 3,
+    history: [
+      { level: 3, since: iso(AT), until: null, source: "upsert", writtenBy: "evaluator", readBy: 1 },
+      { level: 2, since: iso(EARLIER), until: iso(AT), source: "upsert", writtenBy: "evaluator", readBy: 2 },
+    ],
+  });
+  assert.deepEqual(view.concepts[0]?.moves[1], { move: "exclusion", level: 1, history: [{ level: 1, since: iso(AT), until: null, source: "upsert", writtenBy: "evaluator", readBy: 0 }] });
+  assert.deepEqual(view.concepts[0]?.gap, {
+    latest: { sessionId: "s2", at: iso(AT), predictedScore: 7, score: 3, gap: 4 },
+    previous: { sessionId: "s1", at: iso(EARLIER), predictedScore: 7, score: 4, gap: 3 },
+  });
+  // a third session reads the current value of each key, with the id it replaced
+  const third = await memory.recall("user_2leo", "API", "s3");
+  const level = third?.facts.find((fact) => fact.move === "supraordinate" && fact.writtenBy === "evaluator");
+  assert.deepEqual([level?.id, level?.level, level?.supersedes, level?.sessionId], [chain[1]!.id, 3, chain[0]!.id, "s2"]);
+  assert.equal(third?.facts.length, 7);
+  // session 2's own coach reads only what session 1 left, none of which replaced anything
+  const own = await memory.recall("user_2leo", "API", "s2");
+  assert.equal(own?.facts.length, 6);
+  assert.ok(own?.facts.every((fact) => fact.sessionId === "s1" && fact.supersedes === undefined));
+});
+
+test("the view's chain is newest first whatever order memory lists the rows, a tie on since goes to the later row, and a row with less on it still reads", () => {
+  const listed = [...rows].reverse();
+  assert.deepEqual(viewOf("API", listed, readCountsOf([])), viewOf("API", rows, readCountsOf([])));
+  assert.deepEqual(factsOf(listed, "API", "s3").map((fact) => fact.id), factsOf(rows, "API", "s3").map((fact) => fact.id));
+  // two rows current from the same instant: the one memory created later is the current one
+  const tie = [
+    row("attr_iso_a", "level_isoordinate", "x", { ...s1, writer: "evaluator", move: "isoordinate", level: 2 }, { since: EARLIER }),
+    { ...row("attr_iso_b", "level_isoordinate", "x", { ...s2, writer: "evaluator", move: "isoordinate", level: 3 }, { since: EARLIER }), createdAt: AT },
+  ];
+  assert.deepEqual(viewOf("API", tie, readCountsOf([])).moves[2]?.history.map((entry) => entry.level), [3, 2]);
+  assert.equal(viewOf("API", [...tie].reverse(), readCountsOf([])).moves[2]?.level, 3);
+  // a row with no validFrom starts at createdAt, a source kind the contract doesn't know reads as upsert, and a row with
+  // no writer label is written by the agent whose work that kind of fact records
+  const bare: MemoryRow = { id: "attr_bare", key: "level_infraordinate", value: "x", createdAt: AT, labels: ["session=s2", "level=4"], source: { kind: "something_new" } };
+  assert.deepEqual(viewOf("API", [bare], readCountsOf([])).moves[3], { move: "infraordinate", level: 4, history: [{ level: 4, since: AT, until: null, source: "upsert", writtenBy: "evaluator", readBy: 0 }] });
+  assert.equal(factOf(bare, "API")?.since, AT);
+  // the read counts: one per agent call that received the row, whatever else the call received
+  const counts = readCountsOf([["attr_sup1", "attr_gap1"], ["attr_sup1"], ["attr_sup2", "attr_sup1"], []]);
+  assert.deepEqual([...counts], [["attr_sup1", 3], ["attr_gap1", 1], ["attr_sup2", 1]]);
+  assert.deepEqual(viewOf("API", rows, counts).moves[0]?.history.map((entry) => entry.readBy), [1, 3]);
+});
+
+test("the keys memory holds are level_<move>, gap and help_<move>, under an entity name any concept can take; a row under another key is never a fact", () => {
+  // lowercase letters, digits and underscores only, so memory's own name rules (a dot folds to an underscore) change nothing
+  for (const [concept, name] of [["Node.js", "node_js"], ["  CORS  ", "cors"], ["Env-Var 1", "env_var_1"], ["¿Qué es?", "qu_es"], ["!!!", "concept"]] as const) {
+    assert.equal(entityOf("a1b2c3d4", concept).name, `a1b2c3d4_${name}`);
+  }
+  assert.deepEqual(
+    factsToWrite(finished, AT).map((write) => write.key),
+    ["level_supraordinate", "level_exclusion", "gap", "help_supraordinate", "help_exclusion", "help_isoordinate", "help_infraordinate"],
+  );
+  // a row is a fact only under one of those keys, with a part the method knows, and with the session that wrote it
+  const labels = { ...s1, writer: "evaluator", level: 2 };
+  assert.equal(factOf(row("attr_1", "level_spelling", "x", labels), "API"), null);
+  assert.equal(factOf(row("attr_2", "help_", "x", labels), "API"), null);
+  assert.equal(factOf(row("attr_3", "mood", "x", labels), "API"), null);
+  assert.equal(factOf(row("attr_4", "gap", "x", { writer: "coach", predicted: 7, score: 3 }), "API"), null);
+  // a gap fact has no part and no level, and names the gap it replaced
+  const gap = factOf(rows[4]!, "API");
+  assert.deepEqual([gap?.move, gap?.level, gap?.supersedes, gap?.writtenBy], [undefined, undefined, "attr_gap1", "coach"]);
 });

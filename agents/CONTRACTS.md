@@ -10,7 +10,7 @@ Three layers, three pairs of people:
 |---|---|---|
 | App ↔ API | Jonathan + Leo | [1. API and the `Turn`](#1-api-and-the-turn) |
 | API ↔ agents | Leo + Cynthia | [2. Agents](#2-agents) |
-| What's stored | Leo | [3. State in SurrealDB](#3-state-in-surrealdb) |
+| What's stored | Leo | [4. State in SurrealDB](#4-state-in-surrealdb) |
 
 **The rule behind the split: numbers in code, words in the model.** Code picks the level, the hint
 step, the points, the calibration gap and the mastery update, so the numbers on the slide are
