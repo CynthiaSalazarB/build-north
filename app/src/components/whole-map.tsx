@@ -1,9 +1,10 @@
 // The learner writes answers on the map; the optional fact desk answers factual questions.
 // Firefly's navigation cue highlights the next empty area without giving conceptual help or changing scores.
-import { MOVE_LABEL, MOVE_ORDER, type Item, type Mentefacto, type MoveId, type Turn } from "@build-north/agents";
+import { MOVE_ORDER, type Item, type Mentefacto, type MoveId, type Turn } from "@build-north/agents";
 import { useRef, useState, type ReactNode } from "react";
 import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from "react-native";
 import Animated from "react-native-reanimated";
+import { AREA_LABEL, areaCopyOf } from "../area-copy.ts";
 import { categoryContextOf, chatKeyOf, deskOf, filledOf, hintNumberOf, hintPartOf, itemsOf, mapQuestionOf, nextPartOf, partMeaningOf, partTextOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
 import type { LearnerInput } from "../session/session-context.tsx";
 import type { SessionState } from "../session/transcript.ts";
@@ -114,9 +115,9 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
             // Count from the Turn's total so a resumed session still names the correct area.
             const n = hintNumberOf(turn.progress.hintsUsed, hints.length, hints.indexOf(entry.id));
             line = message.hintStep === "reveal"
-              ? <View style={styles.guideText}><Label dim>{`${MOVE_LABEL[hintPartOf(n)]} · 0 points`}</Label><Revealed text={message.text} /></View>
+              ? <View style={styles.guideText}><Label dim>{`${AREA_LABEL[hintPartOf(n)]} · 0 points`}</Label><Revealed text={message.text} /></View>
               : <HintCard message={message} n={(n % 4) + 1} capNote={n % 4 === 0} part={PARTS[hintPartOf(n)].label} concept={concept} />;
-          } else line = <Body>{message.text}</Body>;
+          } else line = <Body>{areaCopyOf(message.text)}</Body>;
         }
         return line ? <Animated.View key={entry.id} style={entrance()}>{line}</Animated.View> : null;
       })}
@@ -134,7 +135,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
       {help && (
         <View style={styles.hintControl}>
           <Button kind="hintLink" label={help.tag === "help −1" ? "Get a hint · −1 point" : "More help"} disabled={pending} onPress={() => setHintOpen(true)} style={styles.start} />
-          <Small dim>{`For ${MOVE_LABEL[hintMove]}. See the scoring effect before you confirm.`}</Small>
+          <Small dim>{`For ${AREA_LABEL[hintMove]}. See the scoring effect before you confirm.`}</Small>
         </View>
       )}
     </View>
@@ -365,7 +366,7 @@ function HintSheet({ open, move, hintsUsed, onClose, onConfirm }: { open: boolea
   const first = hintsUsed % 4 === 0;
   return (
     <Sheet open={open} onClose={onClose} label="hint">
-      <Title style={styles.title}>{`${reveal ? "Reveal" : "Hint for"} ${MOVE_LABEL[move]}?`}</Title>
+      <Title style={styles.title}>{`${reveal ? "Reveal" : "Hint for"} ${AREA_LABEL[move]}?`}</Title>
       <Body>{reveal ? "This shows the answer. This area will score 0 points." : first ? "This hint limits this area to 1 point instead of 2." : "This area is already limited to 1 point. This hint doesn't reduce it further."}</Body>
       <Small dim>{"Hints follow the map's area order, even if you are editing another area."}</Small>
       <Button label={reveal ? "Reveal answer · 0 points" : "Get hint"} onPress={onConfirm} />
@@ -376,14 +377,14 @@ function HintSheet({ open, move, hintsUsed, onClose, onConfirm }: { open: boolea
 
 /** Review before a final submit, with a clear warning for empty areas. */
 function SubmitSheet({ open, map, onClose, onSubmit }: { open: boolean; map: Mentefacto; onClose: () => void; onSubmit: () => void }) {
-  const empty = MOVE_ORDER.filter((move) => partTextOf(map, move) === null).map((move) => MOVE_LABEL[move]);
+  const empty = MOVE_ORDER.filter((move) => partTextOf(map, move) === null).map((move) => AREA_LABEL[move]);
   return (
     <Sheet open={open} onClose={onClose} label="map review">
       <Title style={styles.title}>Review your map</Title>
       <ScrollView style={styles.review} contentContainerStyle={styles.reviewRows}>
         {MOVE_ORDER.map((move) => (
           <View key={move} style={styles.reviewRow}>
-            <Small>{MOVE_LABEL[move]}</Small>
+            <Small>{AREA_LABEL[move]}</Small>
             <Small dim>{itemsOf(map, move).map((item) => item.value + (item.note ? ` — ${item.note}` : "")).join("; ") || "Left empty"}</Small>
           </View>
         ))}

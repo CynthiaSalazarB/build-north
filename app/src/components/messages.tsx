@@ -2,10 +2,11 @@
 // firefly is Help), a free nudge after a wrong answer, an amber hint card that says what it costs, a revealed
 // answer (0 points), a fact, the worked example in four steps, and the learner's answers on the right. The learner
 // sees what kind of message it is, never which agent wrote it.
-import { MOVE_LABEL, type Message } from "@build-north/agents";
+import type { Message } from "@build-north/agents";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import Animated from "react-native-reanimated";
+import { AREA_LABEL, areaCopyOf } from "../area-copy.ts";
 import { hintCardOf, inlineCodeOf, rememberedLineOf, type ExampleStep } from "../session/present.ts";
 import { radius, size, space, type } from "../theme.ts";
 import { Firefly, type FireflyState } from "./firefly.tsx";
@@ -37,7 +38,7 @@ function WithCode({ text, style }: { text: string; style: object }) {
   const c = useColors();
   return (
     <Text style={[style, { color: c.onSurface }]}>
-      {inlineCodeOf(text).map((piece, i) =>
+      {inlineCodeOf(areaCopyOf(text)).map((piece, i) =>
         piece.code ? (
           // non-breaking spaces pad the chip, so a line never breaks inside it before the code
           <Text key={i} style={[type.inlineCode, styles.code, { backgroundColor: c.codeFill, borderColor: c.fieldEdge, color: c.onSurface }]}>
@@ -88,11 +89,11 @@ export function Ask({ text, eyebrow = null, firefly, fireflyAfter = false }: { t
 }
 
 /** A line the firefly said earlier in this part (the feedback on the last part, the move's name), set quietly. */
-export function Aside({ text }: { text: string }) {
+export function Aside({ text, verbatim = false }: { text: string; verbatim?: boolean }) {
   return (
     <View style={useIndent()}>
       <Body dim style={type.bubble}>
-        {text}
+        {verbatim ? text : areaCopyOf(text)}
       </Body>
     </View>
   );
@@ -106,7 +107,7 @@ export function Nudge({ text, capNote, tag }: { text: string; capNote: boolean; 
   return (
     <View style={useIndent()}>
       <Tag style={{ color: c.question }}>{tag ?? (text.trim().endsWith("?") ? "nudge · free" : "not yet")}</Tag>
-      <Reply style={styles.replyText}>{text}</Reply>
+      <Reply style={styles.replyText}>{areaCopyOf(text)}</Reply>
       {capNote && <Label dim style={styles.note}>this part can now light 1 point at most</Label>}
     </View>
   );
@@ -119,8 +120,9 @@ export function HintCard({ message, n, capNote, part, concept = "" }: { message:
   const card = hintCardOf(n, n === 1);
   // on the whole map (level 5) the card names the part it helps with
   const title = part ? `${part} · ${card.title}` : card.title;
+  const text = areaCopyOf(message.text);
   return (
-    <View style={[styles.hint, { backgroundColor: c.hintContainer }]} role="note" accessibilityLabel={`${title}. ${message.text}${capNote ? ` ${card.note}` : ""}`}>
+    <View style={[styles.hint, { backgroundColor: c.hintContainer }]} role="note" accessibilityLabel={`${title}. ${text}${capNote ? ` ${card.note}` : ""}`}>
       <View style={styles.hintHead}>
         <Text style={[type.label, styles.hintTitle, { color: c.hint }]}>{title}</Text>
         <View style={styles.hintSteps}>
@@ -129,7 +131,7 @@ export function HintCard({ message, n, capNote, part, concept = "" }: { message:
           ))}
         </View>
       </View>
-      <Text style={[type.body, styles.hintText, { color: c.onHintContainer }]}>{message.text}</Text>
+      <Text style={[type.body, styles.hintText, { color: c.onHintContainer }]}>{text}</Text>
       {capNote && <Text style={[type.label, styles.note, { color: c.hintNote }]}>{card.note}</Text>}
       <Remembered sources={message.sources} concept={concept} color={c.hintNote} />
     </View>
@@ -181,7 +183,7 @@ export function ExampleIntro({ text }: { text: string }) {
   return (
     <View style={styles.exampleIntro}>
       <Tag style={{ color: c.question }}>worked example</Tag>
-      <Text style={[type.question, { color: c.onSurface }]}>{text}</Text>
+      <Text style={[type.question, { color: c.onSurface }]}>{areaCopyOf(text)}</Text>
     </View>
   );
 }
@@ -195,8 +197,8 @@ export function ExampleSteps({ steps }: { steps: ExampleStep[] }) {
     <View style={styles.exampleSteps}>
       {steps.map((step, i) => (
         <View key={step.move} style={[styles.exampleStep, { borderLeftColor: c.partEdge }]}>
-          <Tag style={{ color: c.question }}>{`${i + 1} · ${MOVE_LABEL[step.move].toLowerCase()}`}</Tag>
-          {step.question && <Reply>{step.question}</Reply>}
+          <Tag style={{ color: c.question }}>{`${i + 1} · ${AREA_LABEL[step.move]}`}</Tag>
+          {step.question && <Reply>{areaCopyOf(step.question)}</Reply>}
           <View style={styles.exampleItems}>
             {step.items.map((item) => (
               <View key={item} style={[styles.exampleItem, { borderColor: c.partEdge, backgroundColor: c.partFill }]}>
@@ -206,7 +208,7 @@ export function ExampleSteps({ steps }: { steps: ExampleStep[] }) {
           </View>
           {step.reasoning !== "" && (
             <Body dim style={type.bubble}>
-              {step.reasoning}
+              {areaCopyOf(step.reasoning)}
             </Body>
           )}
         </View>
@@ -220,7 +222,7 @@ export function FactCard({ kind, text }: { kind: "fact" | "redirect"; text: stri
   return (
     <View style={styles.fact}>
       {kind === "fact" && <Tag dim>fact</Tag>}
-      <Body>{text}</Body>
+      <Body>{areaCopyOf(text)}</Body>
     </View>
   );
 }

@@ -3,6 +3,7 @@
 // words on the right answer, or the answer the learner was shown. Nothing here can be edited or costs a point.
 import { MOVE_ORDER } from "@build-north/agents";
 import { StyleSheet, View } from "react-native";
+import { areaCopyOf } from "../area-copy.ts";
 import type { PartView } from "../session/present.ts";
 import { parts as PARTS, space } from "../theme.ts";
 import { PointSquare } from "./concept-map.tsx";
@@ -36,7 +37,7 @@ export function PartSheet({ view, closing, onClose }: { view: PartView | null; c
           {closing && !closing.revealed && (
             <>
               <Label dim>What the AI said</Label>
-              <Small dim>{closing.text}</Small>
+              <Small dim>{areaCopyOf(closing.text)}</Small>
             </>
           )}
           {view.badge && <Small dim>{`↑ ${view.badge}`}</Small>}

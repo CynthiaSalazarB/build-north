@@ -1,7 +1,8 @@
 // What the screens say and draw, as pure functions of the Turns and the transcript: the map's parts and their
 // points, the light (points proved so far), the hint card, Help's price, the reveal, and the gap. No React here,
 // so it's tested under Node. The rules behind the words are in CONTRACTS.md section 3.
-import { MOVE_LABEL, MOVE_ORDER, WORKED_EXAMPLE, type Item, type MemoryGap, type MemoryView, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
+import { MOVE_ORDER, WORKED_EXAMPLE, type Item, type MemoryGap, type MemoryView, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
+import { AREA_LABEL, areaCopyOf, areaNoteOf } from "../area-copy.ts";
 import type { Entry } from "./transcript.ts";
 
 /** The concepts Start offers (Lumente's board): what coding agents put in student projects. */
@@ -435,8 +436,6 @@ export function wholeMapHelpOf(hintsUsed: number): { tag: string; label: string 
   return firstOnPart(hintsUsed) ? { tag: "help −1", label: "Help, costs a point" } : { tag: "help", label: "More help" };
 }
 
-const LABELED = new RegExp(`^(${MOVE_ORDER.map((m) => MOVE_LABEL[m]).join("|")}): ([\\s\\S]+)$`);
-
 /** The whole-map evaluator's note on each part. The orchestrator writes each one as "Bigger group: …"
  * (submitMap in agents/src/orchestrator/advance.ts). */
 /** What came with the result and after it: the result's Turn (the part notes are there), then the coach's
@@ -448,9 +447,8 @@ export function partNotesOf(messages: readonly Message[]): Partial<Record<MoveId
   const notes: Partial<Record<MoveId, string>> = {};
   for (const message of messages) {
     if (message.kind !== "feedback") continue;
-    const match = LABELED.exec(message.text);
-    const move = match && MOVE_ORDER.find((m) => MOVE_LABEL[m] === match[1]);
-    if (move) notes[move] = match[2]!.trim();
+    const note = areaNoteOf(message.text);
+    if (note) notes[note.move] = note.text;
   }
   return notes;
 }
@@ -461,7 +459,7 @@ export function partNotesOf(messages: readonly Message[]): Partial<Record<MoveId
  * nothing in a self-test, whose notes are labeled (`partNotesOf`). */
 export function lastPartNoteOf(entries: readonly Entry[]): Partial<Record<MoveId, string>> {
   const app = entries.filter((e): e is Extract<Entry, { from: "app" }> => e.from === "app");
-  const words = app.find((e) => e.phase === "result" && e.message.agent === "evaluator" && e.message.kind === "feedback" && !LABELED.test(e.message.text));
+  const words = app.find((e) => e.phase === "result" && e.message.agent === "evaluator" && e.message.kind === "feedback" && !areaNoteOf(e.message.text));
   const asked = [...app].reverse().find((e) => e.phase !== "result" && e.move !== null);
   return words && asked?.move ? { [asked.move]: words.message.text } : {};
 }
@@ -494,7 +492,7 @@ export function partClosingsOf(entries: readonly Entry[]): Partial<Record<MoveId
 /** The dim line under a hint or the coach's words with memory on (#112): the facts the text relies on, in their
  * own sentences, which code wrote from the session's numbers. */
 export function rememberedLineOf(sources: readonly { text: string }[]): string {
-  return `From what Lumente remembers: ${sources.map((source) => source.text.trim()).join(" ")}`;
+  return `From what Lumente remembers: ${sources.map((source) => areaCopyOf(source.text.trim())).join(" ")}`;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -515,7 +513,7 @@ const gapLineOf = (gap: MemoryGap) => `${shortDateOf(gap.at)}: you guessed ${gap
 export function memoryConceptOf(entry: MemoryView["concepts"][number]): MemoryConceptLines {
   const moves = entry.moves.map((move) => ({
     move: move.move,
-    label: MOVE_LABEL[move.move],
+    label: AREA_LABEL[move.move],
     now: move.level === null ? "no level yet" : `level ${move.level}`,
     history: move.history.map((row) => (row.until ? `level ${row.level} from ${shortDateOf(row.since)} to ${shortDateOf(row.until)}` : `level ${row.level} since ${shortDateOf(row.since)}`)),
     reads: move.history.reduce((count, row) => count + row.readBy, 0),
