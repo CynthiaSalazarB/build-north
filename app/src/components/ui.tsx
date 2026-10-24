@@ -132,7 +132,7 @@ export const Small = (p: TextProps) => <Styled base={type.ui} {...p} />;
 export const Label = (p: TextProps) => <Styled base={type.label} {...p} />;
 export const Tag = (p: TextProps) => <Styled base={type.tag} {...p} />;
 
-export type ButtonKind = "primary" | "secondary" | "text" | "hint";
+export type ButtonKind = "primary" | "secondary" | "text" | "hint" | "hintLink";
 
 type ButtonProps = {
   label: string;
@@ -151,7 +151,8 @@ type ButtonProps = {
 
 /** The main action is a 56 px button in warm light (dark ink once the screen is lit), full width on a phone.
  * Secondary and "More help" are outlines that size to their label; text buttons have no box. On the web each
- * answers hover: the main action glows, an outline firms up, a text button underlines. */
+ * answers hover: the main action glows, an outline firms up, a text button underlines. A hintLink stays
+ * underlined, without a box, while retaining the button's touch target and confirmation action. */
 export function Button({ label, onPress, kind = "primary", disabled, busy, hint, fit = false, solid = false, style }: ButtonProps) {
   const c = useColors();
   const off = disabled || busy;
@@ -160,6 +161,7 @@ export function Button({ label, onPress, kind = "primary", disabled, busy, hint,
     secondary: { box: [styles.small, { backgroundColor: solid ? c.surfaceContainer : c.controlFill, borderColor: c.outline, borderWidth: 1 }], ink: c.onSurface, hover: { borderColor: c.onSurfaceVariant } },
     text: { box: [styles.textButton], ink: c.onSurface, hover: null },
     hint: { box: [styles.small, { backgroundColor: c.controlFill, borderColor: "rgba(242, 184, 75, 0.6)", borderWidth: 1 }], ink: c.question, hover: { borderColor: c.firefly } },
+    hintLink: { box: [styles.textButton], ink: c.question, hover: null },
   }[kind];
   return (
     <Pressable
@@ -184,7 +186,7 @@ export function Button({ label, onPress, kind = "primary", disabled, busy, hint,
         busy ? (
           <ActivityIndicator color={look.ink} />
         ) : (
-          <Text style={[type.button, kind === "hint" && styles.hintLabel, kind === "text" && hovered && !off && styles.underline, { color: look.ink }]} numberOfLines={1}>
+          <Text style={[type.button, (kind === "hint" || kind === "hintLink") && styles.hintLabel, (kind === "hintLink" || (kind === "text" && hovered && !off)) && styles.underline, { color: look.ink }]} numberOfLines={1}>
             {label}
           </Text>
         )

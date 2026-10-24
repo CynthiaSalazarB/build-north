@@ -3,40 +3,40 @@
 // learner's notes (pasted text only, up to 8,000 characters: decision 12). "Ask your AI what to map" gives a
 // prompt to paste into a coding agent, so the concepts come from the learner's own project; notes that look like a
 // key or a password never leave the phone. "Test myself" starts a self-test instead: the whole map alone, the
-// testers' pre-test and post-test. In the website layout the choices are a column on the left and the code and
-// the map stand on the right.
+// testers' pre-test and post-test. A session closed early, or kept on this device through a reload or a killed app,
+// is offered back at the top. In the website layout the choices are a column on the left and the code and the map
+// stand on the right.
 import type { SessionMode } from "@build-north/agents";
-import type { Metadata } from "expo-router/server";
 import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
 import { useRouter } from "expo-router";
 import { useState, type ReactNode } from "react";
 import { Platform, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { CodePreview } from "../components/code-preview.tsx";
+import { MemorySheet } from "../components/memory-sheet.tsx";
 import { Failure } from "../components/messages.tsx";
 import { SiteHeader } from "../components/site-header.tsx";
 import { Body, Button, Card, Chip, KeyboardSafe, Label, PromptField, Rise, Screen, Sheet, Small, Title, useColors, useWide } from "../components/ui.tsx";
 import { UpdateNotice } from "../components/update-notice.tsx";
-import { AI_PROMPT, CONCEPTS, filledOf, secretLineOf } from "../session/present.ts";
+import { VersionLine } from "../components/version-line.tsx";
+import { AI_PROMPT, CONCEPTS, filledOf, secretLineOf, shortDateOf } from "../session/present.ts";
 import { clerkKey } from "../session/config.ts";
 import { useSession } from "../session/session-context.tsx";
-import { brand, page, radius, size, space, type } from "../theme.ts";
+import { brand, page, pageMetadata, radius, size, space, type } from "../theme.ts";
 
 const MAX_CONCEPT = 100;
 const MAX_NOTES = 8000;
 
-/** The web page's title and description, in the static HTML, so a shared link previews well. */
-export function generateMetadata(): Metadata {
-  const title = `${brand.name}: can you explain the ideas behind the code your AI wrote?`;
-  const description = `${SUBTITLE} ${GUIDED} Or you lead the investigation.`;
-  return { title, description, openGraph: { title, description } };
+/** The web page's title, description and card, in the static HTML, so a shared link previews well. */
+export function generateMetadata() {
+  return pageMetadata(`${brand.name}: can you explain the ideas behind the code your AI wrote?`, `${SUBTITLE} ${GUIDED} Or you lead the investigation.`);
 }
 
 /** Start's words (Cynthia, Oct 23): the question, the line under it, and what each way to start means. */
 const QUESTION = "Can you explain the ideas behind the code your AI wrote?";
 const SUBTITLE = "Choose a concept and start figuring it out.";
-const GUIDED = "AI guides you with questions.";
-const ALONE = "You lead the investigation.";
+const GUIDED = "Answer questions. Your map fills as you go.";
+const ALONE = "Write on the map. Ask facts if you need them.";
 
 /** One way to start, with what it means under it. */
 function Choice({ line, children }: { line: string; children: ReactNode }) {
@@ -54,25 +54,29 @@ export default function StartScreen() {
   const router = useRouter();
   const c = useColors();
   const wide = useWide();
-  const { start, offline, state } = useSession();
+  const { start, offline, state, saved, resume } = useSession();
   const [concept, setConcept] = useState<string>("API");
   const [notes, setNotes] = useState("");
   const [notesOpen, setNotesOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [starting, setStarting] = useState<SessionMode | null>(null);
+  const [resuming, setResuming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // a result on screen is finished, even while the coach's words are on their way
   const unfinished = state.turn && state.turn.expects !== "none" && state.turn.phase !== "result" ? state.turn : null;
   // at level 5 the parts fill on the phone until the map is submitted
   const draft = unfinished?.expects === "map" ? state.draft : null;
   const done = draft ? filledOf(draft) : (unfinished?.progress.movesDone ?? 0);
+  // the session this device kept from before a reload or a restart: offered while nothing is on screen
+  const kept = !state.turn && saved ? saved : null;
+  const busy = starting !== null || resuming;
   const secretLine = secretLineOf(notes);
   const secret = secretLine !== null;
   const name = concept.trim();
   const picked = CONCEPTS.find((chip) => chip === name) ?? null;
 
   const begin = async (mode: SessionMode) => {
-    if (!name || starting || secret) return;
+    if (!name || busy || secret) return;
     setStarting(mode);
     setError(null);
     const problem = await start({ concept: name, ...(notes.trim() ? { material: notes } : {}), ...(mode === "test" ? { mode } : {}) });
@@ -80,15 +84,24 @@ export default function StartScreen() {
     if (problem) setError(problem);
     else router.push("/session");
   };
+  const pickUp = async () => {
+    if (busy) return;
+    setResuming(true);
+    setError(null);
+    const problem = await resume();
+    setResuming(false);
+    if (problem) setError(problem);
+    else router.push("/session");
+  };
 
-  const startButton = <Button label={name ? "Explore with guidance" : "Pick a concept"} hint={GUIDED} fit={wide} busy={starting === "learn"} disabled={!name || secret || starting !== null} onPress={() => void begin("learn")} />;
+  const startButton = <Button label={name ? "Explore with guidance" : "Pick a concept"} hint={GUIDED} fit={wide} busy={starting === "learn"} disabled={!name || secret || busy} onPress={() => void begin("learn")} />;
   const testButton = !offline && (
     <Button
       kind={wide ? "secondary" : "text"}
       label="Test myself"
-      hint="The whole map on your own, with only the facts. Your levels don't change."
+      hint="Write your answers in the four map areas. The optional chat answers factual questions. Your levels don't change."
       busy={starting === "test"}
-      disabled={!name || secret || starting !== null}
+      disabled={!name || secret || busy}
       onPress={() => void begin("test")}
       style={wide && styles.tall}
     />
@@ -105,7 +118,20 @@ export default function StartScreen() {
               </Body>
               <Label dim>{`${done} of ${unfinished.progress.movesTotal} parts`}</Label>
             </View>
-            <Button kind="secondary" label="Resume" disabled={starting !== null} onPress={() => router.push("/session")} />
+            <Button kind="secondary" label="Resume" disabled={busy} onPress={() => router.push("/session")} />
+          </Card>
+        </Rise>
+      )}
+      {kept && (
+        <Rise order={1}>
+          <Card style={styles.resume}>
+            <View style={styles.resumeHead}>
+              <Body style={styles.flex} numberOfLines={1}>
+                {kept.concept}
+              </Body>
+              <Label dim>{`${kept.mode === "test" ? "self-test" : "session"} saved${shortDateOf(kept.savedAt) ? ` ${shortDateOf(kept.savedAt)}` : ""}`}</Label>
+            </View>
+            <Button kind="secondary" label="Resume" hint="Picks the session up where you left it" busy={resuming} disabled={busy} onPress={() => void pickUp()} />
           </Card>
         </Rise>
       )}
@@ -168,6 +194,8 @@ export default function StartScreen() {
         <SiteHeader end={<Account solid />} />
         <View style={styles.split}>
           <ScrollView style={styles.words} contentContainerStyle={styles.wordsContent} keyboardShouldPersistTaps="handled">
+            {/* an Android tablet in the website layout still gets "Update ready"; the web never does */}
+            <UpdateNotice />
             <Rise style={styles.heading}>
               <Text style={[type.display, { color: c.onSurface }]} accessibilityRole="header">
                 {QUESTION}
@@ -228,17 +256,21 @@ export default function StartScreen() {
 }
 
 /** The prompt for your coding agent: copied on the web, shared on a phone (the copy button needs a native
- * module, which waits for the next build). */
+ * module, which waits for the next build). A browser that refuses the clipboard says so, and the text stays
+ * selectable. */
 function AskYourAi({ open, onClose, onPaste }: { open: boolean; onClose: () => void; onPaste: () => void }) {
   const c = useColors();
-  const [copied, setCopied] = useState(false);
+  const [copied, setCopied] = useState<"no" | "yes" | "refused">("no");
   const copy = async () => {
-    if (Platform.OS === "web" && typeof navigator !== "undefined" && navigator.clipboard) {
-      await navigator.clipboard.writeText(AI_PROMPT).then(() => setCopied(true), () => setCopied(false));
+    if (Platform.OS === "web") {
+      const clipboard = typeof navigator === "undefined" ? undefined : navigator.clipboard;
+      const ok = clipboard ? await clipboard.writeText(AI_PROMPT).then(() => true, () => false) : false;
+      setCopied(ok ? "yes" : "refused");
     } else {
       await Share.share({ message: AI_PROMPT }).catch(() => undefined);
     }
   };
+  const copyLabel = copied === "yes" ? "Copied" : copied === "refused" ? "Select the text and copy it" : "Copy the prompt";
   return (
     <Sheet open={open} onClose={onClose} label="the prompt">
       <Title style={styles.sheetTitle}>Ask your AI what to map</Title>
@@ -248,14 +280,14 @@ function AskYourAi({ open, onClose, onPaste }: { open: boolean; onClose: () => v
           {AI_PROMPT}
         </Text>
       </View>
-      <Button label={Platform.OS === "web" ? (copied ? "Copied" : "Copy the prompt") : "Share the prompt"} onPress={() => void copy()} />
+      <Button label={Platform.OS === "web" ? copyLabel : "Share the prompt"} onPress={() => void copy()} />
       <Button kind="text" label="Paste its answer" onPress={onPaste} />
     </Sheet>
   );
 }
 
-/** The account's controls, at the top of Start: "Your data" (what is kept, and the delete button, #43) and, with
- * Clerk on, "Sign out". `solid` is the website header's opaque look. */
+/** The account's controls, at the top of Start: "Memory" (what Lumente remembers, #112), "Your data" (what is kept,
+ * and the delete button, #43) and, with Clerk on, "Sign out". `solid` is the website header's opaque look. */
 function Account({ solid = false }: { solid?: boolean }): ReactNode {
   // useAuth needs the ClerkProvider in the root layout, which is only there with a Clerk key (#22)
   return clerkKey ? <ClerkAccount solid={solid} /> : <AccountButtons solid={solid} signOut={null} />;
@@ -263,15 +295,20 @@ function Account({ solid = false }: { solid?: boolean }): ReactNode {
 
 function ClerkAccount({ solid }: { solid: boolean }) {
   const { signOut } = useAuth();
-  // a sign-out that fails (offline, say) leaves the learner signed in, with nothing to show for it
-  return <AccountButtons solid={solid} signOut={() => signOut().catch(() => undefined)} />;
+  const { forget } = useSession();
+  // a sign-out that fails (offline, say) leaves the learner signed in, with nothing to show for it; one that works
+  // takes the session with it, since the next learner on this device isn't this one
+  return <AccountButtons solid={solid} signOut={() => signOut().then(forget, () => undefined)} />;
 }
 
 function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Promise<void>) | null }) {
   const { offline, deleteData } = useSession();
   const [open, setOpen] = useState(false);
+  const [memoryOpen, setMemoryOpen] = useState(false);
   return (
     <View style={styles.account}>
+      {!offline && <Button kind="text" label="Memory" onPress={() => setMemoryOpen(true)} style={!solid && styles.signOut} />}
+      <MemorySheet open={memoryOpen} onClose={() => setMemoryOpen(false)} />
       <Button kind="text" label="Your data" onPress={() => setOpen(true)} style={!solid && styles.signOut} />
       {signOut && <Button kind={solid ? "secondary" : "text"} solid={solid} label="Sign out" onPress={() => void signOut()} style={!solid && styles.signOut} />}
       <YourData
@@ -294,7 +331,10 @@ function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Pr
  * delete it all: one tap, then a confirmation that says what goes. Demo mode keeps nothing. */
 const KEPT = "We keep each session (the concept, the notes you pasted, your guess, your answers and questions, the AI's replies and the score) and your level on each of the four parts.";
 const TO_CLAUDE = "Your answers and questions go to Claude, Anthropic's model, through our server, which holds the key. The app never has it.";
+const MEMORY_KEPT = "Lumente also keeps progress notes the app writes after each session (your level on each part, your guess against your score, how many Helps a part took): never your words. Memory shows them, and Delete my data removes them too.";
 const VOICE = "While the mic is on, the audio goes to your device's speech service, which turns it into words: on most Android phones that is Google's, and in a browser the browser's own. Only the words reach us, and only when you send them. We never receive or keep the audio; the speech service handles it under its own terms.";
+// what Expo Observe receives (app/_layout.tsx): launch times, each screen's time to interactive, crash reports; phones only
+const OBSERVE = "On the Android app, Expo, the service that delivers the app's updates, gets crash reports and how fast the app starts and each screen opens, so we can fix what breaks. We don't send your answers or notes there.";
 const DEMO = "Demo mode keeps nothing: this is a recorded session, and what you type stays on this device.";
 const WHO_ASKS = "The questions come from an AI. It asks, and it never hands you the answer.";
 
@@ -327,8 +367,10 @@ function YourData({ open, onClose, offline, signsOut, onDelete }: { open: boolea
       ) : (
         <>
           <Body>{KEPT}</Body>
+          <Small dim>{MEMORY_KEPT}</Small>
           <Small dim>{TO_CLAUDE}</Small>
           <Small dim>{VOICE}</Small>
+          <Small dim>{OBSERVE}</Small>
         </>
       )}
       <Small dim>{WHO_ASKS}</Small>
@@ -343,6 +385,8 @@ function YourData({ open, onClose, offline, signsOut, onDelete }: { open: boolea
         ) : (
           <Button kind="secondary" label="Delete my data" onPress={() => setConfirming(true)} style={styles.left} />
         ))}
+      {/* what is running, so a tester or a judge can say exactly what they saw */}
+      <VersionLine />
     </Sheet>
   );
 }
@@ -373,7 +417,7 @@ const styles = StyleSheet.create({
   wordsContent: { flexGrow: 1, justifyContent: "center", paddingTop: space.xxl, paddingBottom: page.header, gap: space.xl },
   actions: { flexDirection: "row", alignItems: "flex-start", gap: space.m, marginTop: space.s },
   heading: { gap: space.m },
-  choice: { gap: space.xs, alignItems: "center" },
+  choice: { gap: space.xs, alignItems: "center", flexShrink: 1 },
   choiceLine: { textAlign: "center" },
   tall: { height: 56 },
   stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: page.header },

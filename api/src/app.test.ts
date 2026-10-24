@@ -9,19 +9,23 @@ import {
   MOVE_LABEL,
   MOVE_ORDER,
   Mastery as MasterySchema,
+  MemoryView as MemoryViewSchema,
   Session as SessionSchema,
   Turn as TurnSchema,
   UnexpectedInput,
   advance,
   type Advance,
   type Mastery,
+  type MemoryFact,
   type Session,
 } from "@build-north/agents";
+import memoryView from "@build-north/agents/fixtures/memory-view.json" with { type: "json" };
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { changedMoves, createApp, type AppOptions } from "./app.ts";
 import { clerkUserFromToken } from "./clerk.ts";
 import { createCallAgent, type SendToClaude } from "./call-agent.ts";
+import type { LearnerMemoryStore } from "./memory.ts";
 import { initialSession, type AgentLogEntry, type Store } from "./store.ts";
 
 const WEB = "http://localhost:8081";
@@ -34,6 +38,7 @@ const noDb: AppOptions = {
   callAgentFor: () => callAgentStub,
   userFromToken: null,
   devKey: KEY,
+  memory: null,
 };
 const as = (user: string, key = KEY) => ({ "x-dev-user": user, "x-dev-key": key });
 
@@ -41,6 +46,7 @@ const as = (user: string, key = KEY) => ({ "x-dev-user": user, "x-dev-key": key 
 function memoryStore(): Store {
   const sessions = new Map<string, Session>();
   const mastery = new Map<string, Mastery>();
+  const logs: AgentLogEntry[] = [];
   let created = 0;
   return {
     async createSession(user, input) {
@@ -66,10 +72,34 @@ function memoryStore(): Store {
       const now = await this.getMastery(user);
       mastery.set(user, { moves: now.moves.map((m) => structuredClone(saved.moves.find((s) => s.move === m.move) ?? m)) });
     },
-    async logAgentCall() {},
+    async logAgentCall(entry) {
+      logs.push(entry);
+    },
+    async finishedConcepts(user) {
+      const finished = [...sessions.values()].filter((s) => s.user === user && s.result !== null).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+      return [...new Set(finished.map((s) => s.concept))];
+    },
+    async memoryReads(user) {
+      return logs
+        .filter((entry) => sessions.get(entry.session)?.user === user && (entry.agent === "hint_giver" || entry.agent === "coach"))
+        .map((entry) => ((entry.input as { memory?: { facts: { id: string }[] } }).memory?.facts ?? []).map((fact) => fact.id));
+    },
     async deleteUserData(user) {
       for (const [id, session] of sessions) if (session.user === user) sessions.delete(id);
       mastery.delete(user);
+    },
+  };
+}
+
+// The Store as the SurrealDB one reads: a row goes through the Session schema on the way out (store.ts), so a
+// saved session that drifted from the contract fails there.
+function parsingStore(): Store {
+  const store = memoryStore();
+  return {
+    ...store,
+    async getSession(user, id) {
+      const session = await store.getSession(user, id);
+      return session && SessionSchema.parse(session);
     },
   };
 }
@@ -109,7 +139,7 @@ async function start(t: TestContext, options: AppOptions): Promise<string> {
 
 // Claude, faked behind the real callAgent: each call gets the next reply scripted for its agent (the
 // system prompt says which agent is calling, so two calls at once get their own replies)
-function fakeClaude(replies: [keyof typeof AGENTS, unknown][]) {
+function fakeClaude(replies: [keyof typeof AGENTS, unknown][], store?: Store) {
   const send: SendToClaude = async ({ system }) => {
     const next = replies.findIndex(([agent]) => AGENTS[agent].system === system);
     if (next < 0) throw new Error("a call the script doesn't have");
@@ -118,7 +148,11 @@ function fakeClaude(replies: [keyof typeof AGENTS, unknown][]) {
     return { message: { content: [{ type: "text", text: JSON.stringify(output) }], stop_reason: "end_turn", usage }, headers: new Headers() };
   };
   const logged: AgentLogEntry[] = [];
-  const callAgentFor = createCallAgent({ send, model: "claude-opus-5-5", budgetUsd: 10, log: async (entry) => void logged.push(entry) });
+  const log = async (entry: AgentLogEntry) => {
+    logged.push(entry);
+    await store?.logAgentCall(entry);
+  };
+  const callAgentFor = createCallAgent({ send, model: "claude-opus-5-5", budgetUsd: 10, log });
   return { callAgentFor, logged };
 }
 
@@ -634,4 +668,142 @@ test("mastery is written only for the moves a Turn changed, and an error Turn wr
     } else latest = turn;
   }
   assert.ok(failed, "no step called Claude");
+});
+
+test("a Turn off the contract is never saved: the learner gets the latest Turn again with error set, and the session stays readable", async (t) => {
+  const errors = t.mock.method(console, "error", () => {});
+  // An orchestrator that puts a scaffold with no blanks on the Turn, the shape #139 found: valid for the questioner's
+  // output, off the Turn contract (blanks >= 1). Saved, it would fail the store's Session.parse on every read after it.
+  let drift = true;
+  const drifting: Advance = async (state, input, callAgent) => {
+    const next = await advanceStub(state, input, callAgent);
+    if (!drift || !("prediction" in input)) return next;
+    const turn = { ...next.turn, scaffold: { given: ["moon", "asteroid"], blanks: 0 } };
+    return { ...next, session: { ...next.session, lastTurn: turn }, turn };
+  };
+  const store = parsingStore();
+  const sessionSaves = t.mock.method(store, "saveSession");
+  const masterySaves = t.mock.method(store, "saveMastery");
+  const url = await start(t, { ...noDb, store, advance: drifting });
+  const first = await (await post(url, { concept: "democracy" })).json();
+  const res = await answer(url, first.sessionId, { turn: 1, prediction: 7 });
+  // the session reads back as it was: the next read, and the retry, still work
+  const read = await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") });
+  assert.equal(read.status, 200);
+  assert.deepEqual(await read.json(), first);
+  // the answer is the latest Turn with error set (CONTRACTS.md section 5), nothing was written, and the reason is logged
+  assert.equal(res.status, 200);
+  assert.deepEqual(await res.json(), { ...first, error: { code: "agent_failed", retryable: true } });
+  assert.equal(sessionSaves.mock.callCount(), 1); // the start only
+  assert.equal(masterySaves.mock.callCount(), 0);
+  assert.match(String(errors.mock.calls[0]?.arguments[0]), /Turn 2 of session s1 is off the contract and wasn't saved: scaffold\.blanks/);
+  // the same answer sent again, once the orchestrator behaves, moves the session on as usual
+  drift = false;
+  const retried = await (await answer(url, first.sessionId, { turn: 1, prediction: 7 })).json();
+  assert.deepEqual([retried.turn, retried.error], [2, null]);
+  assert.doesNotThrow(() => TurnSchema.parse(retried));
+  assert.equal(sessionSaves.mock.callCount(), 2);
+});
+
+test("with memory on, the hint giver and the coach get what earlier sessions left and the app gets the sources of what they cite; the result writes the session's facts; the sheet reads; Delete my data purges first", async (t) => {
+  const warned = t.mock.method(console, "warn", () => {});
+  // what the learner's earlier session on ecosystem left, as the reader returns it
+  const facts: MemoryFact[] = [
+    { id: "attr_sup1", text: "You moved up to level 3 on 'Bigger group' for ecosystem on Oct 22.", concept: "ecosystem", move: "supraordinate", level: 3, since: "2026-10-22T18:40:05Z", writtenBy: "evaluator", sessionId: "s0" },
+    { id: "attr_gap1", text: "Last time on ecosystem you guessed 7 and proved 4.", concept: "ecosystem", since: "2026-10-22T18:45:12Z", writtenBy: "coach", sessionId: "s0" },
+  ];
+  const view = MemoryViewSchema.parse(memoryView);
+  const calls: string[] = [];
+  const memory: LearnerMemoryStore = {
+    async recall(user, concept, sessionId) {
+      calls.push(`recall ${user} ${concept} ${sessionId}`);
+      return { facts };
+    },
+    async remember(user, session) {
+      calls.push(`remember ${user} ${session.id} ${session.result?.score}`);
+    },
+    async view(user, concepts, reads) {
+      calls.push(`view ${user} ${concepts.join("+")} ${JSON.stringify(reads)}`);
+      return view;
+    },
+    async purge(user) {
+      calls.push(`purge ${user}`);
+    },
+  };
+  const store = memoryStore();
+  const deletes = t.mock.method(store, "deleteUserData");
+  const replies: [keyof typeof AGENTS, unknown][] = [
+    // the hint giver leans on the level fact, and makes an id up
+    ["hint_giver", { step: "nudge", text: "You found this part alone last time. What kind of thing is an ecosystem?", revealed: null, cites: ["attr_sup1", "attr_made_up"] }],
+    ["evaluator_full", { rubric: MOVE_ORDER.map((move) => ({ move, quality: 1, feedback: `Scripted ${move}.` })) }],
+    ["coach", { message: "Closer than last time: your guess was 1 off.", nextFocus: "exclusion", cites: ["attr_gap1"] }],
+  ];
+  const claude = fakeClaude(replies, store);
+  const url = await start(t, { ...noDb, store, advance, callAgentFor: claude.callAgentFor, memory });
+  const next = async (latest: { sessionId: string; turn: number }, body: object) => {
+    const res = await answer(url, latest.sessionId, { ...body, turn: latest.turn });
+    assert.equal(res.status, 200);
+    const turn = await res.json();
+    assert.equal(turn.error, null, `Turn ${turn.turn}`);
+    return turn;
+  };
+
+  const first = await (await post(url, { concept: "ecosystem", mode: "test" })).json();
+  const map = await next(first, { prediction: 5 });
+  // the prediction calls no agent, so memory wasn't read
+  assert.deepEqual(calls, []);
+  const hinted = await next(map, { action: "help" });
+  const hint = hinted.messages[0];
+  assert.deepEqual([hint.kind, hint.hintStep, hint.cites, hint.sources], ["hint", "nudge", ["attr_sup1"], [{ id: "attr_sup1", text: facts[0]!.text }]]);
+  // read once for the Turn, skipping this session's own rows
+  assert.deepEqual(calls, [`recall leo ecosystem ${first.sessionId}`]);
+  // the hint giver received the facts, and the id it made up went to its log row as dropped
+  const hintRow = claude.logged.find((row) => row.agent === "hint_giver")!;
+  assert.deepEqual((hintRow.input as { memory?: unknown }).memory, { facts });
+  assert.deepEqual((hintRow.output as { cites: string[] }).cites, ["attr_sup1"]);
+  assert.deepEqual(hintRow.dropped, ["attr_made_up"]);
+  assert.match(String(warned.mock.calls[0]?.arguments[0]), /hint_giver cited 1 fact id\(s\) it wasn't given/);
+  // the saved Turn carries the sources too, so resuming shows the line
+  const saved = await (await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") })).json();
+  assert.deepEqual(saved.messages[0].sources, hint.sources);
+
+  const item = (value: string, note: string | null = null) => ({ value, note });
+  const mentefacto = { concept: "ecosystem", supraordinate: item("system"), exclusion: [item("habitat", "only the place")], isoordinate: [item("living things")], infraordinate: [item("aquatic ecosystem")] };
+  const done = await next(hinted, { mentefacto });
+  // the result Turn writes the session's facts (the whole-map evaluator never reads memory)
+  assert.deepEqual([done.expects, done.result.score], ["continue", 4]);
+  assert.deepEqual(calls.slice(1), [`remember leo ${first.sessionId} 4`]);
+  const coached = await next(done, { action: "continue" });
+  assert.deepEqual(coached.messages.at(-1), {
+    agent: "coach",
+    kind: "summary",
+    text: "Closer than last time: your guess was 1 off.",
+    cites: ["attr_gap1"],
+    sources: [{ id: "attr_gap1", text: facts[1]!.text }],
+  });
+  assert.equal(calls.at(-1), `recall leo ecosystem ${first.sessionId}`);
+  assert.deepEqual(claude.logged.find((row) => row.agent === "coach")?.dropped, undefined);
+
+  // the Memory sheet: the finished concepts and the ids each hint giver or coach call received, then memory's view
+  const sheet = await (await fetch(`${url}/me/memory`, { headers: as("leo") })).json();
+  assert.deepEqual(sheet, view);
+  assert.equal(calls.at(-1), `view leo ecosystem ${JSON.stringify([["attr_sup1", "attr_gap1"], ["attr_sup1", "attr_gap1"]])}`);
+  assert.equal((await fetch(`${url}/me/memory`)).status, 401);
+
+  // Delete my data purges memory, then the tables
+  assert.equal((await fetch(`${url}/me/data`, { method: "DELETE", headers: as("leo") })).status, 204);
+  assert.equal(calls.at(-1), "purge leo");
+  assert.equal(deletes.mock.callCount(), 1);
+
+  // a purge that fails fails the request, and the tables stay
+  t.mock.method(console, "error", () => {});
+  const keeping = memoryStore();
+  const kept = t.mock.method(keeping, "deleteUserData");
+  const failing = await start(t, { ...noDb, store: keeping, memory: { ...memory, purge: async () => Promise.reject(new Error("memory answered 503")) } });
+  assert.equal((await fetch(`${failing}/me/data`, { method: "DELETE", headers: as("leo") })).status, 500);
+  assert.equal(kept.mock.callCount(), 0);
+
+  // with memory off the sheet is empty, and nothing is read or written
+  const off = await start(t, withStore());
+  assert.deepEqual(await (await fetch(`${off}/me/memory`, { headers: as("leo") })).json(), { concepts: [] });
 });

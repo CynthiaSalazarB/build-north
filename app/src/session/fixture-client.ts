@@ -18,8 +18,11 @@ export function createFixtureClient(delayMs = 600): SessionClient {
 
   return {
     offline: true,
-    // nothing is kept anywhere in demo mode, so there is nothing to delete
+    // nothing is kept anywhere in demo mode, so there is nothing to delete, and nothing to remember
     async deleteData() {},
+    async memory() {
+      return { concepts: [] };
+    },
     async start() {
       next = 1;
       run += 1;
@@ -30,6 +33,10 @@ export function createFixtureClient(delayMs = 600): SessionClient {
       if (!turn) throw new ClientError("The demo session ends here.", null, false);
       next += 1;
       return after(turn);
+    },
+    // nothing is kept, so there is nothing to pick up; the provider never saves a demo session either
+    async resume() {
+      throw new ClientError("Demo mode keeps nothing to resume.", null, false);
     },
   };
 }

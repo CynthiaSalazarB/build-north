@@ -10,7 +10,8 @@
     "test": "node --test",
     "typecheck": "tsc",
     "export:testers": "node --env-file-if-exists=../.env src/export-testers.ts",
-    "smoke": "node src/smoke.ts"
+    "smoke": "node src/smoke.ts",
+    "memory:smoke": "node --env-file-if-exists=../.env src/memory-smoke.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "0.135.0",

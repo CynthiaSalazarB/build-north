@@ -1,6 +1,6 @@
 // #7: the real API (CONTRACTS.md section 1). Every response that carries a Turn is checked against the
 // Turn schema, so a server that drifted from the contract fails here, not in a screen.
-import { Turn, type CreateSessionBody, type TurnBody } from "@build-north/agents";
+import { MemoryView, Turn, type CreateSessionBody, type TurnBody } from "@build-north/agents";
 import { ClientError, type SessionClient } from "./client.ts";
 
 export type ApiClientOptions = {
@@ -26,7 +26,7 @@ export function createApiClient({ baseUrl, devUser, devKey, getToken, fetch: sen
   const root = baseUrl.replace(/\/+$/, "");
 
   /** One call with the learner's credentials; the answer's body is parsed as JSON when there is one. */
-  async function call(method: "POST" | "DELETE", path: string, body?: unknown): Promise<{ res: Response; json: unknown }> {
+  async function call(method: "GET" | "POST" | "DELETE", path: string, body?: unknown): Promise<{ res: Response; json: unknown }> {
     const headers: Record<string, string> = {};
     if (body !== undefined) headers["content-type"] = "application/json";
     const token = getToken ? await getToken() : null;
@@ -64,18 +64,34 @@ export function createApiClient({ baseUrl, devUser, devKey, getToken, fetch: sen
     if (res.ok || res.status === 409) {
       const turn = Turn.safeParse(json);
       if (turn.success) return turn.data;
-      if (res.ok) throw new ClientError("The server sent something unexpected. Try again.", res.status, true);
+      if (res.ok) throw unexpected(res.status);
     }
     throw errorOf(res, json);
   }
+
+  const unexpected = (status: number) => new ClientError("The server sent something unexpected. Try again.", status, true);
 
   return {
     offline: false,
     start: (body: CreateSessionBody) => post("/sessions", body),
     send: (sessionId: string, body: TurnBody) => post(`/sessions/${encodeURIComponent(sessionId)}/turns`, body),
+    async resume(sessionId: string) {
+      const { res, json } = await call("GET", `/sessions/${encodeURIComponent(sessionId)}`);
+      if (!res.ok) throw errorOf(res, json);
+      const turn = Turn.safeParse(json);
+      if (!turn.success) throw unexpected(res.status);
+      return turn.data;
+    },
     async deleteData() {
       const { res, json } = await call("DELETE", "/me/data");
       if (!res.ok) throw errorOf(res, json);
+    },
+    async memory() {
+      const { res, json } = await call("GET", "/me/memory");
+      if (!res.ok) throw errorOf(res, json);
+      const view = MemoryView.safeParse(json);
+      if (!view.success) throw unexpected(res.status);
+      return view.data;
     },
   };
 }

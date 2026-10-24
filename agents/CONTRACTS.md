@@ -120,6 +120,8 @@ type Turn = {
     kind: "question" | "feedback" | "hint" | "example" | "named_move" | "summary" | "fact" | "redirect";
     text: string;
     hintStep?: HintStep;
+    cites?: string[];                        // a hint or the summary with memory on: the memory facts it relies on (see Memory)
+    sources?: { id: string; text: string }[];   // those facts' own words, filled by the API before the Turn goes out
   }[];
   expects: "prediction" | "text" | "continue" | "map" | "none";   // decides which input the screen shows
   // "map" = level 5: a chat box for the learner's questions + the editable map + a Submit button
@@ -260,7 +262,23 @@ type MemoryFact = {
   API calls the agent without it, and the user message is the same as before memory existed.
 - **`cites`:** the hint giver's and the coach's outputs carry the ids of the facts their text relies on.
   The API keeps only ids it passed in and logs the rest, with `verifyCites(output, memory)` from
-  `@build-north/agents` (it returns the cleaned output and the dropped ids).
+  `@build-north/agents` (it returns the cleaned output and the dropped ids; they go to the `agent_log` row
+  as `dropped`).
+- **On screen:** the orchestrator copies the verified `cites` onto the hint's and the summary's `Message`, and
+  the API fills `Message.sources` with those facts' words before the Turn goes out. The app shows them as one
+  dim line under the hint card or the coach's words, "From what Lumente remembers: …", and tapping it opens the
+  Memory sheet. Questions, nudges and fact desk answers never carry either: those agents never see memory.
+  With memory off, or nothing cited, neither field is there, so the Turn is the one the app already knew.
+- **What the API writes, after a session reaches its result** (one scope per learner, `learner/<pseudonym>`,
+  each fact an attribute of the entity `topic/<pseudonym>_<concept>` sent as a triple with its provenance in
+  labels: `session`, `turn`, `writer`, and the numbers):
+  - `level_<move>`, for each part whose level changed: "You moved up to level 3 on 'What it isn't' for API on
+    Oct 22." (`writtenBy: evaluator`)
+  - `gap`: "Last time on API you guessed 7 and proved 3." (`writtenBy: coach`)
+  - `help_<move>`, for each part: "'Its types' took 2 Helps on API last time." (`writtenBy: hint_giver`)
+  A later session's write supersedes the earlier value of the same key, and memory keeps the chain. The
+  facts are written when the result Turn is saved, so the coach of the same session reads only facts from
+  earlier sessions (its own session's rows are skipped by their `session` label).
 
 `GET /me/memory` returns `MemoryView`, what the app's Memory sheet shows: per concept and move, the
 level now and its history (level, since, until, source, which agent wrote it, how many times other
@@ -301,7 +319,9 @@ In: `AgentContext & { answer: string }`
 - `accepted`: the `Item`s to write into the mentefacto (empty when not accepted).
 - `issue`: `too_broad | not_a_class | same_level | is_a_subtype | is_a_characteristic | off_topic | none`.
   Code keeps it (`session.lastIssue`) for the learner's next Help; the hint giver uses it to aim the hint.
-- `reason` is for logs and for us. `feedback` is shown, and must never contain the answer.
+- `reason` is for logs and for us. `feedback` is shown, and must never contain the answer before the move is
+  correct. Once it is, the feedback names what makes it right and may add what the learner left out of the same
+  criterion (a missing type, a missing characteristic); the points don't change (DECISIONS.md, Oct 23).
 - When the answer isn't right, `feedback` says what is off. At levels 2 and 3 it ends with a nudge: a
   question that sends the learner back to their own answer, with no new information (free, the
   ladder's first step). At levels 4 and 5 it stops there. Pointing where to look is a hint, and hints
@@ -477,14 +497,14 @@ with `error` set. What `callAgent` throws carries `code` and `retryable`, the tw
 |---|---|---|
 | `mastery` | user, move, level, unassistedSuccesses, updatedAt | one row per user per move; read every turn |
 | `session` | id, user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, recent, retries, lastIssue, nextQuestion, questions, moveLog, result, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat; `hintsPerMove` starts with all four moves at 0, `retries` at 0, `lastIssue` at `"none"`, `nextQuestion` at null |
-| `agent_log` | session, agent, input, output, ms, usd, at | append-only; debugging, the testers' numbers (fact desk rows are the questions metric) and what a session costs |
+| `agent_log` | session, agent, input, output, ms, usd, at, dropped? | append-only; debugging, the testers' numbers (fact desk rows are the questions metric) and what a session costs. `dropped` is on a coach or hint giver row whose output cited a fact id the API hadn't passed in (CONTRACTS.md, Memory) |
 
 With the memory flag on, SurrealDB Agent Memory keeps one scope per learner (a salted hash of the Clerk
 id) holding the facts in [Memory](#memory-what-earlier-sessions-left): each with its source, the agent that
 wrote it, the fact it superseded and who read it. It's a copy for the agents and the Memory sheet; the
 tables above stay the record.
 
-`DELETE /me/data` removes all three for the user and purges their memory scope.
+`DELETE /me/data` purges the user's memory scope first (`POST /scopes/forget`, a hard delete), then removes all three tables' rows.
 
 ---
 

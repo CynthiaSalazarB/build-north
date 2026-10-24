@@ -5,6 +5,7 @@ import { createApp } from "./app.ts";
 import { agentConfigFromEnv, createCallAgent, sendWith } from "./call-agent.ts";
 import { clerkConfigFromEnv, clerkUserFromToken } from "./clerk.ts";
 import { connectSurreal, surrealCheck, surrealConfigFromEnv } from "./db.ts";
+import { createLearnerMemory, createMemoryApi, memoryConfigFromEnv } from "./memory.ts";
 import { createStore, defineSchema } from "./store.ts";
 
 const port = Number(process.env.PORT || 3000);
@@ -32,6 +33,11 @@ const callAgentFor =
       })
     : () => callAgentStub;
 
+// SurrealDB Agent Memory (#112): off unless AGENT_MEMORY_ENABLED is on. It needs the database too: the Memory
+// sheet counts who read each fact from agent_log, and the facts come from sessions with a result.
+const memoryConfig = memoryConfigFromEnv();
+const memory = memoryConfig && store ? createLearnerMemory(createMemoryApi(memoryConfig), memoryConfig) : null;
+
 createApp({
   corsOrigins,
   checkDb: db ? surrealCheck(db) : null,
@@ -42,11 +48,13 @@ createApp({
   devKey,
   // per IP: a room of testers on one Wi-Fi shares one, so the limit can be raised for the day
   requestsPerMinute: Number(process.env.REQUESTS_PER_MINUTE) || undefined,
+  memory,
 }).listen(port, (error) => {
   if (error) throw error;
   const dbInfo = surreal ? `${new URL(surreal.url).host} (${surreal.namespace}/${surreal.database})` : "not configured";
   const claude = agents && store ? `${agents.model}, $${agents.budgetUsd} budget` : "off, sessions replay the session-1 fixture";
+  const memoryInfo = memory ? `on (${new URL(memoryConfig!.endpoint).host})` : memoryConfig ? "off, no database" : "off";
   console.log(
-    `api listening on :${port} · CORS: ${corsOrigins.join(", ") || "none"} · SurrealDB: ${dbInfo} · Clerk: ${clerk ? "on" : "off"} · x-dev-user: ${devKey ? "on, with x-dev-key" : "off"} · Claude: ${claude}`,
+    `api listening on :${port} · CORS: ${corsOrigins.join(", ") || "none"} · SurrealDB: ${dbInfo} · Clerk: ${clerk ? "on" : "off"} · x-dev-user: ${devKey ? "on, with x-dev-key" : "off"} · Claude: ${claude} · Agent Memory: ${memoryInfo}`,
   );
 });

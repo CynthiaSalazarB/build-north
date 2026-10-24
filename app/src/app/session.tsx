@@ -4,22 +4,21 @@
 // stays static (decision 14, #27). Closing saves: the start screen offers to resume. In the website layout the
 // conversation is a column on the left, under its pinned question, and the map stands on the right, where the
 // light falls; the firefly's line runs across the gap between them.
-import type { MoveId, Turn } from "@build-north/agents";
+import type { Turn } from "@build-north/agents";
+import { ObserveInteractiveMarker } from "expo-observe";
 import { Redirect, useRouter } from "expo-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { ScrollView, StyleSheet, View, type LayoutChangeEvent, type LayoutRectangle, type ScrollViewInstance } from "react-native";
+import { ScrollView, StyleSheet, View, type ScrollViewInstance } from "react-native";
 import Animated from "react-native-reanimated";
-import Svg from "react-native-svg";
 import { Composer } from "../components/composer.tsx";
-import { ConceptMap, Trace, type MapGeometry } from "../components/concept-map.tsx";
+import { ConceptMap } from "../components/concept-map.tsx";
 import { GuessScreen } from "../components/guess.tsx";
-import { decorative } from "../components/icons.tsx";
-import { Ask, Aside, ExampleIntro, ExampleSteps, FactCard, Failure, FlushReplies, HintCard, LearnerMessage, Nudge, Revealed, useSlow, Waiting } from "../components/messages.tsx";
+import { Ask, Aside, ExampleIntro, ExampleSteps, FactCard, Failure, HintCard, LearnerMessage, Nudge, Revealed, useSlow, Waiting } from "../components/messages.tsx";
 import { ResultScreen } from "../components/result.tsx";
 import { SessionBar } from "../components/session-bar.tsx";
 import { SiteHeader } from "../components/site-header.tsx";
-import { roundedPath, tracePoints } from "../components/trace.ts";
-import { Body, Button, KeyboardSafe, Screen, useColors, useEntrance, useWide } from "../components/ui.tsx";
+import { Body, Button, KeyboardSafe, Screen, useEntrance, useWide } from "../components/ui.tsx";
+import { WideStage } from "../components/work-stage.tsx";
 import { WholeMapScreen } from "../components/whole-map.tsx";
 import { tick } from "../haptics.ts";
 import {
@@ -32,6 +31,7 @@ import {
   isFollowUpFeedback,
   isReveal,
   justLitOf,
+  lastPartNoteOf,
   partNotesOf,
   partsOf,
   provedOf,
@@ -41,7 +41,12 @@ import {
 } from "../session/present.ts";
 import { useSession } from "../session/session-context.tsx";
 import type { Entry, SessionState } from "../session/transcript.ts";
-import { firefly as FIREFLY, page, size, space } from "../theme.ts";
+import { brand, firefly as FIREFLY, pageMetadata, size, space } from "../theme.ts";
+
+/** The web page's title and card: a session opened or shared by its address, before the app sends it home. */
+export function generateMetadata() {
+  return pageMetadata(`${brand.name}: build the concept's map yourself`, "Your guess, the AI's questions, the help that costs a point, and the gap between how sure you felt and what you proved.");
+}
 
 export default function SessionScreen() {
   const router = useRouter();
@@ -66,32 +71,27 @@ export default function SessionScreen() {
   const close = () => (router.canGoBack() ? router.back() : router.replace("/"));
   const home = () => router.replace("/");
 
-  if (turn.phase === "predict") {
-    return (
-      <GuessScreen
-        turn={turn}
-        pending={state.pending !== null}
-        failure={state.failure}
-        onLock={(prediction) => send({ prediction })}
-        onClose={close}
-      />
-    );
-  }
-  if (turn.phase === "result" && turn.result) {
+  // the same concept with the same notes; a self-test is tried again as a self-test
+  const tryAgain = async () => {
     const concept = turn.mentefacto.concept;
-    // the same concept with the same notes; a self-test is tried again as a self-test
-    const tryAgain = async () => {
-      setAgain({ busy: true, error: null });
-      const problem = await start({ concept, ...(state.material ? { material: state.material } : {}), ...(state.mode === "test" ? { mode: state.mode } : {}) });
-      setAgain({ busy: false, error: problem });
-    };
-    return (
+    setAgain({ busy: true, error: null });
+    const problem = await start({ concept, ...(state.material ? { material: state.material } : {}), ...(state.mode === "test" ? { mode: state.mode } : {}) });
+    setAgain({ busy: false, error: problem });
+  };
+
+  let screen: ReactNode;
+  if (turn.phase === "predict") {
+    screen = <GuessScreen turn={turn} pending={state.pending !== null} failure={state.failure} onLock={(prediction) => send({ prediction })} onClose={close} />;
+  } else if (turn.phase === "result" && turn.result) {
+    screen = (
       <ResultScreen
-        concept={concept}
+        concept={turn.mentefacto.concept}
         result={turn.result}
         map={turn.mentefacto}
         notes={partNotesOf(resultMessagesOf(state.entries))}
+        lastPart={lastPartNoteOf(state.entries)}
         coachFailure={coachDue && state.failure ? state.failure.message : null}
+        coachSources={turn.messages.find((message) => message.kind === "summary")?.sources}
         onRetryCoach={retry}
         onAgain={() => void tryAgain()}
         againBusy={again.busy}
@@ -99,11 +99,18 @@ export default function SessionScreen() {
         onDone={home}
       />
     );
+  } else if (turn.expects === "map") {
+    screen = <WholeMapScreen turn={turn} state={state} send={send} retry={retry} edit={edit} onClose={close} />;
+  } else {
+    screen = <WorkScreen turn={turn} state={state} send={send} retry={retry} onClose={close} />;
   }
-  if (turn.expects === "map") {
-    return <WholeMapScreen turn={turn} state={state} send={send} retry={retry} edit={edit} onClose={close} />;
-  }
-  return <WorkScreen turn={turn} state={state} send={send} retry={retry} onClose={close} />;
+  return (
+    <>
+      {screen}
+      {/* the session is interactive as soon as it draws: its Turn is already here (Expo Observe's time to interactive) */}
+      <ObserveInteractiveMarker />
+    </>
+  );
 }
 
 type WorkProps = { turn: Turn; state: SessionState; send: ReturnType<typeof useSession>["send"]; retry: () => void; onClose: () => void };
@@ -227,75 +234,6 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   );
 }
 
-type Box = { x: number; y: number; w: number; h: number };
-const boxOf = (l: LayoutRectangle): Box => ({ x: l.x, y: l.y, w: l.width, h: l.height });
-const sameBox = (a: Box | null, b: Box) => !!a && a.x === b.x && a.y === b.y && a.w === b.w && a.h === b.h;
-
-type StageProps = {
-  /** The part being asked, the firefly's line runs to it; null while nothing is asked. */
-  asked: MoveId | null;
-  fireflySize: number;
-  question: ReactNode;
-  thread: ReactNode;
-  composer: ReactNode;
-  map: (onGeometry: (geometry: MapGeometry) => void) => ReactNode;
-};
-
-/** The website layout of the work: the words column (the pinned question, the thread, the input) on the left, the
- * map on the right, and over both the firefly's line, from the firefly at the column's edge down the gap and into
- * the part it asks about. Positions come from layout events, all relative to this row. */
-function WideStage({ asked, fireflySize, question, thread, composer, map }: StageProps) {
-  const c = useColors();
-  const [words, setWords] = useState<Box | null>(null);
-  const [ask, setAsk] = useState<Box | null>(null);
-  const [stage, setStage] = useState<Box | null>(null);
-  const [spot, setSpot] = useState<Box | null>(null);
-  const [geometry, setGeometry] = useState<MapGeometry | null>(null);
-  const keep = (set: (update: (b: Box | null) => Box | null) => void) => (e: LayoutChangeEvent) => {
-    const next = boxOf(e.nativeEvent.layout);
-    set((b) => (sameBox(b, next) ? b : next));
-  };
-
-  let trace: ReactNode = null;
-  if (asked && words && ask && stage && spot && geometry) {
-    const at = { x: stage.x + spot.x, y: stage.y + spot.y };
-    const p = geometry.parts[asked];
-    const part = { x: at.x + p.x, y: at.y + p.y, w: p.w, h: p.h };
-    const from = { x: words.x + words.w, y: words.y + ask.y + fireflySize / 2 };
-    const gutter = Math.round((from.x + at.x) / 2);
-    const points = tracePoints(from, part, asked === "exclusion" ? "top" : "left", { gutter, above: at.y - space.l });
-    const end = points[points.length - 1]!;
-    const { d, length } = roundedPath(points, 12);
-    trace = (
-      <Svg width="100%" height="100%" style={StyleSheet.absoluteFill} pointerEvents="none" {...decorative}>
-        <Trace d={d} length={length} end={end} drawKey={asked} color={c.questionOutline} />
-      </Svg>
-    );
-  }
-
-  return (
-    <View style={styles.wide}>
-      <View style={styles.words} onLayout={keep(setWords)}>
-        <KeyboardSafe>
-          <FlushReplies value>
-            <View style={styles.question}>
-              <View onLayout={keep(setAsk)}>{question}</View>
-            </View>
-            {thread}
-            {composer}
-          </FlushReplies>
-        </KeyboardSafe>
-      </View>
-      <View style={styles.stage} onLayout={keep(setStage)}>
-        <View style={styles.spot} onLayout={keep(setSpot)}>
-          {map((next) => setGeometry((g) => (g && JSON.stringify(g) === JSON.stringify(next) ? g : next)))}
-        </View>
-      </View>
-      {trace}
-    </View>
-  );
-}
-
 /** Which lines a Conversation draws: all of them (the phone), or, in the website layout, the pinned question and
  * the thread under it. */
 type Show = "all" | "question" | "thread";
@@ -356,7 +294,7 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
       case "feedback":
         return <Nudge text={message.text} capNote={i === capAt} tag={isFollowUpFeedback(entries, i) ? "almost" : undefined} />;
       case "hint":
-        return isReveal(entry) ? <Revealed text={message.text} /> : <HintCard message={message} n={hints.indexOf(entry.id) + 1} capNote={i === capAt} />;
+        return isReveal(entry) ? <Revealed text={message.text} /> : <HintCard message={message} n={hints.indexOf(entry.id) + 1} capNote={i === capAt} concept={turn.mentefacto.concept} />;
       case "example":
         if (message.agent === "app") return <ExampleIntro text={message.text} />;
         if (!steps) return <Body>{message.text}</Body>;
@@ -395,10 +333,5 @@ const styles = StyleSheet.create({
   offer: { alignItems: "flex-start" },
   content: { paddingHorizontal: space.margin, paddingTop: MAP_TOP, paddingBottom: space.xl },
   conversation: { marginTop: CONVERSATION_GAP, gap: space.l },
-  wide: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },
-  words: { width: page.words },
-  question: { paddingTop: space.xl, paddingBottom: space.l },
   thread: { gap: space.l, paddingBottom: space.l },
-  stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: page.header },
-  spot: { width: "100%", maxWidth: page.map },
 });

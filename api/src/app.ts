@@ -1,9 +1,10 @@
-import { CreateSessionBody, TurnBody, UnexpectedInput, type Advance, type CallAgent, type Expects, type Mastery } from "@build-north/agents";
+import { CreateSessionBody, Turn, TurnBody, UnexpectedInput, type Advance, type CallAgent, type Expects, type Mastery } from "@build-north/agents";
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
 import { rateLimit } from "express-rate-limit";
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { DbCheck } from "./db.ts";
+import { fillSources, withMemory, type LearnerMemoryStore } from "./memory.ts";
 import type { NewSession, Store } from "./store.ts";
 
 export type AppOptions = {
@@ -22,6 +23,10 @@ export type AppOptions = {
   devKey: string | null;
   // per IP, for every route except /health
   requestsPerMinute?: number;
+  // CONTRACTS.md section 2, Memory (#112): what earlier sessions left, read before the hint giver and the coach,
+  // written when a session has its result, shown by GET /me/memory and purged by DELETE /me/data. null with the
+  // flag off: every route then runs as before memory existed.
+  memory: LearnerMemoryStore | null;
 };
 
 const MAX_CONCEPT = 100;
@@ -74,7 +79,7 @@ function parseNewSession(body: unknown): Parsed<NewSession> {
   return { ok: true, value: { concept: concept.trim(), material: material?.trim() ? material : null, mode } };
 }
 
-export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, userFromToken, devKey, requestsPerMinute = 60 }: AppOptions) {
+export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, userFromToken, devKey, requestsPerMinute = 60, memory }: AppOptions) {
   const app = express();
   app.disable("x-powered-by");
   // Render puts one proxy in front of the app; trusting it makes req.ip the caller's address.
@@ -210,7 +215,10 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       return;
     }
     const mastery = await who.store.getMastery(who.user);
-    const next = await advance({ session, mastery }, input, callAgentFor(session.id)).catch((error: unknown) => {
+    // The hint giver and the coach get what this learner's earlier sessions left, read once per Turn and only
+    // when one of them runs; over 1.5 s, empty or off, they run without it (CONTRACTS.md section 2, Memory).
+    const remembered = memory ? withMemory(callAgentFor(session.id), () => memory.recall(who.user, session.concept, session.id)) : null;
+    const next = await advance({ session, mastery }, input, remembered?.callAgent ?? callAgentFor(session.id)).catch((error: unknown) => {
       // input that doesn't fit the phase changes nothing
       if (error instanceof UnexpectedInput) return error;
       throw error;
@@ -225,6 +233,18 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       res.json(next.turn);
       return;
     }
+    // the words of the facts a hint or the coach cited, so the app can show where they came from
+    if (remembered) fillSources(next.turn, remembered.given());
+    // The Turn is what the app draws and what the session keeps as its lastTurn, so one off the contract (an agent's
+    // output reaching a stricter Turn field, as #139 found) would be refused by the app and fail every later read of
+    // the session. It is never saved: the learner gets the latest Turn again with error set, and the retry runs
+    // the agents again (CONTRACTS.md section 5).
+    const checked = Turn.safeParse(next.turn);
+    if (!checked.success) {
+      console.error(`Turn ${next.turn.turn} of session ${session.id} is off the contract and wasn't saved: ${describe(checked.error.issues)}`);
+      res.json({ ...latest, error: { code: "agent_failed", retryable: true } });
+      return;
+    }
     if (!(await who.store.saveSession(next.session, session.turn))) {
       // another request answering the same Turn saved first, and its Turn is the one that counts
       const saved = await who.store.getSession(who.user, session.id);
@@ -237,7 +257,24 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     // session saved since.
     const changed = changedMoves(mastery, next.mastery);
     if (session.mode !== "test" && changed.length > 0) await who.store.saveMastery(who.user, { moves: changed });
+    // The session has its result: what it leaves for the next one is written off the request path. The tables
+    // above stay the record, so a memory that is down costs the learner nothing but the facts; the cause is logged.
+    if (memory && next.session.result && !session.result) {
+      memory.remember(who.user, next.session).catch((error: unknown) => console.error(`memory write failed for session ${session.id}:`, error));
+    }
     res.json(next.turn);
+  });
+
+  // The Memory sheet (CONTRACTS.md section 2b). Empty with memory off, so the app says there is nothing yet.
+  app.get("/me/memory", async (req, res) => {
+    const who = await caller(req, res);
+    if (!who) return;
+    if (!memory) {
+      res.json({ concepts: [] });
+      return;
+    }
+    const [concepts, reads] = await Promise.all([who.store.finishedConcepts(who.user), who.store.memoryReads(who.user)]);
+    res.json(await memory.view(who.user, concepts, reads));
   });
 
   app.get("/me/mastery", async (req, res) => {
@@ -246,10 +283,12 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     res.json(await who.store.getMastery(who.user));
   });
 
-  // The delete button: the caller's sessions, their agent logs, and mastery
+  // The delete button: the caller's memory scope, then their sessions, their agent logs, and mastery. Memory goes
+  // first: if its purge fails, the request fails and nothing is half deleted; the learner can try again.
   app.delete("/me/data", async (req, res) => {
     const who = await caller(req, res);
     if (!who) return;
+    if (memory) await memory.purge(who.user);
     await who.store.deleteUserData(who.user);
     res.status(204).end();
   });

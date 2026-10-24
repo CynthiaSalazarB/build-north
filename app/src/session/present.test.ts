@@ -2,7 +2,8 @@
 // checked here.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { Turn, type Mentefacto, type Result } from "@build-north/agents";
+import { MemoryView, Turn, type Mentefacto, type Result } from "@build-north/agents";
+import memoryView from "@build-north/agents/fixtures/memory-view.json" with { type: "json" };
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import {
   cappedOf,
@@ -17,21 +18,27 @@ import {
   gapOf,
   helpOf,
   hintCardOf,
+  hintNumberOf,
   hintPartOf,
   inlineCodeOf,
   isFollowUpFeedback,
   itemsOf,
   justLitOf,
+  memoryConceptOf,
+  nextPartOf,
   partMeaningOf,
   partNotesOf,
   partsOf,
   partTextOf,
   pointsOf,
   provedOf,
+  rememberedLineOf,
+  shortDateOf,
   resultPartsOf,
   resultStepsOf,
   revealHoldOf,
   secretLineOf,
+  shareLineOf,
   waitingLineOf,
   wholeMapHelpOf,
   wholeMapPartsOf,
@@ -73,12 +80,12 @@ test("a Turn saved before progress.points falls back to the rule: 2 alone, 1 aft
   ]);
 });
 
-test("the result marks the points the guess claimed but didn't prove, first unproved first", () => {
+test("the result map shows earned points per area without assigning the total confidence gap to an area", () => {
   const last = turnAt(14);
   const parts = resultPartsOf(last.result!, last.mentefacto);
   assert.deepEqual(
     parts.map((p) => `${p.state}:${p.pips?.join("+")}`),
-    ["lit:earned+missed", "lit:earned+earned", "lit:earned+missed", "lit:earned+open"],
+    ["lit:earned+open", "lit:earned+earned", "lit:earned+open", "lit:earned+open"],
   );
   assert.equal(parts[1]!.text, "not dictatorship");
   assert.equal(parts[2]!.text, "free elections, rights, more than one party");
@@ -129,6 +136,12 @@ test("Help costs a point only while the part could still score 2; after a hint i
   assert.equal(helpOf([{ ...hint, message: { ...hint.message, hintStep: "reveal" } }, { ...question, id: "turn-9-2" }]).tag, "help −1");
   assert.equal(cappedOf([question, answer]), false);
   assert.equal(cappedOf([question, answer, nudge]), true);
+  // a part picked up after a reload shows the latest Turn's lines only: no question, so no firefly to tap. Help
+  // goes by the input instead, as it does after a hint, whether that Turn was a nudge or a hint
+  assert.equal(helpOf([nudge]).more, true);
+  assert.equal(helpOf([hint]).more, true);
+  // before the moves nothing changes: the worked example has no question line and no Help
+  assert.equal(helpOf([{ ...nudge, message: { agent: "app", kind: "example", text: "Before democracy, watch planet." }, phase: "example", move: null, level: null }]).more, false);
 });
 
 test("the exclusion's follow-up question stays in the part, with the answer before it, and isn't a retry", () => {
@@ -220,8 +233,13 @@ test("the worked example's eight lines become four steps: a question, what goes 
 
 test("the gap is a signed number and one sentence", () => {
   assert.deepEqual(gapOf({ calibrationGap: 2 }), { headline: "You felt 2 points surer than you could explain.", note: "That's normal: explaining is how you find out.", over: true });
-  assert.deepEqual(gapOf({ calibrationGap: -1 }), { headline: "You knew more than you felt: 1 point more.", note: null, over: false });
-  assert.deepEqual(gapOf({ calibrationGap: 0 } as Pick<Result, "calibrationGap">), { headline: "Your guess was exactly right.", note: "You know what you know.", over: false });
+  assert.deepEqual(gapOf({ calibrationGap: -1 }), { headline: "You knew more than you felt: 1 point more.", note: "You explained more than you expected in this session.", over: false });
+  assert.deepEqual(gapOf({ calibrationGap: 0 } as Pick<Result, "calibrationGap">), { headline: "Your prediction matched your score.", note: "Your confidence matched what you could explain in this session.", over: false });
+});
+
+test("what a learner shares is the concept and the numbers with the tagline and the address, never their words", () => {
+  const brand = { name: "Lumente", tagline: "Build with AI. Understand the concepts yourself.", site: "https://example.test" };
+  assert.equal(shareLineOf("JWT", { predictedScore: 6, score: 4 }, brand), "JWT on Lumente: I guessed 6 of 8 and proved 4. Build with AI. Understand the concepts yourself. https://example.test");
 });
 
 test("notes with a key, a token or a password stop at the phone, and the warning says which line", () => {
@@ -264,6 +282,13 @@ test("on the whole map, Help costs a point on each new part, then names the part
   assert.equal(wholeMapHelpOf(16), null);
   assert.deepEqual([0, 3, 4, 8, 15].map(hintPartOf), ["supraordinate", "supraordinate", "exclusion", "isoordinate", "infraordinate"]);
   assert.deepEqual([0, 1, 4, 5].map(firstOnPart), [true, false, true, false]);
+  // the hint cards count from the Turn's total: in a session on screen from the start the transcript holds every
+  // hint, and one picked up after a reload holds only the latest Turn's, so its one hint is still the sixth
+  assert.deepEqual([0, 1].map((i) => hintNumberOf(2, 2, i)), [0, 1]);
+  assert.equal(hintNumberOf(6, 1, 0), 5);
+  assert.equal(hintPartOf(hintNumberOf(6, 1, 0)), "exclusion");
+  assert.equal(firstOnPart(hintNumberOf(6, 1, 0)), false);
+  assert.equal(hintNumberOf(0, 0, 0), 0);
 });
 
 test("a part is written back clean: blanks go, and only an exclusion keeps its difference", () => {
@@ -294,6 +319,31 @@ test("the whole map lights the learner's words unscored, and keeps what Help rev
   );
 });
 
+test("navigation suggests each empty area in order without scoring answers or changing the map", () => {
+  let map = blankMap("CORS");
+  const order = ["supraordinate", "exclusion", "isoordinate", "infraordinate"] as const;
+  for (const [i, move] of order.entries()) {
+    const before = JSON.stringify(map);
+    assert.equal(nextPartOf(map), move);
+    assert.equal(filledOf(map), i);
+    assert.equal(JSON.stringify(map), before);
+    // Interface completion accepts any text; only the evaluator can judge an answer.
+    map = withPart(map, move, [{ value: "my ungraded answer", note: null }]);
+  }
+  assert.equal(nextPartOf(map), null);
+  assert.equal(filledOf(map), 4);
+  assert.equal(nextPartOf(withPart(map, "exclusion", [])), "exclusion");
+});
+
+test("out-of-order edits, whitespace, and revealed answers keep navigation and the count consistent", () => {
+  const map = { ...blankMap("CORS"), supraordinate: { value: "  ", note: null }, infraordinate: [{ value: "draft", note: null }] };
+  assert.equal(nextPartOf(map), "supraordinate");
+  assert.equal(filledOf(map), 1);
+  const revealed = withPart(map, "supraordinate", [{ value: "shown answer", note: null }]);
+  assert.equal(nextPartOf(revealed), "exclusion");
+  assert.equal(filledOf(revealed), 2);
+});
+
 test("the whole-map evaluator's note on each part comes off its label", () => {
   const notes = partNotesOf([
     { agent: "evaluator", kind: "feedback", text: "Bigger group: 'Security' is too broad. What's the closest group?" },
@@ -303,4 +353,31 @@ test("the whole-map evaluator's note on each part comes off its label", () => {
   ]);
   assert.deepEqual(notes, { supraordinate: "'Security' is too broad. What's the closest group?", exclusion: "A sharp exclusion." });
   assert.equal(partMeaningOf("isoordinate", "CORS"), "What something needs to count as CORS.");
+});
+
+test("the memory line under a hint or the coach's words joins the cited facts' own sentences", () => {
+  assert.equal(
+    rememberedLineOf([{ text: "Last time on API you guessed 7 and proved 3." }, { text: " 'Its types' took 2 Helps on API last time. " }]),
+    "From what Lumente remembers: Last time on API you guessed 7 and proved 3. 'Its types' took 2 Helps on API last time.",
+  );
+});
+
+test("the Memory sheet's words: each part's level now and how it got there, the reads, and the gap beside the one before", () => {
+  const view = MemoryView.parse(memoryView);
+  const cors = memoryConceptOf(view.concepts[0]!);
+  assert.equal(cors.concept, "CORS");
+  assert.deepEqual(cors.moves.map((m) => [m.label, m.now, m.reads]), [
+    ["Bigger group", "level 3", 5],
+    ["What it isn't", "level 2", 1],
+    ["What it needs", "level 2", 1],
+    ["Its types", "no level yet", 0],
+  ]);
+  // the dates read in the device's time zone, so only their shape is fixed here
+  assert.equal(cors.moves[0]?.history.length, 2);
+  assert.match(cors.moves[0]!.history[0]!, /^level 3 since [A-Z][a-z]{2} \d{1,2}$/);
+  assert.match(cors.moves[0]!.history[1]!, /^level 2 from [A-Z][a-z]{2} \d{1,2} to [A-Z][a-z]{2} \d{1,2}$/);
+  assert.deepEqual(cors.moves[3]?.history, []);
+  assert.match(cors.gap!, /^Last time, [A-Z][a-z]{2} \d{1,2}: you guessed 6 and proved 5\. Before, [A-Z][a-z]{2} \d{1,2}: you guessed 7 and proved 4\.$/);
+  assert.equal(memoryConceptOf({ ...view.concepts[0]!, gap: { latest: null, previous: null } }).gap, null);
+  assert.equal(shortDateOf("not a date"), "");
 });

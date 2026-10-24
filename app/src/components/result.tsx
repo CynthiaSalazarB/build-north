@@ -1,21 +1,24 @@
 // The end of a session (round 9 "Lumente", #34): the gap in words, over the guess and the score side by side (a
 // bare signed number read as a grade, decided Oct 22), the map in the light the learner reached with the points
-// proved, the ones felt sure but not proved and the parts that moved up a level, how points work, and the coach's
+// proved and the parts that moved up a level, how points work, and the coach's
 // next step, which comes a moment after the numbers. Every number comes from Turn.result, computed by code. The
 // firefly is barely there: it never reacts to a score. The gap arrives first, then the map, then the rest, one
-// after another. In the website layout the words are a column on the left and the map stands on the right.
-import type { Mentefacto, MoveId, Result } from "@build-north/agents";
-import { useEffect } from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+// after another. Share hands the numbers (never the words) to a chat or a post: the phone's share sheet, the
+// browser's where it has one, else the clipboard. In the website layout the words are a column on the left and the
+// map stands on the right.
+import { MOVE_ORDER, type Mentefacto, type Message, type MoveId, type Result } from "@build-north/agents";
+import { useEffect, useState } from "react";
+import { Platform, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { success } from "../haptics.ts";
-import { gapOf, POINTS_RULE, resultPartsOf, resultStepsOf, type Pip, type ResultStep } from "../session/present.ts";
-import { page, parts as PARTS, radius, space, type } from "../theme.ts";
+import { gapOf, POINTS_RULE, resultPartsOf, resultStepsOf, shareLineOf, type Pip, type ResultStep } from "../session/present.ts";
+import { brand, page, parts as PARTS, radius, space, type } from "../theme.ts";
 import { ConceptMap, PointSquare } from "./concept-map.tsx";
 import { Firefly } from "./firefly.tsx";
-import { Failure } from "./messages.tsx";
+import { Failure, Remembered } from "./messages.tsx";
 import { SessionBar } from "./session-bar.tsx";
+import { ScoringGuide } from "./scoring-guide.tsx";
 import { SiteHeader } from "./site-header.tsx";
-import { Body, Button, Label, Rise, Screen, Tag, useColors, useMode, useWide } from "./ui.tsx";
+import { Body, Button, Label, Rise, Screen, Small, Tag, useColors, useMode, useWide } from "./ui.tsx";
 
 type Props = {
   concept: string;
@@ -23,8 +26,12 @@ type Props = {
   map: Mentefacto;
   /** The whole-map evaluator's note per part, after level 5 or a self-test. */
   notes?: Partial<Record<MoveId, string>>;
+  /** Levels 1 to 4: the evaluator's words on the part answered last, which came with the result (`lastPartNoteOf`). */
+  lastPart?: Partial<Record<MoveId, string>>;
   /** The coach's words come after the result (`result.coach` is null until then); this is why they didn't. */
   coachFailure?: string | null;
+  /** With memory on, the facts the coach's words rely on (the summary message's `sources`, #112). */
+  coachSources?: Message["sources"];
   onRetryCoach?: () => void;
   onAgain: () => void;
   againBusy?: boolean;
@@ -45,17 +52,19 @@ export function ResultScreen(props: Props) {
 }
 
 /** Inside the Screen, so the colors follow the light the score reached. */
-function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoach, onAgain, againBusy, againError, onDone }: Props) {
+function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFailure, coachSources, onRetryCoach, onAgain, againBusy, againError, onDone }: Props) {
   const c = useColors();
   const wide = useWide();
   const lit = useMode() === "day";
   const gap = gapOf(result);
   const missed = Math.max(0, result.predictedScore - result.score);
   // eight points each: the guess in amber, as on the guess screen; the score filled, and the points the guess
-  // claimed but didn't prove dashed coral, as on the map
+  // claimed but didn't prove dashed coral on this total scale only
   const guessed = Array.from({ length: 8 }, (_, i): Pip => (i < result.predictedScore ? "claimed" : "open"));
   const proved = Array.from({ length: 8 }, (_, i): Pip => (i < result.score ? "earned" : i < result.predictedScore ? "missed" : "open"));
-  const steps = resultStepsOf(result, map, notes);
+  const all = resultStepsOf(result, map, notes);
+  // levels 1 to 4 went part by part in the conversation, all but the last answer, whose words came with the result
+  const steps = all.length > 0 ? all : resultStepsOf(result, map, lastPart).filter((step) => step.note);
 
   const figure = (
     <View style={styles.map}>
@@ -72,9 +81,10 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
         <View style={styles.headline} accessible accessibilityLabel={`You guessed ${result.predictedScore}. You proved ${result.score} of 8. ${gap.headline}${gap.note ? ` ${gap.note}` : ""}`}>
           <Text style={[type.question, { color: c.onSurface }]}>{gap.headline}</Text>
           <View style={styles.scales}>
-            <Scale label="you guessed" value={result.predictedScore} pips={guessed} dark={lit} />
-            <Scale label="you proved" value={result.score} pips={proved} dark={lit} />
+            <Scale label="prediction" value={result.predictedScore} pips={guessed} dark={lit} />
+            <Scale label="map score" value={result.score} pips={proved} dark={lit} />
           </View>
+          <Small dim>Your prediction captured your confidence. Your map score reflects what you could explain in this session.</Small>
           {gap.note && <Body dim>{gap.note}</Body>}
         </View>
       </Rise>
@@ -88,11 +98,12 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
           {missed > 0 && (
             <View style={styles.legendRow}>
               <PointSquare pip="missed" dark={lit} />
-              <Label dim>felt sure, not proved</Label>
+            <Label dim>prediction gap</Label>
             </View>
           )}
         </View>
-        <Label dim>{POINTS_RULE}</Label>
+        <Small dim>{POINTS_RULE}</Small>
+        <ScoringGuide />
         {result.questions.asked > 0 && (
           <Label dim>{`you asked ${result.questions.asked} ${result.questions.asked === 1 ? "question" : "questions"}, ${result.questions.testing} testing the idea`}</Label>
         )}
@@ -107,7 +118,10 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
         <Rise key={result.coach ? "coach" : "waiting"} order={5} style={[styles.coach, { borderLeftColor: c.question }]}>
           <Tag style={{ color: c.question }}>for next time</Tag>
           {result.coach ? (
-            <Body>{result.coach.message}</Body>
+            <>
+              <Body>{result.coach.message}</Body>
+              <Remembered sources={coachSources} concept={concept} />
+            </>
           ) : coachFailure ? (
             <Failure message={coachFailure}>{onRetryCoach && <Button kind="secondary" label="Try again" onPress={onRetryCoach} />}</Failure>
           ) : (
@@ -120,6 +134,7 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
   );
   const again = <Button label={`Try ${concept} again`} fit={wide} busy={againBusy} onPress={onAgain} />;
   const another = <Button kind="text" label="Map another concept" onPress={onDone} />;
+  const share = <ShareButton concept={concept} result={result} />;
 
   if (wide) {
     return (
@@ -131,6 +146,7 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
             <Rise order={6} style={styles.actions}>
               {again}
               {another}
+              {share}
             </Rise>
           </ScrollView>
           <View style={styles.stage}>
@@ -149,10 +165,35 @@ function ResultBody({ concept, result, map, notes = {}, coachFailure, onRetryCoa
       <ScrollView contentContainerStyle={styles.content}>{words}</ScrollView>
       <View style={styles.foot}>
         {again}
-        {another}
+        <View style={styles.footRow}>
+          {another}
+          {share}
+        </View>
       </View>
     </>
   );
+}
+
+/** Share the result's numbers: the phone's share sheet, the browser's where it has one, else the clipboard, and
+ * the label says what happened. A share sheet the learner dismisses says nothing. */
+function ShareButton({ concept, result }: { concept: string; result: Result }) {
+  const [copied, setCopied] = useState<"no" | "yes" | "refused">("no");
+  const share = async () => {
+    const message = shareLineOf(concept, result, brand);
+    if (Platform.OS !== "web") {
+      await Share.share({ message }).catch(() => undefined);
+      return;
+    }
+    const nav = typeof navigator === "undefined" ? undefined : navigator;
+    if (nav?.share) {
+      await nav.share({ text: message }).catch(() => undefined);
+      return;
+    }
+    const ok = nav?.clipboard ? await nav.clipboard.writeText(message).then(() => true, () => false) : false;
+    setCopied(ok ? "yes" : "refused");
+  };
+  const label = copied === "yes" ? "Copied" : copied === "refused" ? "Couldn't copy" : "Share";
+  return <Button kind="text" label={label} hint="Shares your guess and your score, not your answers" onPress={() => void share()} />;
 }
 
 /** One row of the guess against the score: its label, the eight points in four pairs (one pair per part), the number. */
@@ -183,10 +224,10 @@ function ResultSteps({ steps, dark }: { steps: ResultStep[]; dark: boolean }) {
   const c = useColors();
   return (
     <View style={styles.steps}>
-      {steps.map((step, i) => (
+      {steps.map((step) => (
         <View key={step.move} style={[styles.step, { borderLeftColor: c.partEdge }]}>
           <View style={styles.stepHead} accessible accessibilityLabel={`${PARTS[step.move].label}: ${step.points} of 2 points`}>
-            <Tag style={{ color: c.question }}>{`${i + 1} · ${PARTS[step.move].label}`}</Tag>
+            <Tag style={{ color: c.question }}>{`${MOVE_ORDER.indexOf(step.move) + 1} · ${PARTS[step.move].label}`}</Tag>
             <View style={styles.pips}>
               {step.pips.map((pip, k) => (
                 <PointSquare key={k} pip={pip} dark={dark} />
@@ -236,6 +277,7 @@ const styles = StyleSheet.create({
   item: { paddingVertical: 6, paddingHorizontal: 10, borderWidth: 1, borderRadius: radius.chip },
   coach: { gap: space.xs, borderLeftWidth: 2, paddingLeft: space.l },
   foot: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m, gap: space.xs },
+  footRow: { flexDirection: "row", justifyContent: "center", alignItems: "center", gap: space.s },
   split: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },
   words: { width: page.words, flexGrow: 0 },
   wordsContent: { flexGrow: 1, justifyContent: "center", paddingTop: space.xxl, paddingBottom: page.header, gap: space.xl },

@@ -1,7 +1,7 @@
 // What the screens say and draw, as pure functions of the Turns and the transcript: the map's parts and their
 // points, the light (points proved so far), the hint card, Help's price, the reveal, and the gap. No React here,
 // so it's tested under Node. The rules behind the words are in CONTRACTS.md section 3.
-import { MOVE_LABEL, MOVE_ORDER, WORKED_EXAMPLE, type Item, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
+import { MOVE_LABEL, MOVE_ORDER, WORKED_EXAMPLE, type Item, type MemoryGap, type MemoryView, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
 import type { Entry } from "./transcript.ts";
 
 /** The concepts Start offers (Lumente's board): what coding agents put in student projects. */
@@ -188,17 +188,12 @@ export function exampleStepsOf(lines: readonly string[]): ExampleStep[] | null {
   return steps.length > 0 ? steps : null;
 }
 
-/** The result's map: proved points filled; the points the guess claimed but didn't prove are dashed coral,
- * taken from the first unproved points in the parts' order. */
+/** The result's map shows actual points per area. A total prediction can't assign confidence to an area;
+ * its gap is shown only on the overall result scale. */
 export function resultPartsOf(result: Result, map: Mentefacto): PartView[] {
-  let missed = Math.max(0, result.predictedScore - result.score);
   return MOVE_ORDER.map((move) => {
     const points = result.rubric.find((r) => r.move === move)?.points ?? 0;
-    const pips = pipsFor(points).map((pip) => {
-      if (pip !== "open" || missed === 0) return pip;
-      missed -= 1;
-      return "missed";
-    }) as [Pip, Pip];
+    const pips = pipsFor(points);
     const text = partTextOf(map, move);
     // the part moved up a level this session (CONTRACTS.md section 3): the help on it fades next time
     const up = result.masteryChanges.find((c) => c.move === move && c.to > c.from);
@@ -242,8 +237,12 @@ export function hintCardOf(n: number, first: boolean): { title: string; filled: 
 /** What the firefly says under itself: Help costs a point only while the part could still score 2. After a
  * hint, Help is the "More help" button by the input instead. */
 export function helpOf(part: readonly Entry[]): { tag: string; label: string; more: boolean } {
+  const asked = part.findIndex((e) => e.from === "app" && e.message.kind === "question");
+  // a part picked up after a reload shows the latest Turn's lines only (saved.ts): no question, so no firefly to
+  // tap. Help goes by the input instead, as it does after a hint.
+  if (asked < 0 && part.some((e) => e.from === "app" && e.phase === "move")) return { tag: "help", label: "More help", more: true };
   // only what came after the question counts: a reveal before it ended the last part
-  const since = part.slice(part.findIndex((e) => e.from === "app" && e.message.kind === "question") + 1);
+  const since = part.slice(asked + 1);
   if (since.some((e) => e.from === "app" && e.message.kind === "hint")) return { tag: "help", label: "More help", more: true };
   // once a retry capped the part at 1 point, Help costs nothing more; a follow-up question isn't a retry
   if (cappedOf(part)) return { tag: "help", label: "Help", more: false };
@@ -284,12 +283,25 @@ const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 export function gapOf(result: Pick<Result, "calibrationGap">): { headline: string; note: string | null; over: boolean } {
   const gap = result.calibrationGap;
   if (gap > 0) return { headline: `You felt ${plural(gap, "point")} surer than you could explain.`, note: "That's normal: explaining is how you find out.", over: true };
-  if (gap < 0) return { headline: `You knew more than you felt: ${plural(-gap, "point")} more.`, note: null, over: false };
-  return { headline: "Your guess was exactly right.", note: "You know what you know.", over: false };
+  if (gap < 0) return { headline: `You knew more than you felt: ${plural(-gap, "point")} more.`, note: "You explained more than you expected in this session.", over: false };
+  return { headline: "Your prediction matched your score.", note: "Your confidence matched what you could explain in this session.", over: false };
+}
+
+/** What a learner shares from the result: the concept, the guess against the score, the tagline and the address.
+ * Numbers only, never the learner's words. `brand` comes from the theme (theme.ts needs React Native; this file
+ * doesn't). */
+export function shareLineOf(concept: string, result: Pick<Result, "predictedScore" | "score">, brand: { name: string; tagline: string; site: string }): string {
+  return `${concept} on ${brand.name}: I guessed ${result.predictedScore} of 8 and proved ${result.score}. ${brand.tagline} ${brand.site}`;
 }
 
 /** How a part earns its points (CONTRACTS.md section 3, `pointsFor`), in one line for the screens. */
-export const POINTS_RULE = "Each part is worth 2 points: 2 if your answer holds up on your own, 1 if it partly does or took a retry or Help, 0 if it was shown to you or doesn't hold up.";
+export const POINTS_RULE = "4 areas × 2 points = 8 points total. Points reflect what you can explain; your prediction records how confident you feel.";
+
+export const SCORING = [
+  { points: 2, text: "A clear, complete answer on your first try, without a hint." },
+  { points: 1, text: "A partly correct answer, or a correct one after a retry or hint." },
+  { points: 0, text: "An incorrect answer, an empty area, or an answer revealed to you." },
+] as const;
 
 /** Pasted notes go to Claude, so the start screen stops at anything that looks like a key, a token or a
  * password: a known key's shape, or a password, secret, token or key name set to a value with a digit in it
@@ -307,7 +319,10 @@ export function secretLineOf(text: string): number | null {
 // ---------- Level 5: the learner builds the whole map and asks the fact desk ----------
 
 /** How many of the four parts have something in them. */
-export const filledOf = (map: Mentefacto): number => MOVE_ORDER.filter((move) => itemsOf(map, move).length > 0).length;
+export const filledOf = (map: Mentefacto): number => MOVE_ORDER.filter((move) => partTextOf(map, move) !== null).length;
+
+/** Interface guidance only: suggest the first empty area, without judging an answer or using a hint. */
+export const nextPartOf = (map: Mentefacto): MoveId | null => MOVE_ORDER.find((move) => partTextOf(map, move) === null) ?? null;
 
 /** The whole map while the learner builds it: their words light a part (nothing is scored until they submit),
  * an answer Help revealed stays dim, and an empty part is a "?". */
@@ -351,6 +366,11 @@ export const hintPartOf = (n: number): MoveId => MOVE_ORDER[Math.min(Math.floor(
 /** The n-th hint of the session (from 0) is the first on its part, the one that costs the point. */
 export const firstOnPart = (n: number) => n % STEPS_PER_PART === 0;
 
+/** Which Help of the session (from 0) the i-th hint on screen is, of the `shown` hints the transcript holds. A
+ * session picked up after a reload shows the latest Turn's lines only (saved.ts), so the transcript may start
+ * mid-session: the count runs back from the Turn's own total, which every hint moved up by one. */
+export const hintNumberOf = (hintsUsed: number, shown: number, i: number): number => Math.max(0, hintsUsed - shown) + i;
+
 /** Help on the whole map, under the firefly: the first Help on a part costs a point, the next ones nothing more
  * until the answer itself. Null once every part has been revealed. */
 export function wholeMapHelpOf(hintsUsed: number): { tag: string; label: string } | null {
@@ -378,6 +398,51 @@ export function partNotesOf(messages: readonly Message[]): Partial<Record<MoveId
   return notes;
 }
 
+/** Levels 1 to 4: the evaluator's words on the part answered last come in the result's own Turn, and the result
+ * opens at once, so the result shows that part with them (Cynthia, Oct 23: the last answer never got its "that
+ * works"). The part is the one the last Turn before the result asked. Nothing after a reveal (no words came) and
+ * nothing in a self-test, whose notes are labeled (`partNotesOf`). */
+export function lastPartNoteOf(entries: readonly Entry[]): Partial<Record<MoveId, string>> {
+  const app = entries.filter((e): e is Extract<Entry, { from: "app" }> => e.from === "app");
+  const words = app.find((e) => e.phase === "result" && e.message.agent === "evaluator" && e.message.kind === "feedback" && !LABELED.test(e.message.text));
+  const asked = [...app].reverse().find((e) => e.phase !== "result" && e.move !== null);
+  return words && asked?.move ? { [asked.move]: words.message.text } : {};
+}
+
 /** What to paste into a coding agent in your project, so its answer can go in your notes. */
+/** The dim line under a hint or the coach's words with memory on (#112): the facts the text relies on, in their
+ * own sentences, which code wrote from the session's numbers. */
+export function rememberedLineOf(sources: readonly { text: string }[]): string {
+  return `From what Lumente remembers: ${sources.map((source) => source.text.trim()).join(" ")}`;
+}
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** "Oct 23" from an ISO date, in the device's time zone; "" for a date that doesn't parse. */
+export function shortDateOf(iso: string): string {
+  const date = new Date(iso);
+  return Number.isNaN(date.getTime()) ? "" : `${MONTHS[date.getMonth()]} ${date.getDate()}`;
+}
+
+export type MemoryMoveLines = { move: MoveId; label: string; now: string; history: string[]; reads: number };
+export type MemoryConceptLines = { concept: string; moves: MemoryMoveLines[]; gap: string | null };
+
+const gapLineOf = (gap: MemoryGap) => `${shortDateOf(gap.at)}: you guessed ${gap.predictedScore} and proved ${gap.score}`;
+
+/** The Memory sheet's words for one concept: per part the level now and how it got there, newest first, how many
+ * times the AI read it, and the latest guess against the score beside the one before. */
+export function memoryConceptOf(entry: MemoryView["concepts"][number]): MemoryConceptLines {
+  const moves = entry.moves.map((move) => ({
+    move: move.move,
+    label: MOVE_LABEL[move.move],
+    now: move.level === null ? "no level yet" : `level ${move.level}`,
+    history: move.history.map((row) => (row.until ? `level ${row.level} from ${shortDateOf(row.since)} to ${shortDateOf(row.until)}` : `level ${row.level} since ${shortDateOf(row.since)}`)),
+    reads: move.history.reduce((count, row) => count + row.readBy, 0),
+  }));
+  const { latest, previous } = entry.gap;
+  const gap = latest ? `Last time, ${gapLineOf(latest)}.${previous ? ` Before, ${gapLineOf(previous)}.` : ""}` : null;
+  return { concept: entry.concept, moves, gap };
+}
+
 export const AI_PROMPT =
   "List the technical concepts this project depends on that I should be able to explain, like JWT, CORS, a database index or RAG. For each one, write one line: the concept, then where the project uses it. Don't include code, file contents, keys, tokens, passwords, URLs or anyone's personal data.";

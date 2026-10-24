@@ -88,6 +88,32 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     await assert.rejects(store.createSession("kyle", { concept: "x", material: null, mode: "exam" as "test" }));
   });
 
+  await t.test("the Memory sheet's two reads: the finished concepts, each once, and the fact ids each hint giver or coach call received", async () => {
+    const result = { predictedScore: 7, score: 3, maxScore: 8 as const, calibrationGap: 4, hintsUsed: 0, rubric: [], masteryChanges: [], questions: { asked: 0, testing: 0 }, coach: null };
+    const api1 = await store.createSession("reader", { concept: "API", material: null, mode: "learn" });
+    const jwt = await store.createSession("reader", { concept: "JWT", material: null, mode: "learn" });
+    const api2 = await store.createSession("reader", { concept: "API", material: null, mode: "learn" });
+    await store.createSession("reader", { concept: "CORS", material: null, mode: "learn" });
+    const theirs = await store.createSession("other", { concept: "cache", material: null, mode: "learn" });
+    for (const s of [api1, jwt, api2, theirs]) assert.equal(await store.saveSession({ ...s, turn: 1, phase: "result", result }, s.turn), true);
+    assert.deepEqual([...(await store.finishedConcepts("reader"))].sort(), ["API", "JWT"]);
+    assert.deepEqual(await store.finishedConcepts("nobody"), []);
+
+    const facts = (...ids: string[]) => ({ memory: { facts: ids.map((id) => ({ id })) } });
+    await store.logAgentCall({ session: api1.id, agent: "hint_giver", input: facts("attr_1", "attr_2"), output: { cites: ["attr_1"] }, ms: 1, usd: 0, dropped: ["attr_x"] });
+    await store.logAgentCall({ session: api2.id, agent: "coach", input: facts("attr_1"), output: {}, ms: 1, usd: 0 });
+    await store.logAgentCall({ session: api2.id, agent: "coach", input: { concept: "API" }, output: {}, ms: 1, usd: 0 });
+    await store.logAgentCall({ session: api1.id, agent: "questioner", input: facts("attr_9"), output: {}, ms: 1, usd: 0 });
+    await store.logAgentCall({ session: theirs.id, agent: "coach", input: facts("attr_8"), output: {}, ms: 1, usd: 0 });
+    const reads = (await store.memoryReads("reader")).sort((a, b) => b.length - a.length);
+    assert.deepEqual(reads, [["attr_1", "attr_2"], ["attr_1"], []]);
+    const [dropped] = await db.query("SELECT VALUE dropped FROM agent_log WHERE agent = 'hint_giver'").collect<[string[][]]>();
+    assert.deepEqual(dropped, [["attr_x"]]);
+    // the delete test below counts the whole agent_log table
+    await store.deleteUserData("reader");
+    await store.deleteUserData("other");
+  });
+
   await t.test("deleting a user's data removes their sessions, logs and mastery, and nobody else's", async () => {
     const mine = await store.createSession("delete-me", { concept: "inflation", material: "notes", mode: "test" });
     await store.logAgentCall({ session: mine.id, agent: "fact_desk", input: { q: 1 }, output: { a: 2 }, ms: 120.4, usd: 0.0123 });
@@ -116,7 +142,7 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
 
     // what the app gets when the demo user signs in, then the presenter's first question
     const fact = { kind: "fact", answer: "No. Browsers enforce CORS, and curl doesn't check it.", questionType: "breaking_case" };
-    const server = createApp({ corsOrigins: [], checkDb: null, store, advance, callAgentFor: () => async () => fact, userFromToken: null, devKey: "k" }).listen(0);
+    const server = createApp({ corsOrigins: [], checkDb: null, store, advance, callAgentFor: () => async () => fact, userFromToken: null, devKey: "k", memory: null }).listen(0);
     st.after(() => server.close());
     await once(server, "listening");
     const api = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;

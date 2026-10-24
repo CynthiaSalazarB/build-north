@@ -23,8 +23,11 @@ npm run start -w app        # then scan the QR code with Expo Go, or press w for
 With no `app/.env`, the app runs in **demo mode**: it replays the API session recorded with Claude from
 `agents/fixtures/session-api.json`, one Turn per action, whatever you type (#6). "Your data" at the top of
 Start holds the privacy note and the delete button (`DELETE /me/data`, then sign-out; #43), and the mic by
-every answer, question and part field turns speech into editable text that still needs Send. To use the API, create
-`app/.env` (Expo reads the `.env` in this folder, not the repo root's):
+every answer, question and part field turns speech into editable text that still needs Send. With the API, a
+session survives a reload or a killed app: the device keeps which session is on screen (`src/session/saved.ts`,
+`storage.ts`: the browser's storage on the web, a file on a phone) and Start offers to resume it from its latest
+Turn (`GET /sessions/:id`); demo mode keeps nothing. To use the API, create `app/.env` (Expo reads the `.env` in
+this folder, not the repo root's):
 
 ```bash
 EXPO_PUBLIC_API_URL=http://localhost:3000   # on a phone, use your computer's LAN address instead of localhost
@@ -58,6 +61,7 @@ signs in and the app works as before.
 ```bash
 npm test -w app             # the session logic under Node: fixture replay, API client, transcript
 npm run typecheck -w app
+npm exec -w app -- eslint src # Expo's ESLint rules; direct command preserves the Android runtime fingerprint
 npm run export:web -w app   # the static web build in app/dist
 ```
 
@@ -86,7 +90,8 @@ npx expo export --platform web && npx eas-cli@latest deploy --prod  # the web bu
 | `src/app/` | The routes: `index.tsx` (start: concept + optional notes), `session.tsx` (the session) and `sign-in.tsx` / `sign-in.web.tsx` (#22). No id in a path, so the web build stays static |
 | `src/session/` | The session logic, no React: the two clients (`api-client.ts`, `fixture-client.ts`), what the transcript shows (`transcript.ts`), what the screens say (`present.ts`), and the tests |
 | `src/components/` | The light behind every screen (`light.tsx`), the map (`concept-map.tsx`), the firefly (`firefly.tsx`), the guess (`guess.tsx`), the session's top bar, messages, the input for each `expects`, the result (`result.tsx`) and icons |
-| `src/theme.ts` | Every color, font and size from round 9 "Lumente" (#14): the dark and lit palettes and the nine stages of the light |
+| `src/theme.ts` | Every color, font and size from round 9 "Lumente" (#14): the dark and lit palettes and the nine stages of the light, and `pageMetadata()` for the web pages' title, description and link card |
+| `public/` | Copied as is into the web build: the web app manifest and icons (`manifest.json`, `icon-*.png`, `apple-touch-icon.png`), so an iPhone or a laptop can add Lumente to its home screen, and `og.png`, the card a shared link shows |
 
 ## Credits
 

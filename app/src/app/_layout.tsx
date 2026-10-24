@@ -3,11 +3,12 @@ import { tokenCache } from "@clerk/expo/token-cache";
 import { AtkinsonHyperlegibleMono_400Regular, AtkinsonHyperlegibleMono_600SemiBold } from "@expo-google-fonts/atkinson-hyperlegible-mono";
 import { AtkinsonHyperlegibleNext_400Regular, AtkinsonHyperlegibleNext_600SemiBold } from "@expo-google-fonts/atkinson-hyperlegible-next";
 import { Newsreader_400Regular, Newsreader_400Regular_Italic, Newsreader_500Medium, useFonts } from "@expo-google-fonts/newsreader";
-import { ObserveRoot } from "expo-observe";
+import { Observe, ObserveRoot } from "expo-observe";
 import { Stack, type ErrorBoundaryProps } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
+import * as SystemUI from "expo-system-ui";
 import { useEffect, useMemo } from "react";
-import { StyleSheet, View } from "react-native";
+import { Platform, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Failure } from "../components/messages.tsx";
 import { Button, Screen, Title } from "../components/ui.tsx";
@@ -31,8 +32,17 @@ const localization = {
 // Expo Observe records launch times and crashes on phone release builds (it does nothing on the web)
 export default ObserveRoot.wrap(RootLayout);
 
+// The window behind every screen is the near-black the light grows out of, so nothing white shows between
+// screens or around the keyboard on Android (the web's root HTML sets its own).
+if (Platform.OS !== "web") void SystemUI.setBackgroundColorAsync(base.bottom).catch(() => undefined);
+
 /** A crash in a screen shows this instead of a red screen, with a way to try again. */
-export function ErrorBoundary({ retry }: ErrorBoundaryProps) {
+export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
+  // Expo Router's boundary catches the crash before Observe's global handler sees it, so it is reported here:
+  // a learner who taps Try again still leaves a trace in the release's error list
+  useEffect(() => {
+    Observe.reportError(error);
+  }, [error]);
   return (
     <SafeAreaProvider>
       <Screen>

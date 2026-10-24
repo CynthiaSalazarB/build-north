@@ -8,7 +8,7 @@ import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type
 import { createApiClient } from "./api-client.ts";
 import { ClientError } from "./client.ts";
 import { createFixtureClient } from "./fixture-client.ts";
-import { resultMessagesOf } from "./present.ts";
+import { lastPartNoteOf, resultMessagesOf } from "./present.ts";
 import { blankMap, drafted, echoFor, failed, initialState, received, resendOf, sent, startedWith, withRevealed } from "./transcript.ts";
 
 const fixtureTurns = sessionOne.map((step) => Turn.parse(step.turn));
@@ -62,6 +62,18 @@ test("the result comes first without the coach's words; the next Turn brings the
   assert.deepEqual(resultMessagesOf(state.entries), [...shown, { agent: "coach", kind: "summary", text: state.turn!.result!.coach!.message }]);
 });
 
+test("the last answer's feedback, which comes with the result, is kept for the part the session asked last", () => {
+  let state = initialState;
+  for (const step of sessionApi) state = received(state, Turn.parse(step.turn));
+  const words = state.entries.find((e) => e.from === "app" && e.phase === "result" && e.message.kind === "feedback");
+  assert.ok(words && words.from === "app");
+  assert.deepEqual(lastPartNoteOf(state.entries), { infraordinate: words.message.text });
+  // a self-test's labeled notes are partNotesOf's, and a session with no result has nothing to keep
+  const labeled = state.entries.map((e) => (e === words ? { ...words, message: { ...words.message, text: `Its types: ${words.message.text}` } } : e));
+  assert.deepEqual(lastPartNoteOf(labeled), {});
+  assert.deepEqual(lastPartNoteOf(received(initialState, first).entries), {});
+});
+
 test("an error Turn keeps the screen and offers to send the same body again, without echoing it twice", () => {
   const body = { turn: 1, prediction: 7 } as const;
   let state = sent(received(initialState, first), body);
@@ -113,6 +125,23 @@ test("a 409 with the latest Turn is drawn; other errors carry the server's messa
 
   const down = createApiClient({ baseUrl: "http://api.test", fetch: (async () => { throw new TypeError("network"); }) as unknown as typeof fetch });
   await assert.rejects(down.start({ concept: "x" }), { status: null, retryable: true });
+});
+
+test("a session is picked up with GET /sessions/:id, and a 404 says it is gone for good", async () => {
+  const { fetch, calls } = fakeFetch(200, first);
+  const client = createApiClient({ baseUrl: "http://api.test", getToken: async () => "tok", fetch });
+  assert.deepEqual(await client.resume("ses 1"), first);
+  assert.equal(calls[0]!.url, "http://api.test/sessions/ses%201");
+  assert.equal(calls[0]!.init.method, "GET");
+  assert.equal(calls[0]!.init.body, undefined);
+  assert.deepEqual(calls[0]!.init.headers, { authorization: "Bearer tok" });
+
+  const gone = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(404, { error: "No such session" }).fetch });
+  await assert.rejects(gone.resume("ses_1"), { message: "No such session", status: 404, retryable: false });
+  const odd = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(200, { hello: "world" }).fetch });
+  await assert.rejects(odd.resume("ses_1"), { message: /unexpected/, retryable: true });
+  // demo mode keeps nothing to pick up
+  await assert.rejects(createFixtureClient(0).resume("ses_1"), { retryable: false });
 });
 
 test("a call that outlasts the timeout says so, and is worth trying again", async () => {

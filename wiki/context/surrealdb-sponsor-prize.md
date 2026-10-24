@@ -3,7 +3,7 @@ title: "SurrealDB sponsor prize: Agent Memory"
 type: context
 related: ["[[hosting-setup]]"]
 created: 2026-10-19
-updated: 2026-10-22
+updated: 2026-10-23
 ---
 
 As relayed by Leo on Oct 19 from SurrealDB's Build North participant pack. Not re-checked against the sources.
@@ -39,6 +39,20 @@ design in five lines:
   `verifyCites` keeps only the ones they were given.
 - A level-up supersedes the old fact and keeps the history.
 - The learner sees it in the Memory sheet. Levels still come from code, so memory never changes a score.
+
+**Built Oct 23** (PR #130, `api/src/memory.ts`, the Memory sheet in the app; `api/README.md` has the variables
+and the rollout). `npm run memory:smoke -w api` runs the loop against the live context with a throwaway
+learner and erases it: all 8 checks pass. What the live context does, found that day and handled in the code:
+
+- A dot in an attribute key is folded into an underscore, so the keys are `level_<move>`, `gap` and
+  `help_<move>`. Labels (`session=…`, `writer=…`, the numbers) come back exactly as sent.
+- Parallel `POST /facts` writes on one entity answer "unknown error" for some of them; one after another they
+  all land, about 700 ms each (a session's seven facts take about 5 s, off the request path).
+- A history read takes 150 to 240 ms, inside the 1.5 s budget. A new scope answers 201. A scoped forget reports
+  more rows than were written (it counts across tables).
+- The scope is `learner/<pseudonym>`, the entity `topic/<pseudonym>_<concept>` (lowercase, digits, underscores:
+  it comes back unchanged); each fact is one attribute, and a later write of the same key supersedes the
+  earlier one with `supersedes` set and the old row closed by `validUntil`.
 
 Leo's first read of the fit, from Oct 19:
 
