@@ -640,3 +640,16 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** one history read per finished session, off the request path, inside the write's 10 s
   budget. The first session on a concept writes up to four extra rows; later sessions write the changes only, so
   the chain still reads as a history of moves.
+
+### 2026-10-23 · One update channel for every phone: a new Android build uses the `preview` profile
+- **Decision:** every Android APK we hand out is built with the `preview` profile (channel `preview`), the Oct 24
+  freeze build included, through `.eas/workflows/preview-build.yml`. The `production` profile in `app/eas.json`
+  stays defined but unused until a second channel is wanted on purpose.
+- **Instead of:** a `production` build at the freeze (the Oct 21 plan), which would put that phone on a
+  `production` channel while `ship.yml` publishes updates to `preview` only: a Demo Day update, or any fix after
+  the freeze, would never reach it.
+- **Why:** one channel is one place to look when a phone misbehaves, and the three EAS environments carry the
+  same `EXPO_PUBLIC_*` values, so the `production` profile buys nothing today. Builds are scarce (15 a month);
+  if no native module lands, build 3 keeps taking updates and the freeze needs no build at all.
+- **Pattern / trade-off:** the testers and the demo phone share one channel, so a fix meant for the demo also
+  reaches a tester's phone. Acceptable: after the freeze, every update is a reviewed `main`.

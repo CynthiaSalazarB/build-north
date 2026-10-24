@@ -14,7 +14,7 @@ The first thing to do is the merge order under "Open on Cynthia".
 
 | Piece | State | Evidence |
 |---|---|---|
-| API | `main`, auto-deployed on merge, Render Starter (no cold start). `/health` 200 in about 0.2 s; `/health/db` writes to `prod` as the database-level user (`SURREAL_USER=api`, auth level `database`); no token and dev headers both answer 401; CORS allows `https://reality-check.expo.app` and the `testers` alias | `npm run smoke -w api` (PR #104): 7 of 7 checks pass on prod, Oct 22 at 9 PM |
+| API | `main`, auto-deployed on merge, Render Starter (no cold start). **Oct 23, 9:11 PM:** `main` at `7a372bc` with Agent Memory on (`AGENT_MEMORY_ENABLED=true`, the startup line says "Agent Memory: on"; the kill switch is that variable set to anything else, about a minute, no deploy). Since #143, `/health` names the running commit and the memory state, `{"ok":true,"commit":"7a372bc","memory":"on"}`, in about 0.2 s; `/health/db` writes to `prod` as the database-level user (`SURREAL_USER=api`, auth level `database`); no token and dev headers both answer 401; CORS allows `https://reality-check.expo.app` and the `testers` alias | `npm run smoke -w api` (PR #104): 7 of 7 for production and 7 of 7 for `testers` with memory on, Oct 23 at 9:15 PM; `npm run memory:smoke -w api` 8 of 8 on the live context (#37) |
 | Web, production and `testers` | https://reality-check.expo.app and https://reality-check--testers.expo.app, EAS Hosting, both from `main`. **Oct 23, about 7:15 PM:** both redeployed from `main` at `179807e` (#136, #139) by Cynthia's side, after `34a285f` (#137) at about 4:25 PM and `99880ae` (#129, #130, #132, #133, #135) at about 12:50 PM. The 12:50 PM one had a five-minute demo-mode window first (12:47 to 12:52 PM, a cached export without `EXPO_PUBLIC_*`), so every export now runs with `--clear` and the bundle is checked before deploying (`docs/deploy.md`). Render runs `main`, so they move together | `docs/expo-log.md`; at 8:55 PM both addresses serve `entry-92d2ccb4….js`, the file a clean export of `179807e` with `production` produces, and `/health` answers 200 |
 | Web, test alias | https://reality-check--polish.expo.app: the #103 build at `7306df1` in demo mode (no API, no Clerk): the website layout, "Your data", the mic, the review fixes | A new address with the API would need its own `CORS_ORIGIN` row on Render |
 | Android | `preview` APK, build 3 on the `lumente` project, runtime `56eeb40f…`: [download](https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk). **Oct 23, about 7:15 PM:** the newest EAS Update on the `preview` channel, group `39faf44b…` (a clean-cache export, the `.hbc` checked for the API host, the Clerk key and #136's scoring text), is `main` at `179807e`; the APK takes it on its second launch | `docs/expo-log.md`; at 8:55 PM `eas update:list --branch preview` shows `39faf44b…` on top (commit `179807e`), and `eas fingerprint:compare --build-id 93910cdd…` says `main` at `179807e` still matches the build |
@@ -70,9 +70,9 @@ Merged on Oct 22: #79, #81, #82, #88 to #100, #102, #105, #107 to #111, #113 to 
 - Oct 23: `npm run smoke -w api` in the morning (#37), on call for the API, fixes as `eas update` from a branch
   whose fingerprint matches build 3 (`main` after #103, or `leo/final-polish` before); after the post-tests,
   `npm run export:testers -w api` against `prod` (#50).
-- Oct 24, before 6 PM: #112 is built (#130, waits on review); if merged, Ship first, then `AGENT_MEMORY_ENABLED=true`
-  on Render, else the kill rule at noon; the `production` Android build, the last update and web deploy,
-  Render Auto-Deploy off, the freeze summary on #45.
+- Oct 24, before 6 PM: the `production` Android build, the last update and web deploy, Render Auto-Deploy off,
+  the freeze summary on #45. #112 is done early: #130 shipped with the 12:50 PM rollout on Oct 23, and
+  `AGENT_MEMORY_ENABLED=true` has been on in production since Oct 23 at 9:11 PM.
 
 ## Closed on Oct 22
 
