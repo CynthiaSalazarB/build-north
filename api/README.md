@@ -112,9 +112,12 @@ the first tester, once the app update that carries #130 has shipped.
 | `AGENT_MEMORY_CONTEXT` | The context id. Required when on |
 | `AGENT_MEMORY_API_KEY` | A key for that context with read, write, scope-create and forget grants. Render and your local `.env` only, never the app |
 | `LEARNER_ID_SALT` | Salts the learner's pseudonym, the same one the testers' export uses (above). Set it to the same value on Render and for the export |
+| `TZ` | The zone a fact's date is written in ("on Oct 23"); `America/Toronto` when unset, the zone the Memory sheet's dates show on the team's and the testers' devices |
 
 What goes in: after a session has its result, one fact per part whose level changed ("You moved up to
-level 3 on 'What it isn't' for API on Oct 22."), the gap ("Last time on API you guessed 7 and proved
+level 3 on 'What it isn't' for API on Oct 22."), a baseline for a finished part memory holds no level for
+yet ("You were at level 5 on 'Its types' for API on Oct 23.", so a learner at level 5 everywhere still has a
+row per part), the gap ("Last time on API you guessed 7 and proved
 3.") and the Helps each part took ("'Its types' took 2 Helps on API last time."). Each is a sentence code
 writes from a template, sent as a triple (`infer: "triples"`: memory runs no model on it), so the
 learner's words never go in. The scope is `learner/<pseudonym>`, the entity `topic/<pseudonym>_<concept>`,

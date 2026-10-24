@@ -746,6 +746,21 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   to; the sheet says so ("Hints follow the map's area order, even if you are editing another area."). The hint order is
   unchanged (CONTRACTS.md section 3, "Help on the whole map").
 
+### 2026-10-23 · The first session on a part leaves its level in memory, even when the level didn't move
+- **Decision:** when a session reaches its result, the API reads what memory already holds for the learner and
+  the concept, then writes a baseline level fact for every finished part that has no level row yet ("You were at
+  level 5 on 'Its types' for API on Oct 23.", key `level_<move>`, `writtenBy: evaluator`), beside the usual facts
+  for the parts that moved. A read that fails leaves the old behaviour: the changes only, and a log line.
+- **Instead of:** a level row only when a level changed (#112 as built). Levels never go down in a learn session
+  and never move in a test one, so a learner at level 5 on every part, the demo account included, would never get
+  a level row: the Memory sheet said "no level yet" under each part, and the hint giver and the coach read no
+  level at all for them.
+- **Why:** the Memory sheet and the SurrealDB prize walkthrough show the level chain per part; on the account the
+  judges will see, that chain was empty by construction. Found by the Oct 23 evidence review of PR #130.
+- **Pattern / trade-off:** one history read per finished session, off the request path, inside the write's 10 s
+  budget. The first session on a concept writes up to four extra rows; later sessions write the changes only, so
+  the chain still reads as a history of moves.
+
 ### 2026-10-23 · One update channel for every phone: a new Android build uses the `preview` profile
 - **Decision:** every Android APK we hand out is built with the `preview` profile (channel `preview`), the Oct 24
   freeze build included, through `.eas/workflows/preview-build.yml`. The `production` profile in `app/eas.json`
@@ -758,3 +773,19 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   if no native module lands, build 3 keeps taking updates and the freeze needs no build at all.
 - **Pattern / trade-off:** the testers and the demo phone share one channel, so a fix meant for the demo also
   reaches a tester's phone. Acceptable: after the freeze, every update is a reviewed `main`.
+
+### 2026-10-23 · The website is `lumente.expo.app`
+- **Decision:** the EAS Hosting preview subdomain moves from `reality-check` to `lumente`, so the production site is
+  `https://lumente.expo.app` and the aliases are `lumente--testers.expo.app` and `lumente--review.expo.app`. The
+  app's Share link (`brand.site` in `app/src/theme.ts`), the smoke test's default and the docs follow; `CORS_ORIGIN`
+  on Render carries the new origins (Clerk's `azp` check reads the same list, so web sign-in needs it).
+- **Instead of:** keeping `reality-check.expo.app`, the slug chosen on Oct 21 before the product was named (#91), or
+  a custom domain (a paid EAS feature, and one more thing to own before Demo Day).
+- **Why:** the link is the first thing a judge or a Devpost reader sees, and it said the old name. Cynthia asked for
+  the change the night the testers finished (Oct 23), the one window where no tester holds a live link.
+- **Pattern / trade-off:** Expo reserves a released subdomain for ever and allows three changes in all. Right after
+  the change the old addresses still answered (Expo says old deployments keep working), but we no longer own the
+  name, so every old link (the testers' message, the Oct 22 status page, #106's draft) gets replaced rather than
+  trusted. The Android package `ca.buildnorth.realitycheck`, the app slug and the EAS project name stay as they are
+  (a change there is a new app on every phone). The phones pick up the new Share link with the next update.
+

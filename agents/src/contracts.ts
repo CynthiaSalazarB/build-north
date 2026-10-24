@@ -183,7 +183,7 @@ export const MemoryFact = z.strictObject({
   /** One line from a template, never the learner's words. */
   text: z.string().min(1),
   concept: z.string().min(1),
-  /** Facts about one move (`level.*`, `help.*`); absent on whole-map facts (`map.*`, `gap.*`). */
+  /** Facts about one move (`level_<move>`, `help_<move>`); absent on the session's `gap` fact. */
   move: MoveId.optional(),
   level: Level.optional(),
   /** When the fact became current (ISO 8601). */

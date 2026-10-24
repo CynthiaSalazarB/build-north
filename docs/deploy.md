@@ -12,7 +12,7 @@ every other step below is started by a person.
 | The database | SurrealDB Cloud, database `prod` | Never deployed. Its data stays; the rules for its tables come from the API (next section) |
 | Agent Memory | SurrealDB Agent Memory | Set up once; after that the API reads and writes it |
 | The app on Android | the `preview` APK, installed on each phone | JavaScript changes: an **update** over the air (Ship). Native changes: a **new build** |
-| The website | EAS Hosting, `reality-check.expo.app` | Ship deploys it together with the phones' update |
+| The website | EAS Hosting, `lumente.expo.app` | Ship deploys it together with the phones' update |
 | The testers' website | EAS Hosting, alias `testers` | Deployed by hand from `main` before a test, then left alone until the test is over |
 
 ## The database: the data stays, the rules come from the code

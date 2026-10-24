@@ -282,7 +282,9 @@ type MemoryFact = {
   each fact an attribute of the entity `topic/<pseudonym>_<concept>` sent as a triple with its provenance in
   labels: `session`, `turn`, `writer`, and the numbers):
   - `level_<move>`, for each part whose level changed: "You moved up to level 3 on 'What it isn't' for API on
-    Oct 22." (`writtenBy: evaluator`)
+    Oct 22." (`writtenBy: evaluator`). A finished part memory holds no level for yet gets its baseline instead,
+    the level the session ended at: "You were at level 5 on 'Its types' for API on Oct 23." (same key and
+    writer), so every part a learner has played has a level row, whether or not it ever moved.
   - `gap`: "Last time on API you guessed 7 and proved 3." (`writtenBy: coach`)
   - `help_<move>`, for each part: "'Its types' took 2 Helps on API last time." (`writtenBy: hint_giver`)
   A later session's write supersedes the earlier value of the same key, and memory keeps the chain. The
