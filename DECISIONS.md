@@ -808,7 +808,7 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   slow sines (3.4 s up and down, 5.2 s side to side, 4.3 s of tilt) whose periods never line up, at most 2.8 px, 1.8 px
   and 2.5° at the 40 px size, each firefly starting at its own moment (`app/src/components/firefly.tsx`, `HOVER`).
   Only `transform` moves, so nothing around it shifts; the dashed line keeps its anchor. With Reduce Motion the firefly
-  stays still.
+  stays still, and so does the faded one on the result, where the learner reads (#159).
 - **Instead of:** a firefly that never moves on its own (round 9: "nothing moves on its own"), or a pulsing glow.
 - **Why:** Leo, Oct 23 night: the screens should feel alive, and a living firefly is the one element that can move
   without competing with the map or the light. The light rule of round 9 stands untouched: the halo and the body
