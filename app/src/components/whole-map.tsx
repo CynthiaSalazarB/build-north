@@ -85,7 +85,6 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
     <>
       <Label dim>{state.mode === "test" ? "Test myself" : "Independent practice"}</Label>
       <Title>Build your map</Title>
-      <Body dim>Select an area and write your answer. Fill the four areas, then submit your map.</Body>
     </>
   );
   const guide = (
@@ -93,12 +92,12 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
       <View style={[styles.you, wide && styles.reverse]}>
         <View style={styles.firefly}><Firefly state="asks" /></View>
         <View style={styles.guideText} accessibilityLiveRegion="polite">
-          <Label dim>{next ? `Area ${MOVE_ORDER.indexOf(next) + 1} of 4` : "All four areas filled"}</Label>
+          {next && <Label dim>{`Area ${MOVE_ORDER.indexOf(next) + 1} of 4`}</Label>}
           <Reply>{next ? `${filled === 0 ? "Start with" : "Next:"} ${MOVE_LABEL[next]}` : "Ready to review your map"}</Reply>
         </View>
       </View>
       {next && <Button label={`${filled === 0 ? "Start:" : "Write:"} ${MOVE_LABEL[next]}`} fit={wide} disabled={pending} onPress={() => openPart(next)} />}
-      <Small dim>{"You can edit any area. Following the highlight is free; it doesn't use a hint."}</Small>
+      <Small dim>{"You can edit any area. Following the highlight doesn't use a hint."}</Small>
     </View>
   );
   const thread = (
@@ -127,7 +126,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
     <View style={[styles.deskControls, !wide && styles.bar]}>
       <Button kind={chatOpen ? "text" : "secondary"} label={chatOpen ? "Close fact chat" : "Ask a fact (optional)"} onPress={() => setChatOpen((open) => !open)} style={chatOpen ? styles.start : undefined} />
       <View style={[styles.chat, !chatOpen && styles.hidden]}>
-        <Small dim>{"Fact questions only. Write your answers on the map. Asking facts doesn't reduce your score."}</Small>
+        <Small dim>Asking costs nothing. Answers go on the map.</Small>
         <AskBar concept={concept} pending={pending} asking={state.pending !== null && "question" in state.pending} onAsk={(question) => send({ question })} />
       </View>
       {help && (
@@ -183,7 +182,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
           composer={deskControls}
           scrollWords
           followWords={chatOpen}
-          mapHeader={<Label dim>Your answers · select an area to write</Label>}
+          mapHeader={<Label dim>Your answers</Label>}
           map={(onGeometry) => conceptMap(onGeometry)}
           mapFooter={status}
         />
@@ -296,7 +295,6 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
             <MicButton state={voice.state} onPress={voice.toggle} />
             <Button kind="secondary" label="Save answer" onPress={done} />
           </View>
-          <Small dim>This saves your answer on the map. It is scored when you submit the whole map.</Small>
           <VoiceNote state={voice.state} />
           <ScrollView contentContainerStyle={styles.rows} keyboardShouldPersistTaps="handled">
             {rows.map((row, i) => (
@@ -356,7 +354,7 @@ function HintSheet({ open, move, hintsUsed, onClose, onConfirm }: { open: boolea
   return (
     <Sheet open={open} onClose={onClose} label="hint">
       <Title style={styles.title}>{`${reveal ? "Reveal" : "Hint for"} ${MOVE_LABEL[move]}?`}</Title>
-      <Body>{reveal ? "This shows the answer. This area will score 0 points." : first ? "This hint limits this area to 1 point instead of 2. Your other areas are unaffected." : "This area is already limited to 1 point. This hint doesn't reduce it further."}</Body>
+      <Body>{reveal ? "This shows the answer. This area will score 0 points." : first ? "This hint limits this area to 1 point instead of 2." : "This area is already limited to 1 point. This hint doesn't reduce it further."}</Body>
       <Small dim>{"Hints follow the map's area order, even if you are editing another area."}</Small>
       <Button label={reveal ? "Reveal answer · 0 points" : "Get hint"} onPress={onConfirm} />
       <Button kind="text" label="Keep working" onPress={onClose} />
@@ -374,12 +372,12 @@ function SubmitSheet({ open, map, onClose, onSubmit }: { open: boolean; map: Men
         {MOVE_ORDER.map((move) => (
           <View key={move} style={styles.reviewRow}>
             <Small>{MOVE_LABEL[move]}</Small>
-            <Small dim>{itemsOf(map, move).map((item) => item.value + (item.note ? ` — ${item.note}` : "")).join("; ") || "Left empty · 0 points"}</Small>
+            <Small dim>{itemsOf(map, move).map((item) => item.value + (item.note ? ` — ${item.note}` : "")).join("; ") || "Left empty"}</Small>
           </View>
         ))}
       </ScrollView>
-      <Small dim>{empty.length ? `${empty.join(", ")}: still empty. Empty areas score 0.` : "All four areas are filled."}</Small>
-      <Body>Submitting scores all four areas and ends this session.</Body>
+      {empty.length > 0 && <Small dim>{`${empty.join(", ")}: still empty. Empty areas score 0.`}</Small>}
+      <Body>Submitting ends the session.</Body>
       <Button label="Submit my map" onPress={onSubmit} />
       <Button kind="text" label="Keep editing" onPress={onClose} />
     </Sheet>
