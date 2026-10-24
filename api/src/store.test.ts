@@ -73,6 +73,28 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     await assert.rejects(store.getSession("leo", session.id));
   });
 
+  await t.test("GET /sessions lists the user's sessions that have a Turn, newest first, finished or not, and nobody else's", async () => {
+    const result = { predictedScore: 7, score: 3, maxScore: 8 as const, calibrationGap: 4, hintsUsed: 0, rubric: [], masteryChanges: [], questions: { asked: 0, testing: 0 }, coach: null };
+    const first = await store.createSession("lister", { concept: "API", material: null, mode: "learn" });
+    const started = await advanceStub({ session: first, mastery: await store.getMastery("lister") }, { action: "start" }, callAgentStub);
+    assert.equal(await store.saveSession(started.session, first.turn), true);
+    const second = await store.createSession("lister", { concept: "JWT", material: null, mode: "test" });
+    const over = await advanceStub({ session: second, mastery: await store.getMastery("lister") }, { action: "start" }, callAgentStub);
+    assert.equal(await store.saveSession({ ...over.session, phase: "result", result }, second.turn), true);
+    // never started (the agent failed on the first Turn): nothing to show
+    await store.createSession("lister", { concept: "CORS", material: null, mode: "learn" });
+    await store.createSession("someone-else", { concept: "cache", material: null, mode: "learn" });
+
+    const listed = await store.listSessions("lister");
+    assert.deepEqual(listed, [
+      { id: second.id, concept: "JWT", mode: "test", createdAt: second.createdAt, finished: true, score: 3, predictedScore: 7 },
+      { id: first.id, concept: "API", mode: "learn", createdAt: first.createdAt, finished: false, score: null, predictedScore: null },
+    ]);
+    assert.deepEqual(await store.listSessions("nobody"), []);
+    await store.deleteUserData("lister");
+    await store.deleteUserData("someone-else");
+  });
+
   await t.test("mastery starts at level 1 and saves all four moves", async () => {
     const fresh = await store.getMastery("cynthia");
     assert.deepEqual(fresh.moves.map((m) => m.level), [1, 1, 1, 1]);

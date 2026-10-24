@@ -1,4 +1,4 @@
-import { MOVE_ORDER, Mastery, Session, type MoveId } from "@build-north/agents";
+import { MOVE_ORDER, Mastery, Session, SessionSummary, type MoveId } from "@build-north/agents";
 import { RecordId, type Surreal } from "surrealdb";
 import { queryTimeout } from "./db.ts";
 
@@ -41,6 +41,8 @@ export type Store = {
   createSession(user: string, input: NewSession): Promise<Session>;
   // null when the session doesn't exist or belongs to someone else
   getSession(user: string, id: string): Promise<Session | null>;
+  // GET /sessions: the user's sessions that have a Turn, newest first
+  listSessions(user: string): Promise<SessionSummary[]>;
   // false when the stored session is no longer at `previousTurn`: another request answered it first
   saveSession(session: Session, previousTurn: number): Promise<boolean>;
   // every move, in session order; a move the learner hasn't touched yet is at level 1
@@ -120,6 +122,17 @@ export function createStore(db: Surreal): Store {
         user,
       });
       return session ? Session.parse(session) : null;
+    },
+
+    async listSessions(user) {
+      // a session whose first Turn never came back (the agent failed on the start) has nothing to show
+      const rows = await one<unknown[]>(
+        `SELECT record::id(id) AS id, concept, mode, createdAt, (result != NONE AND result != NULL) AS finished,
+           result.score ?? NULL AS score, result.predictedScore ?? NULL AS predictedScore
+         FROM session WHERE user = $user AND lastTurn != NONE AND lastTurn != NULL ORDER BY createdAt DESC LIMIT 200`,
+        { user },
+      );
+      return rows.map((row) => SessionSummary.parse(row));
     },
 
     async saveSession(session, previousTurn) {

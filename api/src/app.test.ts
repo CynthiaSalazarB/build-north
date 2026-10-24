@@ -58,6 +58,12 @@ function memoryStore(): Store {
       const session = sessions.get(id);
       return session?.user === user ? structuredClone(session) : null;
     },
+    async listSessions(user) {
+      return [...sessions.values()]
+        .filter((s) => s.user === user && s.lastTurn !== null)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
+        .map(({ id, concept, mode, createdAt, result }) => ({ id, concept, mode, createdAt, finished: result !== null, score: result?.score ?? null, predictedScore: result?.predictedScore ?? null }));
+    },
     async saveSession(session, previousTurn) {
       if (sessions.get(session.id)?.turn !== previousTurn) return false;
       sessions.set(session.id, structuredClone(session));
@@ -230,6 +236,27 @@ test("a session is invisible to every other user", async (t) => {
   const { sessionId } = await (await post(url, { concept: "inflation" })).json();
   const res = await fetch(`${url}/sessions/${sessionId}`, { headers: as("jonathan") });
   assert.equal(res.status, 404);
+});
+
+test("GET /sessions lists the caller's sessions, newest first, and nobody else's", async (t) => {
+  const url = await start(t, withStore());
+  const empty = await fetch(`${url}/sessions`, { headers: as("leo") });
+  assert.equal(empty.status, 200);
+  assert.deepEqual(await empty.json(), { sessions: [] });
+
+  const first = await (await post(url, { concept: "API" })).json();
+  const second = await (await post(url, { concept: "JWT", mode: "test" })).json();
+  await post(url, { concept: "cache" }, as("jonathan"));
+  const { sessions } = await (await fetch(`${url}/sessions`, { headers: as("leo") })).json();
+  assert.deepEqual(
+    sessions.map((s: Record<string, unknown>) => [s.id, s.concept, s.mode, s.finished, s.score, s.predictedScore]),
+    [
+      [second.sessionId, "JWT", "test", false, null, null],
+      [first.sessionId, "API", "learn", false, null, null],
+    ],
+  );
+  const theirs = await (await fetch(`${url}/sessions`, { headers: as("jonathan") })).json();
+  assert.deepEqual(theirs.sessions.map((s: Record<string, unknown>) => s.concept), ["cache"]);
 });
 
 test("the session routes need a dev user with the right dev key, and never work in production", async (t) => {

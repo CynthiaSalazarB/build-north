@@ -72,7 +72,8 @@ function RootLayout() {
   return (
     <SafeAreaProvider>
       {clerkKey ? (
-        <ClerkProvider publishableKey={clerkKey} tokenCache={tokenCache} localization={localization}>
+        // the web's two forms link to each other on this site, and both end on Start; a phone ignores these
+        <ClerkProvider publishableKey={clerkKey} tokenCache={tokenCache} localization={localization} signInUrl="/sign-in" signUpUrl="/sign-up" signInFallbackRedirectUrl="/" signUpFallbackRedirectUrl="/">
           <ClerkApp />
         </ClerkProvider>
       ) : (
@@ -105,6 +106,7 @@ function App({ client, signedIn, clerk }: { client: SessionClient; signedIn: boo
         </Stack.Protected>
         <Stack.Protected guard={clerk && !signedIn}>
           <Stack.Screen name="sign-in" options={{ animation: "fade" }} />
+          <Stack.Screen name="sign-up" options={{ animation: "fade" }} />
         </Stack.Protected>
       </Stack>
     </SessionProvider>

@@ -61,6 +61,25 @@ export const CreateSessionBody = z.strictObject({
 });
 export type CreateSessionBody = z.infer<typeof CreateSessionBody>;
 
+/**
+ * GET /sessions: one line per session of the caller, newest first, so Start can list what the learner went
+ * through (the unfinished ones to pick up, the finished ones under "Your maps"). A session the orchestrator never
+ * started (no Turn yet) is left out. `score` and `predictedScore` are set once the session has its result.
+ */
+export const SessionSummary = z.strictObject({
+  id: z.string(),
+  concept: z.string(),
+  mode: SessionMode,
+  /** ISO 8601. */
+  createdAt: z.string(),
+  finished: z.boolean(),
+  score: z.number().int().min(0).max(8).nullable(),
+  predictedScore: z.number().int().min(0).max(8).nullable(),
+});
+export type SessionSummary = z.infer<typeof SessionSummary>;
+/** What GET /sessions answers. */
+export const SessionList = z.strictObject({ sessions: z.array(SessionSummary) });
+
 /** POST /sessions/:id/turns. `turn` is the number of the Turn being answered (decision 18). */
 const answering = { turn: z.number().int() };
 export const TurnBody = z.union([

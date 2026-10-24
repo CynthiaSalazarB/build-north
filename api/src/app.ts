@@ -169,6 +169,13 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     res.status(201).json(next.turn);
   });
 
+  // Start's lists (CONTRACTS.md section 1): the sessions to pick up and "Your maps"
+  app.get("/sessions", async (req, res) => {
+    const who = await caller(req, res);
+    if (!who) return;
+    res.json({ sessions: await who.store.listSessions(who.user) });
+  });
+
   app.get("/sessions/:id", async (req, res) => {
     const who = await caller(req, res);
     if (!who) return;

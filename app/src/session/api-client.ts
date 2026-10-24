@@ -1,6 +1,6 @@
 // #7: the real API (CONTRACTS.md section 1). Every response that carries a Turn is checked against the
 // Turn schema, so a server that drifted from the contract fails here, not in a screen.
-import { MemoryView, Turn, type CreateSessionBody, type TurnBody } from "@build-north/agents";
+import { MemoryView, SessionList, Turn, type CreateSessionBody, type TurnBody } from "@build-north/agents";
 import { ClientError, type SessionClient } from "./client.ts";
 
 export type ApiClientOptions = {
@@ -82,6 +82,13 @@ export function createApiClient({ baseUrl, devUser, devKey, getToken, fetch: sen
     offline: false,
     start: (body: CreateSessionBody) => post("/sessions", body),
     send: (sessionId: string, body: TurnBody) => post(`/sessions/${encodeURIComponent(sessionId)}/turns`, body),
+    async list() {
+      const { res, json } = await call("GET", "/sessions");
+      if (!res.ok) throw errorOf(res, json);
+      const list = SessionList.safeParse(json);
+      if (!list.success) throw unexpected(res.status);
+      return list.data.sessions;
+    },
     async resume(sessionId: string) {
       const { res, json } = await call("GET", `/sessions/${encodeURIComponent(sessionId)}`);
       if (!res.ok) throw errorOf(res, json);

@@ -68,6 +68,7 @@ rejects both when `NODE_ENV=production` or when no `DEV_KEY` is set. Every route
 |---|---|---|---|
 | `POST` | `/sessions` | `{ concept, material?, mode? }` | `Turn` (asks for the prediction) |
 | `POST` | `/sessions/:id/turns` | one of `{ prediction }`, `{ text }`, `{ question }`, `{ mentefacto }`, `{ action: "help" }`, `{ action: "continue" }` | `Turn` |
+| `GET` | `/sessions` | | `{ sessions: SessionSummary[] }`: the caller's sessions that have a Turn, newest first (`id`, `concept`, `mode`, `createdAt`, `finished`, and `score` and `predictedScore` once the result is in; the schema is in `agents/src/contracts.ts`). Start lists the unfinished ones to pick up and the finished ones under "Your maps", each opened through `GET /sessions/:id` |
 | `GET` | `/sessions/:id` | | latest `Turn`: Resume on Start reads it after a reload or a killed app (#137). `404` for a session that isn't the caller's |
 | `GET` | `/me/mastery` | | `Mastery` |
 | `GET` | `/me/memory` | | `MemoryView` (the Memory sheet; see [Memory](#memory-what-earlier-sessions-left)) |
