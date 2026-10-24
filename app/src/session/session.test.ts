@@ -8,7 +8,7 @@ import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type
 import { createApiClient } from "./api-client.ts";
 import { ClientError } from "./client.ts";
 import { createFixtureClient } from "./fixture-client.ts";
-import { lastPartNoteOf, resultMessagesOf } from "./present.ts";
+import { lastPartNoteOf, partClosingsOf, resultMessagesOf } from "./present.ts";
 import { blankMap, drafted, echoFor, failed, initialState, received, resendOf, sent, startedWith, withRevealed } from "./transcript.ts";
 
 const fixtureTurns = sessionOne.map((step) => Turn.parse(step.turn));
@@ -60,6 +60,20 @@ test("the result comes first without the coach's words; the next Turn brings the
   state = received(state, fixtureTurns.at(-1)!);
   assert.equal(state.turn!.expects, "none");
   assert.deepEqual(resultMessagesOf(state.entries), [...shown, { agent: "coach", kind: "summary", text: state.turn!.result!.coach!.message }]);
+});
+
+test("every finished part keeps what closed it, so its area can open and be read again", () => {
+  let state = initialState;
+  for (const step of sessionApi) state = received(state, Turn.parse(step.turn));
+  const closings = partClosingsOf(state.entries);
+  const named = state.entries.filter((e) => e.from === "app" && e.message.kind === "named_move").length;
+  // one closing per part that got its name, each the feedback on it or the answer shown
+  assert.equal(Object.keys(closings).length, named);
+  assert.ok(named >= 3);
+  // the last part closes with the words the result Turn carried, the same ones lastPartNoteOf keeps
+  assert.deepEqual(closings.infraordinate, { text: lastPartNoteOf(state.entries).infraordinate, revealed: false });
+  // a session picked up with only its latest Turn has nothing from earlier parts
+  assert.deepEqual(partClosingsOf(received(initialState, Turn.parse(sessionApi[0]!.turn)).entries), {});
 });
 
 test("the last answer's feedback, which comes with the result, is kept for the part the session asked last", () => {
