@@ -68,7 +68,7 @@ export function Rise({ order = 0, style, children }: { order?: number; style?: S
   return <Animated.View style={[style, entrance(order)]}>{children}</Animated.View>;
 }
 
-/** Dark (0 to 4 points) or lit (5 to 8): the light of the screen this is drawn on. */
+/** Dark (0 to 6 points) or lit (7 and 8): the light of the screen this is drawn on. */
 export function useMode(): Mode {
   return lightFor(useContext(LightContext)).mode;
 }
@@ -299,7 +299,9 @@ const webRows = (text: string, width: number) =>
 export function PromptField({ end, style, glow = false, onFocus, onBlur, ...input }: TextInputProps & { end?: ReactNode; glow?: boolean }) {
   const c = useColors();
   const [width, setWidth] = useState(0);
-  // the whole field shows focus, so the browser's own ring around the inner text area goes
+  // the whole field shows focus, so the browser's own ring around the inner text area goes; the edge then has to
+  // be plainly brighter than at rest (the outline token is one shade off the resting edge, which a keyboard user
+  // can't see), so it takes the ink the controls use on hover
   const [focused, setFocused] = useState(false);
   const web =
     Platform.OS === "web" && input.multiline
@@ -316,7 +318,7 @@ export function PromptField({ end, style, glow = false, onFocus, onBlur, ...inpu
           },
         }
       : null;
-  const edge = glow ? { borderColor: c.firefly, borderWidth: 1.5, boxShadow: "0 0 18px rgba(242, 184, 75, 0.25)" } : { borderColor: focused ? c.outline : c.fieldEdge, borderWidth: 1 };
+  const edge = glow ? { borderColor: c.firefly, borderWidth: 1.5, boxShadow: "0 0 18px rgba(242, 184, 75, 0.25)" } : { borderColor: focused ? c.onSurfaceVariant : c.fieldEdge, borderWidth: 1 };
   return (
     <View style={[styles.field, { backgroundColor: c.surfaceContainer }, edge, style]}>
       <TextInput
