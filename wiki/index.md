@@ -28,6 +28,11 @@ updated: YYYY-MM-DD
 Source documents (PDFs, saved articles) stay out of the repo, since it's public. Link to them from the
 page under a Sources heading, the way the SurrealDB prize page does.
 
+The design research lives with the design boards, not here: rounds 1 to 9 in
+[`docs/design/README.md`](../docs/design/README.md), and round 10 (the UI/UX best-practice guide with its
+sources, the audit of every screen for first-time users and slow learners, the copy pass and the Stitch
+mockups, all for after the freeze) in [`docs/design/10-research/README.md`](../docs/design/10-research/README.md).
+
 ## Context
 
 | Page | Summary | Updated |

@@ -149,7 +149,9 @@
     .firefly-glow-active {
       animation: steadyPulse 4s ease-in-out infinite;
     }
-  </style>
+  /* readable labels */
+[class*="text-[10px]"],[class*="text-[11px]"]{font-size:12px!important;line-height:1.3}
+</style>
 <style id="lumente-air">
 /* more air between sections (Leo, Oct 24): the main column's gap and the card gaps grow one step */
 main{gap:2.25rem!important;padding-top:1.5rem!important;padding-bottom:3rem!important}
@@ -280,7 +282,7 @@ main>section,main>div{gap:1.25rem}
                     Step 2: Explain
                   </span>
 <span class="text-[11px] text-on-surface-variant-dark font-normal">
-                    1 of 4 parts lit
+                    1 of 4 areas lit
                   </span>
 </div>
 </div>
@@ -291,10 +293,10 @@ main>section,main>div{gap:1.25rem}
 <!-- Background Connecting Orthogonal Lines -->
 <div class="absolute w-[1px] h-[190px] bg-outline-dark/50 z-0"></div>
 <div class="absolute h-[1px] w-[270px] bg-outline-dark/50 z-0"></div>
-<!-- TOP: Bigger Group (LIT PART) -->
+<!-- TOP: bigger group (LIT PART) -->
 <div class="absolute top-2 w-[190px] bg-lit-dark text-on-surface-light rounded-lg p-2.5 z-10 shadow-sm border border-lit-light">
 <div class="flex justify-between items-center mb-1">
-<span class="text-[10px] font-semibold text-on-surface-variant-light uppercase tracking-wider">bigger group</span>
+<span class="text-[10px] font-semibold text-on-surface-variant-light tracking-wider">bigger group</span>
 <!-- Two small filled point squares -->
 <div class="flex gap-1">
 <span class="w-2 h-2 rounded-[2px] bg-secondary-container" title="1 pt proven"></span>
@@ -372,18 +374,7 @@ main>section,main>div{gap:1.25rem}
 <p class="text-label-sm font-label-sm text-on-surface-variant dark:text-on-surface-variant-dark text-center md:text-left">
           Your answers go to Claude through our server. We keep your sessions and your levels. Delete them any time.
         </p>
-<!-- Legal and auxiliary navigation anchors -->
-<div class="flex items-center gap-space-md">
-<a class="text-label-sm font-label-sm text-on-surface-variant dark:text-on-surface-variant-dark hover:text-on-surface dark:hover:text-on-surface-dark transition-colors duration-200" href="#privacy">
-            Privacy Policy
-          </a>
-<a class="text-label-sm font-label-sm text-on-surface-variant dark:text-on-surface-variant-dark hover:text-on-surface dark:hover:text-on-surface-dark transition-colors duration-200" href="#terms">
-            Terms
-          </a>
-<a class="text-label-sm font-label-sm text-on-surface-variant dark:text-on-surface-variant-dark hover:text-on-surface dark:hover:text-on-surface-dark transition-colors duration-200" href="#status">
-            Server Status
-          </a>
-</div>
+<div class="flex items-center gap-space-md"><a class="text-label-sm font-label-sm text-on-surface-variant dark:text-on-surface-variant-dark hover:text-on-surface dark:hover:text-on-surface-dark transition-colors duration-200" href="#your-data">Your data</a></div>
 </div>
 </footer>
 </div>
