@@ -8,7 +8,7 @@ import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type
 import { createApiClient } from "./api-client.ts";
 import { ClientError } from "./client.ts";
 import { createFixtureClient } from "./fixture-client.ts";
-import { lastPartNoteOf, resultMessagesOf } from "./present.ts";
+import { currentPartOf, lastPartNoteOf, resultMessagesOf } from "./present.ts";
 import { blankMap, drafted, echoFor, failed, initialState, received, resendOf, sent, startedWith, withRevealed } from "./transcript.ts";
 
 const fixtureTurns = sessionOne.map((step) => Turn.parse(step.turn));
@@ -60,6 +60,23 @@ test("the result comes first without the coach's words; the next Turn brings the
   state = received(state, fixtureTurns.at(-1)!);
   assert.equal(state.turn!.expects, "none");
   assert.deepEqual(resultMessagesOf(state.entries), [...shown, { agent: "coach", kind: "summary", text: state.turn!.result!.coach!.message }]);
+});
+
+test("the part on screen starts with the last part's feedback, before its question, so the conversation can show it", () => {
+  let state = initialState;
+  let words: string | null = null;
+  for (const step of sessionApi) {
+    state = received(state, Turn.parse(step.turn));
+    const part = currentPartOf(state.entries);
+    const asked = part.findIndex((e) => e.from === "app" && e.message.kind === "question");
+    const before = part.slice(0, Math.max(asked, 0)).find((e) => e.from === "app" && e.message.agent === "evaluator" && e.message.kind === "feedback");
+    if (before && before.from === "app") {
+      words = before.message.text;
+      break;
+    }
+  }
+  // the recorded API session answers its first part right, so the second part opens with that part's words
+  assert.ok(words, "no part opened with the last part's feedback");
 });
 
 test("the last answer's feedback, which comes with the result, is kept for the part the session asked last", () => {

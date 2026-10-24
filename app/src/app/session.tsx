@@ -251,8 +251,9 @@ type ConversationProps = {
 };
 
 /** The part on screen: the firefly's question, then the answers, nudges, hints, a revealed answer, facts and the
- * firefly's follow-up questions after it. What came before the question (the last part's feedback and its name)
- * isn't repeated: the map shows how that part ended, as the board does. Each line rises in once, when it arrives. */
+ * firefly's follow-up questions after it. Before the question, the last part's feedback shows dim (what made the
+ * answer right, what it left out); its name isn't repeated: the map shows how that part ended, as the board does.
+ * Each line rises in once, when it arrives. */
 function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, onHelp, onAskLayout }: ConversationProps) {
   const entrance = useEntrance();
   const asked = entries.findIndex((e) => e.from === "app" && e.message.kind === "question");
@@ -289,7 +290,9 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
         </>
       );
     }
-    if (asked >= 0 && i < asked) return null;
+    // the last part's feedback comes in the same Turn as this question (Cynthia, Oct 23: a right answer's words were
+    // never read); the rest of what came before stays off screen
+    if (asked >= 0 && i < asked) return message.kind === "feedback" && message.agent === "evaluator" ? <Aside text={message.text} /> : null;
     switch (message.kind) {
       case "feedback":
         return <Nudge text={message.text} capNote={i === capAt} tag={isFollowUpFeedback(entries, i) ? "almost" : undefined} />;
