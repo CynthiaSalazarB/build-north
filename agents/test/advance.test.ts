@@ -486,3 +486,70 @@ describe("cites on the messages (Agent Memory, #112)", () => {
     expect(turns.at(-1)!.result!.coach).toEqual({ message: "Closer than last time.", nextFocus: null });
   });
 });
+
+describe("the chosen concept reaches every Turn (#163: a tap on CORS never opens a session about anything else)", () => {
+  /** Plays `inputs` on a session about `concept` and records the concept each agent was sent. The scripted replies
+   * name no concept, so one in a Turn's text or an agent's input can only have come from the session. */
+  async function run(concept: string, mastery: Mastery, inputs: TurnInput[], script: [AgentName, unknown][]) {
+    const { call, finished } = scripted(script);
+    const sent: { agent: AgentName; concept: unknown }[] = [];
+    const recording: CallAgent = (agent, input) => {
+      sent.push({ agent, concept: (input as { concept?: unknown }).concept });
+      return call(agent, input);
+    };
+    const played = await play(newSession(concept), mastery, inputs, recording);
+    expect(finished()).toBe(true);
+    return { ...played, sent };
+  }
+
+  /** A learn session from level 1: the worked example, then each move right on the first try, then the coach. */
+  const cleanScript = (): [AgentName, unknown][] => [
+    ["questioner", { question: "What bigger group is it one example of?", scaffold: null }],
+    ["evaluator", evaluation("correct", 2, [item("a bigger group")], "Yes.")],
+    ["questioner", { question: "What looks close but isn't one?", scaffold: null }],
+    ["evaluator", evaluation("correct", 2, [item("a near miss", "the difference")], "Yes.")],
+    ["questioner", { question: "What does it need?", scaffold: null }],
+    ["evaluator", evaluation("correct", 2, [item("a need")], "Yes.")],
+    ["questioner", { question: "What kinds are there?", scaffold: null }],
+    ["evaluator", evaluation("correct", 2, [item("one kind"), item("another kind")], "Yes.")],
+    ["coach", { message: "A full map.", nextFocus: null }],
+  ];
+  const cleanInputs: TurnInput[] = [
+    { action: "start" },
+    { prediction: 6 },
+    { text: "In my own words." },
+    { action: "continue" },
+    { text: "A bigger group." },
+    { text: "A near miss." },
+    { text: "A need." },
+    { text: "One kind, another kind." },
+    { action: "continue" },
+  ];
+
+  for (const concept of ["CORS", "my own thing"]) {
+    it(`"${concept}": every Turn's map, the fixed lines and every agent's input name it, from the start to the result`, async () => {
+      const { turns, session, sent } = await run(concept, masteryAt(1), cleanInputs, cleanScript());
+      expect(turns).toHaveLength(cleanInputs.length);
+      expect(turns.map((t) => t.mentefacto.concept)).toEqual(turns.map(() => concept));
+      expect(turns[0]!.messages[0]!.text).toBe(`You'll build the map of ${concept} in 4 parts, 2 points each. How many of the 8 points do you think you'll get?`);
+      expect(turns[1]!.messages[0]!.text).toBe(`Before any help: in your own words, what is ${concept}?`);
+      // the worked example is planet, in `example` only: the learner's map keeps the concept
+      expect(turns[2]!.messages[0]!.text).toBe(`Before ${concept}, watch the four moves on a simpler concept: planet.`);
+      expect(turns[2]!.example!.concept).toBe("planet");
+      expect(turns[2]!.mentefacto.concept).toBe(concept);
+      expect(sent.map((s) => s.agent)).toEqual(["questioner", "evaluator", "questioner", "evaluator", "questioner", "evaluator", "questioner", "evaluator", "coach"]);
+      expect(sent.map((s) => s.concept)).toEqual(sent.map(() => concept));
+      const last = turns.at(-1)!;
+      expect([last.phase, last.expects, last.result!.score, last.mentefacto.concept]).toEqual(["result", "none", 8, concept]);
+      expect([session.concept, session.mentefacto.concept, session.lastTurn!.mentefacto.concept]).toEqual([concept, concept, concept]);
+    });
+  }
+
+  it("the fixed lines at level 4 and on the whole map name the concept too", async () => {
+    const named = await play(newSession("my own thing"), masteryAt(4), [{ action: "start" }, { prediction: 4 }, { text: "In my own words." }], scripted([]).call);
+    expect(named.turns.at(-1)!.messages.at(-1)!.text).toBe("Now find the supraordinate class of my own thing.");
+    const whole = await play(newSession("my own thing"), masteryAt(5), [{ action: "start" }, { prediction: 4 }], scripted([]).call);
+    expect(whole.turns.at(-1)!.messages[0]!.text).toBe("Build the mentefacto for my own thing. Ask me any facts you need.");
+    expect(whole.turns.map((t) => t.mentefacto.concept)).toEqual(["my own thing", "my own thing"]);
+  });
+});

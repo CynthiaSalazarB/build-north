@@ -97,17 +97,22 @@ organization.
   Expo reads it before `app/.env`, so local runs would otherwise talk to the production API.
 - **Always `--clear`, and check the bundle before `eas deploy` or `eas update`.** On Oct 23 an export
   reused its cache after an env pull that printed nothing, so a web deploy went out in demo mode (no API
-  URL, no Clerk key) for about five minutes on production and `testers`. Export with `--clear`, then make sure
-  the API host is in the bundle before deploying; from `app/`:
+  URL, no Clerk key) for about five minutes on production and `testers`. Export with `--clear`, then run the
+  check before deploying; from `app/`:
 
   ```bash
-  grep -l "build-north-api.onrender.com" dist/_expo/static/js/web/*.js
+  node scripts/check-export.mjs dist
   ```
 
-  In PowerShell: `Select-String -List -Path dist/_expo/static/js/web/*.js -Pattern "build-north-api.onrender.com"`.
-  No file listed means the environment wasn't inlined: don't deploy. The same check applies to an Android
-  export before `eas update --skip-bundler`: the host string sits in `dist/_expo/static/js/android/entry-*.hbc`
-  (checked Oct 23 on an export with the URL set).
+  It exits 0 only when a file under `dist/_expo/static/js` (the web chunks, or the Android `.hbc` before
+  `eas update --skip-bundler`) carries the API host and the Clerk publishable key, and names the file; anything
+  else is a `FAIL` line and exit 1: don't deploy. The expected values are the ones Expo inlined:
+  `EXPO_PUBLIC_API_URL` and `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` from the shell, else from the `.env` files next
+  to `dist` (`app/.env.local` after an `env:pull`), so a missing URL, a `localhost` one or a missing key fails too.
+  No dependencies, and it is not an npm script: Expo hashes `app/package.json`'s `scripts` into the fingerprint
+  (above), so adding one would strand the installed build. `app/src/check-export.test.ts` keeps it honest. The
+  Ship workflow's web deploy exports on EAS with the `production` environment, where this check doesn't run;
+  the smoke test (`npm run smoke -w api`) checks the live site for the API host afterwards.
 
 ## What could be automatic
 
