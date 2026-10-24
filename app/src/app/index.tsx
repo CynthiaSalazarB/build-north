@@ -135,24 +135,28 @@ export default function StartScreen() {
           </Card>
         </Rise>
       )}
-      {offline && <Label dim>Demo mode: a recorded session</Label>}
+      {/* demo mode replays one recorded session, on API, whatever is picked (fixture-client.ts): it offers that
+          concept alone, so a tap on "CORS" never opens a session about API */}
+      {offline && <Label dim>Demo mode: a recorded session on API</Label>}
       <Rise order={2} style={styles.chips}>
-        {CONCEPTS.map((chip) => (
+        {(offline ? CONCEPTS.slice(0, 1) : CONCEPTS).map((chip) => (
           <Chip key={chip} label={chip} selected={picked === chip} onPress={() => setConcept(chip)} />
         ))}
       </Rise>
-      <Rise order={3}>
-        <PromptField
-          value={picked ? "" : concept}
-          onChangeText={setConcept}
-          maxLength={MAX_CONCEPT}
-          placeholder="Or type your own"
-          autoCapitalize="none"
-          accessibilityLabel="A concept to map"
-          returnKeyType="go"
-          onSubmitEditing={() => void begin("learn")}
-        />
-      </Rise>
+      {!offline && (
+        <Rise order={3}>
+          <PromptField
+            value={picked ? "" : concept}
+            onChangeText={setConcept}
+            maxLength={MAX_CONCEPT}
+            placeholder="Or type your own"
+            autoCapitalize="none"
+            accessibilityLabel="A concept to map"
+            returnKeyType="go"
+            onSubmitEditing={() => void begin("learn")}
+          />
+        </Rise>
+      )}
       <Rise order={4} style={styles.extras}>
         {!notesOpen && <Button kind="text" label="Add your notes" hint="Optional: paste text the firefly can draw on" onPress={() => setNotesOpen(true)} style={styles.left} />}
         <Button kind="text" label="Ask your AI what to map" hint="A prompt for your coding agent, so you map concepts from your own project" onPress={() => setAskOpen(true)} style={styles.left} />
