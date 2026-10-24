@@ -7,7 +7,9 @@ import memoryView from "@build-north/agents/fixtures/memory-view.json" with { ty
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import {
   cappedOf,
+  chatKeyOf,
   currentPartOf,
+  deskOf,
   editorLinesOf,
   exampleParts,
   exampleQuestionOf,
@@ -24,6 +26,7 @@ import {
   isFollowUpFeedback,
   itemsOf,
   justLitOf,
+  leadOf,
   memoryConceptOf,
   nextPartOf,
   partMeaningOf,
@@ -194,6 +197,26 @@ test("the screen shows the Turn that asked the latest question, with the feedbac
   assert.deepEqual(currentPartOf(through(7).entries).map((e) => e.id), ["turn-7-0", "turn-7-1", "turn-7-2"]);
 });
 
+test("the feedback on the part just finished leads the next part: the screen draws it over the question, not the name or a reveal", () => {
+  // turn 7's "yes" on the bigger group is in the part on screen, and it's the line drawn above the question
+  const part = currentPartOf(through(7).entries);
+  assert.deepEqual(leadOf(part).map((e) => [e.id, e.message.text]), [["turn-7-0", "Yes: monarchy, dictatorship and democracy are all forms of government."]]);
+  // the first part has nothing before its question, and a nudge Turn picked up after a reload has no question
+  assert.deepEqual(leadOf(currentPartOf(through(4).entries)), []);
+  assert.deepEqual(leadOf(through(5).entries.slice(-1)), []);
+  // a part Help revealed brings the reveal and the name before the next question: neither is drawn there
+  const at = (id: string, kind: "question" | "hint" | "named_move", text: string): Entry => ({
+    id,
+    from: "app",
+    message: { agent: kind === "hint" ? "hint_giver" : "app", kind, text, ...(kind === "hint" ? { hintStep: "reveal" as const } : {}) },
+    phase: "move",
+    move: "exclusion",
+    level: 2,
+  });
+  const revealed = [at("turn-9-0", "hint", "It's a form of government."), at("turn-9-1", "named_move", "That's called…"), at("turn-9-2", "question", "What isn't it?")];
+  assert.deepEqual(leadOf(currentPartOf(revealed)), []);
+});
+
 test("a short lead becomes the label over a question, and code in a question goes in chips", () => {
   assert.deepEqual(eyebrowOf("Before any help: in your own words, what is democracy?"), { eyebrow: "before any help", text: "In your own words, what is democracy?" });
   assert.equal(eyebrowOf("Democracy is one example of a bigger group. What group?").eyebrow, null);
@@ -342,6 +365,22 @@ test("out-of-order edits, whitespace, and revealed answers keep navigation and t
   const revealed = withPart(map, "supraordinate", [{ value: "shown answer", note: null }]);
   assert.equal(nextPartOf(revealed), "exclusion");
   assert.equal(filledOf(revealed), 2);
+});
+
+test("the fact chat shows the learner's lines, the desk's answers and the hints, never the opening instruction; the phone scrolls only for those", () => {
+  const app = (id: string, kind: "question" | "fact" | "redirect" | "hint", text: string, phase: "predict" | "move" | "result" = "move"): Entry => ({ id, from: "app", message: { agent: kind === "question" ? "app" : kind === "hint" ? "hint_giver" : "fact_desk", kind, text, ...(kind === "hint" ? { hintStep: "hint" as const } : {}) }, phase, move: null, level: 5 });
+  const learner = (id: string, text: string): Entry => ({ id, from: "learner", text });
+  const opening = app("turn-2-0", "question", "Build the mentefacto for CORS. Ask me any facts you need.");
+  const entries = [opening, learner("learner-1", "Does curl get blocked?"), app("turn-3-0", "fact", "No: browsers enforce it."), app("turn-4-0", "hint", "Where does CORS run?")];
+  assert.deepEqual(deskOf(entries).map((e) => e.id), ["learner-1", "turn-3-0", "turn-4-0"]);
+  // the guess's and the result's lines aren't the desk's either
+  assert.deepEqual(deskOf([app("turn-1-0", "question", "How many points?", "predict"), app("turn-9-0", "fact", "x", "result")]), []);
+  // the key moves when a line, a call in flight or a failure is added, and holds while the map is edited
+  const before = chatKeyOf(deskOf(entries), false, false);
+  assert.equal(chatKeyOf(deskOf(entries), false, false), before);
+  assert.notEqual(chatKeyOf(deskOf([...entries, learner("learner-2", "Is it a header?")]), true, false), before);
+  assert.notEqual(chatKeyOf(deskOf(entries), true, false), before);
+  assert.notEqual(chatKeyOf(deskOf(entries), false, true), before);
 });
 
 test("the whole-map evaluator's note on each part comes off its label", () => {

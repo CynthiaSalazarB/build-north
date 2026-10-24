@@ -10,7 +10,7 @@ Lumente helps students who code with AI learn to explain the ideas behind their 
 
 <!-- TODO(Cynthia): after the Oct 24 freeze, point the Android button at the production build's install page, and swap the two grey badges for the video and Devpost links. -->
 
-<a href="https://reality-check.expo.app"><img alt="Try it on the web" src="https://img.shields.io/badge/Try_it_on_the_web-f2b84b?style=for-the-badge" /></a>
+<a href="https://lumente.expo.app"><img alt="Try it on the web" src="https://img.shields.io/badge/Try_it_on_the_web-f2b84b?style=for-the-badge" /></a>
 <a href="https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk"><img alt="Get the Android app" src="https://img.shields.io/badge/Get_the_Android_app-16151a?style=for-the-badge&amp;logo=android&amp;logoColor=f2b84b" /></a>
 <img alt="Demo video: link to come" src="https://img.shields.io/badge/Demo_video-link_to_come-5a5248?style=for-the-badge" />
 <img alt="Devpost page: link to come" src="https://img.shields.io/badge/Devpost-link_to_come-5a5248?style=for-the-badge" />
@@ -36,7 +36,7 @@ It runs on the web and on Android. On an iPhone or a laptop, the website install
 AI writes code faster than students can understand it. The gap shows when someone asks them to explain it: in a code review, an exam or a job interview. AI makes this more common, because code that works feels understood.
 
 - In a [study at Anthropic](https://www.anthropic.com/research/AI-assistance-coding-skills) (January 2026), developers learned a coding tool they'd never used. Those who used an AI assistant scored 50% on a quiz about it. Those who coded by hand scored 67%.
-- In [two studies at Aalto University](https://www.aalto.fi/en/news/ai-use-makes-us-overestimate-our-cognitive-performance), people who solved problems with ChatGPT did better. But they guessed their own score about 4 points too high.
+- In [a study at Aalto University](https://www.aalto.fi/en/news/ai-use-makes-us-overestimate-our-cognitive-performance), people solved law-school reasoning problems with ChatGPT. They scored about 3 points better than the norm, but guessed their own score about 4 points too high ([the paper](https://arxiv.org/abs/2409.16708), published in *Computers in Human Behavior*, 2025).
 
 Programming students face this every week. Their AI writes their work every day, and code reviews, project defenses and job interviews check it.
 
@@ -58,7 +58,7 @@ A session takes about ten minutes. Here is one, with the app's real buttons.
 
 After enough practice, all four areas reach level 5 and the roles flip. You build the whole map yourself: tap an area, write your answer, "Save answer". The firefly's highlight points at the next empty area, for free. "Ask a fact (optional)" opens a chat that answers your questions with facts and never with a part of the map. A hint asks you to confirm and names its cost first. "Review & submit", then "Submit my map", scores all four areas together. "Test myself" on the start screen runs this mode on any concept at once and changes no levels. Our pilot's two tests use it.
 
-If you close the app or reload the page, the session waits on the start screen behind a "Resume" button.
+Tap any lit area of the map to read your full answer and the feedback on it. If you close the app or reload the page, the session waits on the start screen behind a "Resume" button.
 
 The firefly on screen is the AI. It asks and checks, its light warms under your finger or your pointer, and it never hands you the answer.
 
@@ -93,11 +93,9 @@ The method, the research and what we haven't proven yet are in the [product thes
 
 ## Mission and vision
 
-<!-- TODO(Cynthia): both lines are drafts from the product thesis ("Where it goes"). Change the wording freely. -->
+**Mission:** help students who build with AI understand the ideas behind their own code, by finding the answers themselves instead of being handed them.
 
-**Mission:** help students who build with AI understand their own work, by doing the thinking themselves.
-
-**Vision:** people who use AI and still think for themselves. We start with programming ideas and add one thinking skill at a time. We add the next step only when the evidence says we're ready.
+**Vision:** people who think for themselves, with or without AI. Curiosity is the engine, questions are the practice, and understanding is the result. We start with programming ideas and add one thinking skill at a time, and only when the evidence says we're ready.
 
 | Step | What people practice | Who it's for first |
 |---|---|---|
@@ -111,19 +109,19 @@ The help fades. The understanding stays.
 
 ## Try it
 
-**In two minutes.** Open [Lumente on the web](https://reality-check.expo.app) in any browser. Sign in with an email code, or with Google on the web. To skip the email, use any address that ends in `+clerk_test@example.com` and the code `424242`. Tap "API", then "Explore with guidance". Pick a prediction, explain the idea in your own words, and answer the four questions. Ask the firefly for help once, to see what a hint costs. The result shows your prediction next to your score.
+**In two minutes.** Open [Lumente on the web](https://lumente.expo.app) in any browser. Sign in with an email code, or with Google on the web. To skip the email, use any address that ends in `+clerk_test@example.com` and the code `424242`. Tap "API", then "Explore with guidance". Pick a prediction, explain the idea in your own words, and answer the four questions. Ask the firefly for help once, to see what a hint costs. The result shows your prediction next to your score.
 
 | On | Do this |
 |---|---|
-| A laptop, or any phone's browser | Open [Lumente on the web](https://reality-check.expo.app). On a laptop or an iPhone, you can add it to the home screen: it opens full screen with its own icon |
+| A laptop, or any phone's browser | Open [Lumente on the web](https://lumente.expo.app). On a laptop or an iPhone, you can add it to the home screen: it opens full screen with its own icon |
 | Android | Install the app from [this link](https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk). Android asks once to allow the install. The app updates itself on its second launch after we ship a fix |
 | iPhone | Use the web link. There's no App Store app |
 
 The live addresses:
 
-- The website: https://reality-check.expo.app
-- The pilot's website, the same code deployed by hand before a test: https://reality-check--testers.expo.app
-- The server's health check: https://build-north-api.onrender.com/health answers `{"ok":true}`
+- The website: https://lumente.expo.app
+- The pilot's website, the same code deployed by hand before a test: https://lumente--testers.expo.app
+- The server's health check: https://build-north-api.onrender.com/health answers `{"ok":true}`, with the commit it runs and whether memory is on
 - The Android app: the `preview` build linked above (build 3, Oct 22)
 
 The [five-minute guide](docs/testing-notes.md) walks you through a full session, what is stored, and how to delete it.
@@ -139,7 +137,7 @@ On the evening of Oct 23, five computer science students who code with AI tried 
 | Criterion | Where to look |
 |---|---|
 | Innovation | The AI won't do the thinking for you. You build each answer, the help fades as you improve, and at level 5 you write the whole map and ask the questions. Between sessions, the app remembers your progress, never your words |
-| Real-world impact | One clear user, a problem backed by research, and our pilot's numbers. Students use it free. Instructors, bootcamps and colleges pay for seats and a view of what each student has mastered |
+| Real-world impact | One clear user, a problem backed by research, and our pilot's numbers. Students start with free sessions, then pay for more. Schools, colleges, institutes and bootcamps, our main customers, pay per student and see what each student has mastered. Prices come from what a session costs us (about $0.16) and from our first pilots |
 | UI and design | Lumente's own look: a dark screen that lights up as you prove each answer, and a firefly whose light answers your finger. It works on phones, installs as an app from the browser, and lays out as a two-column website on laptops |
 | Tech and deployment | Live on the web and on Android, built, updated and hosted with Expo's EAS. A session survives a reload or a killed app. Only our server talks to the AI, and plain code works out every score |
 | Security and ethics | The AI key stays on our server. Notes that look like a password never leave the phone. Memory keeps progress notes, never your words, and you can delete your data from the app. There are no streaks. Our testers were adults who agreed to take part |
@@ -180,12 +178,12 @@ We entered Best Overall, Best Use of Expo, Best Use of Clerk and Best Use of Sur
 
 One TypeScript codebase runs on Android and on the web, and the web build installs as an app on iPhones and laptops. There is no App Store app. We had no Apple account this week, so iPhones get the web app ([`DECISIONS.md`](DECISIONS.md), Oct 23).
 
-What EAS did for us, from the [Expo log](docs/expo-log.md), by the afternoon of Oct 23:
+What EAS did for us, from the [Expo log](docs/expo-log.md), by the Oct 24 freeze:
 
 - **EAS Build:** three Android builds. A development build and a `preview` APK on Oct 21, the day the EAS project was made. Then build 3 on Oct 22, after Lumente's icon and the voice module changed the native code. Build 3 is the APK linked above.
-- **EAS Update, with the fingerprint check:** six updates over the air on the `preview` channel. The first shipped the same day as the first build. The runtime policy is `fingerprint`, so an update only reaches builds with the same native code. Before an update, `eas fingerprint:compare` checked that build 3 could run it. Fixes went out as updates, and no fourth build was needed. On Oct 23, the testers' phones got the day's merges before the evening slots.
+- **EAS Update, with the fingerprint check:** 21 updates over the air on the `preview` channel. The first shipped the same day as the first build. The runtime policy is `fingerprint`, so an update only reaches builds with the same native code. Before an update, `eas fingerprint:compare` checked that build 3 could run it. Fixes went out as updates, and no fourth build was needed. Every fix after build 3, through the night before the freeze, reached the phones this way.
 - **The update notice:** when an update is downloaded, the app says "A new version is ready" with a Restart button. It checks again when it comes back to the foreground and when the start screen shows, at most once a minute.
-- **EAS Hosting:** the website, deployed from `main` three times by Oct 23. The `review`, `testers` and `polish` aliases served the design review, the pilot and our own checks. A web deploy uses no build credit.
+- **EAS Hosting:** the website, redeployed from `main` with every rollout, at `lumente.expo.app`. The `review`, `testers` and `polish` aliases served the design review, the pilot and our own checks. A web deploy uses no build credit.
 - **EAS Workflows:** `ship.yml` publishes the update and deploys the website, and `preview-build.yml` builds an APK when the fingerprint changes. Its first real run stalled in the free queue, so the two jobs ran by hand that day.
 - **Expo Observe:** launch times, time to interactive on each screen, and crashes on the Android app. It also reports the crashes a learner recovers from with Try again.
 - **The installable web app:** a web manifest, icons and Apple's home-screen tags in the static export. Every shared page gets a link card.

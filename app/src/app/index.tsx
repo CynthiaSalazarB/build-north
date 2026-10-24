@@ -135,31 +135,34 @@ export default function StartScreen() {
           </Card>
         </Rise>
       )}
-      {offline && <Label dim>Demo mode: a recorded session, no API</Label>}
+      {/* demo mode replays one recorded session, on API, whatever is picked (fixture-client.ts): it offers that
+          concept alone, so a tap on "CORS" never opens a session about API */}
+      {offline && <Label dim>Demo mode: a recorded session on API</Label>}
       <Rise order={2} style={styles.chips}>
-        {CONCEPTS.map((chip) => (
+        {(offline ? CONCEPTS.slice(0, 1) : CONCEPTS).map((chip) => (
           <Chip key={chip} label={chip} selected={picked === chip} onPress={() => setConcept(chip)} />
         ))}
       </Rise>
-      <Rise order={3}>
-        <PromptField
-          value={picked ? "" : concept}
-          onChangeText={setConcept}
-          maxLength={MAX_CONCEPT}
-          placeholder="Or type your own"
-          autoCapitalize="none"
-          accessibilityLabel="A concept to map"
-          returnKeyType="go"
-          onSubmitEditing={() => void begin("learn")}
-        />
-      </Rise>
+      {!offline && (
+        <Rise order={3}>
+          <PromptField
+            value={picked ? "" : concept}
+            onChangeText={setConcept}
+            maxLength={MAX_CONCEPT}
+            placeholder="Or type your own"
+            autoCapitalize="none"
+            accessibilityLabel="A concept to map"
+            returnKeyType="go"
+            onSubmitEditing={() => void begin("learn")}
+          />
+        </Rise>
+      )}
       <Rise order={4} style={styles.extras}>
         {!notesOpen && <Button kind="text" label="Add your notes" hint="Optional: paste text the firefly can draw on" onPress={() => setNotesOpen(true)} style={styles.left} />}
         <Button kind="text" label="Ask your AI what to map" hint="A prompt for your coding agent, so you map concepts from your own project" onPress={() => setAskOpen(true)} style={styles.left} />
       </Rise>
       {notesOpen && (
         <View style={styles.notesGroup}>
-          <Label dim>your notes</Label>
           <TextInput
             value={notes}
             onChangeText={setNotes}
@@ -270,17 +273,17 @@ function AskYourAi({ open, onClose, onPaste }: { open: boolean; onClose: () => v
       await Share.share({ message: AI_PROMPT }).catch(() => undefined);
     }
   };
-  const copyLabel = copied === "yes" ? "Copied" : copied === "refused" ? "Select the text and copy it" : "Copy the prompt";
+  const copyLabel = copied === "yes" ? "Copied" : copied === "refused" ? "Select the text and copy it" : "Copy";
   return (
     <Sheet open={open} onClose={onClose} label="the prompt">
       <Title style={styles.sheetTitle}>Ask your AI what to map</Title>
-      <Small dim>Paste this into Claude Code, Cursor or Copilot inside your project, then paste its answer into your notes.</Small>
+      <Small dim>Paste this into Claude Code, Cursor or Copilot inside your project.</Small>
       <View style={[styles.prompt, { backgroundColor: c.codeFill, borderColor: c.fieldEdge }]}>
         <Text selectable style={[type.label, styles.promptText, { color: c.onSurface }]}>
           {AI_PROMPT}
         </Text>
       </View>
-      <Button label={Platform.OS === "web" ? copyLabel : "Share the prompt"} onPress={() => void copy()} />
+      <Button label={Platform.OS === "web" ? copyLabel : "Share"} onPress={() => void copy()} />
       <Button kind="text" label="Paste its answer" onPress={onPaste} />
     </Sheet>
   );

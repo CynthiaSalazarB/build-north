@@ -24,7 +24,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from "react-native";
-import Animated, { css, cubicBezier, useReducedMotion, type CSSAnimationProperties } from "react-native-reanimated";
+import Animated, { css, cubicBezier, useReducedMotion, type CSSAnimationProperties, type CSSTransitionProperties } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
 import { isWeb, lightFor, maxContentWidth, motion, page, palette, radius, size, space, type, wideFrom, type Colors, type Mode } from "../theme.ts";
 import { Icon, type IconName } from "./icons.tsx";
@@ -41,11 +41,41 @@ export function useWide(): boolean {
 /** A Pressable's state; react-native-web adds hover and focus to the press. */
 export type Interaction = PressableStateCallbackType & { hovered?: boolean; focused?: boolean };
 
-/** On the web a control eases between rest, hover and press instead of snapping (react-native-web passes these
- * style properties through to CSS; React Native's own types don't list them). */
-const easeOnWeb = isWeb
-  ? (({ transitionProperty: "transform, background-color, border-color, box-shadow, opacity", transitionDuration: `${motion.hover}ms`, transitionTimingFunction: "cubic-bezier(0.2, 0, 0, 1)" }) as unknown as ViewStyle)
-  : null;
+/** A Pressable that Reanimated can ease: its press and hover are CSS transitions (Reanimated's on a phone, the
+ * browser's own on the web), so both platforms move the same way and only `transform` and `opacity` ever move. */
+export const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+/** The curve a control answers with: quick to start, settling at the end. */
+const standard = cubicBezier(0.2, 0, 0, 1);
+/** A press answers in 120 ms; a hover's edge or glow (the web) in 150. The glow (box-shadow) is a web property. */
+const pressEase: CSSTransitionProperties = { transitionProperty: ["transform", "opacity"], transitionDuration: motion.press, transitionTimingFunction: standard };
+const hoverEase: CSSTransitionProperties = isWeb
+  ? { transitionProperty: ["transform", "opacity", "backgroundColor", "borderColor", "boxShadow"], transitionDuration: [motion.press, motion.press, motion.hover, motion.hover, motion.hover], transitionTimingFunction: standard }
+  : { transitionProperty: ["transform", "opacity", "backgroundColor", "borderColor"], transitionDuration: [motion.press, motion.press, motion.hover, motion.hover], transitionTimingFunction: standard };
+/** A focused field's edge brightens over 150 ms. */
+const edgeEase: CSSTransitionProperties = { transitionProperty: ["borderColor"], transitionDuration: motion.feedback, transitionTimingFunction: standard };
+
+type PressBinding = { onPressIn: () => void; onPressOut: () => void; onHoverIn: () => void; onHoverOut: () => void };
+
+/** How a control answers a finger or a pointer. Pressed: 120 ms to scale 0.98 on the web, where the pointer sees
+ * the box give, and to opacity 0.85 on a phone, where the finger covers it. Hovered (the web): the control's own
+ * edge or glow, over 150 ms, and a box that `lifts` rises 1 px. `bind` goes on the AnimatedPressable and `feel(on,
+ * lifts)` in its style, after its hover and before its disabled look (`on` is false while it is disabled or busy,
+ * so a press shows nothing). `colors: false` eases only the press, for a control whose fill and ink swap together.
+ * With Reduce Motion every state still changes, instantly. */
+export function usePress({ colors = true } = {}): { pressed: boolean; hovered: boolean; bind: PressBinding; feel: (on?: boolean, lifts?: boolean) => (ViewStyle | CSSTransitionProperties | false | null)[] } {
+  const still = useReducedMotion();
+  const [pressed, setPressed] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  const bind = {
+    onPressIn: () => setPressed(true),
+    onPressOut: () => setPressed(false),
+    onHoverIn: () => setHovered(true),
+    onHoverOut: () => setHovered(false),
+  };
+  const ease = still ? null : colors ? hoverEase : pressEase;
+  return { pressed, hovered, bind, feel: (on = true, lifts = false) => [styles.rest, ease, lifts && styles.lift, pressed && on && styles.pressed] };
+}
 
 /** Entrances are CSS animations (Reanimated's on a phone, the browser's own on the web), which run once when a
  * block mounts and leave its layout alone. */
@@ -54,21 +84,25 @@ const fadeIn = css.keyframes({ from: { opacity: 0 }, to: { opacity: 1 } });
 export const easeOut = cubicBezier(0.16, 1, 0.3, 1);
 
 /** The style that brings a block in when it mounts, `order` steps (60 ms each) after the screen's first: rising
- * 12 px, or only fading for a drawing. Nothing with Reduce Motion: the block is simply there. */
-export function useEntrance(): (order?: number, kind?: "rise" | "fade") => CSSAnimationProperties | null {
+ * 12 px, or only fading for a drawing, over `ms` (280 for a block; a sheet takes 240). Nothing with Reduce Motion:
+ * the block is simply there. */
+export function useEntrance(): (order?: number, kind?: "rise" | "fade", ms?: number) => CSSAnimationProperties | null {
   const still = useReducedMotion();
-  return (order = 0, kind = "rise") =>
+  return (order = 0, kind = "rise", ms = motion.enter) =>
     still
       ? null
-      : { animationName: kind === "rise" ? riseIn : fadeIn, animationDuration: motion.enter, animationDelay: order * motion.stagger, animationTimingFunction: easeOut, animationFillMode: "backwards" };
+      : { animationName: kind === "rise" ? riseIn : fadeIn, animationDuration: ms, animationDelay: order * motion.stagger, animationTimingFunction: easeOut, animationFillMode: "backwards" };
 }
+
+/** On the web the focus ring (`+html.tsx`) takes its ink from the light of the screen or sheet it is drawn on. */
+const lightData = (mode: Mode) => (isWeb ? ({ dataSet: { light: mode } } as object) : {});
 
 export function Rise({ order = 0, style, children }: { order?: number; style?: StyleProp<ViewStyle>; children: ReactNode }) {
   const entrance = useEntrance();
   return <Animated.View style={[style, entrance(order)]}>{children}</Animated.View>;
 }
 
-/** Dark (0 to 4 points) or lit (5 to 8): the light of the screen this is drawn on. */
+/** Dark (0 to 6 points) or lit (7 and 8): the light of the screen this is drawn on. */
 export function useMode(): Mode {
   return lightFor(useContext(LightContext)).mode;
 }
@@ -86,7 +120,7 @@ export function Screen({ light = 0, edges = ["top", "bottom"], children }: { lig
   const wide = useWide();
   return (
     <LightContext.Provider value={light}>
-      <View style={styles.flex}>
+      <View style={styles.flex} {...lightData(mode)}>
         <Light points={light} />
         <SafeAreaView style={styles.flex} edges={edges}>
           <StatusBar style={mode === "night" ? "light" : "dark"} />
@@ -151,20 +185,22 @@ type ButtonProps = {
 
 /** The main action is a 56 px button in warm light (dark ink once the screen is lit), full width on a phone.
  * Secondary and "More help" are outlines that size to their label; text buttons have no box. On the web each
- * answers hover: the main action glows, an outline firms up, a text button underlines. A hintLink stays
- * underlined, without a box, while retaining the button's touch target and confirmation action. */
+ * answers hover: the main action glows, an outline firms up, a text button underlines, a hintLink (always
+ * underlined, without a box, while retaining the button's touch target and confirmation action) dims a little. */
 export function Button({ label, onPress, kind = "primary", disabled, busy, hint, fit = false, solid = false, style }: ButtonProps) {
   const c = useColors();
+  const { hovered, bind, feel } = usePress();
   const off = disabled || busy;
+  const on = !off;
   const look = {
     primary: { box: [fit ? styles.fit : styles.full, { backgroundColor: c.primary }], ink: c.onPrimary, hover: { boxShadow: c.litShadow } },
     secondary: { box: [styles.small, { backgroundColor: solid ? c.surfaceContainer : c.controlFill, borderColor: c.outline, borderWidth: 1 }], ink: c.onSurface, hover: { borderColor: c.onSurfaceVariant } },
     text: { box: [styles.textButton], ink: c.onSurface, hover: null },
     hint: { box: [styles.small, { backgroundColor: c.controlFill, borderColor: "rgba(242, 184, 75, 0.6)", borderWidth: 1 }], ink: c.question, hover: { borderColor: c.firefly } },
-    hintLink: { box: [styles.textButton], ink: c.question, hover: null },
+    hintLink: { box: [styles.textButton], ink: c.question, hover: styles.dimmed },
   }[kind];
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={hint}
@@ -172,51 +208,37 @@ export function Button({ label, onPress, kind = "primary", disabled, busy, hint,
       disabled={off}
       onPress={onPress}
       hitSlop={kind === "primary" ? undefined : size.hitSlop}
-      style={({ pressed, hovered }: Interaction) => [
-        styles.button,
-        look.box,
-        easeOnWeb,
-        off && styles.disabled,
-        hovered && !off && [styles.lift, look.hover],
-        pressed && !off && styles.pressed,
-        style,
-      ]}
+      {...bind}
+      style={[styles.button, look.box, hovered && on && look.hover, feel(on, hovered && on), off && styles.disabled, style]}
     >
-      {({ hovered }: Interaction) =>
-        busy ? (
-          <ActivityIndicator color={look.ink} />
-        ) : (
-          <Text style={[type.button, (kind === "hint" || kind === "hintLink") && styles.hintLabel, (kind === "hintLink" || (kind === "text" && hovered && !off)) && styles.underline, { color: look.ink }]} numberOfLines={1}>
-            {label}
-          </Text>
-        )
-      }
-    </Pressable>
+      {busy ? (
+        <ActivityIndicator color={look.ink} />
+      ) : (
+        <Text style={[type.button, (kind === "hint" || kind === "hintLink") && styles.hintLabel, (kind === "hintLink" || (kind === "text" && hovered && on)) && styles.underline, { color: look.ink }]} numberOfLines={1}>
+          {label}
+        </Text>
+      )}
+    </AnimatedPressable>
   );
 }
 
 /** A square control with an icon only (Close, −, +). */
 export function IconButton({ icon, label, onPress, disabled, big = false }: { icon: IconName; label: string; onPress: () => void; disabled?: boolean; big?: boolean }) {
   const c = useColors();
+  const { hovered, bind, feel } = usePress();
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ disabled: !!disabled }}
       disabled={disabled}
       onPress={onPress}
       hitSlop={size.hitSlop}
-      style={({ pressed, hovered }: Interaction) => [
-        styles.iconButton,
-        big && styles.bigIcon,
-        { backgroundColor: c.controlFill, borderColor: hovered && !disabled ? c.onSurfaceVariant : c.outline },
-        easeOnWeb,
-        disabled && styles.faint,
-        pressed && !disabled && styles.pressed,
-      ]}
+      {...bind}
+      style={[styles.iconButton, big && styles.bigIcon, { backgroundColor: c.controlFill, borderColor: hovered && !disabled ? c.onSurfaceVariant : c.outline }, feel(!disabled), disabled && styles.faint]}
     >
       <Icon name={icon} color={c.onSurface} size={big ? 20 : 18} />
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -225,11 +247,12 @@ export function IconButton({ icon, label, onPress, disabled, big = false }: { ic
  * itself shows the words; this never sends. */
 export function MicButton({ state, onPress, disabled = false }: { state: VoiceState; onPress: () => void; disabled?: boolean }) {
   const c = useColors();
+  const { hovered, bind, feel } = usePress();
   if (state.kind === "unsupported") return null;
   const listening = state.kind === "listening";
   const { label, hint } = voiceLabel(state, isWeb);
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityHint={hint}
@@ -237,17 +260,17 @@ export function MicButton({ state, onPress, disabled = false }: { state: VoiceSt
       disabled={disabled}
       onPress={onPress}
       hitSlop={size.hitSlop}
-      style={({ pressed, hovered }: Interaction) => [
+      {...bind}
+      style={[
         styles.iconButton,
         { backgroundColor: c.controlFill, borderColor: listening ? c.questionOutline : hovered && !disabled ? c.onSurfaceVariant : c.outline },
         listening && styles.listening,
-        easeOnWeb,
+        feel(!disabled),
         disabled && styles.faint,
-        pressed && !disabled && styles.pressed,
       ]}
     >
       <Icon name={listening ? "stop" : "mic"} color={listening ? c.firefly : c.onSurface} />
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -261,25 +284,26 @@ export function VoiceNote({ state }: { state: VoiceState }) {
   );
 }
 
-/** A concept, picked in one tap; the picked one is amber. */
+/** A concept, picked in one tap; the picked one is amber. On the web a hover firms up the edge and lifts the chip
+ * 1 px; the picked one keeps its amber edge and only lifts. */
 export function Chip({ label, selected, onPress }: { label: string; selected: boolean; onPress: () => void }) {
   const c = useColors();
+  const { hovered, bind, feel } = usePress();
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
       onPress={onPress}
-      style={({ pressed, hovered }: Interaction) => [
+      {...bind}
+      style={[
         styles.chip,
         selected ? { backgroundColor: "rgba(242, 184, 75, 0.16)", borderColor: c.firefly } : { backgroundColor: c.controlFill, borderColor: hovered ? c.onSurfaceVariant : c.outline },
-        easeOnWeb,
-        hovered && !selected && styles.lift,
-        pressed && styles.pressed,
+        feel(true, hovered),
       ]}
     >
       <Text style={[type.ui, { color: selected ? c.question : c.onSurface }]}>{label}</Text>
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
@@ -298,8 +322,11 @@ const webRows = (text: string, width: number) =>
  * the light is the learner's own. */
 export function PromptField({ end, style, glow = false, onFocus, onBlur, ...input }: TextInputProps & { end?: ReactNode; glow?: boolean }) {
   const c = useColors();
+  const still = useReducedMotion();
   const [width, setWidth] = useState(0);
-  // the whole field shows focus, so the browser's own ring around the inner text area goes
+  // the whole field shows focus, so the browser's own ring around the inner text area goes; the edge then has to
+  // be plainly brighter than at rest (the outline token is one shade off the resting edge, which a keyboard user
+  // can't see), so it takes the ink the controls use on hover, eased in over 150 ms
   const [focused, setFocused] = useState(false);
   const web =
     Platform.OS === "web" && input.multiline
@@ -316,9 +343,9 @@ export function PromptField({ end, style, glow = false, onFocus, onBlur, ...inpu
           },
         }
       : null;
-  const edge = glow ? { borderColor: c.firefly, borderWidth: 1.5, boxShadow: "0 0 18px rgba(242, 184, 75, 0.25)" } : { borderColor: focused ? c.outline : c.fieldEdge, borderWidth: 1 };
+  const edge = glow ? { borderColor: c.firefly, borderWidth: 1.5, boxShadow: "0 0 18px rgba(242, 184, 75, 0.25)" } : { borderColor: focused ? c.onSurfaceVariant : c.fieldEdge, borderWidth: 1 };
   return (
-    <View style={[styles.field, { backgroundColor: c.surfaceContainer }, edge, style]}>
+    <Animated.View style={[styles.field, { backgroundColor: c.surfaceContainer }, edge, still ? null : edgeEase, style]}>
       <TextInput
         placeholderTextColor={c.placeholder}
         {...input}
@@ -335,54 +362,51 @@ export function PromptField({ end, style, glow = false, onFocus, onBlur, ...inpu
         style={[styles.input, { color: c.onSurface, fontFamily: type.input.fontFamily, fontSize: type.input.fontSize }, Platform.OS === "web" && styles.noRing]}
       />
       {end}
-    </View>
+    </Animated.View>
   );
 }
 
-/** The square send button inside the input bar; amber at level 5. */
+/** The square send button inside the input bar; amber at level 5. On the web it glows under the pointer, like the
+ * main action. */
 export function SendButton({ busy, disabled, onPress, label = "Send", amber = false }: { busy: boolean; disabled: boolean; onPress: () => void; label?: string; amber?: boolean }) {
   const c = useColors();
+  const { hovered, bind, feel } = usePress();
   const off = busy || disabled;
   return (
-    <Pressable
+    <AnimatedPressable
       accessibilityRole="button"
       accessibilityLabel={busy ? "Sending" : label}
       accessibilityState={{ disabled: off, busy }}
       disabled={off}
       onPress={onPress}
       hitSlop={size.hitSlop}
-      style={({ pressed }) => [styles.send, { backgroundColor: amber ? c.firefly : c.primary }, off && styles.faint, pressed && !off && styles.pressed]}
+      {...bind}
+      style={[styles.send, { backgroundColor: amber ? c.firefly : c.primary }, hovered && !off && { boxShadow: c.litShadow }, feel(!off), off && styles.faint]}
     >
       {busy ? <ActivityIndicator color={c.onPrimary} /> : <Icon name="up" color={amber ? palette.night.onPrimary : c.onPrimary} />}
-    </Pressable>
+    </AnimatedPressable>
   );
 }
 
-/** A sheet that rises over the screen, with a scrim that closes it; in the website layout, a dialog in the middle
- * that fades in. Escape closes either on the web. */
+/** A sheet over the screen, with a scrim that closes it; in the website layout, a dialog in the middle. The scrim
+ * fades in (the Modal's own fade) and the panel rises into place over 240 ms, like a block of the screen; with
+ * Reduce Motion the panel is simply there. Escape closes either on the web. */
 export function Sheet({ open, onClose, label, children }: { open: boolean; onClose: () => void; label: string; children: ReactNode }) {
   const c = useColors();
+  const mode = useMode();
   const wide = useWide();
+  const entrance = useEntrance();
   const scrim = <Pressable style={[wide ? StyleSheet.absoluteFill : styles.flex, { backgroundColor: c.scrim }]} onPress={onClose} accessibilityRole="button" accessibilityLabel={`Close ${label}`} />;
-  const panel = [wide ? styles.dialog : styles.sheet, { backgroundColor: c.surfaceContainer, borderColor: c.fieldEdge }];
+  const panel = [wide ? styles.dialog : styles.sheet, { backgroundColor: c.surfaceContainer, borderColor: c.fieldEdge }, entrance(0, "rise", motion.sheet)];
   return (
-    <Modal visible={open} transparent animationType={wide ? "fade" : "slide"} onRequestClose={onClose}>
-      {wide ? (
-        <View style={[styles.flex, styles.center]}>
-          {scrim}
-          <View style={panel} accessibilityViewIsModal>
-            {children}
-          </View>
-        </View>
-      ) : (
-        <>
-          {scrim}
-          <View style={panel} accessibilityViewIsModal>
-            <View style={[styles.grabber, { backgroundColor: c.outline }]} />
-            {children}
-          </View>
-        </>
-      )}
+    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={[styles.flex, wide && styles.center]} {...lightData(mode)}>
+        {scrim}
+        <Animated.View style={panel} accessibilityViewIsModal>
+          {!wide && <View style={[styles.grabber, { backgroundColor: c.outline }]} />}
+          {children}
+        </Animated.View>
+      </View>
     </Modal>
   );
 }
@@ -399,8 +423,11 @@ const styles = StyleSheet.create({
   underline: { textDecorationLine: "underline" },
   disabled: { opacity: 0.45 },
   faint: { opacity: 0.35 },
+  dimmed: { opacity: 0.85 },
   lift: { transform: [{ translateY: -1 }] },
-  pressed: { transform: [{ scale: 0.97 }] },
+  // the press gives under a pointer and dims under a finger; `rest` names the value it eases back to
+  rest: isWeb ? { transform: [{ scale: 1 }] } : { opacity: 1 },
+  pressed: isWeb ? { transform: [{ scale: 0.98 }] } : { opacity: 0.85 },
   center: { alignItems: "center", justifyContent: "center", padding: space.xl },
   iconButton: { width: size.iconButton, height: size.iconButton, borderRadius: radius.iconButton, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   listening: { borderWidth: 1.5 },

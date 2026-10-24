@@ -8,7 +8,7 @@ import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type
 import { createApiClient } from "./api-client.ts";
 import { ClientError } from "./client.ts";
 import { createFixtureClient } from "./fixture-client.ts";
-import { lastPartNoteOf, resultMessagesOf } from "./present.ts";
+import { lastPartNoteOf, partClosingsOf, resultMessagesOf } from "./present.ts";
 import { blankMap, drafted, echoFor, failed, initialState, received, resendOf, sent, startedWith, withRevealed } from "./transcript.ts";
 
 const fixtureTurns = sessionOne.map((step) => Turn.parse(step.turn));
@@ -60,6 +60,20 @@ test("the result comes first without the coach's words; the next Turn brings the
   state = received(state, fixtureTurns.at(-1)!);
   assert.equal(state.turn!.expects, "none");
   assert.deepEqual(resultMessagesOf(state.entries), [...shown, { agent: "coach", kind: "summary", text: state.turn!.result!.coach!.message }]);
+});
+
+test("every finished part keeps what closed it, so its area can open and be read again", () => {
+  let state = initialState;
+  for (const step of sessionApi) state = received(state, Turn.parse(step.turn));
+  const closings = partClosingsOf(state.entries);
+  const named = state.entries.filter((e) => e.from === "app" && e.message.kind === "named_move").length;
+  // one closing per part that got its name, each the feedback on it or the answer shown
+  assert.equal(Object.keys(closings).length, named);
+  assert.ok(named >= 3);
+  // the last part closes with the words the result Turn carried, the same ones lastPartNoteOf keeps
+  assert.deepEqual(closings.infraordinate, { text: lastPartNoteOf(state.entries).infraordinate, revealed: false });
+  // a session picked up with only its latest Turn has nothing from earlier parts
+  assert.deepEqual(partClosingsOf(received(initialState, Turn.parse(sessionApi[0]!.turn)).entries), {});
 });
 
 test("the last answer's feedback, which comes with the result, is kept for the part the session asked last", () => {
@@ -127,6 +141,19 @@ test("a 409 with the latest Turn is drawn; other errors carry the server's messa
   await assert.rejects(down.start({ concept: "x" }), { status: null, retryable: true });
 });
 
+test("a server that is broken or restarting, and a sign-in it refuses, get the learner's words, not the server's", async () => {
+  // the API's own 500 line ends in "the cause is in the server logs", and a host's 502 page isn't JSON at all
+  const broken = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(500, { error: "Something went wrong; the cause is in the server logs" }).fetch });
+  await assert.rejects(broken.send("s", { turn: 1, text: "x" }), { message: "The server hit a problem. Try again in a moment.", status: 500, retryable: true });
+  const restarting = ((async () => new Response("<html>Bad Gateway</html>", { status: 502 })) as unknown) as typeof fetch;
+  await assert.rejects(createApiClient({ baseUrl: "http://api.test", fetch: restarting }).start({ concept: "x" }), { message: "The server hit a problem. Try again in a moment.", status: 502, retryable: true });
+  const refused = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(401, { error: "Sign in first: send the Clerk session token as Authorization: Bearer <token>" }).fetch });
+  await assert.rejects(refused.start({ concept: "x" }), { message: "The server didn't accept your sign-in. Sign out, then sign in again.", status: 401, retryable: false });
+  // a 4xx with a message written for the learner keeps it
+  const long = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(413, { error: "Your notes are over 8,000 characters. Paste a shorter excerpt." }).fetch });
+  await assert.rejects(long.start({ concept: "x", material: "…" }), { message: "Your notes are over 8,000 characters. Paste a shorter excerpt.", status: 413, retryable: false });
+});
+
 test("a session is picked up with GET /sessions/:id, and a 404 says it is gone for good", async () => {
   const { fetch, calls } = fakeFetch(200, first);
   const client = createApiClient({ baseUrl: "http://api.test", getToken: async () => "tok", fetch });
@@ -170,7 +197,7 @@ test("the delete button sends DELETE /me/data with the credentials, no body, and
   assert.deepEqual(calls[0]!.init.headers, { authorization: "Bearer tok" });
 
   const refused = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(401, { error: "Sign in first" }).fetch });
-  await assert.rejects(refused.deleteData(), { message: "Sign in first", status: 401, retryable: false });
+  await assert.rejects(refused.deleteData(), { message: /sign in again/, status: 401, retryable: false });
   // demo mode has nothing to delete, and says nothing
   await createFixtureClient(0).deleteData();
 });

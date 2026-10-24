@@ -1,6 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
-import { advance } from "@build-north/agents";
-import { advanceStub, callAgentStub } from "./advance-stub.ts";
+import { callAgentStub, orchestratorFor } from "./advance-stub.ts";
 import { createApp } from "./app.ts";
 import { agentConfigFromEnv, createCallAgent, sendWith } from "./call-agent.ts";
 import { clerkConfigFromEnv, clerkUserFromToken } from "./clerk.ts";
@@ -21,8 +20,10 @@ const clerk = clerkConfigFromEnv(corsOrigins);
 const devKey = process.env.NODE_ENV === "production" ? null : process.env.DEV_KEY?.trim() || null;
 // Claude calls (#10) need ANTHROPIC_API_KEY, a budget, and a database for their agent_log rows. With
 // them, Cynthia's orchestrator runs every session (#28); without them, sessions replay the session-1
-// fixture, so the app still works against an API with no key.
+// fixture, so the app still works against an API with no key. A production process missing one of them
+// refuses to start instead (advance-stub.ts).
 const agents = agentConfigFromEnv();
+const orchestrator = orchestratorFor(process.env, { claude: agents !== null, database: store !== null });
 const callAgentFor =
   agents && store
     ? createCallAgent({
@@ -42,13 +43,15 @@ createApp({
   corsOrigins,
   checkDb: db ? surrealCheck(db) : null,
   store,
-  advance: agents && store ? advance : advanceStub,
+  advance: orchestrator,
   callAgentFor,
   userFromToken: clerk ? clerkUserFromToken(clerk) : null,
   devKey,
   // per IP: a room of testers on one Wi-Fi shares one, so the limit can be raised for the day
   requestsPerMinute: Number(process.env.REQUESTS_PER_MINUTE) || undefined,
   memory,
+  // Render sets RENDER_GIT_COMMIT on every deploy (render.com/docs/environment-variables)
+  commit: process.env.RENDER_GIT_COMMIT?.trim().slice(0, 7) || null,
 }).listen(port, (error) => {
   if (error) throw error;
   const dbInfo = surreal ? `${new URL(surreal.url).host} (${surreal.namespace}/${surreal.database})` : "not configured";

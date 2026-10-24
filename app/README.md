@@ -6,10 +6,11 @@ get the web build. Created with `create-expo-app` and its default template (disc
 templates are allowed if disclosed), with the template's demo screens, icons and splash replaced.
 
 The look is round 9, "Lumente", Cynthia's design (`docs/design/09-lumente/`): questions are the light. A
-near-black screen gets a warm light from the top-right corner, one stage per point proved, and the ink turns
-dark once the light fills the screen at 5 points. `src/theme.ts` holds its tokens, and screens take colors only
-from there, through the light of the screen they're on, so the phone's light or dark setting doesn't change
-them.
+near-black screen gets a warm light from the top-right corner, one stage per point proved: the dark stages spread
+over 0 to 6 points, the screen turns light and the ink dark at 7, and 8 is full light (decided Oct 22). `src/theme.ts`
+holds its tokens, and screens take colors only from there, through the light of the screen they're on, so the phone's
+light or dark setting doesn't change them. The Oct 23 changes to the prediction, the self-test and the result (#136)
+are described in `docs/ux-guidance.md`; the board keeps the original round 9.
 
 ## Run it
 
@@ -21,9 +22,11 @@ npm run start -w app        # then scan the QR code with Expo Go, or press w for
 ```
 
 With no `app/.env`, the app runs in **demo mode**: it replays the API session recorded with Claude from
-`agents/fixtures/session-api.json`, one Turn per action, whatever you type (#6). "Your data" at the top of
-Start holds the privacy note and the delete button (`DELETE /me/data`, then sign-out; #43), and the mic by
-every answer, question and part field turns speech into editable text that still needs Send. With the API, a
+`agents/fixtures/session-api.json`, one Turn per action, whatever you type (#6). At the top of Start, "Memory"
+opens the Memory sheet (what Lumente remembers, #130) and "Your data" holds the privacy note (what goes to Claude,
+what Expo Observe gets on Android (#135), the progress notes memory keeps (#130)), the delete button
+(`DELETE /me/data`, then sign-out; #43) and the version line (#133). The mic by every answer, question and part
+field turns speech into editable text that still needs Send. With the API, a
 session survives a reload or a killed app: the device keeps which session is on screen (`src/session/saved.ts`,
 `storage.ts`: the browser's storage on the web, a file on a phone) and Start offers to resume it from its latest
 Turn (`GET /sessions/:id`); demo mode keeps nothing. To use the API, create `app/.env` (Expo reads the `.env` in
@@ -87,9 +90,9 @@ npx expo export --platform web && npx eas-cli@latest deploy --prod  # the web bu
 
 | Path | What |
 |---|---|
-| `src/app/` | The routes: `index.tsx` (start: concept + optional notes), `session.tsx` (the session) and `sign-in.tsx` / `sign-in.web.tsx` (#22). No id in a path, so the web build stays static |
-| `src/session/` | The session logic, no React: the two clients (`api-client.ts`, `fixture-client.ts`), what the transcript shows (`transcript.ts`), what the screens say (`present.ts`), and the tests |
-| `src/components/` | The light behind every screen (`light.tsx`), the map (`concept-map.tsx`), the firefly (`firefly.tsx`), the guess (`guess.tsx`), the session's top bar, messages, the input for each `expects`, the result (`result.tsx`) and icons |
+| `src/app/` | The routes: `index.tsx` (start: concept + optional notes), `session.tsx` (the session) and `sign-in.tsx` / `sign-in.web.tsx` (#22); `_layout.tsx` (fonts, Clerk, Observe, the error boundary), `+html.tsx` (the web root HTML: the manifest link and Apple's metas, #133) and `+not-found.tsx`. No id in a path, so the web build stays static |
+| `src/session/` | The session logic, no React: the two clients (`api-client.ts`, `fixture-client.ts`), what the transcript shows (`transcript.ts`), what the screens say (`present.ts`), the session kept on the device (`saved.ts`, `storage.ts`, #137), the React context (`session-context.tsx`), the env (`config.ts`), and the tests |
+| `src/components/` | The light behind every screen (`light.tsx`), the map (`concept-map.tsx`), the firefly (`firefly.tsx`), the prediction (`guess.tsx`) and the 2/1/0 rubric (`scoring-guide.tsx`, #136), the whole map at level 5 (`whole-map.tsx`) and the website layout's two-column stage it shares with the session (`work-stage.tsx`, #136), the session's top bar, messages, the input for each `expects` (`composer.tsx`), the result (`result.tsx`), the Memory sheet (`memory-sheet.tsx`, #130), the update notice and the version line (#133), the code preview and the site header, voice (`use-voice.ts`, `voice.ts`) and icons |
 | `src/theme.ts` | Every color, font and size from round 9 "Lumente" (#14): the dark and lit palettes and the nine stages of the light, and `pageMetadata()` for the web pages' title, description and link card |
 | `public/` | Copied as is into the web build: the web app manifest and icons (`manifest.json`, `icon-*.png`, `apple-touch-icon.png`), so an iPhone or a laptop can add Lumente to its home screen, and `og.png`, the card a shared link shows |
 

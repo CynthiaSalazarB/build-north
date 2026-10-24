@@ -25,7 +25,7 @@ import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { changedMoves, createApp, type AppOptions } from "./app.ts";
 import { clerkUserFromToken } from "./clerk.ts";
 import { createCallAgent, type SendToClaude } from "./call-agent.ts";
-import type { LearnerMemoryStore } from "./memory.ts";
+import { createLearnerMemory, createMemoryApi, type LearnerMemoryStore } from "./memory.ts";
 import { initialSession, type AgentLogEntry, type Store } from "./store.ts";
 
 const WEB = "http://localhost:8081";
@@ -156,10 +156,16 @@ function fakeClaude(replies: [keyof typeof AGENTS, unknown][], store?: Store) {
   return { callAgentFor, logged };
 }
 
-test("GET /health answers ok", async (t) => {
+test("GET /health answers ok, and says the commit is unknown and memory is off", async (t) => {
   const res = await fetch(`${await start(t, noDb)}/health`);
   assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { ok: true });
+  assert.deepEqual(await res.json(), { ok: true, commit: null, memory: "off" });
+});
+
+test("GET /health names the running commit and says when memory is on", async (t) => {
+  const memory = { recall: async () => null, remember: async () => {}, view: async () => ({ concepts: [] }), purge: async () => {} } as unknown as LearnerMemoryStore;
+  const res = await fetch(`${await start(t, { ...noDb, memory, commit: "179807e" })}/health`);
+  assert.deepEqual(await res.json(), { ok: true, commit: "179807e", memory: "on" });
 });
 
 test("CORS allows the configured origins only", async (t) => {
@@ -291,6 +297,25 @@ test("/turns replays the session-1 fixture one Turn per answer, then the session
   assert.deepEqual(await over.json(), latest);
   assert.match(String(warned.mock.calls[0]?.arguments[0]), /This session is over/);
   assert.deepEqual(await (await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") })).json(), latest);
+});
+
+test("POST /sessions on CORS starts a session about CORS when Cynthia's advance runs; the rig's default, the stub, says democracy (#163)", async (t) => {
+  // `advance` is the real orchestrator from @build-north/agents, not the stub the rig's `noDb` passes; a start calls
+  // no agent, so an empty script is enough
+  const live = await start(t, { ...withStore(), advance, callAgentFor: fakeClaude([]).callAgentFor });
+  for (const concept of ["CORS", "my own thing"]) {
+    const res = await post(live, { concept });
+    assert.equal(res.status, 201);
+    const turn = await res.json();
+    assert.equal(turn.mentefacto.concept, concept);
+    assert.equal(turn.messages[0].text, `You'll build the map of ${concept} in 4 parts, 2 points each. How many of the 8 points do you think you'll get?`);
+    const saved = await (await fetch(`${live}/sessions/${turn.sessionId}`, { headers: as("leo") })).json();
+    assert.equal(saved.mentefacto.concept, concept);
+  }
+  // the stub, which server.ts picks with no Claude key or no database, replays democracy whatever the concept: the
+  // assertions above only prove anything against the real orchestrator
+  const stubbed = await (await post(await start(t, withStore()), { concept: "CORS" })).json();
+  assert.equal(stubbed.mentefacto.concept, "democracy");
 });
 
 test("a resent answer gets the same Turn back, and advance runs once", async (t) => {
@@ -806,4 +831,33 @@ test("with memory on, the hint giver and the coach get what earlier sessions lef
   // with memory off the sheet is empty, and nothing is read or written
   const off = await start(t, withStore());
   assert.deepEqual(await (await fetch(`${off}/me/memory`, { headers: as("leo") })).json(), { concepts: [] });
+});
+
+test("a memory read slower than its budget leaves the hint giver without memory, and the Turn comes back as with memory off", async (t) => {
+  t.mock.method(console, "warn", () => {});
+  const warnings: string[] = [];
+  // memory never answers in time: the read is abandoned at the budget, and the hint giver runs without it
+  const late: typeof fetch = (_input, init) =>
+    new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+    });
+  const memory = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, late), { salt: "", readMs: 20, warn: (message) => warnings.push(message) });
+  const store = memoryStore();
+  // the hint giver cites a fact anyway; with none given, the id is dropped
+  const claude = fakeClaude([["hint_giver", { step: "nudge", text: "What kind of thing is an ecosystem?", revealed: null, cites: ["attr_sup1"] }]], store);
+  const url = await start(t, { ...noDb, store, advance, callAgentFor: claude.callAgentFor, memory });
+  const first = await (await post(url, { concept: "ecosystem", mode: "test" })).json();
+  const map = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 5 })).json();
+  const res = await answer(url, first.sessionId, { turn: map.turn, action: "help" });
+  assert.equal(res.status, 200);
+  const hinted = await res.json();
+  assert.equal(hinted.error, null);
+  const hint = hinted.messages[0];
+  assert.deepEqual([hint.kind, hint.hintStep, "cites" in hint, "sources" in hint], ["hint", "nudge", false, false]);
+  assert.match(warnings[0] ?? "", /memory read skipped after \d+ ms/);
+  const hintRow = claude.logged.find((row) => row.agent === "hint_giver")!;
+  assert.equal("memory" in (hintRow.input as object), false);
+  assert.deepEqual(hintRow.dropped, ["attr_sup1"]);
+  // the Turn was saved as it went out
+  assert.deepEqual(await (await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") })).json(), hinted);
 });

@@ -3,7 +3,7 @@ title: "Submission checklist: what Devpost and each prize ask for"
 type: context
 related: ["[[plan-to-win]]", "[[surrealdb-sponsor-prize]]", "[[status-oct22]]"]
 created: 2026-10-22
-updated: 2026-10-22
+updated: 2026-10-24
 ---
 
 Read from the hackathon's Overview, Rules and Resources pages and SurrealDB's participant pack on Oct 22
@@ -29,9 +29,9 @@ in a pull request when it's done.
 | Item | What Devpost says | Owner | Date | Status |
 |---|---|---|---|---|
 | Public GitHub repo | "Your code, visible to judges and anyone else who wants to look." | Cynthia | done | public since Oct 19 |
-| Live link | "A deployed app, App Store listing, or test build" | Leo | Oct 24, at the freeze | https://reality-check.expo.app and the APK page |
-| Demo video | Optional; "Four minutes or less, shareable link, no login required. Show what you built, how it works, and the key technology behind it." We plan 3:00 | Kyle (#48), script by Cynthia's Claude | Oct 24 evening, on the frozen build | |
-| Write-up | "What you built and why, your tech stack, and which partner platforms you used and how" | Cynthia and Kyle (#30, #51) | draft Oct 24 noon, numbers Oct 25 | |
+| Live link | "A deployed app, App Store listing, or test build" | Leo | Oct 24, at the freeze | https://lumente.expo.app and the APK page |
+| Demo video | Optional; "Four minutes or less, shareable link, no login required. Show what you built, how it works, and the key technology behind it." We plan 3:00 | Kyle (#48), script by Cynthia's Claude | Oct 24 evening, on the frozen build | The script is drafted: [`docs/demo-script.md`](../../docs/demo-script.md) (#152), the video follows its order |
+| Write-up | "What you built and why, your tech stack, and which partner platforms you used and how" | Cynthia and Kyle (#30, #51) | draft Oct 24 noon, numbers Oct 25 | Drafted, every field, with the numbers as blanks: [`docs/devpost.md`](../../docs/devpost.md) (#152) |
 | Team | "List every team member by name, up to four." | Kyle | Oct 25 | |
 | Disclosure of prior work | Templates or scaffolding, and anything that existed before Build Week: say what was built during the week | Cynthia | Oct 25 | `create-expo-app`'s default template (SDK 58), the fonts, Claude and Claude Code; the README carries it (#106) |
 | Categories | Best Overall, Best Use of Expo, Best Use of Clerk, Best Use of SurrealDB Agent Memory (Eon skipped) | Kyle | Oct 25 | |
@@ -46,7 +46,7 @@ built". The write-up shows that evidence with a screen, a file and a test for ea
 | Best Overall | Open to any project; judged on the five criteria below | The whole page | Cynthia and Kyle |
 | Best Use of Expo | "build it with Expo's React Native tooling. Use the SDK, ship with Build or Update, whichever fits your project" | `docs/expo-log.md`: EAS Build (the APK), EAS Update, EAS Hosting, Expo Router on Android and the web | Leo |
 | Best Use of Clerk | "use Clerk rather than building this from scratch. Sign-up, sign-in, multi-factor authentication, and social login all qualify" | `docs/clerk.md`: email code and Google, the token checked without a network call, rows keyed by the Clerk id | Leo |
-| Best Use of SurrealDB Agent Memory | "If your agent needs memory, use SurrealDB Agent Memory." The pack: "typed, time-aware facts you can query by relationship or by similarity, and trace back to where they came from" | #112 (the build), the Memory sheet, `verifyCites`; a short memory section in the write-up. Built Oct 23 (draft PR #130, the live smoke passes); the flag stays off until the app update ships, then Render. Kill rule: not merged and on by Oct 24 noon means we don't claim it | Leo (build), Cynthia (write-up, review) |
+| Best Use of SurrealDB Agent Memory | "If your agent needs memory, use SurrealDB Agent Memory." The pack: "typed, time-aware facts you can query by relationship or by similarity, and trace back to where they came from" | #112 (the build), the Memory sheet, `verifyCites`; a short memory section in the write-up (`docs/devpost.md`). Live: #130 merged and shipped Oct 23, the flag on in production since Oct 23, 9:11 PM (the kill rule, Oct 24 noon, was met); #147 leaves a level row for every finished part. The evidence for a judge is the [prize page](surrealdb-sponsor-prize.md) (#144): each criterion with its mechanism, code pointers, unit tests and what the app shows | Leo (build), Cynthia (write-up, review) |
 
 SurrealDB's pack asks for nothing extra at submission: no form, no key for its judges. Each of us can
 redeem $50 of Agent Memory credit (`BUILDNORTH50` in Studio, Billing).

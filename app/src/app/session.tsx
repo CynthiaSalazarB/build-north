@@ -4,7 +4,7 @@
 // stays static (decision 14, #27). Closing saves: the start screen offers to resume. In the website layout the
 // conversation is a column on the left, under its pinned question, and the map stands on the right, where the
 // light falls; the firefly's line runs across the gap between them.
-import type { Turn } from "@build-north/agents";
+import type { MoveId, Turn } from "@build-north/agents";
 import { ObserveInteractiveMarker } from "expo-observe";
 import { Redirect, useRouter } from "expo-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
@@ -14,6 +14,7 @@ import { Composer } from "../components/composer.tsx";
 import { ConceptMap } from "../components/concept-map.tsx";
 import { GuessScreen } from "../components/guess.tsx";
 import { Ask, Aside, ExampleIntro, ExampleSteps, FactCard, Failure, HintCard, LearnerMessage, Nudge, Revealed, useSlow, Waiting } from "../components/messages.tsx";
+import { PartSheet } from "../components/part-sheet.tsx";
 import { ResultScreen } from "../components/result.tsx";
 import { SessionBar } from "../components/session-bar.tsx";
 import { SiteHeader } from "../components/site-header.tsx";
@@ -32,6 +33,8 @@ import {
   isReveal,
   justLitOf,
   lastPartNoteOf,
+  leadOf,
+  partClosingsOf,
   partNotesOf,
   partsOf,
   provedOf,
@@ -90,6 +93,7 @@ export default function SessionScreen() {
         map={turn.mentefacto}
         notes={partNotesOf(resultMessagesOf(state.entries))}
         lastPart={lastPartNoteOf(state.entries)}
+        closings={partClosingsOf(state.entries)}
         coachFailure={coachDue && state.failure ? state.failure.message : null}
         coachSources={turn.messages.find((message) => message.kind === "summary")?.sources}
         onRetryCoach={retry}
@@ -133,6 +137,12 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   const shown = offered ? entries.filter((e) => !(e.from === "app" && e.phase === "example")) : entries;
   const example = turn.phase === "example" && turn.example && exampleOpen ? turn.example : null;
   const parts = example ? exampleParts(example) : partsOf(turn, all, { held });
+  // a lit or revealed area opens to be read again, with what closed it (Cynthia, Oct 24); the worked example's map
+  // has nothing of the learner's to open
+  const [openPart, setOpenPart] = useState<MoveId | null>(null);
+  const closings = partClosingsOf(all);
+  const partSheet = <PartSheet view={openPart && !example ? (parts.find((p) => p.move === openPart) ?? null) : null} closing={openPart ? (closings[openPart] ?? null) : null} onClose={() => setOpenPart(null)} />;
+  const onPartOpen = example ? undefined : setOpenPart;
   const lit = held ? null : justLitOf(turn);
   const pending = state.pending !== null;
 
@@ -193,6 +203,7 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
         <WideStage
           asked={askedNow ? (parts.find((p) => p.state === "asked")?.move ?? null) : null}
           fireflySize={help.more ? FIREFLY.states.helps.size : FIREFLY.states.asks.size}
+          askY={place.ask}
           question={conversation("question")}
           thread={
             <ScrollView ref={scroll} style={styles.flex} contentContainerStyle={styles.thread} onContentSizeChange={follow} keyboardShouldPersistTaps="handled">
@@ -201,8 +212,9 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
             </ScrollView>
           }
           composer={composer}
-          map={(onGeometry) => <ConceptMap concept={concept} parts={parts} justLit={lit} pulse={turn.turn} onGeometry={onGeometry} />}
+          map={(onGeometry) => <ConceptMap concept={concept} parts={parts} justLit={lit} pulse={turn.turn} onPartOpen={onPartOpen} onGeometry={onGeometry} />}
         />
+        {partSheet}
       </Screen>
     );
   }
@@ -221,6 +233,7 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
               justLit={lit}
               pulse={turn.turn}
               leaderFrom={askedNow ? { x: size.iconButton / 2, y: place.map + CONVERSATION_GAP + place.ask + 2 } : null}
+              onPartOpen={onPartOpen}
             />
           </View>
           <View style={styles.conversation}>
@@ -230,12 +243,13 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
         </ScrollView>
         {composer}
       </KeyboardSafe>
+      {partSheet}
     </Screen>
   );
 }
 
-/** Which lines a Conversation draws: all of them (the phone), or, in the website layout, the pinned question and
- * the thread under it. */
+/** Which lines a Conversation draws: all of them (the phone), or, in the website layout, the pinned question with
+ * the lead over it (the feedback on the part just finished), and the thread under it. */
 type Show = "all" | "question" | "thread";
 
 type ConversationProps = {
@@ -250,12 +264,14 @@ type ConversationProps = {
   onAskLayout: (y: number) => void;
 };
 
-/** The part on screen: the firefly's question, then the answers, nudges, hints, a revealed answer, facts and the
- * firefly's follow-up questions after it. What came before the question (the last part's feedback and its name)
- * isn't repeated: the map shows how that part ended, as the board does. Each line rises in once, when it arrives. */
+/** The part on screen: the lead that came with the question (the evaluator's words on the part just finished, set
+ * quietly above it), the firefly's question, then the answers, nudges, hints, a revealed answer, facts and the
+ * firefly's follow-up questions after it. The last part's name isn't repeated: the map shows how that part ended,
+ * as the board does. Each line rises in once, when it arrives. */
 function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, onHelp, onAskLayout }: ConversationProps) {
   const entrance = useEntrance();
   const asked = entries.findIndex((e) => e.from === "app" && e.message.kind === "question");
+  const lead = leadOf(entries);
   const hints = entries.filter((e) => e.from === "app" && e.message.kind === "hint" && e.message.hintStep !== "reveal").map((e) => e.id);
   // the cap note goes with the first retry's nudge or the first hint of the part, once
   const capAt = entries.findIndex(
@@ -289,7 +305,9 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
         </>
       );
     }
-    if (asked >= 0 && i < asked) return null;
+    // before the question: the feedback on the part just finished, dim; its name and a revealed answer (read while
+    // held) don't repeat
+    if (asked >= 0 && i < asked) return lead.includes(entry) ? <Aside text={message.text} /> : null;
     switch (message.kind) {
       case "feedback":
         return <Nudge text={message.text} capNote={i === capAt} tag={isFollowUpFeedback(entries, i) ? "almost" : undefined} />;
@@ -311,7 +329,9 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
     <>
       {entries.map((entry, i) => {
         const isQuestion = i === asked;
-        if ((show === "question" && !isQuestion) || (show === "thread" && isQuestion)) return null;
+        // in the website layout the lead is pinned with the question, over it
+        const pinned = isQuestion || (asked >= 0 && i < asked);
+        if ((show === "question" && !pinned) || (show === "thread" && pinned)) return null;
         const drawn = line(entry, i);
         return drawn ? (
           // the question's place in the conversation is where the phone's firefly line starts

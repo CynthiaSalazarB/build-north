@@ -4,7 +4,7 @@
 // npm run smoke -w api -- [api url] [web url]
 
 const API = process.argv[2]?.replace(/\/+$/, "") || "https://build-north-api.onrender.com";
-const WEB = process.argv[3]?.replace(/\/+$/, "") || "https://reality-check.expo.app";
+const WEB = process.argv[3]?.replace(/\/+$/, "") || "https://lumente.expo.app";
 
 type Check = { name: string; ok: boolean; detail: string };
 
@@ -25,8 +25,8 @@ async function check(name: string, run: () => Promise<{ ok: boolean; detail: str
 const checks: Check[] = [
   await check("API /health", async () => {
     const { res, ms } = await timed(() => fetch(`${API}/health`));
-    const body = (await res.json().catch(() => null)) as { ok?: boolean } | null;
-    return { ok: res.status === 200 && body?.ok === true, detail: `${res.status} in ${ms} ms` };
+    const body = (await res.json().catch(() => null)) as { ok?: boolean; commit?: string | null; memory?: string } | null;
+    return { ok: res.status === 200 && body?.ok === true, detail: `${res.status} in ${ms} ms, commit ${body?.commit ?? "unknown"}, memory ${body?.memory ?? "unknown"}` };
   }),
   await check("API /health/db writes to the database", async () => {
     const { res, ms } = await timed(() => fetch(`${API}/health/db`));

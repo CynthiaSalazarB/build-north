@@ -83,18 +83,22 @@ const isMove = (value: string): value is MoveId => (MOVE_ORDER as readonly strin
 
 // ---------- Templates: the only words memory ever holds ----------
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+/** The zone a fact's date is written in: `TZ` when set, else the team's. The Memory sheet dates the same rows in the
+ * device's zone, so a session finished at 9 PM in Toronto reads "Oct 23" in both places instead of "Oct 24" here. */
+const TIME_ZONE = process.env.TZ?.trim() || "America/Toronto";
 
-/** "Oct 22", in UTC, the server's clock. */
-export function dateOf(at: string | Date): string {
-  const date = new Date(at);
-  return `${MONTHS[date.getUTCMonth()]} ${date.getUTCDate()}`;
+/** "Oct 22": the date of `at` in `timeZone`. */
+export function dateOf(at: string | Date, timeZone: string = TIME_ZONE): string {
+  return new Intl.DateTimeFormat("en-US", { timeZone, month: "short", day: "numeric" }).format(new Date(at));
 }
 
 /** Plain sentences with the parts' plain labels (Cynthia, #112): what the agents read and the learner sees. */
 export const factText = {
   level: (concept: string, move: MoveId, from: number, to: number, at: string | Date): string =>
     `You moved ${to >= from ? "up" : "down"} to level ${to} on '${MOVE_LABEL[move]}' for ${concept} on ${dateOf(at)}.`,
+  /** The first time memory hears of a part: where the learner stood when the session ended. */
+  baseline: (concept: string, move: MoveId, level: number, at: string | Date): string =>
+    `You were at level ${level} on '${MOVE_LABEL[move]}' for ${concept} on ${dateOf(at)}.`,
   gap: (concept: string, predicted: number, score: number): string => `Last time on ${concept} you guessed ${predicted} and proved ${score}.`,
   help: (concept: string, move: MoveId, helps: number): string =>
     `'${MOVE_LABEL[move]}' took ${helps === 0 ? "no Help" : helps === 1 ? "1 Help" : `${helps} Helps`} on ${concept} last time.`,
@@ -103,8 +107,13 @@ export const factText = {
 export type FactWrite = { key: string; value: string; labels: Record<string, string | number> };
 
 /** The facts a session leaves once it has its result: a level fact per part whose level changed, the gap, and the
- * Helps each part took. The numbers go in labels, so a read never parses a sentence. Nothing without a result. */
-export function factsToWrite(session: Session, at: string): FactWrite[] {
+ * Helps each part took. The numbers go in labels, so a read never parses a sentence. Nothing without a result.
+ *
+ * `levelsOnRecord` is the set of parts memory already holds a level for. Given, every finished part missing from it
+ * gets a baseline level fact too (`factText.baseline`, the level the session ended at), so a learner whose levels
+ * never move, the demo account at level 5 on every part included, still has a level row to show and to read.
+ * Left out (memory couldn't be read first), only the changes are written, as before. */
+export function factsToWrite(session: Session, at: string, levelsOnRecord?: ReadonlySet<MoveId>): FactWrite[] {
   const { result, concept } = session;
   if (!result) return [];
   const writes: FactWrite[] = result.masteryChanges.map((change) => ({
@@ -112,6 +121,15 @@ export function factsToWrite(session: Session, at: string): FactWrite[] {
     value: factText.level(concept, change.move, change.from, change.to, at),
     labels: { writer: WRITER.level, move: change.move, level: change.to },
   }));
+  if (levelsOnRecord) {
+    const changed = new Set(result.masteryChanges.map((change) => change.move));
+    for (const move of MOVE_ORDER) {
+      if (changed.has(move) || levelsOnRecord.has(move)) continue;
+      const finished = session.moveLog.findLast((entry) => entry.move === move);
+      if (!finished) continue;
+      writes.push({ key: `level_${move}`, value: factText.baseline(concept, move, finished.to, at), labels: { writer: WRITER.level, move, level: finished.to } });
+    }
+  }
   writes.push({
     key: "gap",
     value: factText.gap(concept, result.predictedScore, result.score),
@@ -242,6 +260,16 @@ function chainsOf(rows: readonly MemoryRow[]): Map<string, MemoryRow[]> {
   return chains;
 }
 
+/** The parts memory already holds a level row for (open or superseded), from the entity's history. */
+export function levelsOnRecord(rows: readonly MemoryRow[]): Set<MoveId> {
+  const moves = new Set<MoveId>();
+  for (const key of chainsOf(rows).keys()) {
+    const move = key.startsWith("level_") ? key.slice("level_".length) : "";
+    if (isMove(move)) moves.add(move);
+  }
+  return moves;
+}
+
 const writtenByOf = (row: MemoryRow, kind: FactKind): AgentName => {
   const writer = labelOf(row, "writer");
   return writer && AgentName.safeParse(writer).success ? (writer as AgentName) : WRITER[kind];
@@ -337,7 +365,8 @@ export type LearnerMemoryStore = {
   /** Up to 8 facts from this learner's earlier sessions on the concept, or undefined when memory has none or
    * doesn't answer within MEMORY_READ_MS: the agent then runs without memory. Never throws. */
   recall(user: string, concept: string, sessionId: string): Promise<LearnerMemory | undefined>;
-  /** Writes the facts a session with a result leaves (factsToWrite). Throws when a write failed. */
+  /** Writes the facts a session with a result leaves (factsToWrite), after one read of what memory already holds
+   * so parts with no level row yet get their baseline. Throws when a write failed. */
   remember(user: string, session: Session): Promise<void>;
   /** The Memory sheet: the concepts given, in that order, leaving out the ones memory holds nothing on. */
   view(user: string, concepts: readonly string[], reads: readonly (readonly string[])[]): Promise<MemoryView>;
@@ -370,12 +399,20 @@ export function createLearnerMemory(api: MemoryApi, { salt, readMs = MEMORY_READ
     },
 
     async remember(user, session) {
+      if (!session.result) return;
       const at = new Date().toISOString();
-      const writes = factsToWrite(session, at);
-      if (writes.length === 0) return;
       const pseudonym = who(user);
       const scope = scopeOf(pseudonym);
       const entity = entityOf(pseudonym, session.concept);
+      // What memory holds already decides which parts need a baseline level row. Off the request path, so the
+      // read gets the write budget; when it fails, the session's level changes are still written.
+      let onRecord: ReadonlySet<MoveId> | undefined;
+      try {
+        onRecord = levelsOnRecord(await api.history(entity, AbortSignal.timeout(WRITE_MS)));
+      } catch (error) {
+        warn(`memory history skipped before the write, so only level changes are written: ${reason(error)}`);
+      }
+      const writes = factsToWrite(session, at, onRecord);
       if (!registered.has(scope)) {
         await api.registerScope(scope, AbortSignal.timeout(WRITE_MS));
         registered.add(scope);

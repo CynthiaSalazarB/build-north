@@ -15,6 +15,7 @@ import { brand, page, parts as PARTS, radius, space, type } from "../theme.ts";
 import { ConceptMap, PointSquare } from "./concept-map.tsx";
 import { Firefly } from "./firefly.tsx";
 import { Failure, Remembered } from "./messages.tsx";
+import { PartSheet, type PartClosing } from "./part-sheet.tsx";
 import { SessionBar } from "./session-bar.tsx";
 import { ScoringGuide } from "./scoring-guide.tsx";
 import { SiteHeader } from "./site-header.tsx";
@@ -28,6 +29,8 @@ type Props = {
   notes?: Partial<Record<MoveId, string>>;
   /** Levels 1 to 4: the evaluator's words on the part answered last, which came with the result (`lastPartNoteOf`). */
   lastPart?: Partial<Record<MoveId, string>>;
+  /** A guided session: what closed each part, so a lit or revealed area opens to be read again (`partClosingsOf`). */
+  closings?: Partial<Record<MoveId, PartClosing>>;
   /** The coach's words come after the result (`result.coach` is null until then); this is why they didn't. */
   coachFailure?: string | null;
   /** With memory on, the facts the coach's words rely on (the summary message's `sources`, #112). */
@@ -52,7 +55,7 @@ export function ResultScreen(props: Props) {
 }
 
 /** Inside the Screen, so the colors follow the light the score reached. */
-function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFailure, coachSources, onRetryCoach, onAgain, againBusy, againError, onDone }: Props) {
+function ResultBody({ concept, result, map, notes = {}, lastPart = {}, closings = {}, coachFailure, coachSources, onRetryCoach, onAgain, againBusy, againError, onDone }: Props) {
   const c = useColors();
   const wide = useWide();
   const lit = useMode() === "day";
@@ -66,9 +69,19 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFail
   // levels 1 to 4 went part by part in the conversation, all but the last answer, whose words came with the result
   const steps = all.length > 0 ? all : resultStepsOf(result, map, lastPart).filter((step) => step.note);
 
+  // a lit or revealed area opens to its full words and what closed it: the guided session's words on it, or the
+  // self-test's note (Cynthia, Oct 24)
+  const [openPart, setOpenPart] = useState<MoveId | null>(null);
+  const parts = resultPartsOf(result, map);
+  const closingOf = (move: MoveId): PartClosing | null => {
+    const closing = closings[move];
+    if (closing) return closing;
+    const note = notes[move] ?? lastPart[move];
+    return note ? { text: note, revealed: false } : null;
+  };
   const figure = (
     <View style={styles.map}>
-      <ConceptMap concept={concept} parts={resultPartsOf(result, map)} />
+      <ConceptMap concept={concept} parts={parts} onPartOpen={setOpenPart} />
       <View style={styles.firefly}>
         <Firefly state="fades" />
       </View>
@@ -80,9 +93,14 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFail
       <Rise>
         <View style={styles.headline} accessible accessibilityLabel={`You guessed ${result.predictedScore}. You proved ${result.score} of 8. ${gap.headline}${gap.note ? ` ${gap.note}` : ""}`}>
           <Text style={[type.question, { color: c.onSurface }]}>{gap.headline}</Text>
+          {/* the prediction, then the score, one step after the other: the comparison lands in order */}
           <View style={styles.scales}>
-            <Scale label="prediction" value={result.predictedScore} pips={guessed} dark={lit} />
-            <Scale label="map score" value={result.score} pips={proved} dark={lit} />
+            <Rise order={1}>
+              <Scale label="prediction" value={result.predictedScore} pips={guessed} dark={lit} />
+            </Rise>
+            <Rise order={2}>
+              <Scale label="map score" value={result.score} pips={proved} dark={lit} />
+            </Rise>
           </View>
           <Small dim>Your prediction captured your confidence. Your map score reflects what you could explain in this session.</Small>
           {gap.note && <Body dim>{gap.note}</Body>}
@@ -130,6 +148,7 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFail
         </Rise>
       </View>
       {againError && <Failure message={againError} />}
+      <PartSheet view={openPart ? (parts.find((p) => p.move === openPart) ?? null) : null} closing={openPart ? closingOf(openPart) : null} onClose={() => setOpenPart(null)} />
     </>
   );
   const again = <Button label={`Try ${concept} again`} fit={wide} busy={againBusy} onPress={onAgain} />;
@@ -281,7 +300,8 @@ const styles = StyleSheet.create({
   split: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },
   words: { width: page.words, flexGrow: 0 },
   wordsContent: { flexGrow: 1, justifyContent: "center", paddingTop: space.xxl, paddingBottom: page.header, gap: space.xl },
-  actions: { flexDirection: "row", alignItems: "center", gap: space.m, marginTop: space.s },
+  // wraps: the three actions are 5 px wider than the words column, which clipped Share and let the column scroll
+  actions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space.m, marginTop: space.s },
   stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: page.header },
   spot: { width: "100%", maxWidth: page.map },
 });

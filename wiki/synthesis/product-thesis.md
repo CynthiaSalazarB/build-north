@@ -311,7 +311,8 @@ so the help fades is hard for them to adopt without working against that. This i
 counter-positioning. Beyond that: the first group's community, relationships with schools, and data on
 how learners master each part.
 
-**Who pays?** Students use it free. Instructors, bootcamps and colleges pay for seats and a class view
+**Who pays?** Students start with free sessions, then pay for more (per session, a package or a monthly plan: not
+set yet). Schools, colleges, institutes and bootcamps, the main customers, pay per student and get a class view
 of mastery: evidence that learning happened, which today they try to get through oral exams. Later,
 parents, tutors and coaches, with the app as the practice between sessions.
 

@@ -5,12 +5,13 @@
 import { MOVE_LABEL, type Message } from "@build-north/agents";
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
+import Animated from "react-native-reanimated";
 import { hintCardOf, inlineCodeOf, rememberedLineOf, type ExampleStep } from "../session/present.ts";
 import { radius, size, space, type } from "../theme.ts";
 import { Firefly, type FireflyState } from "./firefly.tsx";
 import { Icon } from "./icons.tsx";
 import { MemorySheet } from "./memory-sheet.tsx";
-import { Body, Label, Reply, Tag, useColors, useMode, type Interaction } from "./ui.tsx";
+import { AnimatedPressable, Body, Label, Reply, Tag, useColors, useEntrance, useMode, usePress, type Interaction } from "./ui.tsx";
 
 /** The firefly's column is 44 wide and the question starts 14 after it, so replies line up with the question. */
 const COLUMN = size.iconButton;
@@ -54,21 +55,23 @@ function WithCode({ text, style }: { text: string; style: object }) {
  * In the website layout the firefly sits after the question, next to the map its line runs to (`fireflyAfter`). */
 export function Ask({ text, eyebrow = null, firefly, fireflyAfter = false }: { text: string; eyebrow?: string | null; firefly: FireflyProps; fireflyAfter?: boolean }) {
   const c = useColors();
-  // Help: the firefly's light answers a finger or a pointer on it
+  const entrance = useEntrance();
+  // Help: the firefly's light answers a finger or a pointer on it (its glow is the pressed state; nothing dims).
+  // The line under it ("help −1", "checking") fades in each time it changes.
   const drawing = (glow: boolean) => (
     <>
       <Firefly state={firefly.state} glow={glow} />
       {firefly.tag && (
-        <Text style={[type.tag, styles.fireflyTag, { color: c.question }]} numberOfLines={1}>
+        <Animated.Text key={firefly.tag} style={[type.tag, styles.fireflyTag, { color: c.question }, entrance(0, "fade")]} numberOfLines={1}>
           {firefly.tag}
-        </Text>
+        </Animated.Text>
       )}
     </>
   );
   return (
     <View style={[styles.ask, fireflyAfter && styles.reverse]}>
       {firefly.onPress && !firefly.busy ? (
-        <Pressable accessibilityRole="button" accessibilityLabel={firefly.label ?? "Help"} onPress={firefly.onPress} hitSlop={size.hitSlop} style={({ pressed }) => [styles.firefly, pressed && styles.pressed]}>
+        <Pressable accessibilityRole="button" accessibilityLabel={firefly.label ?? "Help"} onPress={firefly.onPress} hitSlop={size.hitSlop} style={styles.firefly}>
           {({ pressed, hovered }: Interaction) => drawing(pressed || !!hovered)}
         </Pressable>
       ) : (
@@ -133,18 +136,22 @@ export function HintCard({ message, n, capNote, part, concept = "" }: { message:
   );
 }
 
+/** One line of mono text, 16 px tall: the slop above and below makes it a 44 px target. */
+const REMEMBERED_SLOP = { top: (size.iconButton - type.label.lineHeight) / 2, bottom: (size.iconButton - type.label.lineHeight) / 2, left: size.hitSlop, right: size.hitSlop };
+
 /** "From what Lumente remembers: …" under a hint or the coach's words (#112): the memory facts the text relies on,
  * in their own sentences. Tapping it opens the Memory sheet on this concept. Nothing when nothing was cited. */
 export function Remembered({ sources, concept, color }: { sources: Message["sources"]; concept: string; color?: string }) {
   const c = useColors();
+  const { hovered, bind, feel } = usePress();
   const [open, setOpen] = useState(false);
   if (!sources?.length) return null;
   const line = rememberedLineOf(sources);
   return (
     <>
-      <Pressable accessibilityRole="button" accessibilityLabel={line} accessibilityHint="Opens what Lumente remembers" onPress={() => setOpen(true)} hitSlop={size.hitSlop} style={({ pressed }) => [styles.remembered, pressed && styles.pressed]}>
-        <Text style={[type.label, { color: color ?? c.onSurfaceVariant }]}>{line}</Text>
-      </Pressable>
+      <AnimatedPressable accessibilityRole="button" accessibilityLabel={line} accessibilityHint="Opens what Lumente remembers" onPress={() => setOpen(true)} hitSlop={REMEMBERED_SLOP} {...bind} style={[styles.remembered, feel()]}>
+        <Text style={[type.label, hovered && styles.underline, { color: color ?? c.onSurfaceVariant }]}>{line}</Text>
+      </AnimatedPressable>
       <MemorySheet open={open} onClose={() => setOpen(false)} concept={concept} />
     </>
   );
@@ -302,5 +309,5 @@ const styles = StyleSheet.create({
   asking: { maxWidth: "82%", backgroundColor: "rgba(242, 184, 75, 0.1)", boxShadow: "0 0 14px rgba(242, 184, 75, 0.18)" },
   failure: { flexDirection: "row", alignItems: "flex-start", gap: space.m },
   failureBody: { flex: 1, gap: space.s },
-  pressed: { opacity: 0.8 },
+  underline: { textDecorationLine: "underline" },
 });

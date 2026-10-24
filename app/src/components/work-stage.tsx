@@ -18,6 +18,10 @@ type Props = {
   fireflySize: number;
   intro?: ReactNode;
   question: ReactNode;
+  /** The question's top inside the `question` slot, as its content measured it: a lead over the question moves it
+   * down, and the slot's own `onLayout` can't say (on the web it reports a size change only). Without it, or before
+   * the content measured (0), the slot's top padding. */
+  askY?: number;
   thread: ReactNode;
   composer: ReactNode;
   mapHeader?: ReactNode;
@@ -28,7 +32,7 @@ type Props = {
   map: (onGeometry: (geometry: MapGeometry) => void) => ReactNode;
 };
 
-export function WideStage({ asked, fireflySize, intro, question, thread, composer, mapHeader, mapFooter, scrollWords = false, followWords = false, map }: Props) {
+export function WideStage({ asked, fireflySize, intro, question, askY, thread, composer, mapHeader, mapFooter, scrollWords = false, followWords = false, map }: Props) {
   const c = useColors();
   const scroll = useRef<ScrollViewInstance>(null);
   const [scrollY, setScrollY] = useState(0);
@@ -47,7 +51,7 @@ export function WideStage({ asked, fireflySize, intro, question, thread, compose
     const at = { x: stage.x + spot.x, y: stage.y + spot.y };
     const p = geometry.parts[asked];
     const part = { x: at.x + p.x, y: at.y + p.y, w: p.w, h: p.h };
-    const from = { x: words.x + words.w - size.iconButton / 2, y: words.y + ask.y + space.xl + fireflySize / 2 - scrollY };
+    const from = { x: words.x + words.w - size.iconButton / 2, y: words.y + ask.y + (askY || space.xl) + fireflySize / 2 - scrollY };
     const gutter = Math.round((words.x + words.w + at.x) / 2);
     const points = tracePoints(from, part, asked === "exclusion" ? "top" : "left", { gutter, above: at.y - space.l });
     const end = points[points.length - 1]!;
@@ -111,7 +115,7 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1 },
   scrollThread: { flexGrow: 1, flexShrink: 0 },
   intro: { paddingTop: space.xl, gap: space.m },
-  question: { paddingTop: space.xl, paddingBottom: space.l },
+  question: { paddingTop: space.xl, paddingBottom: space.l, gap: space.l },
   stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: page.header },
   spot: { width: "100%", maxWidth: page.map },
   mapHeader: { marginBottom: space.xl },

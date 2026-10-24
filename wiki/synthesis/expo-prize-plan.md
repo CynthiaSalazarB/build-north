@@ -3,7 +3,7 @@ title: "Expo prize plan"
 type: synthesis
 related: ["[[plan-to-win]]"]
 created: 2026-10-20
-updated: 2026-10-21
+updated: 2026-10-24
 ---
 
 How we go after Best Use of Expo. The main plan ([plan-to-win](plan-to-win.md), section 4) has the short
@@ -77,8 +77,9 @@ owns. No path exists for iPhones yet either.
 
 Done in #80 on Oct 21. The config lives in the repo, so this section says what it is and what's left.
 
-- The EAS project is `@leo_atienza/reality-check`, under Leo's Expo account until the team's
-  organization exists. Project settings, then Transfer project, moves it.
+- The EAS project is `@lumente/reality-check`, in the team's `lumente` organization since Oct 22 (Leo is
+  Owner, Cynthia Admin; `app.json` `owner`, `docs/expo-log.md`). It started as `@leo_atienza/reality-check`
+  under Leo's account; the move changed the Android runtime, so build 3 is the first build on the organization.
 - `app.json` has the Android package `ca.buildnorth.realitycheck` and no iOS config. The `fingerprint`
   runtime policy means an update only reaches builds with the same native code, and
   `"web": { "output": "static" }` stays, since SDK 58 defaults to server output.
@@ -98,20 +99,21 @@ The free plan gives 15 Android builds a month, so builds are rare and updates ar
 |---|---|---|
 | Android `development` | Our own phones, since Expo Go can't run SDK 58 yet | Oct 21 |
 | Android `preview` (APK) | Testers, judges and Kyle's demo phone | Oct 21, built from #81, so it has the brand icon and splash |
-| Android `production` (APK) | The frozen build | Oct 24, 6 PM |
+| Android `production` (APK) | The frozen build | Oct 24, 6 PM. Changed Oct 23 (`DECISIONS.md`, "One update channel for every phone"): every APK is a `preview` build, so Ship's updates reach it, and the freeze needs a build only if the fingerprint changed (build 3 still matches `main` on Oct 23 night) |
 
 Each merged app change goes out with `eas update --channel preview --environment preview` (the
 environment flag is required since SDK 55). The web build goes out with `npx expo export --platform
-web`, then `eas deploy --prod`, to `https://reality-check.expo.app`, which joins the API's `CORS_ORIGIN`
-once #64 is live. Until then a copy in demo mode is up for review at
-`https://reality-check--review.expo.app`.
+web`, then `eas deploy --prod`, to `https://lumente.expo.app`, which is in the API's `CORS_ORIGIN` (the
+`lumente` origins since #151, Oct 23; `docs/deploy.md` has the export checks). The `review` alias
+(`https://lumente--review.expo.app`) held the Oct 21 demo-mode copy for the design review, and the `testers`
+alias is deployed by hand before a test.
 
 ## 4. Pillar 2: reach every judge
 
 | A judge with | Gets the app through | What we give them |
 |---|---|---|
 | An Android phone | The `preview` APK (EAS internal distribution) | The install link and a QR code on Devpost and in the README, with one line about allowing the install |
-| An iPhone or a laptop | The web build on EAS Hosting, which installs as a web app | `https://reality-check.expo.app`, with a page title, description and card from `generateMetadata()` so the link previews well. Share, then "Add to Home Screen": Lumente opens full screen with its own icon (`public/manifest.json`, `+html.tsx`) |
+| An iPhone or a laptop | The web build on EAS Hosting, which installs as a web app | `https://lumente.expo.app`, with a page title, description and card from `generateMetadata()` so the link previews well. Share, then "Add to Home Screen": Lumente opens full screen with its own icon (`public/manifest.json`, `+html.tsx`) |
 | No time | The video | Three minutes at most |
 
 There's no TestFlight: on Oct 21 the team decided against an Apple Developer account, since Apple's
@@ -140,7 +142,7 @@ the two places we ship. Each one does a job the learner notices.
 | The drawn icons, the arch, the beam and the bronze | `react-native-svg` | Done in #81 |
 | The dawn after the guess and the points casting into bronze, as fades with Reduce Motion | Reanimated | Done in #81 |
 | Launch times and crashes from the APK, release by release, including the crashes a learner recovers from with Try again | Expo Observe (Android release builds; nothing on the web): `ObserveRoot`, a marker on each screen, `Observe.reportError` in the error boundary | Done in #80, the marker and the report in #133 |
-| The fact desk at level 5 as a half-height sheet over the map | `@expo/ui`'s `BottomSheet`, which also works on the web. Expo Router's form sheet shows as a plain page there | In #26 (Cynthia) |
+| The fact desk at level 5 as a half-height sheet over the map | `@expo/ui`'s `BottomSheet`, which also works on the web. Expo Router's form sheet shows as a plain page there | Done differently: the fact chat is a collapsed section of the whole-map screen, behind "Ask a fact (optional)" (#136, `DECISIONS.md` Oct 23); no `@expo/ui`, a native module that would change the fingerprint (Pillar 4). On the phone the chat follows each new reply (#153) |
 | "Update ready: restart", so testers see a fix arrive, also while the app is open: it checks again when it comes back to the foreground and when Start is shown again, at most once a minute | `expo-updates` with `useUpdates()` and `checkForUpdateAsync()` (release builds; nothing on the web) | Done in #81, the live check in #133 |
 | Page titles and descriptions, so the link previews well, with a card (`public/og.png`) for a link shared in a chat | `generateMetadata()` from Expo Router, `openGraph` and `twitter` | Done in #92, the card in #133 |
 | On an iPhone or a laptop, Lumente installs from the browser as a web app: its own icon, full screen, no address bar | `public/manifest.json` and the icons, copied into the static export; the Apple metas in `+html.tsx` | Done in #133 |
@@ -243,9 +245,11 @@ Before we enter the Expo category:
 
 - [ ] The `preview` APK installs from the Devpost link on a phone that has never seen it, and a whole
       session works with Claude.
-- [ ] The web build at `reality-check.expo.app` plays a whole session, on a laptop and on an iPhone.
-- [ ] At least one update shipped over the air and visible in the app.
-- [ ] A workflow run published an update and deployed the web build.
+- [ ] The web build at `lumente.expo.app` plays a whole session, on a laptop and on an iPhone.
+- [x] At least one update shipped over the air and visible in the app (the first on Oct 21, seen on the
+      `preview` APK's second launch; `docs/expo-log.md`).
+- [x] A workflow run published an update and deployed the web build (Ship, run by hand, Oct 23 at about
+      11:05 PM: update group `0aefba2e…` and `https://lumente.expo.app`; `docs/expo-log.md`).
 - [ ] Nothing left from the template: icon, splash, Expo and React logos, tab icons.
 - [ ] `expo-doctor` passes; the typecheck and the tests pass.
 - [ ] The Expo log has every build, update and deploy.

@@ -4,10 +4,10 @@ import { MOVE_LABEL, MOVE_ORDER, type Item, type Mentefacto, type MoveId, type T
 import { useRef, useState, type ReactNode } from "react";
 import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from "react-native";
 import Animated from "react-native-reanimated";
-import { filledOf, hintNumberOf, hintPartOf, itemsOf, nextPartOf, partMeaningOf, partTextOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
+import { chatKeyOf, deskOf, filledOf, hintNumberOf, hintPartOf, itemsOf, nextPartOf, partMeaningOf, partTextOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
 import type { LearnerInput } from "../session/session-context.tsx";
-import type { Entry, SessionState } from "../session/transcript.ts";
-import { maxContentWidth, parts as PARTS, radius, size, space, type } from "../theme.ts";
+import type { SessionState } from "../session/transcript.ts";
+import { maxContentWidth, motion, parts as PARTS, radius, size, space, type } from "../theme.ts";
 import { ConceptMap, type MapGeometry } from "./concept-map.tsx";
 import { Firefly } from "./firefly.tsx";
 import { FactCard, Failure, HintCard, LearnerMessage, Revealed, useSlow, Waiting } from "./messages.tsx";
@@ -51,6 +51,16 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
   const { failure } = state;
   const saved = failure && "mentefacto" in failure.body ? " Your map is saved." : "";
   const openPart = (move: MoveId) => { if (!pending) setEditing(move); };
+  // On the phone the chat's thread sits under the map, the guide and the status, past the first screen, and the
+  // ask bar is pinned below: a reply landed out of view with nothing to say it had. Each new line in the chat
+  // (and a call in flight, and a failure) scrolls into view once, as the website layout's column already does.
+  const followed = useRef("");
+  const follow = () => {
+    const key = chatKeyOf(desk, pending, failure !== null);
+    if (!chatOpen || key === followed.current) return;
+    followed.current = key;
+    scroll.current?.scrollToEnd({ animated: true });
+  };
 
   const conceptMap = (onGeometry?: (geometry: MapGeometry) => void, leader = false) => (
     <ConceptMap
@@ -75,7 +85,8 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
     <>
       <Label dim>{state.mode === "test" ? "Test myself" : "Independent practice"}</Label>
       <Title>Build your map</Title>
-      <Body dim>Select an area and write your answer. Fill the four areas, then submit your map.</Body>
+      {/* the whole task in one line, for someone who has never seen the screen (Cynthia, Oct 24) */}
+      <Small dim>{"Fill the four areas, then submit."}</Small>
     </>
   );
   const guide = (
@@ -83,12 +94,12 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
       <View style={[styles.you, wide && styles.reverse]}>
         <View style={styles.firefly}><Firefly state="asks" /></View>
         <View style={styles.guideText} accessibilityLiveRegion="polite">
-          <Label dim>{next ? `Area ${MOVE_ORDER.indexOf(next) + 1} of 4` : "All four areas filled"}</Label>
+          {next && <Label dim>{`Area ${MOVE_ORDER.indexOf(next) + 1} of 4`}</Label>}
           <Reply>{next ? `${filled === 0 ? "Start with" : "Next:"} ${MOVE_LABEL[next]}` : "Ready to review your map"}</Reply>
         </View>
       </View>
       {next && <Button label={`${filled === 0 ? "Start:" : "Write:"} ${MOVE_LABEL[next]}`} fit={wide} disabled={pending} onPress={() => openPart(next)} />}
-      <Small dim>{"You can edit any area. Following the highlight is free; it doesn't use a hint."}</Small>
+      <Small dim>{"You can edit any area. Following the highlight doesn't use a hint."}</Small>
     </View>
   );
   const thread = (
@@ -117,7 +128,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
     <View style={[styles.deskControls, !wide && styles.bar]}>
       <Button kind={chatOpen ? "text" : "secondary"} label={chatOpen ? "Close fact chat" : "Ask a fact (optional)"} onPress={() => setChatOpen((open) => !open)} style={chatOpen ? styles.start : undefined} />
       <View style={[styles.chat, !chatOpen && styles.hidden]}>
-        <Small dim>{"Fact questions only. Write your answers on the map. Asking facts doesn't reduce your score."}</Small>
+        <Small dim>Asking costs nothing. Answers go on the map.</Small>
         <AskBar concept={concept} pending={pending} asking={state.pending !== null && "question" in state.pending} onAsk={(question) => send({ question })} />
       </View>
       {help && (
@@ -173,7 +184,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
           composer={deskControls}
           scrollWords
           followWords={chatOpen}
-          mapHeader={<Label dim>Your answers · select an area to write</Label>}
+          mapHeader={<Label dim>Your answers</Label>}
           map={(onGeometry) => conceptMap(onGeometry)}
           mapFooter={status}
         />
@@ -186,7 +197,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
     <Screen>
       <SessionBar concept={concept} onClose={onClose} end={<Asked n={asked} />} />
       <KeyboardSafe>
-        <ScrollView ref={scroll} style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scroll} style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" onContentSizeChange={follow}>
           <View style={styles.intro}>{intro}</View>
           <View onLayout={(e) => setMapHeight(e.nativeEvent.layout.height)}>
             {conceptMap(undefined, true)}
@@ -200,12 +211,6 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
       {sheets}
     </Screen>
   );
-}
-
-/** The fact desk's side of the session: the learner's questions, its answers, the hints. The opening instruction
- * is the firefly's line under the map, so it isn't repeated. */
-function deskOf(entries: readonly Entry[]): Entry[] {
-  return entries.filter((e) => e.from === "learner" || (e.from === "app" && e.phase === "move" && e.message.kind !== "question"));
 }
 
 /** One small amber square per question asked, in the top bar. */
@@ -263,6 +268,7 @@ function AskBar({ concept, pending, asking, onAsk }: { concept: string; pending:
 function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: string; items: Item[]; onDone: (items: Item[]) => void }) {
   const c = useColors();
   const wide = useWide();
+  const entrance = useEntrance();
   const single = move === "supraordinate";
   const [rows, setRows] = useState<Item[]>(() => (items.length > 0 ? items.map((i) => ({ ...i })) : [{ value: "", note: null }]));
   const change = (i: number, patch: Partial<Item>) => setRows((now) => now.map((row, j) => (j === i ? { ...row, ...patch } : row)));
@@ -278,11 +284,12 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
   const field = [styles.input, { fontFamily: type.input.fontFamily, fontSize: type.input.fontSize, color: c.onSurface, backgroundColor: c.surface, borderColor: c.fieldEdge }];
   const scrim = <Pressable style={[wide ? StyleSheet.absoluteFill : styles.flex, { backgroundColor: c.scrim }]} onPress={done} accessibilityRole="button" accessibilityLabel="Save and close" />;
 
+  // the scrim fades in with the Modal and the editor rises into place over 240 ms, as a Sheet does
   return (
-    <Modal visible transparent animationType={wide ? "fade" : "slide"} onRequestClose={done}>
+    <Modal visible transparent animationType="fade" onRequestClose={done}>
       <KeyboardAvoidingView style={[styles.flex, wide && styles.center]} behavior="padding">
         {scrim}
-        <View style={[wide ? styles.dialog : styles.sheet, { backgroundColor: c.surfaceContainer, borderColor: c.fieldEdge }]} accessibilityViewIsModal>
+        <Animated.View style={[wide ? styles.dialog : styles.sheet, { backgroundColor: c.surfaceContainer, borderColor: c.fieldEdge }, entrance(0, "rise", motion.sheet)]} accessibilityViewIsModal>
           {!wide && <View style={[styles.grabber, { backgroundColor: c.outline }]} />}
           <View style={styles.sheetHead}>
             <View style={[styles.flex, styles.sheetTitle, !wide && styles.fullTitle]}>
@@ -292,7 +299,6 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
             <MicButton state={voice.state} onPress={voice.toggle} />
             <Button kind="secondary" label="Save answer" onPress={done} />
           </View>
-          <Small dim>This saves your answer on the map. It is scored when you submit the whole map.</Small>
           <VoiceNote state={voice.state} />
           <ScrollView contentContainerStyle={styles.rows} keyboardShouldPersistTaps="handled">
             {rows.map((row, i) => (
@@ -332,7 +338,7 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
               <Button kind="text" label="+ Add another" onPress={() => setRows((now) => [...now, { value: "", note: null }])} style={styles.start} />
             )}
           </ScrollView>
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -352,7 +358,7 @@ function HintSheet({ open, move, hintsUsed, onClose, onConfirm }: { open: boolea
   return (
     <Sheet open={open} onClose={onClose} label="hint">
       <Title style={styles.title}>{`${reveal ? "Reveal" : "Hint for"} ${MOVE_LABEL[move]}?`}</Title>
-      <Body>{reveal ? "This shows the answer. This area will score 0 points." : first ? "This hint limits this area to 1 point instead of 2. Your other areas are unaffected." : "This area is already limited to 1 point. This hint doesn't reduce it further."}</Body>
+      <Body>{reveal ? "This shows the answer. This area will score 0 points." : first ? "This hint limits this area to 1 point instead of 2." : "This area is already limited to 1 point. This hint doesn't reduce it further."}</Body>
       <Small dim>{"Hints follow the map's area order, even if you are editing another area."}</Small>
       <Button label={reveal ? "Reveal answer · 0 points" : "Get hint"} onPress={onConfirm} />
       <Button kind="text" label="Keep working" onPress={onClose} />
@@ -370,12 +376,12 @@ function SubmitSheet({ open, map, onClose, onSubmit }: { open: boolean; map: Men
         {MOVE_ORDER.map((move) => (
           <View key={move} style={styles.reviewRow}>
             <Small>{MOVE_LABEL[move]}</Small>
-            <Small dim>{itemsOf(map, move).map((item) => item.value + (item.note ? ` — ${item.note}` : "")).join("; ") || "Left empty · 0 points"}</Small>
+            <Small dim>{itemsOf(map, move).map((item) => item.value + (item.note ? ` — ${item.note}` : "")).join("; ") || "Left empty"}</Small>
           </View>
         ))}
       </ScrollView>
-      <Small dim>{empty.length ? `${empty.join(", ")}: still empty. Empty areas score 0.` : "All four areas are filled."}</Small>
-      <Body>Submitting scores all four areas and ends this session.</Body>
+      {empty.length > 0 && <Small dim>{`${empty.join(", ")}: still empty. Empty areas score 0.`}</Small>}
+      <Body>Submitting ends the session.</Body>
       <Button label="Submit my map" onPress={onSubmit} />
       <Button kind="text" label="Keep editing" onPress={onClose} />
     </Sheet>

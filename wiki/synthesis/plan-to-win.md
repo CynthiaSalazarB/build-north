@@ -3,7 +3,7 @@ title: "Plan to win Build North"
 type: synthesis
 related: ["[[expo-prize-plan]]", "[[surrealdb-sponsor-prize]]", "[[hosting-setup]]"]
 created: 2026-10-20
-updated: 2026-10-22
+updated: 2026-10-24
 ---
 
 The team's plan until Demo Day. Leo wrote it on Oct 21, after the mentors told Cynthia the idea needs
@@ -106,9 +106,9 @@ as closely as the code.
 |---|---|---|
 | Innovation | An AI that won't do the thinking. The gap reveal and the role flip are the two demo moments | The new hook in the video and the deck |
 | Real-World Impact | One user, three sources, tester numbers, the cost of a session, who pays | The testers' sessions (P2). A session costs about $0.16 on Opus 5.5 (the API rehearsal, Oct 21) |
-| UI & Design | Lumente (round 9, Cynthia's design) in every screen, with its icon, splash and name (#81, #82, #89), and every state designed (waiting, error, empty, a small phone) | The new Android build with Lumente's icon (#89), and Reduce Motion |
-| Tech & Deployment | A contract-first monorepo with Zod at every boundary, the orchestrator in code, evals against Claude, 67 agent tests, 42 API tests and 28 app tests passing (Oct 22), budget and rate-limit stops | Everything deployed: the API on Render Starter, the web build at `reality-check.expo.app` (a review deploy is up), the Android builds (queued Oct 21), Clerk |
-| Security & Ethics | The Claude key only on the server, Clerk tokens checked without a network call, rate limits, the 95% budget stop, the learner's text fenced as data, 0 leaks in 10 from the fact desk, no streaks, adult testers who consent, tester data in its own database | Delete my data and the privacy note (#43), and a welcome line that says the tutor is an AI that asks and never hands over the answer |
+| UI & Design | Lumente (round 9, Cynthia's design) in every screen, with its icon, splash and name (#81, #82, #89), and every state designed (waiting, error, empty, a small phone) | Done: build 3 with Lumente's icon (Oct 22, `docs/expo-log.md`); Reduce Motion is honoured everywhere, the firefly's hover included (#158). Judge-facing polish shipped Oct 23 night (#153, #154, #155) |
+| Tech & Deployment | A contract-first monorepo with Zod at every boundary, the orchestrator in code, evals against Claude, 67 agent tests, 42 API tests and 28 app tests passing (Oct 22), budget and rate-limit stops | Done: the API on Render Starter with Agent Memory on, the web build at `lumente.expo.app` (#151), build 3 on the phones, Clerk (`wiki/context/status-oct22.md`) |
+| Security & Ethics | The Claude key only on the server, Clerk tokens checked without a network call, rate limits, the 95% budget stop, the learner's text fenced as data, 0 leaks in 10 from the fact desk, no streaks, adult testers who consent, tester data in its own database | Done: Delete my data and the privacy note (#43, in #103). Open: a welcome line that says the tutor is an AI that asks and never hands over the answer |
 
 ## 4. The prizes we enter
 
@@ -139,6 +139,18 @@ Android only, and iPhones use the web build.
 Oct 22: #80, #81, #82 and #89 are merged. Next is a new Android build, since #89's icon and name change
 the native fingerprint.
 
+Oct 23: the new build is build 3, the `preview` APK of Oct 22 (runtime `56eeb40f…`), and the EAS project moved
+to the `lumente` organization, `@lumente/reality-check` (`docs/expo-log.md`). Merged since: #133 (the web build
+installs as a web app, the live update check, the version line in Your data, Observe on every screen), #137 (a
+session survives a reload or a killed app, Share on the result) and #136 (the prediction picker, the map-first
+self-test, Expo's ESLint). What shipped when is in `docs/expo-log.md`.
+
+Oct 23 night: the site is `lumente.expo.app` (#151, the Share link follows), the judge-facing polish (#153: the
+phone's fact chat follows each reply, learner wording for a 401 and a 5xx, a visible focus edge), the guess light
+(#154), the feedback line above the next question (#155), one `preview` channel for every phone (#148, DECISIONS.md),
+all shipped by hand at about 11:05 PM from `main` at `6adbc84` (`docs/expo-log.md`). The firefly's hover (#158,
+#159) merged after that Ship and goes out with the next one.
+
 ### Best Use of Clerk
 
 Clerk asks teams to use it for sign-in and sessions instead of building their own. The API checks
@@ -146,8 +158,10 @@ Clerk's session token without a network call and keys every row by the Clerk use
 signs in with Clerk on the web and on phones, keeps the token in secure store and sends a fresh one on
 every call (#75). Sign-in is by email code or Google (decided Oct 22).
 
-Still to add: a sign-in tested on a phone, and delete my data deleting the Clerk account too (#43). Our
-demo's first concept is JWT, the kind of token Clerk issues, which gives the write-up a good line. The
+Delete my data and the privacy note are in (#43, merged in #103): the API deletes its tables and the memory
+scope and the app signs out; the Clerk account stays (`api/src/app.ts`). Still to add: a sign-in tested on a
+phone, and deleting the Clerk account too. The demo opens on API, then CORS (decided Oct 21); JWT, the kind of
+token Clerk issues, stays in the concept list, which gives the write-up a good line. The
 development instance allows 100 users and 100 emails a month, so we ask Clerk support to raise the
 email cap and keep the `+clerk_test` fallback in the testing notes.
 
@@ -160,9 +174,12 @@ coach read up to 8 facts from earlier sessions and cite the ones they use, and t
 Memory sheet. That answers the judges' three asks: a level-up replaces the old fact and keeps its
 history, a message traces back to the facts it cites, and more than one agent's work goes in and comes
 out. Levels still come from code, so memory never changes a score. Kill rule (decided): if it
-isn't working by Oct 24 noon, the flag stays off and the write-up doesn't claim it. **Oct 23: built**
-(draft PR #130; the live smoke passes), waiting on Cynthia's review; what the live context does is on
-the [prize page](../context/surrealdb-sponsor-prize.md).
+isn't working by Oct 24 noon, the flag stays off and the write-up doesn't claim it. **Oct 23: #130 merged**
+(the live smoke passes); the app update that carries it shipped the same day (`docs/expo-log.md`), and the flag
+went on in production at 9:11 PM, before the first tester (`DECISIONS.md`, Oct 23), so the kill rule was met.
+Oct 23 night: the evidence page for a judge, with each criterion's code pointers and unit tests (#144), and #147,
+so a part's first finished session leaves its level row even when no level moved (the demo account included).
+What the live context does is on the [prize page](../context/surrealdb-sponsor-prize.md).
 
 ### What we skip
 
@@ -184,7 +201,8 @@ About a day of work across three people. Nothing in the API changes.
 | P8 | The deck, the Devpost page and the video around the new story (#13, #30, #31, #48) | Kyle, Cynthia | Open |
 
 `agents/fixtures/session-1.json` (democracy) stays as test data, so the tests built on it don't change.
-The app's demo mode (no API set) still replays it. Demo mode stays a development tool, and on Demo Day
+The app's demo mode (no API set) replays `session-api.json`, the API session recorded with Claude (#6); the API
+without a key replays `session-1.json`. Demo mode stays a development tool, and on Demo Day
 the fallbacks are the web build and the video.
 
 ## 6. Day by day
@@ -195,6 +213,16 @@ Times are rough. Each evening's check sets the next morning's list.
 merged (#64, #73, #75, #77 to #83, #85, #87 to #90), and the app is in Lumente. Still open from those
 days: Render Starter and a Manual Deploy of `main` (#59), the new Android build (#89), the production
 web build, the demo seed on prod, and the testers' sessions, now on Oct 22 or 23.
+
+**Status on Oct 23:** Render Starter is on, build 3 (the `preview` APK, Oct 22) is on the phones, the production
+web build is live at `lumente.expo.app` from `main`, and the demo account is seeded in `prod`
+(`wiki/context/status-oct22.md`, `docs/expo-log.md`). Merged on Oct 23: #103, #104, #124 to #130 and #132 to
+#141 (`git log main`).
+
+**Status on Oct 24, after the Oct 23 night merges:** #144 to #159 are in `main`, and everything up to #155 is
+on the phones and the website since the 11:05 PM Ship (`main` at `6adbc84`; `wiki/context/status-oct22.md`).
+Agent Memory has been on in production since Oct 23, 9:11 PM. Open from the plan: #106 (the README, a draft until
+the freeze), the Devpost numbers and the video.
 
 ### Oct 21: unblock
 
@@ -216,10 +244,10 @@ web build, the demo seed on prod, and the testers' sessions, now on Oct 22 or 23
 |---|---|
 | P3 to P8 | As in section 5 |
 | Done in #81 and #82: level 5 with the fact desk (#26) and the result screen with the gap (#34) | Leo |
-| Done: #77, #78 and #79 are merged. Still to do: load the demo seed on prod for the demo account | Leo |
-| Render Starter until Oct 30, paid with the Render credit (section 13), and the production settings (#59) | Leo |
-| The production web build at `reality-check.expo.app` with `CORS_ORIGIN` updated (E4), the `preview` APK on Kyle's phone, the first update, and the workflows' push trigger once Cynthia installs the Expo GitHub app (E7) | Leo, Cynthia |
-| Delete my data and the privacy note (#43), since #81 already has the theme, icon, splash and haptics | Jonathan |
+| Done: #77, #78 and #79 are merged, and the demo seed is on prod for the demo account (`wiki/context/status-oct22.md`) | Leo |
+| Done: Render Starter (no cold start) and the production settings (#59, closed Oct 22; `wiki/context/status-oct22.md`) | Leo |
+| Done: the production web build at `lumente.expo.app` with `CORS_ORIGIN` updated (E4, Oct 22) and the first update (Oct 21; `docs/expo-log.md`). Open: the `preview` APK on Kyle's phone, and the workflows' push trigger once Cynthia installs the Expo GitHub app (E7, section 9) | Leo, Cynthia |
+| Done in #103: Delete my data and the privacy note (#43), since #81 already has the theme, icon, splash and haptics | Jonathan |
 | The Devpost draft and the slides (#30, #31) | Kyle |
 | Evening: a whole session with Claude on JWT, on an Android phone and on the web. Whatever breaks is the morning's list | Everyone |
 
@@ -227,7 +255,7 @@ web build, the demo seed on prod, and the testers' sessions, now on Oct 22 or 23
 
 | What | Who |
 |---|---|
-| Morning: fixes, the warm-up (#37), a smoke test, an update to `preview` | Leo, Cynthia |
+| Done: the rollout of `main` at 99880ae to `preview`, production and `testers` at about 12:50 PM, with the smoke test 7 of 7 (`docs/expo-log.md`, #37) | Leo, Cynthia |
 | Oct 22 or 23: the five testers (#38), following `docs/tester-protocol.md` (#86): a confidence question before and after, the pre-test in test mode, two training sessions, the post-test, then when they'd open it, an email for early access and an introduction to a professor or TA | Kyle runs it, Cynthia observes (#33), Leo watches the API (#37), the app's builder stays on call (#35) |
 | Fixes go out with `eas update`, and we count them for the write-up | Leo |
 
@@ -235,9 +263,9 @@ web build, the demo seed on prod, and the testers' sessions, now on Oct 22 or 23
 
 | What | Who |
 |---|---|
-| Prompt fixes (#40), the top three usability fixes, and #43 if it isn't in yet. The mastery screen (#42) is first to cut | Cynthia, Jonathan |
-| The numbers export (#50) and the start of hand grading (#49) | Leo, Cynthia |
-| 6 PM freeze (#45): the `production` Android build, the last update, the last web deploy. Nothing ships after | Leo |
+| Prompt fixes (#40) and the top three usability fixes. #43 is in (#103); the mastery screen (#42) was cut on Oct 22 (`DECISIONS.md`) | Cynthia, Jonathan |
+| The numbers export (#50, built in #104: `npm run export:testers -w api`) and the start of hand grading (#49) | Leo, Cynthia |
+| 6 PM freeze (#45): an Android build only if the fingerprint changed, with the `preview` profile (decided Oct 23, "One update channel for every phone", `DECISIONS.md`: the `production` profile stays unused), the last update, the last web deploy. Nothing ships after | Leo |
 | Evening: the rehearsal (#41) and the video (#48), both on the frozen build | Cynthia, Kyle |
 
 ### Oct 25: submit by 9 PM
@@ -263,7 +291,7 @@ web build, the demo seed on prod, and the testers' sessions, now on Oct 22 or 23
 - Leo: the API and hosting (Render Starter, the Manual Deploy, the demo seed on prod), EAS (the new
   Android build, Update, Hosting, Workflows), Clerk end to end, the app's Lumente screens (#81, #82,
   #89), and the evals.
-- Jonathan: delete my data and the privacy note (#43), and the mastery screen (#42).
+- Jonathan: delete my data and the privacy note (#43, done in #103), and the mastery screen (#42, cut on Oct 22).
 - Kyle: the testers (#12, #24, #38, #39), the deck (#13, #31, #47, #52), Devpost (#30, #53) and the
   video (#48).
 
@@ -275,9 +303,9 @@ decide the top 10 as much as the code does.
 We checked each item against the story and the five criteria: none of these changes what a judge sees
 in the core loop (the guess, the fading help, the gap, level 5). Cut in this order if we fall behind:
 
-1. The mastery screen (#42). The demo uses the seeded profile.
-2. The update banner (`useUpdates()`). The Expo UI picker is out already: Expo UI has no stepper, and
-   the design's stepper does the job.
+1. The mastery screen (#42): cut on Oct 22 (`DECISIONS.md`, "No mastery screen"). The demo uses the seeded profile.
+2. The update banner (`useUpdates()`): built and kept (#81, #133). The Expo UI picker is out already: Expo UI has
+   no stepper, and the design's stepper did the job until #136 replaced it with a 0 to 8 picker of plain buttons.
 3. Extra welcome steps.
 
 Not this week: TestFlight and any iOS build (no Apple account, decided Oct 21), glass and App Intents
@@ -300,16 +328,17 @@ Taken, each in `DECISIONS.md` or noted here:
 4. TestFlight: no Apple account, so the native app is Android only and iPhones use the web build
    (Oct 21).
 5. The web build is on EAS Hosting instead of a Render Static Site (Cynthia, Oct 22).
-6. The Expo organization: the EAS project stays on Leo's account for now and can move to an
-   organization later from its settings.
+6. The Expo organization: done on Oct 22, the EAS project moved to the `lumente` organization
+   (`@lumente/reality-check`; `app.json` `owner`, `docs/expo-log.md`).
 7. Toronto on Oct 29: Cynthia and Kyle go; Leo and Jonathan confirm.
 8. Sign-in by email code and Google (Cynthia, Oct 22).
 9. We enter the SurrealDB Agent Memory prize after all (Cynthia, Oct 22, reversing the same morning's
-   skip): facts built in code, never the learner's words (#99, #107, #112; section 4).
+   skip): facts built in code, never the learner's words (#99, #107, #112; section 4). #130 merged on Oct 23,
+   on in production since 9:11 PM that day; the evidence page (#144) and the baseline level row (#147) followed.
 
 Still open:
 
-10. Render Starter from Oct 22 to Oct 30, about $7, paid with the Render credit (#59).
+10. Done: Render Starter since Oct 22 (`wiki/context/status-oct22.md`); #59 closed on Oct 22.
 11. The Expo GitHub app, so every merge to `main` ships to phones and the web (E7). Installing it takes
     Cynthia, who owns the repo, and someone with admin access to the EAS project on Leo's account.
 
