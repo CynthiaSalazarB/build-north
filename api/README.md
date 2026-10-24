@@ -50,7 +50,8 @@ Outside production, `x-dev-user` also works, but only together with an `x-dev-ke
 the server's `DEV_KEY` (CONTRACTS.md section 1). Without a `DEV_KEY`, or with `NODE_ENV=production`,
 the dev headers get `401`. Leo shares the key; it never goes in the repo or in the deployed web build.
 
-Every route except `/health` allows 60 requests a minute from one IP (`REQUESTS_PER_MINUTE` changes it), then answers `429`.
+Every route except `/health` allows 60 requests a minute from one IP (`REQUESTS_PER_MINUTE` changes it; Render
+runs with 240 since Oct 23, for a room of testers on one Wi-Fi), then answers `429`.
 
 The API's types and request schemas come from `@build-north/agents` (`agents/src/contracts.ts`), so
 a change to the contract shows up here as a type error. With Claude on (below), `/turns` runs
@@ -75,7 +76,7 @@ result's numbers instead.
 | `ANTHROPIC_API_KEY` | Turns Claude calls on. Render and your local `.env` only, never the app |
 | `AGENT_MODEL` | `claude-opus-5-5` (default) or `claude-sonnet-5-5`, the two models with a price in the code |
 | `AGENT_BUDGET_USD` | Required with the key: the Claude budget in dollars |
-| `REQUESTS_PER_MINUTE` | Per IP, every route except `/health`; 60 when unset. Raise it for a room of testers on one Wi-Fi, who share an IP |
+| `REQUESTS_PER_MINUTE` | Per IP, every route except `/health`; 60 when unset. Raise it for a room of testers on one Wi-Fi, who share an IP (240 on Render since Oct 23) |
 
 Following DECISIONS.md (Oct 20), calls stop at 95% of the budget, and while any of Anthropic's
 rate-limit windows is 95% used, until it refills. Both come back as a `rate_limited` error in the
@@ -102,8 +103,9 @@ again at $0 after a restart; the account's own balance, with auto-reload off (#2
 [`src/memory.ts`](src/memory.ts) is the API's side of SurrealDB Agent Memory (CONTRACTS.md section 2,
 Memory): what earlier sessions left about a learner, read before the hint giver and the coach, written
 when a session reaches its result, shown by `GET /me/memory` and purged by `DELETE /me/data`. Off by
-default. Decided Oct 23 (`DECISIONS.md`, "Agent Memory goes on for the testers"): on in production before
-the first tester, once the app update that carries #130 has shipped.
+default in the code; on in production since Oct 23 at 9:11 PM ET (`DECISIONS.md`, "Agent Memory goes on for
+the testers"): `/health` answers `"memory": "on"`, and the kill switch is `AGENT_MEMORY_ENABLED` set to anything
+else (about a minute, no deploy).
 
 | Variable | What it does |
 |---|---|
@@ -138,11 +140,13 @@ the app can show "From what Lumente remembers: …". The write runs off the requ
 is down costs the learner nothing but the facts, and the cause goes to the server log. The tables above
 stay the record; memory never changes a number.
 
-**Turning it on in production:** the app parses every `Turn` with the strict schema, so a build without
-the `cites` and `sources` fields rejects a Turn that carries them. The order is Ship, then Render
-(docs/deploy.md): the app update with #130 (issue #112) first, then `AGENT_MEMORY_ENABLED=true` on Render.
-The update reached the `preview` channel and both web addresses on Oct 23 (`docs/expo-log.md`, the 12:50 PM
-rollout of `main` at 99880ae), so the Render variable is the step left.
+**How it went on in production (Oct 23):** the app parses every `Turn` with the strict schema, so a build without
+the `cites` and `sources` fields rejects a Turn that carries them. The order was Ship, then Render
+(docs/deploy.md): the app update with #130 (issue #112) reached the `preview` channel and both web addresses at
+about 12:50 PM (`docs/expo-log.md`, the rollout of `main` at 99880ae), and `AGENT_MEMORY_ENABLED=true` went on
+Render at 9:11 PM. The same order holds if the flag is ever turned off and on again after an app change to those
+fields. #147 (Oct 23 night) added the baseline level fact and the `TZ` rule above; both are API-side and need no
+app update.
 
 ```bash
 npm run memory:smoke -w api

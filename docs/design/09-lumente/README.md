@@ -7,6 +7,14 @@ October 23 implementation update: [UX guidance](../../ux-guidance.md) documents 
 prediction, map-first self-test, free navigation highlight, optional fact chat, and hint confirmations.
 The board and descriptions below preserve the original round 9 design; that update describes the current flow.
 
+**Since the board** (Oct 23 night; the rows below stay as designed, the decisions are in
+[`DECISIONS.md`](../../../DECISIONS.md)): the firefly hovers in place, a drift of a few pixels on its own, and
+rests on the result ("The firefly hovers in place; its light still never pulses", #158 and #159); the guess screen
+previews the light of the chosen number again, nothing lit until a number is picked, while the map's areas stay
+open ("The guess screen previews the light, not the areas", #154); and the evaluator's feedback on a part just
+finished reads, dim, above the next question (#155, the screen side of "After a part is right, its feedback says
+what makes it right and what was left out").
+
 - **Board:** [Lumente canvas](https://claude.ai/artifact/QmCoNJiS5w8tg3vkkGHeGw), page "v4 · Lumente, black
   (current)". It holds every screen below, built on the demo's API session (guess 7, proved 5, gap +2). Pages v1 to
   v3 are earlier versions kept as history.

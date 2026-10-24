@@ -24,9 +24,10 @@ in again between the two sessions costs about 15 seconds.
   questions. Start is open on API. The screen is mirrored; Do Not Disturb is on.
 - **The laptop** is signed in to the demo account, the one `npm run seed:demo -w api` put at level 5 on
   all four parts (today that is Leo's Google account: pick one Cynthia and Kyle can sign into `[account: Cynthia]`).
-  Two things have to be true for the Memory sheet to have something to show: one CORS session was
-  finished on this account before Demo Day with memory on, and PR #147 (the baseline level fact) is merged,
-  else each part reads "no level yet" and only the gap line shows.
+  One thing has to be true for the Memory sheet to have something to show: one CORS session was
+  finished on this account before Demo Day with memory on (on since Oct 23). #147, merged and on Render since
+  Oct 23 night, writes a level row for every finished part even when no level moved, so each part reads
+  "level 5 since …" instead of "no level yet"; a session finished before #147 left only the gap and the Helps.
 - During the warm-up, start the CORS session on the laptop ("Explore with guidance", predict 7, "Save my
   prediction") and fill three areas of the map with the answers Cynthia rehearsed: Bigger group, What it
   isn't, What it needs. Leave Its types empty. The draft survives a reload, and Start offers "Resume".
@@ -43,7 +44,7 @@ in again between the two sessions costs about 15 seconds.
 | 0:40 | **Session.** "Your first explanation" above the field; the map dark with its four areas | "First, your own words, before any help." | Type one sentence, rehearsed, for example "A way for one program to use another without seeing inside it" `[wording: Cynthia]`. Send. The firefly offers "See an example"; tap "Continue" |
 | 0:55 | **Bigger group.** The firefly's question, its dashed line to the Bigger group area; under the firefly the tag "help −1" | "The firefly asks about the four areas of the map, one at a time. It never writes the map. It is also Help, and help costs." | Tap the firefly. "Finding a hint." |
 | 1:05 | **The hint card.** Amber: "hint 1 of 3 · −1 pt", "this part can now light 1 point at most" | "One hint, and this area can now light one point instead of two. I'd have said 'a server'. An API runs on a server, but it isn't a kind of server. Related isn't the same as belonging." | Type "a software interface". Send. "Checking your answer." |
-| 1:18 | **The area lights.** One point square on Bigger group fills; the firefly's light grows a stage; the next question arrives | "Any answer you can defend passes. The light grows one stage per point. As you get areas right with little help, each one moves up a level and the help fades." | Tap the X, "Close and save". Start shows the card for API, "1 of 4 parts", with "Resume" |
+| 1:18 | **The area lights.** One point square on Bigger group fills; the firefly's light grows a stage; the evaluator's "Yes: …" line reads dim above the next question (#155) | "Any answer you can defend passes. The light grows one stage per point. As you get areas right with little help, each one moves up a level and the help fades." | Tap the X, "Close and save". Start shows the card for API, "1 of 4 parts", with "Resume" |
 | 1:30 | **Laptop, the whole map.** "Independent practice", "Build your map", three areas filled, Its types outlined, "3 of 4 areas filled", "Review & submit" | "After enough practice, all four areas reach level 5 and the roles flip. This account is there, on CORS. Now I ask the questions. I filled three areas in the warm-up; the last one goes in live." | Tap "Ask a fact (optional)" |
 | 1:40 | **The fact chat.** "Fact questions only. Write your answers on the map. Asking facts doesn't reduce your score." The field "Ask a factual question" | "The fact desk answers with facts only." | Type a fact question `[question: Cynthia]`, "Ask a fact". "Looking up the fact." Read the fact card aloud in a few words |
 | 1:50 | **The redirect.** The fact desk's fixed line: "That part is yours to decide. If you're stuck, tap Help (it costs a point)." | "And if I fish for the map, code answers, not the model." | Type a question that asks for the structure, for example "What is CORS a kind of?". "Ask a fact". An amber square per question appears in the header |

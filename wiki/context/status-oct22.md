@@ -3,21 +3,21 @@ title: "Status, Oct 22 night: what is live, what is open, and who holds it"
 type: context
 related: ["[[plan-to-win]]", "[[expo-prize-plan]]", "[[hosting-setup]]"]
 created: 2026-10-22
-updated: 2026-10-23
+updated: 2026-10-24
 ---
 
-Where Leo's side stands late on Oct 22, written for the next session that opens this repo (Cynthia's
-Claude included). Numbers and links only; no secrets, no tester names. Every item names who holds it.
-The first thing to do is the merge order under "Open on Cynthia".
+Where Leo's side stands, started late on Oct 22 and kept current since (the latest rows are Oct 23 night),
+written for the next session that opens this repo (Cynthia's Claude included). Numbers and links only; no
+secrets, no tester names. Every item names who holds it.
 
 ## Live
 
 | Piece | State | Evidence |
 |---|---|---|
-| API | `main`, auto-deployed on merge, Render Starter (no cold start). **Oct 23, 9:11 PM:** `main` at `7a372bc` with Agent Memory on (`AGENT_MEMORY_ENABLED=true`, the startup line says "Agent Memory: on"; the kill switch is that variable set to anything else, about a minute, no deploy). Since #143, `/health` names the running commit and the memory state, `{"ok":true,"commit":"7a372bc","memory":"on"}`, in about 0.2 s; `/health/db` writes to `prod` as the database-level user (`SURREAL_USER=api`, auth level `database`); no token and dev headers both answer 401; CORS allows `https://lumente.expo.app`, its `testers` and `review` aliases and, until a day after the rename, the old `reality-check` addresses. **Oct 23, about 11:10 PM:** `main` at `6adbc84` (tonight's merges, #144 to #155), memory on, `/health` → `{"ok":true,"commit":"6adbc84","memory":"on"}` | `npm run smoke -w api` (PR #104): 7 of 7 for production and 7 of 7 for `testers` with memory on, Oct 23 at 9:15 PM; `npm run memory:smoke -w api` 8 of 8 on the live context (#37) |
-| Web, production and `testers` | https://lumente.expo.app and https://lumente--testers.expo.app (renamed from `reality-check` on Oct 23 at about 10:05 PM, Cynthia's ask; DECISIONS.md), EAS Hosting, both from `main`. **Oct 23, about 11:10 PM:** production redeployed by Ship from `main` at `6adbc84` (`entry-2f254156….js`: the Share link, #153's fixes, #154's light preview, #155's feedback lines); the `testers` alias stays at `179807e`. **Oct 23, about 7:15 PM:** both redeployed from `main` at `179807e` (#136, #139) by Cynthia's side, after `34a285f` (#137) at about 4:25 PM and `99880ae` (#129, #130, #132, #133, #135) at about 12:50 PM. The 12:50 PM one had a five-minute demo-mode window first (12:47 to 12:52 PM, a cached export without `EXPO_PUBLIC_*`), so every export now runs with `--clear` and the bundle is checked before deploying (`docs/deploy.md`). Render runs `main`, so they move together | `docs/expo-log.md`; at 8:55 PM both addresses serve `entry-92d2ccb4….js`, the file a clean export of `179807e` with `production` produces, and `/health` answers 200 |
-| Web, test alias | https://reality-check--polish.expo.app: the #103 build at `7306df1` in demo mode (no API, no Clerk): the website layout, "Your data", the mic, the review fixes | A new address with the API would need its own `CORS_ORIGIN` row on Render |
-| Android | `preview` APK, build 3 on the `lumente` project, runtime `56eeb40f…`: [download](https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk). **Oct 23, about 7:15 PM:** the newest EAS Update on the `preview` channel, group `39faf44b…` (a clean-cache export, the `.hbc` checked for the API host, the Clerk key and #136's scoring text), is `main` at `179807e`; the APK takes it on its second launch. **Oct 23, about 11:10 PM:** group `0aefba2e…` from Ship, `main` at `6adbc84`, runtime `56eeb40f…`, so build 3 takes it | `docs/expo-log.md`; at 8:55 PM `eas update:list --branch preview` shows `39faf44b…` on top (commit `179807e`), and `eas fingerprint:compare --build-id 93910cdd…` says `main` at `179807e` still matches the build |
+| API | `main`, auto-deployed on merge, Render Starter (no cold start). **Oct 23, 9:11 PM:** `main` at `7a372bc` with Agent Memory on (`AGENT_MEMORY_ENABLED=true`, the startup line says "Agent Memory: on"; the kill switch is that variable set to anything else, about a minute, no deploy). Since #143, `/health` names the running commit and the memory state, `{"ok":true,"commit":"7a372bc","memory":"on"}`, in about 0.2 s; `/health/db` asks `prod` for its clock as the database-level user (`SURREAL_USER=api`, auth level `database`), read-only; no token and dev headers both answer 401; CORS allows `https://lumente.expo.app`, its `testers` and `review` aliases and, until a day after the rename, the old `reality-check` addresses. **Oct 23, about 11:10 PM:** `main` at `6adbc84` (tonight's merges, #144 to #155), memory on, `/health` → `{"ok":true,"commit":"6adbc84","memory":"on"}`; `REQUESTS_PER_MINUTE=240` (the limit is per IP and a room shares one). Render auto-deploys every merge, so #158 and #159 (app only, `main` at `58f5c52`) went on it after that check; the API code is unchanged since `6adbc84` | `npm run smoke -w api` (PR #104): 7 of 7 for production and 7 of 7 for `testers` with memory on, Oct 23 at 9:15 PM; `npm run memory:smoke -w api` 8 of 8 on the live context (#37) |
+| Web, production and `testers` | https://lumente.expo.app and https://lumente--testers.expo.app (renamed from `reality-check` on Oct 23 at about 10:05 PM, Cynthia's ask; DECISIONS.md), EAS Hosting, both from `main`. **Oct 23, about 11:10 PM:** production redeployed by Ship from `main` at `6adbc84` (`entry-2f254156….js`: the Share link, #153's fixes, #154's light preview, #155's feedback lines); the `testers` alias stays at `179807e`. #158 and #159 (the firefly hovers in place; it rests on the result) merged after that Ship, so the website shows them only after the next one. **Oct 23, about 7:15 PM:** both redeployed from `main` at `179807e` (#136, #139) by Cynthia's side, after `34a285f` (#137) at about 4:25 PM and `99880ae` (#129, #130, #132, #133, #135) at about 12:50 PM. The 12:50 PM one had a five-minute demo-mode window first (12:47 to 12:52 PM, a cached export without `EXPO_PUBLIC_*`), so every export now runs with `--clear` and the bundle is checked before deploying (`docs/deploy.md`). Render runs `main`, so they move together | `docs/expo-log.md`; at 8:55 PM both addresses serve `entry-92d2ccb4….js`, the file a clean export of `179807e` with `production` produces, and `/health` answers 200 |
+| Web, test alias | The `polish` alias: the #103 build at `7306df1` in demo mode (no API, no Clerk), deployed Oct 22 for the website layout, "Your data", the mic and the review fixes, all merged since. It was `reality-check--polish.expo.app` until the Oct 23 rename; the old addresses are no longer ours (DECISIONS.md, Oct 23), so if it still answers it is at `lumente--polish.expo.app`. Nothing deployed to it since Oct 22, not checked since the rename | A new address with the API would need its own `CORS_ORIGIN` row on Render |
+| Android | `preview` APK, build 3 on the `lumente` project, runtime `56eeb40f…`: [download](https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk). **Oct 23, about 7:15 PM:** the newest EAS Update on the `preview` channel, group `39faf44b…` (a clean-cache export, the `.hbc` checked for the API host, the Clerk key and #136's scoring text), is `main` at `179807e`; the APK takes it on its second launch. **Oct 23, about 11:10 PM:** group `0aefba2e…` from Ship, `main` at `6adbc84`, runtime `56eeb40f…`, so build 3 takes it. #158 and #159 (the firefly's hover, JavaScript only) merged after that Ship and reach the phones with the next one | `docs/expo-log.md`; at 8:55 PM `eas update:list --branch preview` shows `39faf44b…` on top (commit `179807e`), and `eas fingerprint:compare --build-id 93910cdd…` says `main` at `179807e` still matches the build |
 | Demo account | Leo's Google account, seeded in `prod`: level 5 on all four parts and a CORS session waiting at the whole map | `npm run seed:demo -w api` from a checkout with the prod variables |
 | First real session on prod | `/turns` median 2.4 s, slowest 10.6 s (the final `evaluator_full`, over the plan's 8 s line), $0.040 for the session | `agent_log` rows, Oct 22 |
 
@@ -25,6 +25,12 @@ The first thing to do is the merge order under "Open on Cynthia".
 
 **Update, Oct 23 early:** #104, #124 and #103 are merged (see "Open on Cynthia", item 1); #106 stays a draft
 until the freeze.
+
+**Update, Oct 23 night:** #144 to #159 are merged (`git log main`): the SurrealDB evidence page and memory unit
+tests (#144), the baseline level fact and fact dates in the team's zone (#147), the old-name sweep (#150), the site
+at `lumente.expo.app` (#151), the Devpost and demo-script drafts (#152), the judge-facing polish (#153), the guess
+light (#154), the feedback line above the next question (#155), the status page and log rows (#146, #148, #157)
+and the firefly's hover (#158, #159). #106 is the one open PR, still a draft.
 
 All three of Leo's are ready for review; one teammate reviews, the merge is the acceptance.
 
@@ -51,11 +57,12 @@ Merged on Oct 22: #79, #81, #82, #88 to #100, #102, #105, #107 to #111, #113 to 
 5. The slow `evaluator_full` turn: lower the effort first, then Sonnet for the questioner and the hint giver
    (plan, section 10). Prompts and effort are hers. Related, from the #124 review: the Anthropic client runs
    with a 30 s timeout and one retry, so a hung call holds a learner for about a minute before the error Turn.
-6. #112 (Agent Memory, Leo's build): **built, Oct 23**, draft PR #130 on `leo/memory-build`. The `Message.sources`
-   shape works and is in the PR (the two optional fields and the two-line copy in `advance.ts`, hers to keep or
-   replace). The live smoke (`npm run memory:smoke -w api`) passes all 8 checks against the `lumente` context.
-   Waits on her review; the flag stays off in production until the app update ships, then Render. The kill
-   rule is Oct 24 noon.
+6. #112 (Agent Memory, Leo's build): **done.** #130 merged on Oct 23 and shipped with the 12:50 PM rollout; the
+   flag went on in production at 9:11 PM (the kill rule, Oct 24 noon, was met). The live smoke
+   (`npm run memory:smoke -w api`) passes all 8 checks against the `lumente` context. Since then: the evidence
+   page with the three criteria, code pointers and unit tests (`wiki/context/surrealdb-sponsor-prize.md`, #144),
+   and #147, so a part's first finished session leaves its level row even when no level moved (the demo account
+   at level 5 everywhere included) and fact dates read in the team's zone.
 
 ## Open on Leo
 
@@ -70,9 +77,12 @@ Merged on Oct 22: #79, #81, #82, #88 to #100, #102, #105, #107 to #111, #113 to 
 - Oct 23: `npm run smoke -w api` in the morning (#37), on call for the API, fixes as `eas update` from a branch
   whose fingerprint matches build 3 (`main` after #103, or `leo/final-polish` before); after the post-tests,
   `npm run export:testers -w api` against `prod` (#50).
-- Oct 24, before 6 PM: the `production` Android build, the last update and web deploy, Render Auto-Deploy off,
-  the freeze summary on #45. #112 is done early: #130 shipped with the 12:50 PM rollout on Oct 23, and
-  `AGENT_MEMORY_ENABLED=true` has been on in production since Oct 23 at 9:11 PM.
+- Oct 24, before 6 PM: an Android build only if the fingerprint changed, and then with the `preview` profile, since
+  every phone is on the one `preview` channel (DECISIONS.md, Oct 23, "One update channel for every phone"; `main`
+  still matches build 3, so as of Oct 23 night no build is needed); the last update and web deploy (one Ship, which
+  also carries #158 and #159); Render Auto-Deploy off; the freeze summary on #45. #112 is done early: #130 shipped
+  with the 12:50 PM rollout on Oct 23, and `AGENT_MEMORY_ENABLED=true` has been on in production since Oct 23 at
+  9:11 PM.
 
 ## Closed on Oct 22
 
