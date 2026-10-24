@@ -28,3 +28,11 @@ The login and start-page headlines stay as Cynthia wrote them on October 23. Onl
 - The browser checks used local mocked API replies. They didn't call production or a live AI model. Native Android keyboard and authentication behavior still require a device check.
 - Reload/resume integration: the map draft and next-area guidance survive a reload, and a resumed sixth hint is labelled for the exclusion area using the Turn's cumulative hint count.
 - EAS fingerprint comparison against installed Android build 3 (`93910cdd-2d88-4da3-8250-a3de32cc4d46`), using the preview environment: both hashes are `56eeb40fb5a207446053818ae3785913a3d4ffc5`. No build or update was published by this check.
+
+## October 24: tester-only wording trial
+
+The self-test/whole-map cards and editors show the task as a question, not just the method's short label: a kind of, a same-category comparison and its difference, defining features, and classification by one consistent rule. The comparison repeats the learner's chosen category neutrally, without confirming it or blocking answers out of order. Instructions remain visible when typing, so the optional worked example is not required to understand the task.
+
+Classification asks for the grouping rule followed by at least two types in the existing answer field (multiline, up to 500 characters). It is kept verbatim in the existing `Item.value`; no new criterion field, API schema or evaluator prompt is introduced. Comparisons still use the existing value/difference pair. The current evaluator checks a close concept plus a meaningful difference, not strict membership in the learner's proposed category. This is a usability wording trial; scores are provisional for the new instruction and must not be treated as validation of the stricter category requirement or compared across different pre-/post-test interfaces.
+
+The intended deployment target is the `testers` web alias only, from the review branch. No production alias, Android update, backend or grading change is part of this trial. Keep each tester's pre-/post-test on the same deployed wording version.

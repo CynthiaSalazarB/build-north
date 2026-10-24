@@ -143,7 +143,7 @@ export type PartState = "unasked" | "asked" | "lit" | "revealed";
 export type Pip = "earned" | "open" | "capped" | "claimed" | "missed";
 /** `pips` is null where nothing is scored yet: the whole map at level 5, until it's submitted. */
 /** `badge` is a short line under the part's words: on the result, a part that moved up a level. */
-export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] | null; badge?: string | null };
+export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] | null; badge?: string | null; prompt?: string; context?: string | null };
 
 const pipsFor = (points: number, capped = false): [Pip, Pip] => [points >= 1 ? "earned" : "open", points >= 2 ? "earned" : capped ? "capped" : "open"];
 
@@ -341,7 +341,7 @@ export function wholeMapPartsOf(draft: Mentefacto, server: Mentefacto): PartView
   return MOVE_ORDER.map((move) => {
     const text = partTextOf(draft, move);
     const shown = itemsOf(server, move).length > 0;
-    return { move, state: text ? (shown ? "revealed" : "lit") : "unasked", text, pips: null };
+    return { move, state: text ? (shown ? "revealed" : "lit") : "unasked", text, pips: null, prompt: mapQuestionOf(move, draft.concept), context: move === "exclusion" ? categoryContextOf(draft) : null };
   });
 }
 
@@ -355,17 +355,33 @@ export const deskOf = (entries: readonly Entry[]): Entry[] =>
  * which also grows the page, never pulls the learner away from it. The website layout follows its own column. */
 export const chatKeyOf = (desk: readonly Entry[], pending: boolean, failure: boolean): string => `${desk.length}:${pending ? 1 : 0}:${failure ? 1 : 0}`;
 
-/** What each part asks for, in plain words: the method's moves without its names. */
+/** The task stays visible even when the learner skips the optional worked example. */
+export function mapQuestionOf(move: MoveId, concept: string): string {
+  switch (move) {
+    case "supraordinate": return `${concept} is a kind of…`;
+    case "exclusion": return `What else belongs to the same category, but isn't ${concept}?`;
+    case "isoordinate": return `What are the defining features of ${concept}?`;
+    case "infraordinate": return `How would you classify ${concept}?`;
+  }
+}
+
+/** Echo the learner's category without judging it or blocking out-of-order answers. */
+export function categoryContextOf(map: Mentefacto): string | null {
+  const category = map.supraordinate?.value.trim();
+  return category ? `Your chosen category: ${category}` : null;
+}
+
+/** Task instructions only: no examples or answers for the learner's concept. */
 export function partMeaningOf(move: MoveId, concept: string): string {
   switch (move) {
     case "supraordinate":
-      return `The closest bigger group that ${concept} belongs to.`;
+      return `Name the closest category that ${concept} belongs to.`;
     case "exclusion":
-      return `Something close to ${concept} that it isn't, and how they differ.`;
+      return "Choose a similar concept in the same category, then explain the key difference.";
     case "isoordinate":
-      return `What something needs to count as ${concept}.`;
+      return `List the features every example must have. Together, they should distinguish ${concept} from other things in the same category.`;
     case "infraordinate":
-      return `The kinds of ${concept}.`;
+      return "Choose one way to group them. State your grouping rule, then name at least two types using that same rule.";
   }
 }
 

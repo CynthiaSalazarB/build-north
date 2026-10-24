@@ -7,6 +7,7 @@ import memoryView from "@build-north/agents/fixtures/memory-view.json" with { ty
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import {
   cappedOf,
+  categoryContextOf,
   chatKeyOf,
   currentPartOf,
   deskOf,
@@ -28,6 +29,7 @@ import {
   justLitOf,
   leadOf,
   memoryConceptOf,
+  mapQuestionOf,
   nextPartOf,
   partMeaningOf,
   partNotesOf,
@@ -391,7 +393,32 @@ test("the whole-map evaluator's note on each part comes off its label", () => {
     { agent: "evaluator", kind: "feedback", text: "Not quite: a law is one rule." },
   ]);
   assert.deepEqual(notes, { supraordinate: "'Security' is too broad. What's the closest group?", exclusion: "A sharp exclusion." });
-  assert.equal(partMeaningOf("isoordinate", "CORS"), "What something needs to count as CORS.");
+  assert.equal(partMeaningOf("isoordinate", "CORS"), "List the features every example must have. Together, they should distinguish CORS from other things in the same category.");
+});
+
+test("self-test questions explain category, comparison, defining features and a consistent classification rule", () => {
+  assert.equal(mapQuestionOf("supraordinate", "API"), "API is a kind of…");
+  assert.equal(mapQuestionOf("exclusion", "API"), "What else belongs to the same category, but isn't API?");
+  assert.equal(mapQuestionOf("isoordinate", "API"), "What are the defining features of API?");
+  assert.equal(mapQuestionOf("infraordinate", "API"), "How would you classify API?");
+  assert.match(partMeaningOf("infraordinate", "API"), /grouping rule.*at least two types.*same rule/);
+  assert.match(partMeaningOf("exclusion", "API"), /same category.*key difference/);
+  assert.equal(mapQuestionOf("supraordinate", "hashing"), "hashing is a kind of…");
+});
+
+test("comparison context echoes the learner's ungraded category and follows edits without changing answers", () => {
+  const blank = blankMap("API");
+  assert.equal(categoryContextOf(blank), null);
+  assert.equal(categoryContextOf({ ...blank, supraordinate: { value: "  ", note: null } }), null);
+  const draft = withPart(blank, "supraordinate", [{ value: "  my proposed category  ", note: null }]);
+  const before = JSON.stringify(draft);
+  const comparison = wholeMapPartsOf(draft, blank).find(part => part.move === "exclusion")!;
+  assert.equal(comparison.context, "Your chosen category: my proposed category");
+  assert.equal(comparison.prompt, mapQuestionOf("exclusion", "API"));
+  assert.equal(JSON.stringify(draft), before);
+  const changed = withPart(draft, "supraordinate", [{ value: "a different category", note: null }]);
+  assert.equal(wholeMapPartsOf(changed, blank).find(part => part.move === "exclusion")!.context, "Your chosen category: a different category");
+  assert.equal(wholeMapPartsOf(blank, blank).find(part => part.move === "exclusion")!.context, null);
 });
 
 test("the memory line under a hint or the coach's words joins the cited facts' own sentences", () => {
