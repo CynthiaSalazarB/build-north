@@ -86,7 +86,7 @@ organization.
 - **New build:** `npx eas-cli workflow:run .eas/workflows/preview-build.yml`. Install the new APK on the
   phones, then Ship.
 - **Render deploy:** automatic on every merge while Auto-Deploy is on. When it's off: Render dashboard →
-  `build-north-api` → Manual Deploy → Deploy latest commit (`main`). `/health` answering `{ "ok": true }`
+  `build-north-api` → Manual Deploy → Deploy latest commit (`main`). `/health` answering `{ "ok": true, "commit": "<the merged commit>", "memory": "on" | "off" }`
   means it's up; it doesn't say which version.
 - **The testers' website:** `npx eas-cli env:pull --environment production` (it writes `app/.env.local`),
   `npx expo export --platform web --clear`, `npx eas-cli deploy --alias testers`. Then delete `app/.env.local`:

@@ -156,10 +156,16 @@ function fakeClaude(replies: [keyof typeof AGENTS, unknown][], store?: Store) {
   return { callAgentFor, logged };
 }
 
-test("GET /health answers ok", async (t) => {
+test("GET /health answers ok, and says the commit is unknown and memory is off", async (t) => {
   const res = await fetch(`${await start(t, noDb)}/health`);
   assert.equal(res.status, 200);
-  assert.deepEqual(await res.json(), { ok: true });
+  assert.deepEqual(await res.json(), { ok: true, commit: null, memory: "off" });
+});
+
+test("GET /health names the running commit and says when memory is on", async (t) => {
+  const memory = { recall: async () => null, remember: async () => {}, view: async () => ({ concepts: [] }), purge: async () => {} } as unknown as LearnerMemoryStore;
+  const res = await fetch(`${await start(t, { ...noDb, memory, commit: "179807e" })}/health`);
+  assert.deepEqual(await res.json(), { ok: true, commit: "179807e", memory: "on" });
 });
 
 test("CORS allows the configured origins only", async (t) => {
