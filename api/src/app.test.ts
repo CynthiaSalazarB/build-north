@@ -299,6 +299,25 @@ test("/turns replays the session-1 fixture one Turn per answer, then the session
   assert.deepEqual(await (await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") })).json(), latest);
 });
 
+test("POST /sessions on CORS starts a session about CORS when Cynthia's advance runs; the rig's default, the stub, says democracy (#163)", async (t) => {
+  // `advance` is the real orchestrator from @build-north/agents, not the stub the rig's `noDb` passes; a start calls
+  // no agent, so an empty script is enough
+  const live = await start(t, { ...withStore(), advance, callAgentFor: fakeClaude([]).callAgentFor });
+  for (const concept of ["CORS", "my own thing"]) {
+    const res = await post(live, { concept });
+    assert.equal(res.status, 201);
+    const turn = await res.json();
+    assert.equal(turn.mentefacto.concept, concept);
+    assert.equal(turn.messages[0].text, `You'll build the map of ${concept} in 4 parts, 2 points each. How many of the 8 points do you think you'll get?`);
+    const saved = await (await fetch(`${live}/sessions/${turn.sessionId}`, { headers: as("leo") })).json();
+    assert.equal(saved.mentefacto.concept, concept);
+  }
+  // the stub, which server.ts picks with no Claude key or no database, replays democracy whatever the concept: the
+  // assertions above only prove anything against the real orchestrator
+  const stubbed = await (await post(await start(t, withStore()), { concept: "CORS" })).json();
+  assert.equal(stubbed.mentefacto.concept, "democracy");
+});
+
 test("a resent answer gets the same Turn back, and advance runs once", async (t) => {
   let calls = 0;
   const counting: Advance = (...args) => {

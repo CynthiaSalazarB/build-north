@@ -59,7 +59,11 @@ Cynthia's orchestrator, `advance` from `@build-north/agents` (#28). With Claude 
 from [`src/advance-stub.ts`](src/advance-stub.ts) instead, with the same `Advance` type. It replays
 Cynthia's democracy walk-through, [`agents/fixtures/session-1.json`](../agents/fixtures/session-1.json):
 one `Turn` per answer, the same 9 whatever the concept, the mode or the answers (a Help gets the next
-one too), and mastery stays at level 1. That way the app runs against an API with no key.
+one too), and mastery stays at level 1. That way the app runs against an API with no key. The stub is for
+development only: a process that looks like production (`NODE_ENV=production`, which Render sets by default,
+or Render's `RENDER_GIT_COMMIT`) and lacks the Claude key or the database refuses to start instead
+(`orchestratorFor` in `src/advance-stub.ts`), so a Render deploy that lost a variable fails its health check
+and the last healthy deploy stays up.
 
 ## Claude calls
 
