@@ -68,7 +68,9 @@ Merged on Oct 22: #79, #81, #82, #88 to #100, #102, #105, #107 to #111, #113 to 
 
 - A full session on his phone with voice, and on the web with a real microphone.
 - Clerk's Android tab: the package `ca.buildnorth.realitycheck` and build 3's SHA-256, so Google sign-in works
-  on the phone. Email code works without it.
+  on the phone. Email code works without it. **Done Oct 24, about 11:55 AM:** namespace `android_app`, the package
+  and build 3's upload-keystore SHA-256 (`79:D0…9B:E3`, from Expo → Credentials); Clerk's public
+  `/.well-known/assetlinks.json` lists them. Not yet tried on a phone.
 - After #103 merges: the production web deploy (above), and one `ship.yml` run by hand. Done early on Oct 23 (above).
 - **Oct 23, #129** (`leo/alive-polish`, review requested from Cynthia): the firefly's light answers hover and touch, and five fixes from a review of `main` (a mic that could stay stuck, Send mid-phrase, the timeout's words at 90 s, Try again keeping the notes, sign-out). App only, fingerprint unchanged. Leo's standing OK: as soon as it merges, a `preview` update from `main` and the production and `testers` web redeploys, logged in `docs/expo-log.md`. Merged at 11:45 AM; as of 1:30 PM not live anywhere (the `preview` channel's newest update is #127, the production web bundle has no #129 code), so one rollout after #133 carries #129, #130, #132 and #133 together.
 - **Oct 23, #133** (`leo/expo-polish`, review requested from Cynthia, `main` merged in through #132): the web build installs as a web app on iPhones and laptops (manifest, icons, Apple metas), every page has a link card (`og.png`), the update notice checks again on the foreground and when Start is shown (once a minute), Your data ends with the running version and update, Observe gets a marker on the session route and the crashes a learner recovers from. JavaScript and web only, fingerprint unchanged. Tests on the merged tree: app 57/57, api 60 + 1 skipped, agents 103/103; tsc clean. Not checked on a device: a real iPhone's Add to Home Screen, an Android release build.
