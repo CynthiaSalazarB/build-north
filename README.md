@@ -8,7 +8,7 @@
 
 Lumente helps students who code with AI learn to explain the ideas behind their code, in their own words.
 
-<!-- TODO(Cynthia): after the Oct 24 freeze, point the Android button at the production build's install page, and swap the two grey badges for the video and Devpost links. -->
+<!-- TODO(Cynthia): after the Oct 24 freeze, add the video and Devpost badges. The Android button stays on build 3's APK: every APK uses the `preview` profile, and there is no production build (DECISIONS.md, Oct 23, one update channel). -->
 
 <a href="https://lumente.expo.app"><img alt="Try it on the web" src="https://img.shields.io/badge/Try_it_on_the_web-f2b84b?style=for-the-badge" /></a>
 <a href="https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk"><img alt="Get the Android app" src="https://img.shields.io/badge/Get_the_Android_app-16151a?style=for-the-badge&amp;logo=android&amp;logoColor=f2b84b" /></a>
