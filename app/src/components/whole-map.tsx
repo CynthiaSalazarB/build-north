@@ -85,6 +85,8 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
     <>
       <Label dim>{state.mode === "test" ? "Test myself" : "Independent practice"}</Label>
       <Title>Build your map</Title>
+      {/* the whole task in one line, for someone who has never seen the screen (Cynthia, Oct 24) */}
+      <Small dim>{"Fill the four areas, then submit."}</Small>
     </>
   );
   const guide = (
