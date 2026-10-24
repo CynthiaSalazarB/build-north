@@ -79,14 +79,15 @@ export function Firefly({ state = "asks", size, glow = false }: Props) {
     leanY.value = withTiming(y, { duration: motion.hover });
   };
 
-  // the hover, on the UI thread: each sine starts at its low point and at its own moment; with Reduce Motion the
-  // three stay at zero and nothing is scheduled
+  // the hover, on the UI thread: each sine starts at its low point and at its own moment. With Reduce Motion, and
+  // on the result where the firefly has faded and the learner reads, the three stay at zero and nothing is scheduled
   const bob = useSharedValue(-1);
   const sway = useSharedValue(-1);
   const tilt = useSharedValue(-1);
   const phase = useRef(Math.random());
+  const rests = still || state === "fades";
   useEffect(() => {
-    if (still) {
+    if (rests) {
       bob.value = 0;
       sway.value = 0;
       tilt.value = 0;
@@ -101,7 +102,7 @@ export function Firefly({ state = "asks", size, glow = false }: Props) {
       cancelAnimation(sway);
       cancelAnimation(tilt);
     };
-  }, [still, bob, sway, tilt]);
+  }, [rests, bob, sway, tilt]);
 
   // the halo is drawn at its lit size and opacity, and scaled and dimmed down to its resting look, so it never
   // blurs on the way up; a fading firefly's rests at nothing and comes up whole
