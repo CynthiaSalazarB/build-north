@@ -27,6 +27,9 @@ export type AppOptions = {
   // written when a session has its result, shown by GET /me/memory and purged by DELETE /me/data. null with the
   // flag off: every route then runs as before memory existed.
   memory: LearnerMemoryStore | null;
+  // The commit this process runs (Render's RENDER_GIT_COMMIT, shortened), so /health says what is live
+  // without a dashboard visit. null when unknown (local runs, tests).
+  commit?: string | null;
 };
 
 const MAX_CONCEPT = 100;
@@ -79,7 +82,7 @@ function parseNewSession(body: unknown): Parsed<NewSession> {
   return { ok: true, value: { concept: concept.trim(), material: material?.trim() ? material : null, mode } };
 }
 
-export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, userFromToken, devKey, requestsPerMinute = 60, memory }: AppOptions) {
+export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, userFromToken, devKey, requestsPerMinute = 60, memory, commit = null }: AppOptions) {
   const app = express();
   app.disable("x-powered-by");
   // Render puts one proxy in front of the app; trusting it makes req.ip the caller's address.
@@ -112,8 +115,10 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     return { user, store };
   }
 
+  // `ok` is what Render's health check reads; `commit` and `memory` let anyone confirm which commit is live
+  // and whether the memory flag is on, with one request and no dashboard. Neither is a secret.
   app.get("/health", (_req, res) => {
-    res.json({ ok: true });
+    res.json({ ok: true, commit, memory: memory ? "on" : "off" });
   });
 
   // After /health, so Render's health checks never count against it.
