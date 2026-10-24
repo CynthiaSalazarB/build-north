@@ -84,12 +84,10 @@ the questions, judges the answers and words the hints.
 
 - Lumente is live on the web and on Android, built, updated and hosted with EAS. The website installs
   as an app from the browser.
-- On the evening of Oct 23, five computer science students who code with AI took a test, two practice
-  sessions and a second test, on concepts they had not practiced in the app. Their first test averaged
-  `[number: Cynthia]` of 8 and their second `[number: Cynthia]`. Their predictions missed their scores by
-  `[number: Cynthia]` points on average, and `[number: Cynthia]` of them would open Lumente before an
-  exam, a project defense or an interview.
-- Fixes merged on the day of the pilot reached the testers' phones before their slots, over the air.
+- Our first pilot is coming: computer science students who code with AI take a test, two practice
+  sessions and a second test, and we compare each student's prediction with their score.
+  `[the numbers, if the pilot ends before we submit: Cynthia]`
+- A fix reaches every phone the day it merges, over the air, without a new build.
 - Agent Memory has been on in production since the evening of Oct 23.
 - Plain code computes every score, level and hint cost, so we can explain every number a learner sees.
 - The AI never wrote a map.
@@ -105,8 +103,8 @@ the questions, judges the answers and words the hints.
   example" button.
 - Hiding the answer is not enough. AI tutors with guardrails stop the harm but don't beat studying alone.
   Structure, fading help and measurement are our bet, not proven yet: our pilot has no comparison group.
-- Turn a feature on for real users before the freeze. Memory went on for the testers behind a kill
-  switch, and sessions survive a reload because tester day demanded it.
+- Turn a feature on for real users before the freeze. Memory went on before the pilot, behind a kill
+  switch, and sessions survive a reload because getting ready for testers demanded it.
 
 ## What's next for Lumente
 
@@ -132,8 +130,8 @@ TypeScript, Node 24, Express 5, Render, SurrealDB Cloud, SurrealDB Agent Memory,
 ## Links
 
 - Try it on the web: https://lumente.expo.app
-- Android app: `[link: Cynthia]` (the install page of the build we freeze on Oct 24; today it is build 3,
-  linked from the [Expo log](expo-log.md))
+- Android app: https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk (build 3,
+  the `preview` APK; every phone takes updates on the one `preview` channel)
 - Code: https://github.com/CynthiaSalazarB/build-north
 - Demo video: `[link: Cynthia]`
 - Server health check: https://build-north-api.onrender.com/health
@@ -153,8 +151,8 @@ kept, and "Delete my data" removes it. The full guide is `docs/testing-notes.md`
 |---|---|
 | Cynthia Salazar | Team lead: the product, the design and the AI agents |
 | Leo Atienza | The server, hosting, Expo builds, sign-in and the memory layer |
-| Jonathan `[last name: Cynthia]` | The app |
-| Kyle `[last name: Cynthia]` | The pilot, the pitch and the video |
+| Jhonatan Lopez | The app |
+| Kyle Argallon | The pilot, the pitch and the video |
 
 ## Categories
 
@@ -168,18 +166,18 @@ Best Overall, Best Use of Expo, Best Use of Clerk, Best Use of SurrealDB Agent M
 - The images in our design boards are CC0, public domain or from Unsplash.
 - Voice input uses `expo-speech-recognition`, a community module. The audio goes to the device's own
   speech service; only the words reach us.
-- AI tools: Lumente's AI runs on Claude (Anthropic), and we built it with Claude Code. `[confirm: Cynthia]`
-- Nothing was built before Build Week. `[confirm: Cynthia]`
+- AI tools: Lumente's AI runs on Claude (Anthropic), and we built it with Claude Code.
+- Apart from the template, fonts and images above, nothing was built before Build Week.
 
 ## Sponsor prize: Best Use of Expo
 
 One TypeScript codebase runs on Android and the web, and the website installs as an app on iPhones and
 laptops. We had no Apple account this week, so iPhones get the web app: a decision with a reason.
 
-- **EAS Build:** `[number: Cynthia]` Android builds, on SDK 58 the week it came out, as development
+- **EAS Build:** three Android builds, on SDK 58 the week it came out, as development
   builds because Expo Go could not run it yet.
-- **EAS Update** with the fingerprint policy: `[number: Cynthia]` updates over the air. Fixes merged on
-  the day of the pilot reached the testers' phones before their slots. The app says "A new version is
+- **EAS Update** with the fingerprint policy: 21 updates over the air on the `preview` channel by
+  the Oct 24 freeze. A fix merged in the day reaches every phone without a new build. The app says "A new version is
   ready" and offers Restart.
 - **EAS Hosting and Workflows:** the website, deployed from `main`.
 - **Expo Observe:** launch times and crashes on the Android app.
