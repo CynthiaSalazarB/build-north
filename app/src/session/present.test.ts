@@ -26,6 +26,7 @@ import {
   isFollowUpFeedback,
   itemsOf,
   justLitOf,
+  leadOf,
   memoryConceptOf,
   nextPartOf,
   partMeaningOf,
@@ -194,6 +195,26 @@ test("the hint card counts the Helps on the part, and the first one shows its pr
 test("the screen shows the Turn that asked the latest question, with the feedback that came with it", () => {
   // turn 7 says "yes", names the move, then asks about the next part
   assert.deepEqual(currentPartOf(through(7).entries).map((e) => e.id), ["turn-7-0", "turn-7-1", "turn-7-2"]);
+});
+
+test("the feedback on the part just finished leads the next part: the screen draws it over the question, not the name or a reveal", () => {
+  // turn 7's "yes" on the bigger group is in the part on screen, and it's the line drawn above the question
+  const part = currentPartOf(through(7).entries);
+  assert.deepEqual(leadOf(part).map((e) => [e.id, e.message.text]), [["turn-7-0", "Yes: monarchy, dictatorship and democracy are all forms of government."]]);
+  // the first part has nothing before its question, and a nudge Turn picked up after a reload has no question
+  assert.deepEqual(leadOf(currentPartOf(through(4).entries)), []);
+  assert.deepEqual(leadOf(through(5).entries.slice(-1)), []);
+  // a part Help revealed brings the reveal and the name before the next question: neither is drawn there
+  const at = (id: string, kind: "question" | "hint" | "named_move", text: string): Entry => ({
+    id,
+    from: "app",
+    message: { agent: kind === "hint" ? "hint_giver" : "app", kind, text, ...(kind === "hint" ? { hintStep: "reveal" as const } : {}) },
+    phase: "move",
+    move: "exclusion",
+    level: 2,
+  });
+  const revealed = [at("turn-9-0", "hint", "It's a form of government."), at("turn-9-1", "named_move", "That's called…"), at("turn-9-2", "question", "What isn't it?")];
+  assert.deepEqual(leadOf(currentPartOf(revealed)), []);
 });
 
 test("a short lead becomes the label over a question, and code in a question goes in chips", () => {

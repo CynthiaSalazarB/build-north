@@ -44,8 +44,8 @@ const turnOf = (entry: Entry) => /^turn-(\d+)-/.exec(entry.id)?.[1] ?? null;
 /** The part the learner is on: every entry since the Turn that started the latest move, and everything
  * after it, follow-up questions included (the exclusion's "what's the difference?" is asked on the same
  * move, so the answer before it stays on screen). The previous part's feedback and its name arrive in that
- * first Turn, before its question; the screen skips them, since the map shows how that part ended. Before
- * the moves (the guess, the first attempt, the example) the part is what came since the latest question. */
+ * first Turn, before its question; `leadOf` says which of them the screen draws. Before the moves (the guess,
+ * the first attempt, the example) the part is what came since the latest question. */
 export function currentPartOf(entries: readonly Entry[]): Entry[] {
   const latest = [...entries].reverse().find((e): e is Extract<Entry, { from: "app" }> => e.from === "app");
   if (!latest || latest.phase !== "move") return sinceLastQuestion(entries);
@@ -60,6 +60,17 @@ export function currentPartOf(entries: readonly Entry[]): Entry[] {
   // the learner's last answer on the previous move came before this move's first Turn
   while (start < entries.length && entries[start]!.from !== "app") start += 1;
   return entries.slice(start);
+}
+
+/** What the screen draws above the part's question, of the lead that comes with it in the same Turn (`lead` in
+ * agents/src/orchestrator/advance.ts): the evaluator's feedback on the part just finished, which since Oct 23
+ * says what made the answer right and what was left out (DECISIONS.md). The move's name isn't repeated, and a
+ * revealed answer was read while held: the map shows how that part ended. Empty before the moves, on the first
+ * part, and on a part picked up after a reload whose Turn had no question. */
+export function leadOf(part: readonly Entry[]): Extract<Entry, { from: "app" }>[] {
+  const asked = part.findIndex((e) => e.from === "app" && e.message.kind === "question");
+  if (asked < 0) return [];
+  return part.slice(0, asked).filter((e): e is Extract<Entry, { from: "app" }> => e.from === "app" && e.message.kind === "feedback");
 }
 
 /** True for feedback that comes with a question of the same Turn: the exclusion's follow-up, which isn't a
