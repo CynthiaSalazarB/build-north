@@ -625,3 +625,123 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** a pointer on the device, the state on the server. A resumed session shows the latest
   Turn's lines, not the whole conversation (the map and the points carry the history); the pointer lives on
   one device, so a session can't be picked up on another.
+
+### 2026-10-23 · The guess screen no longer previews the guess (proposed from the #136 diff; Cynthia to confirm or edit)
+- **Decision:** the prediction screen (`app/src/components/guess.tsx`) stays dark whatever number the learner picks:
+  its `Screen` gets no `light`, and the map beside it keeps every point open instead of claiming the guessed points
+  in amber. Saving the prediction goes on to the first question in the dark, as before.
+- **Instead of:** "The guess screen previews the light of the guess; locking it in returns to the dark" ("Progress is
+  the light", 2026-10-22), and round 9's guess row ("As the learner sets the number, the screen previews that much
+  light", `docs/design/09-lumente/README.md`), with the first guessed points claimed in amber on the map in the
+  website layout.
+- **Why:** for the map, #136's code says "A total prediction doesn't identify confidence in any particular area. Every
+  area's two points stay open", and its description says "The overall confidence gap is no longer arbitrarily
+  assigned to individual map areas." For the light preview: reason not stated in #136.
+- **Pattern / trade-off:** not stated in #136. The light still grows one stage per point proved during the session
+  and on the result (`result.tsx` keeps `light={result.score}`); only the preview before the session is gone.
+
+### 2026-10-23 · The prediction is picked from 0 to 8, with nothing selected first (proposed from the #136 diff; Cynthia to confirm or edit)
+- **Decision:** the learner taps one of nine numbers, 0 to 8 (`guess.tsx`, `Prediction`). Nothing is selected when the
+  screen opens, "Save my prediction" stays disabled until a number is, and a failed save keeps the number on screen
+  ("Try saving my prediction again"). Above the numbers: "How much can you explain on your own?", the task in one
+  paragraph, the points rule and the 2/1/0 rubric (`scoring-guide.tsx`); under them the anchors "0 · I can't explain
+  it yet" and "8 · I can explain all four". On the web the digits 0 to 8, the arrows and Enter work it. The body the
+  app sends is unchanged: `{ prediction, turn }`, a whole number from 0 to 8.
+- **Instead of:** a stepper with minus and plus starting at 4, a big rolling number and "Lock in my guess": round 9's
+  guess screen (the board, and "the design's stepper does the job" in the cut list of
+  `wiki/synthesis/plan-to-win.md`). "The learner predicts points, not a percentage" (2026-10-19) set the scale and
+  the explanation before the question; both stay.
+- **Why:** #136: "The prediction starts unselected and explains four areas × two points = eight total, with a shared
+  2/1/0 rubric." `docs/ux-guidance.md`: "The prediction has no default selection." The learner picks after seeing
+  the task and the rubric, and "Prediction records confidence; the map score records the explanation demonstrated in
+  that session."
+- **Pattern / trade-off:** not stated in #136. The one-line explanation of Oct 19 is now a paragraph plus the rubric,
+  read before any number can be picked.
+
+### 2026-10-23 · The result's map shows earned points only; the gap stays on the total (proposed from the #136 diff; Cynthia to confirm or edit)
+- **Decision:** on the result (`result.tsx`, `present.ts` `resultPartsOf`) each part shows the points it earned, filled
+  or open. The dashed coral squares for the points the prediction claimed but the map didn't prove appear only on
+  the eight-point "map score" row at the top, with the legend "prediction gap".
+- **Instead of:** the first unproved points, in part order, drawn dashed coral on the map's parts with the legend
+  "felt sure, not proved": round 9's result row ("dashed coral squares on the points claimed but not proved") and the
+  map on the Oct 22 result screen.
+- **Why:** #136: "The overall confidence gap is no longer arbitrarily assigned to individual map areas."
+  `docs/ux-guidance.md`: "Neither the preview nor the result map assigns a total prediction to particular areas. The
+  gap appears on the overall score comparison; each map area shows its actual earned points."
+- **Pattern / trade-off:** not stated in #136. Coral still marks the gap and nothing else (round 9's palette rule).
+
+### 2026-10-23 · The result says "prediction" and "map score", and a zero gap "matched" this session (proposed from the #136 diff; Cynthia to confirm or edit)
+- **Decision:** the two rows of eight points are labelled "prediction" and "map score". A zero gap reads "Your
+  prediction matched your score." with "Your confidence matched what you could explain in this session." A negative
+  gap keeps its headline and gains "You explained more than you expected in this session." Under the rows: "Your
+  prediction captured your confidence. Your map score reflects what you could explain in this session." The
+  positive-gap headline and note are unchanged (`present.ts` `gapOf`, `result.tsx`).
+- **Instead of:** "you guessed" and "you proved" over the rows, and "Your guess was exactly right." with "You know what
+  you know." for a zero gap: the headlines "The result leads with the gap in words" (2026-10-22) lists.
+- **Why:** #136: "Prediction records confidence; the result records what the learner explained in that session."
+  `docs/ux-guidance.md`: the result "explains the comparison without implying that matching one prediction proves
+  general self-knowledge", and "the zero-gap wording refers only to this session".
+- **Pattern / trade-off:** not stated in #136.
+
+### 2026-10-23 · The points rule is a shared 2/1/0 rubric, and the parts are called areas (proposed from the #136 diff; Cynthia to confirm or edit)
+- **Decision:** `POINTS_RULE` (`present.ts`) reads "4 areas × 2 points = 8 points total. Points reflect what you can
+  explain; your prediction records how confident you feel." Under it, on the prediction screen and on the result, the
+  same three lines (`SCORING`, `scoring-guide.tsx`): 2 points, "A clear, complete answer on your first try, without a
+  hint."; 1 point, "A partly correct answer, or a correct one after a retry or hint."; 0 points, "An incorrect answer,
+  an empty area, or an answer revealed to you." The screens call the four parts "areas", and where a part can be
+  edited it is numbered ("1 · Bigger group"). `MOVE_LABEL` is unchanged.
+- **Instead of:** one line on both screens, "Each part is worth 2 points: 2 if your answer holds up on your own, 1 if it
+  partly does or took a retry or Help, 0 if it was shown to you or doesn't hold up." (the points rule under the guess
+  and on the result, Oct 22), and "parts" as the word on screen (round 9: "its four parts around it"; "Tap a part to
+  write it").
+- **Why:** #136: the prediction screen "explains four areas × two points = eight total, with a shared 2/1/0 rubric";
+  `docs/ux-guidance.md`: "The result reuses the same rubric". Reason for "areas" instead of "parts": not stated in #136.
+- **Pattern / trade-off:** #136: "The server's scoring, hint ladder, model prompts, and mastery rules are unchanged."
+  The rubric's three lines describe `pointsFor` in `agents/src/orchestrator/rules.ts`; the screen says "hint" where
+  the contract says Help.
+
+### 2026-10-23 · At level 5 the map is the task; the fact chat is optional and starts collapsed (proposed from the #136 diff; Cynthia to confirm or edit)
+- **Decision:** on the whole-map screen (`app/src/components/whole-map.tsx`: level 5 and the self-test) the learner
+  writes on the map first. An intro says "Build your map"; the firefly's dashed line and an amber outline mark the first
+  empty part in move order (`present.ts` `nextPartOf`), a button opens it ("Start: Bigger group", then "Write: …"), and
+  each part says "Write here →", "Write answer" or "Edit answer". Following the highlight is interface guidance: no
+  server call, no Help, no score. Every part stays editable in any order; the editor's button is "Save answer". The
+  fact chat starts collapsed behind "Ask a fact (optional)"; its field no longer glows amber and its button says "Ask a
+  fact". "Review & submit" opens a sheet that lists the four answers, with each exclusion's difference, warns which parts
+  are empty ("Empty areas score 0.") and then sends the map. Start's "Test myself" line says "Write your answers in the
+  four map areas. The optional chat answers factual questions." In the website layout the screen uses the same
+  two-column stage as the session (`work-stage.tsx`).
+- **Instead of:** the chat as the screen's main action: the amber question field ("Ask me a fact") at the bottom, the
+  firefly beside "You ask now. Write your answers on the map; I only answer facts." (or "Self-test: write your answers on
+  the map. Ask me facts here."), "Tap a part to write it" and a plain "Submit": round 9's "Level 5" row ("The learner
+  asks and the firefly only answers facts. The input glows amber because the light is the learner's now") and "At level
+  5 the learner asks, and the AI only gives facts" (2026-10-19), whose metric for the self-test is the questions asked.
+- **Why:** #136: "Learners were entering self-test answers in the fact chat because the chat field was the strongest
+  action. Make the map the primary task: an explicit Start button opens Bigger group, Firefly connects to the next empty
+  area, each area advertises writing/editing, and saving an answer advances the highlight. All areas stay editable in
+  any order, and navigation never consumes a hint." "The fact chat is optional and starts collapsed." "Review & submit
+  previews all answers, including exclusion differences, and warns about empty areas before the final submission."
+- **Pattern / trade-off:** #136: "The server's scoring, hint ladder, model prompts, and mastery rules are unchanged."
+  The Turn and the `/turns` bodies are the same (`{ question }`, `{ mentefacto }`, `{ action: "help" }`). Not stated in
+  #136: what a collapsed chat does to the self-test's metric, the questions asked and how many test the concept
+  (`Result.questions`, the Oct 19 entry, `docs/tester-protocol.md`).
+
+### 2026-10-23 · At level 5 the firefly is a guide, not Help; Help is a link with a confirmation (proposed from the #136 diff; Cynthia to confirm or edit)
+- **Decision:** on the whole-map screen the firefly can't be tapped: it sits by "Area 1 of 4 · Start with Bigger group"
+  and its line points at the next empty part. Help is an underlined link under the chat controls (`whole-map.tsx`,
+  `HintSheet`): "Get a hint · −1 point" for the first Help on a part, "More help" after, with the part it goes to ("For
+  Bigger group. See the scoring effect before you confirm."). Tapping it opens a sheet that names the part the server's
+  hint order picks (the first part whose hints haven't run out), says the cost ("This hint limits this area to 1 point
+  instead of 2.", "This area is already limited to 1 point.", or "This shows the answer. This area will score 0
+  points."), and sends `{ action: "help" }` only on "Get hint" or "Reveal answer · 0 points"; "Keep working" sends
+  nothing. A reveal shows in the chat as the part's name, "0 points" and the revealed answer. In the guided levels (2
+  to 4) the firefly stays Help (`session.tsx`, `messages.tsx` `Ask`).
+- **Instead of:** tapping the firefly is Help at every level, with the tag "help −1" or "help" under it: "The app's
+  design is Lumente (round 9)" (2026-10-22: "a firefly tutor asks them, a dashed amber line runs from it to the part
+  being asked, and it is Help") and round 9's firefly row ("Tapping it is Help (−1 point)").
+- **Why:** #136: "Conceptual hints use a separate confirmation that names the actual server-selected area and explains
+  the point cap or reveal cost." `docs/ux-guidance.md`: "its confirmation names the actual target and states the score
+  cap or reveal cost before it is requested. The navigation highlight does not change that target."
+- **Pattern / trade-off:** not stated in #136. The firefly's line now marks the next empty part, not the part Help goes
+  to; the sheet says so ("Hints follow the map's area order, even if you are editing another area."). The hint order is
+  unchanged (CONTRACTS.md section 3, "Help on the whole map").

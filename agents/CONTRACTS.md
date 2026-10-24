@@ -10,7 +10,7 @@ Three layers, three pairs of people:
 |---|---|---|
 | App ↔ API | Jonathan + Leo | [1. API and the `Turn`](#1-api-and-the-turn) |
 | API ↔ agents | Leo + Cynthia | [2. Agents](#2-agents) |
-| What's stored | Leo | [3. State in SurrealDB](#3-state-in-surrealdb) |
+| What's stored | Leo | [4. State in SurrealDB](#4-state-in-surrealdb) |
 
 **The rule behind the split: numbers in code, words in the model.** Code picks the level, the hint
 step, the points, the calibration gap and the mastery update, so the numbers on the slide are
@@ -58,17 +58,17 @@ const MOVE_LABEL: Record<MoveId, string> = {
 
 ## 1. API and the `Turn`
 
-Every call needs the Clerk token as `Authorization: Bearer <token>`. Until Clerk lands (Oct 21) the
-API accepts an `x-dev-user: <name>` header instead, but only together with `x-dev-key: <the shared
-dev key>` (Leo shares it privately; it never goes in the repo or the deployed web build). The API
-rejects both when `NODE_ENV=production`. Every route except `/health` allows 60 requests a minute
-from one IP; past that the API answers `429`.
+Every call needs the Clerk token as `Authorization: Bearer <token>` (Clerk is in since #23). Outside
+production the API also accepts an `x-dev-user: <name>` header, but only together with `x-dev-key: <the
+shared dev key>` (Leo shares it privately; it never goes in the repo or the deployed web build). The API
+rejects both when `NODE_ENV=production` or when no `DEV_KEY` is set. Every route except `/health` allows
+60 requests a minute from one IP (`REQUESTS_PER_MINUTE` changes the number); past that the API answers `429`.
 
 | Method | Path | Body | Returns |
 |---|---|---|---|
 | `POST` | `/sessions` | `{ concept, material?, mode? }` | `Turn` (asks for the prediction) |
 | `POST` | `/sessions/:id/turns` | one of `{ prediction }`, `{ text }`, `{ question }`, `{ mentefacto }`, `{ action: "help" }`, `{ action: "continue" }` | `Turn` |
-| `GET` | `/sessions/:id` | | latest `Turn` (resume after the app reloads) |
+| `GET` | `/sessions/:id` | | latest `Turn`: Resume on Start reads it after a reload or a killed app (#137). `404` for a session that isn't the caller's |
 | `GET` | `/me/mastery` | | `Mastery` |
 | `GET` | `/me/memory` | | `MemoryView` (the Memory sheet; see [Memory](#memory-what-earlier-sessions-left)) |
 | `DELETE` | `/me/data` | | `204`, deletes sessions, logs and mastery, and purges the learner's memory (the delete button) |
@@ -95,9 +95,17 @@ moves, or any body once `expects` is `none` (the session is over). Like a resent
 draws whatever `Turn` comes back; the reason goes to the server log. Errors with no `Turn` to send
 back (a malformed body, a session that doesn't exist) answer `{ error }`.
 
-`prediction` is a whole number from 0 to 8. Before it, the app explains the task in one line and
-asks on the same scale as the score: "You'll build the map of democracy in 4 parts, 2 points each.
-How many of the 8 points do you think you'll get?"
+Before a `Turn` is saved, the API checks it against the `Turn` schema (#141). One that fails is never saved:
+the answer is the latest `Turn` again with `error: { code: "agent_failed", retryable: true }`, nothing is
+written to the session, mastery or memory, the reason goes to the server log, and the retry runs the agents
+again. A `Turn` with `error` set saves nothing either, and mastery is written only for the moves a `Turn`
+changed (#124).
+
+`prediction` is a whole number from 0 to 8. The first `Turn` asks on the same scale as the score, in one
+line from code: "You'll build the map of democracy in 4 parts, 2 points each. How many of the 8 points do
+you think you'll get?" (`agents/src/orchestrator/texts.ts`). The app's prediction screen shows its own
+words in place of that line (#136): the task, the points rule and the 2/1/0 rubric over a picker of 0 to 8
+with nothing selected, and it sends `{ prediction, turn }` once the learner has picked a number.
 
 `material` is text the learner pastes (notes, a passage); no files, photos or links in this version. Over 8,000 characters the API answers `413` with a message
 asking for a shorter excerpt; it never trims silently.
@@ -124,7 +132,8 @@ type Turn = {
     sources?: { id: string; text: string }[];   // those facts' own words, filled by the API before the Turn goes out
   }[];
   expects: "prediction" | "text" | "continue" | "map" | "none";   // decides which input the screen shows
-  // "map" = level 5: a chat box for the learner's questions + the editable map + a Submit button
+  // "map" = level 5: the editable map (the app marks the next empty part, #136), an optional chat box for the
+  // learner's questions, Help behind a confirmation, and Review & submit
   scaffold: { given: string[]; blanks: number } | null;     // level 3 only: the half-built part
   mentefacto: Mentefacto;                                   // what the learner has built so far
   example: Mentefacto | null;   // phase "example" only: the worked example's map (planet) as it fills in
@@ -294,7 +303,9 @@ In: `AgentContext`
   "scaffold": null }
 ```
 
-At level 3, `scaffold` is filled (`{ "given": ["free elections", "rights"], "blanks": 1 }`). Levels
+At level 3, `scaffold` is filled (`{ "given": ["free elections", "rights"], "blanks": 1 }`). A scaffold with
+no blanks is dropped by the orchestrator and the question stands alone (#139), so `Turn.scaffold` always has
+at least one blank. Levels
 4 and 5 use fixed text from code ("Now find the exclusion.", "Build the mentefacto for inflation.
 Ask me any facts you need."), no model call.
 
@@ -360,6 +371,9 @@ Help exists and costs a point (a question that points somewhere would be a free 
   "answer": "That part is yours to decide. If you're stuck, tap Help (it costs a point).",
   "questionType": "asks_for_structure" }
 ```
+
+Code puts the fixed redirect text on either signal, `kind: "redirect"` or `questionType: "asks_for_structure"`,
+whatever the model wrote in `answer` (#139).
 
 When the learner types an answer in the chat instead of a question ("software interface"), the fact desk
 hands it back with `questionType: "states_an_answer"`. Code then shows its own fixed line, whatever the
@@ -481,9 +495,10 @@ function advance(
 ): Promise<{ session: Session; mastery: Mastery; turn: Turn }>;
 ```
 
-The API loads the session and mastery, calls `advance`, saves what comes back, and returns the
-`Turn`. The repeat check on the `turn` number happens in the API before `advance`, so `advance` never
-sees a resend.
+The API loads the session and mastery, calls `advance`, checks the `Turn` against its schema (#141), saves
+what comes back, and returns the `Turn`. A `Turn` with `error`, or one off the contract, is not saved (#124,
+#141), and mastery is written only for the moves the `Turn` changed (#124). The repeat check on the `turn`
+number happens in the API before `advance`, so `advance` never sees a resend.
 The API never decides the flow; the orchestrator never stores anything. In test mode `advance` returns
 the mastery unchanged. If `callAgent` throws, `advance` returns the session unchanged and a `Turn`
 with `error` set. What `callAgent` throws carries `code` and `retryable`, the two fields of

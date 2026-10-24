@@ -33,7 +33,7 @@ local files with their `.ts` extension, and use `import type` for types. The typ
 | `GET /health` | `{ ok: true }`. Render's health check; never touches the database |
 | `GET /health/db` | Asks SurrealDB for its clock and returns it with how many milliseconds that took. Read-only. `503` when the database is not configured, refuses the login or takes over 5 s; the cause goes to the server log, not the response |
 | `POST /sessions` | `{ concept, material?, mode? }`: saves a new session and returns its first `Turn`, the prediction question. `mode: "test"` (the testers' pre-test and post-test) puts every move at level 5: after the prediction the learner asks the fact desk with `{ question }` and builds the whole map, and the session never writes mastery. `400` for a bad body, `413` for notes over 8,000 characters |
-| `GET /sessions/:id` | The session's latest `Turn`. `404` if it doesn't exist or belongs to someone else |
+| `GET /sessions/:id` | The session's latest `Turn`: Resume on Start reads it after a reload or a killed app (#137). `404` if it doesn't exist or belongs to someone else |
 | `POST /sessions/:id/turns` | One of the bodies in CONTRACTS.md section 1, plus `turn`, the number of the `Turn` it answers. Returns the next `Turn`. An answer to an older `Turn` gets the latest one back and runs nothing; two copies of the same answer arriving at once both run, and the one that saves first is the one that counts. A `Turn` with `error` saves nothing, and neither does a `Turn` that doesn't fit the contract (checked with the `Turn` schema before the save): the answer is then the latest `Turn` with `error` set (`agent_failed`, retryable), the reason goes to the server log, and the retry runs the agents again. Mastery is written only for the moves the `Turn` changed, never for a test session. `400` for a bad body, `404` if the session doesn't exist or belongs to someone else (both with `{ error }`). `409` with the latest `Turn` for a `turn` from the future or a body the latest `Turn` doesn't ask for; the reason goes to the server log |
 | `GET /me/mastery` | The caller's `Mastery`: the four moves in session order, at level 1 until the orchestrator raises them |
 | `GET /me/memory` | The caller's `MemoryView` (CONTRACTS.md section 2b), what the app's Memory sheet shows: per concept and part the level now and how it changed, and the latest guess against the score beside the one before. `{ "concepts": [] }` with memory off, or before a first finished session |
@@ -102,7 +102,8 @@ again at $0 after a restart; the account's own balance, with auto-reload off (#2
 [`src/memory.ts`](src/memory.ts) is the API's side of SurrealDB Agent Memory (CONTRACTS.md section 2,
 Memory): what earlier sessions left about a learner, read before the hint giver and the coach, written
 when a session reaches its result, shown by `GET /me/memory` and purged by `DELETE /me/data`. Off by
-default; on, in production, for the demo.
+default. Decided Oct 23 (`DECISIONS.md`, "Agent Memory goes on for the testers"): on in production before
+the first tester, once the app update that carries #130 has shipped.
 
 | Variable | What it does |
 |---|---|
@@ -135,9 +136,10 @@ is down costs the learner nothing but the facts, and the cause goes to the serve
 stay the record; memory never changes a number.
 
 **Turning it on in production:** the app parses every `Turn` with the strict schema, so a build without
-the `cites` and `sources` fields (the testers' build) rejects a Turn that carries them. Ship the app
-update with #112 first, then set `AGENT_MEMORY_ENABLED=true` on Render (docs/deploy.md: Ship, then
-Render).
+the `cites` and `sources` fields rejects a Turn that carries them. The order is Ship, then Render
+(docs/deploy.md): the app update with #130 (issue #112) first, then `AGENT_MEMORY_ENABLED=true` on Render.
+The update reached the `preview` channel and both web addresses on Oct 23 (`docs/expo-log.md`, the 12:50 PM
+rollout of `main` at 99880ae), so the Render variable is the step left.
 
 ```bash
 npm run memory:smoke -w api
@@ -190,8 +192,8 @@ npm run smoke -w api                                          # the live API and
 npm run smoke -w api -- http://localhost:3000 http://localhost:8081   # or any pair
 ```
 
-Seven checks with no credentials, exit code 1 on any failure: `/health`, `/health/db` (writes to the
-database), a call with no token and one with the dev headers both answer 401, the web build's origin
+Seven checks with no credentials, exit code 1 on any failure: `/health`, `/health/db` (read-only: it asks the
+database for its clock), a call with no token and one with the dev headers both answer 401, the web build's origin
 passes the CORS preflight, the web build answers with Lumente's title, and its bundle names this API's
 host (a demo-mode export would not). A full session on the public URL is still a person's walk through
 the web build; this is the part before and after it, and the warm-up before the testers.
@@ -205,12 +207,12 @@ Render dashboard → **New → Web Service**:
 | Source | **Git Provider** once the Render GitHub app has access to this repo (auto-deploys on merge). Until then, **Public Git Repository** with `https://github.com/CynthiaSalazarB/build-north` (manual deploys only) |
 | Branch | `main` |
 | Region | Closest to the SurrealDB instance, whose AWS region code is in `SURREAL_URL` (`aws-euw1` would be eu-west-1). It can't be changed later |
-| Root directory | Empty (the repo root): the API needs the workspace lockfile, and soon `agents/` |
+| Root directory | Empty (the repo root): the API needs the workspace lockfile and `agents/` (`@build-north/agents`) |
 | Build command | `npm ci --workspace api` |
 | Start command | `node api/src/server.ts` |
 | Health check path | `/health` (under Advanced) |
 | Instance type | Free while building (it sleeps after 15 min idle and takes about a minute to wake). Starter from Oct 22, per `DECISIONS.md` |
-| Environment | `CORS_ORIGIN` (comma-separated: the Expo dev server and every web build's address, since a web build's Clerk token must come from one of them), the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `CLERK_JWT_KEY` (#23), and `ANTHROPIC_API_KEY` with `AGENT_BUDGET_USD` for Claude calls (#10) |
+| Environment | `CORS_ORIGIN` (comma-separated: the Expo dev server and every web build's address, since a web build's Clerk token must come from one of them), the `SURREAL_*` values with `SURREAL_DATABASE=prod`, `CLERK_JWT_KEY` (#23), `ANTHROPIC_API_KEY` with `AGENT_BUDGET_USD` for Claude calls (#10), `REQUESTS_PER_MINUTE` for a room on one IP, and with memory on the `AGENT_MEMORY_*` variables and `LEARNER_ID_SALT` (above) |
 
 The Node version comes from [`../.node-version`](../.node-version). Render sets `PORT` itself, and
 also sets `NODE_ENV=production` unless the service sets its own, which turns `x-dev-user` off on the
