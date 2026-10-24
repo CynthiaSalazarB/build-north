@@ -4,7 +4,7 @@ How to try Lumente in five minutes, on the web or on an Android phone, without a
 
 ## 1. Open it
 
-- **Web:** https://reality-check.expo.app, on a laptop or a phone browser. From 1,000 px wide the app lays out
+- **Web:** https://lumente.expo.app, on a laptop or a phone browser. From 1,000 px wide the app lays out
   as a website: the words on the left, the map on the right.
 - **Android:** install the `preview` APK from the link in the [README](../README.md#try-it). Android asks
   once to allow installs from the browser. The app updates itself over the air on its second launch after
@@ -18,7 +18,7 @@ Sign-in is Clerk's. Two ways:
 - **Google**, one tap, on the web.
 - **Email code.** Any address works. To skip real email, use a Clerk test address: anything ending in
   `+clerk_test@example.com` (for example `judge+clerk_test@example.com`) and the code `424242`. No
-  email is sent. If the form asks for a password, set any password; the test address accepts it.
+  email is sent. Sign-up asks for no password.
 
 Sign-in creates your own account with no data in it. Nothing is shared between accounts.
 

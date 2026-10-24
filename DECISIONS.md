@@ -816,3 +816,25 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Pattern / trade-off:** motion on the UI thread (Reanimated), a few pixels, slow enough to read as holding still.
   The hover's anchor is the layout box, so the leader line meets the firefly within 3 px rather than at its centre.
 
+### 2026-10-24 · The old `reality-check` addresses can't reach the API
+- **Decision:** `CORS_ORIGIN` on Render lists `localhost:8081` and the three lumente addresses only (12:16 PM). Clerk's
+  `azp` check reads the same list, so a sign-in from `reality-check.expo.app` is refused too.
+- **Instead of:** keeping the two `reality-check` origins through Demo Day, so an old link still opens a working, older
+  app (`179807e`).
+- **Why:** Leo and Cynthia, Oct 24: one name everywhere a person looks. We can't update or remove the old site (Expo
+  keeps the released name on its last deployment), so the API is the one place we can stop it.
+- **Pattern / trade-off:** anyone with an old link sees the old site fail at "Can't reach the server" instead of a
+  working app under the old name; every link we hand out says lumente. A Render variable change is a deploy, so it
+  went in before the 6 PM freeze.
+
+### 2026-10-24 · Clerk Protect doesn't challenge sign-ups
+- **Decision:** Clerk → Protect → "Challenge suspicious sign-ups" is off on the development instance (about 3:30 PM).
+- **Instead of:** Clerk's default, which challenges sign-ups that look automated or come through a VPN, Tor or a
+  proxy.
+- **Why:** at 3:20 PM Leo's Google sign-up on the web was challenged and the hosted `/sign-up/protect-check` page stayed
+  blank, so the sign-up never finished (Clerk's Application Logs: `protect.sign_up.challenged`). A campus or venue
+  network can look like a proxy, and on Demo Day judges sign up from one Wi-Fi.
+- **Pattern / trade-off:** a sign-up nobody can finish costs more than weaker bot screening for a week. What still
+  guards us: the API's rate limit (240 a minute per IP), the Claude budget cap (`AGENT_BUDGET_USD`), the development
+  instance's 100-user cap, and Clerk's lockout after failed sign-ins. Native apps were never challenged.
+
