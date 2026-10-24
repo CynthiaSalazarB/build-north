@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lumente - Step 1: Your Guess</title>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-highest": "#363434",
+            "on-primary-fixed-variant": "#494742",
+            "tertiary-fixed-dim": "#cac5c8",
+            "surface-container-light": "#fffaf2",
+            "primary-fixed": "#e7e2db",
+            "on-secondary-fixed-variant": "#5f4100",
+            "on-surface-variant-dark": "#c9c0b4",
+            "surface-dark": "#16151a",
+            "on-primary-dark": "#111114",
+            "on-secondary-fixed": "#271900",
+            "on-surface-dark": "#f4efe8",
+            "tertiary": "#ffffff",
+            "surface-bright": "#3a3938",
+            "lit-light": "#fffdf8",
+            "error-container": "#93000a",
+            "surface-tint": "#cac6bf",
+            "surface": "#141313",
+            "gap-dark": "#ff9b80",
+            "lit-dark": "#fbf6ee",
+            "tertiary-container": "#e7e1e4",
+            "tertiary-fixed": "#e7e1e4",
+            "surface-light": "#fbdeb4",
+            "gap-light": "#9e3420",
+            "surface-container-dark": "#1f1d22",
+            "surface-variant": "#363434",
+            "outline": "#949088",
+            "on-secondary-container": "#392600",
+            "primary-fixed-dim": "#cac6bf",
+            "primary-container": "#e7e2db",
+            "hint-container": "#f6e3a8",
+            "inverse-on-surface": "#31302f",
+            "secondary": "#f7bd4f",
+            "on-secondary": "#422c00",
+            "outline-variant": "#494740",
+            "surface-container-low": "#1c1b1b",
+            "outline-dark": "rgba(255,240,225,0.22)",
+            "on-primary-fixed": "#1d1b17",
+            "on-surface-light": "#17161a",
+            "primary": "#ffffff",
+            "secondary-container": "#bb881c",
+            "inverse-surface": "#e6e2e0",
+            "background": "#141313",
+            "on-background": "#e6e2e0",
+            "outline-light": "rgba(23,22,26,0.22)",
+            "on-error-container": "#ffdad6",
+            "inverse-primary": "#605e59",
+            "on-primary": "#32302c",
+            "error": "#ffb4ab",
+            "on-hint-container": "#3a2a0e",
+            "surface-container-high": "#2b2a29",
+            "surface-container": "#201f1f",
+            "on-tertiary-container": "#676366",
+            "surface-container-lowest": "#0f0e0e",
+            "on-tertiary-fixed": "#1d1b1d",
+            "on-primary-light": "#f6f1ea",
+            "secondary-fixed": "#ffdeaa",
+            "on-tertiary": "#323032",
+            "on-primary-container": "#67645f",
+            "on-tertiary-fixed-variant": "#494648",
+            "question-container-light": "rgba(242,184,75,0.18)",
+            "on-surface": "#e6e2e0",
+            "question-container-dark": "rgba(40,28,14,0.85)",
+            "firefly": "#f2b84b",
+            "surface-dim": "#141313",
+            "secondary-fixed-dim": "#f7bd4f",
+            "on-surface-variant": "#cbc6bd",
+            "on-error": "#690005",
+            "on-surface-variant-light": "#433c35"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin": "24px",
+            "space-lg": "32px",
+            "space-sm": "16px",
+            "space-md": "24px",
+            "space-xs": "8px",
+            "space-xl": "40px",
+            "gutter": "24px"
+          },
+          "fontFamily": {
+            "label-sm": ["Inter"],
+            "body-lg": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "label-md": ["Inter"],
+            "headline-md": ["Inter"],
+            "body-md": ["Inter"],
+            "headline-lg": ["Inter"]
+          },
+          "fontSize": {
+            "label-sm": ["13px", { "lineHeight": "1.4", "fontWeight": "500" }],
+            "body-lg": ["17px", { "lineHeight": "1.5", "fontWeight": "400" }],
+            "headline-lg-mobile": ["28px", { "lineHeight": "1.3", "fontWeight": "600" }],
+            "label-md": ["14px", { "lineHeight": "1.4", "fontWeight": "500" }],
+            "headline-md": ["28px", { "lineHeight": "1.3", "fontWeight": "600" }],
+            "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+            "headline-lg": ["32px", { "lineHeight": "1.3", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .material-symbols-outlined {
+      font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      display: inline-block;
+      vertical-align: middle;
+      line-height: 1;
+    }
+    
+    /* Background grid: 24px subtle squares with 96px major lines */
+    .lumente-grid {
+      background-size: 24px 24px, 96px 96px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to right, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+    }
+
+    /* Ambient firefly glow in upper corner */
+    .radial-firefly-glow {
+      background: radial-gradient(circle at 100% 0%, rgba(242, 184, 75, 0.12) 0%, rgba(22, 21, 26, 0.95) 60%, #111114 100%);
+    }
+
+    /* Subtle firefly pulse */
+    @keyframes pulse-subtle {
+      0%, 100% { opacity: 0.85; transform: scale(1); filter: drop-shadow(0 0 4px rgba(242, 184, 75, 0.5)); }
+      50% { opacity: 1; transform: scale(1.1); filter: drop-shadow(0 0 8px rgba(242, 184, 75, 0.8)); }
+    }
+    .firefly-glow-anim {
+      animation: pulse-subtle 4s ease-in-out infinite;
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface-dark text-on-surface-dark min-h-screen flex flex-col font-body-md antialiased select-none">
+<!-- Canvas Frame: Mobile container (max-w-md, ~390px width layout) -->
+<div class="relative w-full max-w-md mx-auto min-h-screen flex flex-col justify-between overflow-hidden shadow-2xl lumente-grid border-x border-outline-variant/30">
+<!-- Top-Right Firefly Radial Illumination Overlay -->
+<div class="pointer-events-none absolute inset-0 radial-firefly-glow z-0"></div>
+<!-- Content Wrapper -->
+<div class="relative z-10 flex flex-col flex-1 pb-32">
+<!-- Shared Component: TopAppBar (Docked Top) -->
+<header class="w-full bg-surface/90 backdrop-blur-md px-margin py-3 border-b border-outline-variant/30 flex justify-between items-center">
+<!-- Brand Cluster with Firefly Guide -->
+<div class="flex items-center gap-2">
+<div class="relative flex items-center justify-center">
+<span class="w-2.5 h-2.5 rounded-full bg-firefly firefly-glow-anim inline-block"></span>
+</div>
+<span class="font-headline-md text-headline-md font-semibold text-on-primary-light tracking-tight">Lumente</span>
+</div>
+<!-- Trailing Action: Plain Help button with upfront transparency -->
+<button class="text-firefly font-label-md text-label-md hover:text-secondary-fixed transition-colors duration-200 active:opacity-80 flex items-center gap-1" type="button">
+<span>Help</span>
+<span class="material-symbols-outlined text-[16px]">help</span>
+</button>
+</header>
+<!-- Main Step Flow -->
+<main class="px-margin pt-6 flex flex-col gap-6">
+<!-- Step Indicator Pill -->
+<div class="flex items-center">
+<span class="bg-surface-container-dark border border-[rgba(255,240,225,0.15)] text-on-surface-variant-dark font-label-sm text-label-sm px-3 py-1 rounded-full inline-flex items-center gap-2">
+<span class="w-1.5 h-1.5 rounded-full bg-firefly"></span>
+            Step 1 of 3: your guess
+          </span>
+</div>
+<!-- Primary Question Section -->
+<section class="flex flex-col">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile font-semibold text-on-surface-dark leading-tight tracking-tight">
+            How many points will you get?
+          </h1>
+<p class="font-body-md text-body-md text-on-surface-variant-dark leading-relaxed mt-2">
+            You will explain 4 parts of Recursion. Each part is worth 2 points, so 8 in all.
+          </p>
+</section>
+<!-- Point Selector: 0 to 8 Selection Grid -->
+<section class="flex flex-col items-center mt-2">
+<div aria-label="Points guess" class="grid grid-cols-5 gap-3 w-full max-w-[340px] place-items-center" id="points-container" role="radiogroup">
+<button aria-checked="false" class="point-btn w-[52px] h-[52px] min-w-[46px] min-h-[46px] rounded-full bg-surface-container-dark/60 border border-[rgba(255,240,225,0.22)] text-on-surface-dark font-headline-md text-body-lg flex items-center justify-center transition-all duration-200 active:scale-95 hover:border-firefly/60" data-point="0" role="radio" type="button">
+              0
+            </button>
+<button aria-checked="false" class="point-btn w-[52px] h-[52px] min-w-[46px] min-h-[46px] rounded-full bg-surface-container-dark/60 border border-[rgba(255,240,225,0.22)] text-on-surface-dark font-headline-md text-body-lg flex items-center justify-center transition-all duration-200 active:scale-95 hover:border-firefly/60" data-point="1" role="radio" type="button">
+              1
+            </button>
+<button aria-checked="false" class="point-btn w-[52px] h-[52px] min-w-[46px] min-h-[46px] rounded-full bg-surface-container-dark/60 border border-[rgba(255,240,225,0.22)] text-on-surface-dark font-headline-md text-body-lg flex items-center justify-center transition-all duration-200 active:scale-95 hover:border-firefly/60" data-point="2" role="radio" type="button">
+              2
+            </button>
+<button aria-checked="false" class="point-btn w-[52px] h-[52px] min-w-[46px] min-h-[46px] rounded-full bg-surface-container-dark/60 border border-[rgba(255,240,225,0.22)] text-on-surface-dark font-headline-md text-body-lg flex items-center justify-center transition-all duration-200 active:scale-95 hover:border-firefly/60" data-point="3" role="radio" type="button">
+              3
+            </button>
+<button aria-checked="false" class="point-btn w-[52px] h-[52px] min-w-[46px] min-h-[46px] rounded-full bg-surface-container-dark/60 border border-[rgba(255,240,225,0.22)] text-on-surface-dark font-headline-md text-body-lg flex items-center justify-center transition-all duration-200 active:scale-95 hover:border-firefly/60" data-point="4" role="radio" type="button">
+              4
+            </button>
+<button aria-checked="false" class="point-btn w-[52px] h-[52px] min-w-[46px] min-h-[46px] rounded-full bg-surface-container-dark/60 border border-[rgba(255,240,225,0.22)] text-on-surface-dark font-headline-md text-body-lg flex items-center justify-center transition-all duration-200 active:scale-95 hover:border-firefly/60" data-point="5" role="radio" type="button">
+              5
+            </button>
+<button aria-checked="false" class="point-btn w-[52px] h-[52px] min-w-[46px] min-h-[46px] rounded-full bg-surface-container-dark/60 border border-[rgba(255,240,225,0.22)] text-on-surface-dark font-headline-md text-body-lg flex items-center justify-center transition-all duration-200 active:scale-95 hover:border-firefly/60" data-point="6" role="radio" type="button">
+              6
+            </button>
+<button aria-checked="false" class="point-btn w-[52px] h-[52px] min-w-[46px] min-h-[46px] rounded-full bg-surface-container-dark/60 border border-[rgba(255,240,225,0.22)] text-on-surface-dark font-headline-md text-body-lg flex items-center justify-center transition-all duration-200 active:scale-95 hover:border-firefly/60" data-point="7" role="radio" type="button">
+              7
+            </button>
+<button aria-checked="false" class="point-btn w-[52px] h-[52px] min-w-[46px] min-h-[46px] rounded-full bg-surface-container-dark/60 border border-[rgba(255,240,225,0.22)] text-on-surface-dark font-headline-md text-body-lg flex items-center justify-center transition-all duration-200 active:scale-95 hover:border-firefly/60" data-point="8" role="radio" type="button">
+              8
+            </button>
+</div>
+<span class="font-label-sm text-label-sm text-on-surface-variant-dark mt-3 text-center transition-colors" id="selector-hint">
+            Tap a number.
+          </span>
+</section>
+<!-- Muted Note: Light Preview Card -->
+<aside class="bg-surface-container-dark border border-[rgba(255,240,225,0.12)] rounded-2xl p-4 flex items-start gap-3 mt-1">
+<div class="mt-0.5 shrink-0 text-firefly flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]" style="font-variation-settings: 'FILL' 1;">lightbulb</span>
+</div>
+<p class="text-on-surface-variant-dark font-label-sm text-label-sm leading-relaxed">
+            The screen lights up as you prove each point.
+          </p>
+</aside>
+<!-- Secondary Guidance Container -->
+<section class="bg-surface-container-dark/40 border border-[rgba(255,240,225,0.08)] rounded-2xl p-4 flex flex-col">
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-secondary text-[18px]">psychology</span>
+<h2 class="font-label-md text-label-md font-medium text-on-surface-dark">
+              What is a good guess?
+            </h2>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant-dark leading-relaxed mt-1.5">
+            Pick what you honestly expect. The gap between your guess and your score is what we learn from.
+          </p>
+</section>
+</main>
+</div>
+<!-- Bottom CTA Docked Area -->
+<footer class="fixed md:absolute bottom-0 left-0 right-0 max-w-md mx-auto px-margin pt-4 pb-6 bg-gradient-to-t from-surface-dark via-surface-dark/95 to-transparent z-20">
+<button class="w-full h-[52px] bg-on-primary-light/30 text-on-primary-dark cursor-not-allowed rounded-xl font-label-md text-label-md font-medium flex items-center justify-center transition-all duration-200" disabled="" id="lock-btn" type="button">
+        Lock in my guess
+      </button>
+<p class="font-label-sm text-label-sm text-on-surface-variant-dark text-center mt-2 transition-opacity" id="cta-subtext">
+        Pick a number first.
+      </p>
+</footer>
+</div>
+<!-- Interactive Logic for Point Selection -->
+<script>
+    const buttons = document.querySelectorAll('.point-btn');
+    const lockBtn = document.getElementById('lock-btn');
+    const ctaSubtext = document.getElementById('cta-subtext');
+    const selectorHint = document.getElementById('selector-hint');
+    let selectedPoint = null;
+
+    buttons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-point');
+        
+        // Reset all states
+        buttons.forEach(b => {
+          b.setAttribute('aria-checked', 'false');
+          b.className = "point-btn w-[52px] h-[52px] min-w-[46px] min-h-[46px] rounded-full bg-surface-container-dark/60 border border-[rgba(255,240,225,0.22)] text-on-surface-dark font-headline-md text-body-lg flex items-center justify-center transition-all duration-200 active:scale-95 hover:border-firefly/60";
+        });
+
+        // Set active selected state (firefly amber glow and outline)
+        btn.setAttribute('aria-checked', 'true');
+        btn.className = "point-btn w-[52px] h-[52px] min-w-[46px] min-h-[46px] rounded-full bg-question-container-dark border-2 border-firefly text-firefly font-headline-md text-body-lg flex items-center justify-center shadow-[0_0_14px_rgba(242,184,75,0.4)] transition-all duration-200 scale-105";
+        
+        selectedPoint = val;
+
+        // Enable primary button
+        lockBtn.removeAttribute('disabled');
+        lockBtn.className = "w-full h-[52px] bg-primary text-on-primary rounded-xl font-label-md text-label-md font-medium flex items-center justify-center shadow-[0_0_18px_rgba(242,184,75,0.25)] hover:bg-lit-dark active:scale-[0.99] transition-all duration-200 cursor-pointer";
+        
+        // Update helper copy
+        ctaSubtext.textContent = `You guessed ${val} of 8 points.`;
+        ctaSubtext.className = "font-label-sm text-label-sm text-firefly text-center mt-2 font-medium";
+        
+        selectorHint.textContent = `Selected: ${val} points`;
+        selectorHint.className = "font-label-sm text-label-sm text-firefly mt-3 text-center font-medium";
+      });
+    });
+  </script>
+</body></html>
