@@ -1,6 +1,8 @@
 // The web build's root HTML (static rendering): the page is dark before the bundle runs, so the first paint is
 // the near-black the light grows out of, not a white flash; the browser's own chrome (the address bar on a
-// phone, the scrollbars, form controls) matches. It is also an installable web app: the manifest and the icons in
+// phone, form controls) matches, and scrollbars are not drawn at all: the website layout's columns scroll with
+// the wheel, the keys and a finger, but a grey track down the middle of a dark page was the one thing on screen
+// that wasn't ours (Leo, Oct 24). It is also an installable web app: the manifest and the icons in
 // `public/` let an iPhone (which has no native build) or a laptop add Lumente to its home screen and open it full
 // screen, with its own icon. Runs only in Node, when the pages are exported.
 import { ScrollViewStyleReset, useServerDocumentContext } from "expo-router/html";
@@ -25,7 +27,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="apple-mobile-web-app-title" content={brand.name} />
         <meta name="apple-mobile-web-app-status-bar-style" content="black" />
         <ScrollViewStyleReset />
-        <style dangerouslySetInnerHTML={{ __html: `html,body{background-color:${base.bottom}}` }} />
+        <style dangerouslySetInnerHTML={{ __html: `html,body{background-color:${base.bottom}}*{scrollbar-width:none}*::-webkit-scrollbar{display:none}` }} />
         {headNodes}
       </head>
       <body {...bodyAttributes}>
