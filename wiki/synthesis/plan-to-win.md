@@ -207,7 +207,7 @@ days: Render Starter and a Manual Deploy of `main` (#59), the new Android build 
 web build, the demo seed on prod, and the testers' sessions, now on Oct 22 or 23.
 
 **Status on Oct 23:** Render Starter is on, build 3 (the `preview` APK, Oct 22) is on the phones, the production
-web build is live at `reality-check.expo.app` from `main`, and the demo account is seeded in `prod`
+web build is live at `lumente.expo.app` from `main`, and the demo account is seeded in `prod`
 (`wiki/context/status-oct22.md`, `docs/expo-log.md`). Merged on Oct 23: #103, #104, #124 to #130 and #132 to
 #141 (`git log main`).
 
