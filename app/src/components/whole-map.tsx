@@ -78,6 +78,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
       <View style={styles.statusText} accessibilityLiveRegion="polite">
         <Small>{`${filled} of 4 areas filled`}</Small>
         <Small dim>Scored together when you submit.</Small>
+        {filled === 0 && <Small dim>Write in an area to review your map.</Small>}
       </View>
       <Button kind={filled === 4 ? "primary" : "secondary"} fit={wide} label="Review & submit" busy={submitting} disabled={pending || filled === 0} hint="Review your answers before submitting your map for scoring." onPress={() => setConfirming(true)} />
     </View>
@@ -116,7 +117,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
             const n = hintNumberOf(turn.progress.hintsUsed, hints.length, hints.indexOf(entry.id));
             line = message.hintStep === "reveal"
               ? <View style={styles.guideText}><Label dim>{`${AREA_LABEL[hintPartOf(n)]} · 0 points`}</Label><Revealed text={message.text} /></View>
-              : <HintCard message={message} n={(n % 4) + 1} capNote={n % 4 === 0} part={PARTS[hintPartOf(n)].label} concept={concept} />;
+              : <HintCard message={message} capNote={n % 4 === 0} part={PARTS[hintPartOf(n)].label} concept={concept} />;
           } else line = <Body>{areaCopyOf(message.text)}</Body>;
         }
         return line ? <Animated.View key={entry.id} style={entrance()}>{line}</Animated.View> : null;

@@ -109,7 +109,7 @@ function Prediction({ concept, guess, pending, onChoose, footer, wide }: { conce
           <Small dim>8 · I can explain all four</Small>
         </View>
         <View accessibilityLiveRegion="polite">
-          <Small style={{ color: c.question }}>{guess === null ? "No prediction selected" : `Your prediction: ${guess} of 8 points`}</Small>
+          <Small style={{ color: c.question }}>{guess === null ? "Choose a number from 0 to 8." : `Your prediction: ${guess} of 8 points`}</Small>
         </View>
         {/* why the learner guesses at all: the comparison at the end is the reality check (Cynthia, Oct 24) */}
         <Small dim>{"At the end, you'll compare this with your score."}</Small>

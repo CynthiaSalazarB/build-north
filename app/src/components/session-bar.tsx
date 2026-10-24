@@ -5,11 +5,11 @@ import { StyleSheet, Text, View } from "react-native";
 import { radius, size, space, type } from "../theme.ts";
 import { IconButton, useColors } from "./ui.tsx";
 
-export function SessionBar({ concept, onClose, end }: { concept: string; onClose: () => void; end?: ReactNode }) {
+export function SessionBar({ concept, onClose, end, done = false }: { concept: string; onClose: () => void; end?: ReactNode; done?: boolean }) {
   const c = useColors();
   return (
     <View style={styles.bar}>
-      <IconButton icon="x" label="Close and save" onPress={onClose} />
+      <IconButton icon="x" label={done ? "Back to concepts" : "Save and close"} caption={done ? "Done" : "Save"} onPress={onClose} />
       <View style={styles.middle}>
         <Text style={[type.pill, styles.pill, { color: c.onSurface, backgroundColor: c.controlFill }]} numberOfLines={1} accessibilityRole="header">
           {concept}

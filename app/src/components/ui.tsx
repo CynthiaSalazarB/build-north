@@ -222,8 +222,8 @@ export function Button({ label, onPress, kind = "primary", disabled, busy, hint,
   );
 }
 
-/** A square control with an icon only (Close, −, +). */
-export function IconButton({ icon, label, onPress, disabled, big = false }: { icon: IconName; label: string; onPress: () => void; disabled?: boolean; big?: boolean }) {
+/** A square icon control (Close, −, +), with an optional short visible caption. */
+export function IconButton({ icon, label, caption, onPress, disabled, big = false }: { icon: IconName; label: string; caption?: string; onPress: () => void; disabled?: boolean; big?: boolean }) {
   const c = useColors();
   const { hovered, bind, feel } = usePress();
   return (
@@ -238,6 +238,7 @@ export function IconButton({ icon, label, onPress, disabled, big = false }: { ic
       style={[styles.iconButton, big && styles.bigIcon, { backgroundColor: c.controlFill, borderColor: hovered && !disabled ? c.onSurfaceVariant : c.outline }, feel(!disabled), disabled && styles.faint]}
     >
       <Icon name={icon} color={c.onSurface} size={big ? 20 : 18} />
+      {caption && <Text style={[type.partLabel, { color: c.onSurface }]}>{caption}</Text>}
     </AnimatedPressable>
   );
 }
