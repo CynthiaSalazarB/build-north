@@ -45,7 +45,7 @@ instead of typed by hand into the database's console, where nobody would see the
 | A secret or a switch on the server (the Claude key, Clerk, the database password, the memory flag) | Edit it in Render's Environment page; saving it starts a new deploy. No code change |
 | Screens, wording, styles (`app/src`) | Ship |
 | An app setting in EAS (an `EXPO_PUBLIC_` value, like the API's address) | Ship again: these values are copied into the app when the update or the website is made. They're readable by anyone, so never a secret |
-| Icon, splash screen, app name, `app.json`, a native library, an Expo SDK upgrade | New build, install it on the phones, then Ship |
+| Icon, splash screen, app name, `app.json`, a native library, an Expo SDK upgrade, or the `scripts` in `app/package.json` (Expo hashes them into the fingerprint; #136 dropped a `lint` script for that) | New build, install it on the phones, then Ship |
 | Docs, README, DECISIONS.md | Nothing |
 
 ## When a change touches both the app and the API
@@ -56,7 +56,8 @@ that works with both the old and the new version of the other.**
 
 Example, #108 (the result shows before the coach's words): the new app works with the old API and the new
 one, while the old app with the new API would show a stray Continue button. So: Ship first, then the
-Render deploy.
+Render deploy. The same order holds for #130's memory fields: Ship first (a build without `cites` and `sources`
+rejects a Turn that carries them), then `AGENT_MEMORY_ENABLED=true` on Render.
 
 With Auto-Deploy on, the API changes the moment the pull request merges, before anyone can Ship. So when
 the app has to go first, split the change in two pull requests: the app's part first (merge it and Ship),
@@ -66,7 +67,8 @@ then the API's part.
 
 An Android app has two layers. The JavaScript layer (screens, text, logic) can be replaced over the air:
 the app downloads the update when it opens and uses it the next time it opens. The native layer (the code
-compiled into the APK: icon, splash, name, native libraries, the SDK) can only change with a new APK.
+compiled into the APK: icon, splash, name, native libraries, the SDK) can only change with a new APK. The
+fingerprint also covers the `scripts` in `app/package.json`, so a new script counts as a native change (#136).
 
 EAS takes a **fingerprint** of the native layer. An update only reaches APKs with the same fingerprint, so
 after a native change, phones with the old APK stop getting updates until they install the new build. The
