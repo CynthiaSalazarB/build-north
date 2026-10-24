@@ -626,6 +626,21 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   Turn's lines, not the whole conversation (the map and the points carry the history); the pointer lives on
   one device, so a session can't be picked up on another.
 
+### 2026-10-23 · The first session on a part leaves its level in memory, even when the level didn't move
+- **Decision:** when a session reaches its result, the API reads what memory already holds for the learner and
+  the concept, then writes a baseline level fact for every finished part that has no level row yet ("You were at
+  level 5 on 'Its types' for API on Oct 23.", key `level_<move>`, `writtenBy: evaluator`), beside the usual facts
+  for the parts that moved. A read that fails leaves the old behaviour: the changes only, and a log line.
+- **Instead of:** a level row only when a level changed (#112 as built). Levels never go down in a learn session
+  and never move in a test one, so a learner at level 5 on every part, the demo account included, would never get
+  a level row: the Memory sheet said "no level yet" under each part, and the hint giver and the coach read no
+  level at all for them.
+- **Why:** the Memory sheet and the SurrealDB prize walkthrough show the level chain per part; on the account the
+  judges will see, that chain was empty by construction. Found by the Oct 23 evidence review of PR #130.
+- **Pattern / trade-off:** one history read per finished session, off the request path, inside the write's 10 s
+  budget. The first session on a concept writes up to four extra rows; later sessions write the changes only, so
+  the chain still reads as a history of moves.
+
 ### 2026-10-23 · One update channel for every phone: a new Android build uses the `preview` profile
 - **Decision:** every Android APK we hand out is built with the `preview` profile (channel `preview`), the Oct 24
   freeze build included, through `.eas/workflows/preview-build.yml`. The `production` profile in `app/eas.json`

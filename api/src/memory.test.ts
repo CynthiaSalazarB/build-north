@@ -99,6 +99,71 @@ test("a learner's scope and entity carry the testers' pseudonym, never the Clerk
   assert.deepEqual(entityOf("a1b2c3d4", "Environment Variable!"), { type: "topic", name: "a1b2c3d4_environment_variable" });
   assert.equal(entityOf("a1b2c3d4", "API").name, "a1b2c3d4_api");
   assert.equal(dateOf("2026-10-22T23:59:00Z"), "Oct 22");
+  // a fact's date follows the team's zone (TZ, else Toronto), the zone the Memory sheet's dates show in Ontario
+  assert.equal(dateOf("2026-10-24T01:30:00Z", "America/Toronto"), "Oct 23");
+  assert.equal(dateOf("2026-10-24T01:30:00Z", "UTC"), "Oct 24");
+});
+
+test("with memory's record given, a finished part with no level row yet gets its baseline level, and the rest nothing extra", () => {
+  const played: Session = {
+    ...finished,
+    moveLog: [
+      { move: "supraordinate", points: 2, hints: 0, retries: 0, from: 2, to: 3 },
+      { move: "exclusion", points: 0, hints: 2, retries: 1, from: 2, to: 1 },
+      { move: "isoordinate", points: 1, hints: 1, retries: 0, from: 5, to: 5 },
+      { move: "infraordinate", points: 0, hints: 0, retries: 0, from: 4, to: 4 },
+    ],
+  };
+  // infraordinate is on record already; isoordinate is not, so its level 5 is written as where the learner stood
+  const keys = (writes: ReturnType<typeof factsToWrite>) => writes.filter((w) => w.key.startsWith("level_")).map((w) => [w.key, w.value, w.labels.level]);
+  assert.deepEqual(keys(factsToWrite(played, AT, new Set(["infraordinate"]))), [
+    ["level_supraordinate", "You moved up to level 3 on 'Bigger group' for API on Oct 23.", 3],
+    ["level_exclusion", "You moved down to level 1 on 'What it isn't' for API on Oct 23.", 1],
+    ["level_isoordinate", "You were at level 5 on 'What it needs' for API on Oct 23.", 5],
+  ]);
+  // every part on record: the changes only, as without the record
+  assert.deepEqual(keys(factsToWrite(played, AT, new Set(["isoordinate", "infraordinate"]))), keys(factsToWrite(played, AT)));
+  // a part the session never finished has no level to write
+  assert.deepEqual(keys(factsToWrite({ ...played, moveLog: played.moveLog.slice(0, 2) }, AT, new Set())).map(([key]) => key), ["level_supraordinate", "level_exclusion"]);
+  // the demo account: level 5 everywhere, nothing changes, and the first session still leaves four level rows
+  const settled: Session = { ...played, moveLog: played.moveLog.map((entry) => ({ ...entry, from: 5, to: 5 })), result: { ...played.result!, masteryChanges: [] } };
+  assert.deepEqual(keys(factsToWrite(settled, AT, new Set())).map(([key, , level]) => `${key}=${level}`), ["level_supraordinate=5", "level_exclusion=5", "level_isoordinate=5", "level_infraordinate=5"]);
+  assert.deepEqual(keys(factsToWrite(settled, AT)), []);
+});
+
+test("remembering reads memory first: baselines for the parts it has no level for, and the changes alone when the read fails", async () => {
+  const warnings: string[] = [];
+  let history: () => Promise<MemoryRow[]> = async () => [row("attr_inf0", "level_infraordinate", "x", { ...s1, writer: "evaluator", move: "infraordinate", level: 4 })];
+  const written: string[] = [];
+  const api: MemoryApi = {
+    async registerScope() {},
+    async write(_scope, _labels, triples) {
+      written.push(triples[0]!.key);
+    },
+    history: () => history(),
+    async forgetScope() {
+      return 0;
+    },
+  };
+  const memory = createLearnerMemory(api, { salt: "pepper", warn: (message) => warnings.push(message) });
+  const played: Session = {
+    ...finished,
+    moveLog: [
+      { move: "supraordinate", points: 2, hints: 0, retries: 0, from: 2, to: 3 },
+      { move: "exclusion", points: 0, hints: 2, retries: 1, from: 2, to: 1 },
+      { move: "isoordinate", points: 1, hints: 1, retries: 0, from: 5, to: 5 },
+      { move: "infraordinate", points: 0, hints: 0, retries: 0, from: 4, to: 4 },
+    ],
+  };
+  await memory.remember("user_2leo", played);
+  assert.deepEqual(written.filter((key) => key.startsWith("level_")), ["level_supraordinate", "level_exclusion", "level_isoordinate"]);
+  assert.deepEqual(warnings, []);
+  // memory not answering before the write: the changes are still written, and the reason is logged
+  written.length = 0;
+  history = async () => Promise.reject(new Error("memory answered 503"));
+  await memory.remember("user_2leo", played);
+  assert.deepEqual(written.filter((key) => key.startsWith("level_")), ["level_supraordinate", "level_exclusion"]);
+  assert.match(warnings[0] ?? "", /only level changes are written: memory answered 503/);
 });
 
 test("a finished session leaves the level changes, the gap and the Helps, as plain sentences with the numbers in labels", () => {
