@@ -80,9 +80,14 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, coachFail
       <Rise>
         <View style={styles.headline} accessible accessibilityLabel={`You guessed ${result.predictedScore}. You proved ${result.score} of 8. ${gap.headline}${gap.note ? ` ${gap.note}` : ""}`}>
           <Text style={[type.question, { color: c.onSurface }]}>{gap.headline}</Text>
+          {/* the prediction, then the score, one step after the other: the comparison lands in order */}
           <View style={styles.scales}>
-            <Scale label="prediction" value={result.predictedScore} pips={guessed} dark={lit} />
-            <Scale label="map score" value={result.score} pips={proved} dark={lit} />
+            <Rise order={1}>
+              <Scale label="prediction" value={result.predictedScore} pips={guessed} dark={lit} />
+            </Rise>
+            <Rise order={2}>
+              <Scale label="map score" value={result.score} pips={proved} dark={lit} />
+            </Rise>
           </View>
           <Small dim>Your prediction captured your confidence. Your map score reflects what you could explain in this session.</Small>
           {gap.note && <Body dim>{gap.note}</Body>}
@@ -281,7 +286,8 @@ const styles = StyleSheet.create({
   split: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },
   words: { width: page.words, flexGrow: 0 },
   wordsContent: { flexGrow: 1, justifyContent: "center", paddingTop: space.xxl, paddingBottom: page.header, gap: space.xl },
-  actions: { flexDirection: "row", alignItems: "center", gap: space.m, marginTop: space.s },
+  // wraps: the three actions are 5 px wider than the words column, which clipped Share and let the column scroll
+  actions: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", gap: space.m, marginTop: space.s },
   stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: page.header },
   spot: { width: "100%", maxWidth: page.map },
 });

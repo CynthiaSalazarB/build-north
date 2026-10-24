@@ -1,17 +1,18 @@
 // Confidence is an explicit prediction on the same 0–8 scale as the map's score. No preselected answer.
 import { MOVE_LABEL, MOVE_ORDER, type Turn } from "@build-north/agents";
 import { useEffect, useState, type ReactNode } from "react";
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
+import Animated, { css, useReducedMotion } from "react-native-reanimated";
 import { tick } from "../haptics.ts";
 import { POINTS_RULE, type PartView } from "../session/present.ts";
 import type { Failure as CallFailure } from "../session/transcript.ts";
-import { page, radius, size, space, type } from "../theme.ts";
+import { motion, page, radius, size, space, type } from "../theme.ts";
 import { ConceptMap } from "./concept-map.tsx";
 import { Failure } from "./messages.tsx";
 import { ScoringGuide } from "./scoring-guide.tsx";
 import { SessionBar } from "./session-bar.tsx";
 import { SiteHeader } from "./site-header.tsx";
-import { Body, Button, Label, Rise, Screen, Small, Title, useColors, useWide, type Interaction } from "./ui.tsx";
+import { AnimatedPressable, Body, Button, easeOut, Label, Rise, Screen, Small, Title, useColors, usePress, useWide } from "./ui.tsx";
 
 const MAX = 8;
 // A total prediction doesn't identify confidence in any particular area. Every area's two points stay open.
@@ -99,17 +100,7 @@ function Prediction({ concept, guess, pending, onChoose, footer, wide }: { conce
       <View style={styles.picker}>
         <View style={styles.numbers}>
           {Array.from({ length: MAX + 1 }, (_, value) => (
-            <Pressable
-              key={value}
-              accessibilityRole="button"
-              accessibilityLabel={`Predict ${value} of 8 points`}
-              accessibilityState={{ selected: guess === value, disabled: pending }}
-              disabled={pending}
-              onPress={() => onChoose(value)}
-              style={({ pressed, hovered }: Interaction) => [styles.number, { backgroundColor: guess === value ? c.primary : c.controlFill, borderColor: guess === value ? c.primary : hovered ? c.onSurfaceVariant : c.outline }, pressed && styles.pressed]}
-            >
-              <Text style={[type.pill, { color: guess === value ? c.onPrimary : c.onSurface }]}>{value}</Text>
-            </Pressable>
+            <NumberChoice key={value} value={value} chosen={guess === value} pending={pending} onChoose={onChoose} />
           ))}
         </View>
         <View style={styles.anchors}>
@@ -126,6 +117,32 @@ function Prediction({ concept, guess, pending, onChoose, footer, wide }: { conce
   );
 }
 
+/** The chosen number settles: it lands from a touch larger over 150 ms, once, the moment it is picked. */
+const settle = css.keyframes({ from: { transform: [{ scale: 1.04 }] }, to: { transform: [{ scale: 1 }] } });
+
+/** One of the nine numbers. The chosen one fills with warm light (its fill and ink swap at once, so the digit never
+ * sits on a half-faded fill) and settles into place; on the web a hover firms up the edge of the others. */
+function NumberChoice({ value, chosen, pending, onChoose }: { value: number; chosen: boolean; pending: boolean; onChoose: (score: number) => void }) {
+  const c = useColors();
+  const still = useReducedMotion();
+  const { hovered, bind, feel } = usePress({ colors: false });
+  return (
+    <Animated.View style={chosen && !still ? { animationName: settle, animationDuration: motion.feedback, animationTimingFunction: easeOut } : null}>
+      <AnimatedPressable
+        accessibilityRole="button"
+        accessibilityLabel={`Predict ${value} of 8 points`}
+        accessibilityState={{ selected: chosen, disabled: pending }}
+        disabled={pending}
+        onPress={() => onChoose(value)}
+        {...bind}
+        style={[styles.number, { backgroundColor: chosen ? c.primary : c.controlFill, borderColor: chosen ? c.primary : hovered && !pending ? c.onSurfaceVariant : c.outline }, feel(!pending)]}
+      >
+        <Text style={[type.pill, { color: chosen ? c.onPrimary : c.onSurface }]}>{value}</Text>
+      </AnimatedPressable>
+    </Animated.View>
+  );
+}
+
 const styles = StyleSheet.create({
   content: { flexGrow: 1, justifyContent: "center", paddingHorizontal: space.margin, paddingVertical: space.xl },
   column: { width: "100%", gap: space.l },
@@ -135,7 +152,6 @@ const styles = StyleSheet.create({
   numbers: { flexDirection: "row", flexWrap: "wrap", gap: space.xs },
   number: { minWidth: size.touch, minHeight: size.touch, borderWidth: 1, borderRadius: radius.button, alignItems: "center", justifyContent: "center" },
   anchors: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: space.s },
-  pressed: { opacity: 0.8 },
   action: { gap: space.s },
   foot: { paddingHorizontal: space.margin, paddingVertical: space.m },
   split: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },

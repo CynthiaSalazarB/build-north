@@ -7,7 +7,7 @@ import Animated from "react-native-reanimated";
 import { chatKeyOf, deskOf, filledOf, hintNumberOf, hintPartOf, itemsOf, nextPartOf, partMeaningOf, partTextOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
 import type { LearnerInput } from "../session/session-context.tsx";
 import type { SessionState } from "../session/transcript.ts";
-import { maxContentWidth, parts as PARTS, radius, size, space, type } from "../theme.ts";
+import { maxContentWidth, motion, parts as PARTS, radius, size, space, type } from "../theme.ts";
 import { ConceptMap, type MapGeometry } from "./concept-map.tsx";
 import { Firefly } from "./firefly.tsx";
 import { FactCard, Failure, HintCard, LearnerMessage, Revealed, useSlow, Waiting } from "./messages.tsx";
@@ -266,6 +266,7 @@ function AskBar({ concept, pending, asking, onAsk }: { concept: string; pending:
 function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: string; items: Item[]; onDone: (items: Item[]) => void }) {
   const c = useColors();
   const wide = useWide();
+  const entrance = useEntrance();
   const single = move === "supraordinate";
   const [rows, setRows] = useState<Item[]>(() => (items.length > 0 ? items.map((i) => ({ ...i })) : [{ value: "", note: null }]));
   const change = (i: number, patch: Partial<Item>) => setRows((now) => now.map((row, j) => (j === i ? { ...row, ...patch } : row)));
@@ -281,11 +282,12 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
   const field = [styles.input, { fontFamily: type.input.fontFamily, fontSize: type.input.fontSize, color: c.onSurface, backgroundColor: c.surface, borderColor: c.fieldEdge }];
   const scrim = <Pressable style={[wide ? StyleSheet.absoluteFill : styles.flex, { backgroundColor: c.scrim }]} onPress={done} accessibilityRole="button" accessibilityLabel="Save and close" />;
 
+  // the scrim fades in with the Modal and the editor rises into place over 240 ms, as a Sheet does
   return (
-    <Modal visible transparent animationType={wide ? "fade" : "slide"} onRequestClose={done}>
+    <Modal visible transparent animationType="fade" onRequestClose={done}>
       <KeyboardAvoidingView style={[styles.flex, wide && styles.center]} behavior="padding">
         {scrim}
-        <View style={[wide ? styles.dialog : styles.sheet, { backgroundColor: c.surfaceContainer, borderColor: c.fieldEdge }]} accessibilityViewIsModal>
+        <Animated.View style={[wide ? styles.dialog : styles.sheet, { backgroundColor: c.surfaceContainer, borderColor: c.fieldEdge }, entrance(0, "rise", motion.sheet)]} accessibilityViewIsModal>
           {!wide && <View style={[styles.grabber, { backgroundColor: c.outline }]} />}
           <View style={styles.sheetHead}>
             <View style={[styles.flex, styles.sheetTitle, !wide && styles.fullTitle]}>
@@ -334,7 +336,7 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
               <Button kind="text" label="+ Add another" onPress={() => setRows((now) => [...now, { value: "", note: null }])} style={styles.start} />
             )}
           </ScrollView>
-        </View>
+        </Animated.View>
       </KeyboardAvoidingView>
     </Modal>
   );

@@ -7,7 +7,12 @@
 // screen, with its own icon. Runs only in Node, when the pages are exported.
 import { ScrollViewStyleReset, useServerDocumentContext } from "expo-router/html";
 import type { PropsWithChildren } from "react";
-import { base, brand } from "../theme.ts";
+import { base, brand, palette } from "../theme.ts";
+
+/** Keyboard users see where they are: a 2 px ring in the screen's ink, 2 px off every button, only on a focus the
+ * keyboard gave (`:focus-visible`, so a click leaves no ring). A Screen or a Sheet says which ink through
+ * `data-light` (ui.tsx); the fields show focus on their own edge instead. */
+const focusRing = `[role="button"]:focus-visible{outline:2px solid ${palette.night.onSurface};outline-offset:2px}[data-light="day"] [role="button"]:focus-visible{outline-color:${palette.day.onSurface}}`;
 
 export default function Root({ children }: PropsWithChildren) {
   const { headNodes, bodyNodes, htmlAttributes, bodyAttributes } = useServerDocumentContext();
@@ -27,7 +32,7 @@ export default function Root({ children }: PropsWithChildren) {
         <meta name="apple-mobile-web-app-title" content={brand.name} />
         <meta name="apple-mobile-web-app-status-bar-style" content="black" />
         <ScrollViewStyleReset />
-        <style dangerouslySetInnerHTML={{ __html: `html,body{background-color:${base.bottom}}*{scrollbar-width:thin;scrollbar-color:rgba(140,140,150,.35) transparent}*::-webkit-scrollbar{width:8px;height:8px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:rgba(140,140,150,.35);border-radius:8px}*::-webkit-scrollbar-thumb:hover{background:rgba(140,140,150,.6)}` }} />
+        <style dangerouslySetInnerHTML={{ __html: `html,body{background-color:${base.bottom}}*{scrollbar-width:thin;scrollbar-color:rgba(140,140,150,.35) transparent}*::-webkit-scrollbar{width:8px;height:8px}*::-webkit-scrollbar-track{background:transparent}*::-webkit-scrollbar-thumb{background:rgba(140,140,150,.35);border-radius:8px}*::-webkit-scrollbar-thumb:hover{background:rgba(140,140,150,.6)}${focusRing}` }} />
         {headNodes}
       </head>
       <body {...bodyAttributes}>

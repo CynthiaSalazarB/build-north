@@ -6,14 +6,14 @@
 // map appears, a part eases into its new state, and the firefly's line draws itself to each new part.
 import { MOVE_ORDER, type MoveId } from "@build-north/agents";
 import { useEffect, useId, useState, type ReactNode } from "react";
-import { Pressable, StyleSheet, Text, View, type LayoutChangeEvent, type LayoutRectangle } from "react-native";
+import { StyleSheet, Text, View, type LayoutChangeEvent, type LayoutRectangle } from "react-native";
 import Animated, { Easing, useAnimatedProps, useAnimatedStyle, useReducedMotion, useSharedValue, withTiming, type CSSTransitionProperties } from "react-native-reanimated";
 import Svg, { Circle, Defs, Line, Mask, Path } from "react-native-svg";
 import type { PartView, Pip } from "../session/present.ts";
 import { firefly, map, motion, palette, parts as PARTS, radius, size, space, type } from "../theme.ts";
 import { decorative, PartIcon } from "./icons.tsx";
 import { roundedPath, tracePoints, type Box, type Point } from "./trace.ts";
-import { useColors, useEntrance, useMode, type Interaction } from "./ui.tsx";
+import { AnimatedPressable, useColors, useEntrance, useMode, usePress } from "./ui.tsx";
 
 const boxOf = (l: LayoutRectangle, dx = 0, dy = 0): Box => ({ x: l.x + dx, y: l.y + dy, w: l.width, h: l.height });
 const sameLayout = (a: LayoutRectangle | undefined, b: LayoutRectangle) => !!a && a.x === b.x && a.y === b.y && a.width === b.width && a.height === b.height;
@@ -163,8 +163,10 @@ function sizeFor(concept: string) {
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-/** A part or a point eases into its new state (amber when asked, warm light when lit) instead of snapping. */
-const ease: CSSTransitionProperties = { transitionProperty: ["backgroundColor", "borderColor"], transitionDuration: motion.lightStep / 2 };
+/** A part or a point eases into its new state (amber when asked, warm light when lit) instead of snapping; with
+ * Reduce Motion it snaps, as the light itself does. */
+const stateEase: CSSTransitionProperties = { transitionProperty: ["backgroundColor", "borderColor"], transitionDuration: motion.lightStep / 2 };
+const useStateEase = () => (useReducedMotion() ? null : stateEase);
 
 /** The firefly's dashed amber line, drawn in from the firefly over 320 ms whenever it points somewhere new
  * (`drawKey`), with the dot at the part. With Reduce Motion it is simply there. Goes inside an <Svg>. */
@@ -202,23 +204,29 @@ type PartProps = { view: PartView; width: number; ring: boolean; active: boolean
 function PartBox({ view, width, ring, active, onPress, onLayout }: PartProps) {
   const c = useColors();
   const night = useMode() === "night";
+  const ease = useStateEase();
+  const { hovered, bind, feel } = usePress();
   const { label, icon } = PARTS[view.move];
+  // `hoverEdge` is the edge under a pointer (the web), when the part opens for editing: it firms up within the
+  // state's own colour, so the suggested area stays amber and a lit card stays warm, and answers in 150 ms
+  // instead of the state's 350
   const look = {
-    unasked: { borderWidth: 1, borderStyle: "dashed", borderColor: c.partEdge, backgroundColor: c.partFill, ink: c.onSurfaceVariant, labelInk: c.onSurfaceVariant, glow: undefined },
-    asked: { borderWidth: 1.5, borderStyle: "solid", borderColor: c.questionOutline, backgroundColor: c.questionContainer, ink: c.question, labelInk: c.question, glow: "0 0 14px rgba(242, 184, 75, 0.4)" },
-    lit: { borderWidth: 1, borderStyle: "solid", borderColor: c.litEdge, backgroundColor: c.lit, ink: c.onLit, labelInk: c.litLabel, glow: c.litShadow },
-    revealed: { borderWidth: 1, borderStyle: "dashed", borderColor: c.partEdge, backgroundColor: c.partFill, ink: c.onSurface, labelInk: c.onSurfaceVariant, glow: undefined },
+    unasked: { borderWidth: 1, borderStyle: "dashed", borderColor: c.partEdge, hoverEdge: c.onSurfaceVariant, backgroundColor: c.partFill, ink: c.onSurfaceVariant, labelInk: c.onSurfaceVariant, glow: undefined },
+    asked: { borderWidth: 1.5, borderStyle: "solid", borderColor: c.questionOutline, hoverEdge: c.question, backgroundColor: c.questionContainer, ink: c.question, labelInk: c.question, glow: "0 0 14px rgba(242, 184, 75, 0.4)" },
+    lit: { borderWidth: 1, borderStyle: "solid", borderColor: c.litEdge, hoverEdge: c.litLabel, backgroundColor: c.lit, ink: c.onLit, labelInk: c.litLabel, glow: c.litShadow },
+    revealed: { borderWidth: 1, borderStyle: "dashed", borderColor: c.partEdge, hoverEdge: c.onSurfaceVariant, backgroundColor: c.partFill, ink: c.onSurface, labelInk: c.onSurfaceVariant, glow: undefined },
   }[active ? "asked" : view.state];
   const glow = ring ? "0 0 0 3px rgba(242, 184, 75, 0.6), 0 0 22px rgba(255, 236, 205, 0.45)" : look.glow;
   const points = view.pips ? `${view.pips.filter((p) => p === "earned").length} of 2 points` : "not scored yet";
   const said = view.text ?? (view.state === "asked" ? "being asked now" : "not answered yet");
-  const box = (hovered = false) => (
+  const box = (
     <Animated.View
       style={[
         styles.part,
         ease,
-        { width, borderWidth: look.borderWidth, borderStyle: look.borderStyle as "solid" | "dashed", borderColor: hovered ? c.onSurfaceVariant : look.borderColor, backgroundColor: look.backgroundColor },
+        { width, borderWidth: look.borderWidth, borderStyle: look.borderStyle as "solid" | "dashed", borderColor: look.borderColor, backgroundColor: look.backgroundColor },
         glow ? { boxShadow: glow } : null,
+        hovered && onPress ? { borderColor: look.hoverEdge, transitionDuration: motion.hover } : null,
       ]}
       onLayout={onPress ? undefined : onLayout}
       // a part that opens for editing is labeled by its button instead
@@ -250,18 +258,19 @@ function PartBox({ view, width, ring, active, onPress, onLayout }: PartProps) {
       {ring && <Sparks />}
     </Animated.View>
   );
-  if (!onPress) return box();
+  if (!onPress) return box;
   return (
-    <Pressable
+    <AnimatedPressable
       onPress={onPress}
       onLayout={onLayout}
       accessibilityRole="button"
       accessibilityLabel={`${label}: ${said}${active ? ". Suggested next area" : ""}`}
       accessibilityHint="Opens this area to write or edit your answer. Your map is scored when you submit it."
-      style={({ pressed }) => pressed && styles.pressed}
+      {...bind}
+      style={feel()}
     >
-      {({ hovered }: Interaction) => box(!!hovered)}
-    </Pressable>
+      {box}
+    </AnimatedPressable>
   );
 }
 
@@ -270,6 +279,7 @@ function PartBox({ view, width, ring, active, onPress, onLayout }: PartProps) {
  * draws it in dark ink, for a lit part or a lit screen. */
 export function PointSquare({ pip, dark, big = false }: { pip: Pip; dark: boolean; big?: boolean }) {
   const c = useColors();
+  const ease = useStateEase();
   const ink = dark ? palette.day.onSurface : palette.night.lit;
   const faint = dark ? "rgba(23, 22, 26, 0.35)" : "rgba(255, 240, 225, 0.45)";
   const look = {
@@ -328,6 +338,5 @@ const styles = StyleSheet.create({
   badge: { marginTop: 4 },
   pips: { flexDirection: "row", gap: 3 },
   dim: { opacity: 0.8 },
-  pressed: { opacity: 0.8 },
   spark: { position: "absolute", width: 2, height: 10, marginLeft: -1, borderRadius: 1, backgroundColor: firefly.states.asks.body },
 });
