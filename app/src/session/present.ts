@@ -44,8 +44,8 @@ const turnOf = (entry: Entry) => /^turn-(\d+)-/.exec(entry.id)?.[1] ?? null;
 /** The part the learner is on: every entry since the Turn that started the latest move, and everything
  * after it, follow-up questions included (the exclusion's "what's the difference?" is asked on the same
  * move, so the answer before it stays on screen). The previous part's feedback and its name arrive in that
- * first Turn, before its question; the screen skips them, since the map shows how that part ended. Before
- * the moves (the guess, the first attempt, the example) the part is what came since the latest question. */
+ * first Turn, before its question; `leadOf` says which of them the screen draws. Before the moves (the guess,
+ * the first attempt, the example) the part is what came since the latest question. */
 export function currentPartOf(entries: readonly Entry[]): Entry[] {
   const latest = [...entries].reverse().find((e): e is Extract<Entry, { from: "app" }> => e.from === "app");
   if (!latest || latest.phase !== "move") return sinceLastQuestion(entries);
@@ -60,6 +60,17 @@ export function currentPartOf(entries: readonly Entry[]): Entry[] {
   // the learner's last answer on the previous move came before this move's first Turn
   while (start < entries.length && entries[start]!.from !== "app") start += 1;
   return entries.slice(start);
+}
+
+/** What the screen draws above the part's question, of the lead that comes with it in the same Turn (`lead` in
+ * agents/src/orchestrator/advance.ts): the evaluator's feedback on the part just finished, which since Oct 23
+ * says what made the answer right and what was left out (DECISIONS.md). The move's name isn't repeated, and a
+ * revealed answer was read while held: the map shows how that part ended. Empty before the moves, on the first
+ * part, and on a part picked up after a reload whose Turn had no question. */
+export function leadOf(part: readonly Entry[]): Extract<Entry, { from: "app" }>[] {
+  const asked = part.findIndex((e) => e.from === "app" && e.message.kind === "question");
+  if (asked < 0) return [];
+  return part.slice(0, asked).filter((e): e is Extract<Entry, { from: "app" }> => e.from === "app" && e.message.kind === "feedback");
 }
 
 /** True for feedback that comes with a question of the same Turn: the exclusion's follow-up, which isn't a
@@ -333,6 +344,16 @@ export function wholeMapPartsOf(draft: Mentefacto, server: Mentefacto): PartView
     return { move, state: text ? (shown ? "revealed" : "lit") : "unasked", text, pips: null };
   });
 }
+
+/** The fact desk's side of the session: the learner's questions, its answers, the hints. The opening instruction
+ * is the firefly's line under the map, so it isn't repeated. */
+export const deskOf = (entries: readonly Entry[]): Entry[] =>
+  entries.filter((e) => e.from === "learner" || (e.from === "app" && e.phase === "move" && e.message.kind !== "question"));
+
+/** What the phone's whole-map screen scrolls to the end for: a new line in the fact chat (a question, its answer, a
+ * hint), a call in flight or a failure. The key changes with those and with nothing else, so an edit to the map,
+ * which also grows the page, never pulls the learner away from it. The website layout follows its own column. */
+export const chatKeyOf = (desk: readonly Entry[], pending: boolean, failure: boolean): string => `${desk.length}:${pending ? 1 : 0}:${failure ? 1 : 0}`;
 
 /** What each part asks for, in plain words: the method's moves without its names. */
 export function partMeaningOf(move: MoveId, concept: string): string {

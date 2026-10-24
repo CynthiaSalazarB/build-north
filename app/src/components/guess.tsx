@@ -60,8 +60,9 @@ export function GuessScreen({ turn, pending, failure, onLock, onClose }: Props) 
   );
   const form = <Prediction concept={turn.mentefacto.concept} guess={guess} pending={pending} onChoose={choose} footer={wide ? action : null} wide={wide} />;
 
+  // the screen previews the light of the chosen number (none until one is picked); the map's areas stay open
   return (
-    <Screen>
+    <Screen light={guess ?? 0}>
       {wide ? (
         <>
           <SiteHeader concept={turn.mentefacto.concept} end={<Button kind="secondary" solid label="Save and close" onPress={onClose} />} />

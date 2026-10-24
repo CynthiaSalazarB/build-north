@@ -1,6 +1,6 @@
 // Sign-in on Android (#22), in round 9's first frame: the dark with its corner light, the firefly, the wordmark and
 // the tagline, then the way in. Clerk's hosted page opens in an in-app browser, on its sign-up or sign-in screen;
-// the Clerk dashboard decides the methods it offers (email code only). The web build uses sign-in.web.tsx instead.
+// the Clerk dashboard decides the methods it offers (email code and Google). The web build uses sign-in.web.tsx instead.
 import { useHostedAuth } from "@clerk/expo/hosted-auth";
 import { ObserveInteractiveMarker } from "expo-observe";
 import { useState } from "react";

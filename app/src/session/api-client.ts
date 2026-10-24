@@ -16,6 +16,10 @@ export type ApiClientOptions = {
 
 const OFFLINE = "Can't reach the server. Check your connection and try again.";
 const SLOW = "The server is taking too long. Try again.";
+/** A 5xx, or a 502/503 page from the host while the server restarts: the body is for us, not the learner. */
+const BROKEN = "The server hit a problem. Try again in a moment.";
+/** A 401: the server's own line names headers and tokens, which mean nothing to a learner. */
+const SIGNED_OUT = "The server didn't accept your sign-in. Sign out, then sign in again.";
 
 /** The server gives each Claude call 30 s and one retry (api/src/server.ts), so one slow turn can take a minute;
  * the app waits a little past that before giving up. An answer sent again after this is judged once: the `turn`
@@ -52,10 +56,13 @@ export function createApiClient({ baseUrl, devUser, devKey, getToken, fetch: sen
     return { res, json };
   }
 
-  /** The server's own message when it sent one; a 429 or a 5xx is worth trying again. */
+  /** The server's own message when it sent one (a 429's "wait a minute", a 413's "paste a shorter excerpt"), except
+   * where that message is written for us: a 401 and every 5xx get the learner's line. A 429 or a 5xx is worth
+   * trying again. */
   const errorOf = (res: Response, json: unknown) => {
     const message = (json as { error?: unknown } | null)?.error;
-    return new ClientError(typeof message === "string" ? message : `The server answered ${res.status}.`, res.status, res.status === 429 || res.status >= 500);
+    const words = res.status >= 500 ? BROKEN : res.status === 401 ? SIGNED_OUT : typeof message === "string" ? message : `The server answered ${res.status}.`;
+    return new ClientError(words, res.status, res.status === 429 || res.status >= 500);
   };
 
   async function post(path: string, body: unknown): Promise<Turn> {
