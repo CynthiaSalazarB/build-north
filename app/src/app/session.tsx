@@ -32,6 +32,7 @@ import {
   isReveal,
   justLitOf,
   lastPartNoteOf,
+  leadOf,
   partNotesOf,
   partsOf,
   provedOf,
@@ -193,6 +194,7 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
         <WideStage
           asked={askedNow ? (parts.find((p) => p.state === "asked")?.move ?? null) : null}
           fireflySize={help.more ? FIREFLY.states.helps.size : FIREFLY.states.asks.size}
+          askY={place.ask}
           question={conversation("question")}
           thread={
             <ScrollView ref={scroll} style={styles.flex} contentContainerStyle={styles.thread} onContentSizeChange={follow} keyboardShouldPersistTaps="handled">
@@ -234,8 +236,8 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   );
 }
 
-/** Which lines a Conversation draws: all of them (the phone), or, in the website layout, the pinned question and
- * the thread under it. */
+/** Which lines a Conversation draws: all of them (the phone), or, in the website layout, the pinned question with
+ * the lead over it (the feedback on the part just finished), and the thread under it. */
 type Show = "all" | "question" | "thread";
 
 type ConversationProps = {
@@ -250,12 +252,14 @@ type ConversationProps = {
   onAskLayout: (y: number) => void;
 };
 
-/** The part on screen: the firefly's question, then the answers, nudges, hints, a revealed answer, facts and the
- * firefly's follow-up questions after it. What came before the question (the last part's feedback and its name)
- * isn't repeated: the map shows how that part ended, as the board does. Each line rises in once, when it arrives. */
+/** The part on screen: the lead that came with the question (the evaluator's words on the part just finished, set
+ * quietly above it), the firefly's question, then the answers, nudges, hints, a revealed answer, facts and the
+ * firefly's follow-up questions after it. The last part's name isn't repeated: the map shows how that part ended,
+ * as the board does. Each line rises in once, when it arrives. */
 function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, onHelp, onAskLayout }: ConversationProps) {
   const entrance = useEntrance();
   const asked = entries.findIndex((e) => e.from === "app" && e.message.kind === "question");
+  const lead = leadOf(entries);
   const hints = entries.filter((e) => e.from === "app" && e.message.kind === "hint" && e.message.hintStep !== "reveal").map((e) => e.id);
   // the cap note goes with the first retry's nudge or the first hint of the part, once
   const capAt = entries.findIndex(
@@ -289,7 +293,9 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
         </>
       );
     }
-    if (asked >= 0 && i < asked) return null;
+    // before the question: the feedback on the part just finished, dim; its name and a revealed answer (read while
+    // held) don't repeat
+    if (asked >= 0 && i < asked) return lead.includes(entry) ? <Aside text={message.text} /> : null;
     switch (message.kind) {
       case "feedback":
         return <Nudge text={message.text} capNote={i === capAt} tag={isFollowUpFeedback(entries, i) ? "almost" : undefined} />;
@@ -311,7 +317,9 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
     <>
       {entries.map((entry, i) => {
         const isQuestion = i === asked;
-        if ((show === "question" && !isQuestion) || (show === "thread" && isQuestion)) return null;
+        // in the website layout the lead is pinned with the question, over it
+        const pinned = isQuestion || (asked >= 0 && i < asked);
+        if ((show === "question" && !pinned) || (show === "thread" && pinned)) return null;
         const drawn = line(entry, i);
         return drawn ? (
           // the question's place in the conversation is where the phone's firefly line starts
