@@ -19,7 +19,7 @@ Lumente helps students who code with AI learn to explain the ideas behind their 
 
 </div>
 
-<p align="center"><img src="docs/readme/hero.jpg" alt="Lumente's result screen on a laptop: the learner guessed 7 of 8 points and proved 5, next to the concept map for API with all four parts filled in" width="860" /></p>
+<p align="center"><img src="docs/readme/hero.jpg" alt="Lumente's result screen on a laptop: the learner predicted 7 of 8 points and proved 5, next to the concept map for API with all four areas filled in" width="860" /></p>
 
 <p align="center"><sub>The screens on this page come from the app's demo mode, which replays a session recorded live with Claude.</sub></p>
 
@@ -29,34 +29,50 @@ Lumente is an app for computer science students who build projects with AI tools
 
 In Lumente, the student picks one of those ideas and explains it by answering an AI's questions. At the end, they see how well they really know the idea, next to how well they thought they knew it.
 
-It works on the web and on Android. On an iPhone, use the web version.
+It runs on the web and on Android. On an iPhone or a laptop, the website installs as an app from the browser, with its own icon.
 
 ## Why we built it
 
 AI writes code faster than students can understand it. The gap shows when someone asks them to explain it: in a code review, an exam or a job interview. AI makes this more common, because code that works feels understood.
 
 - In a [study at Anthropic](https://www.anthropic.com/research/AI-assistance-coding-skills) (January 2026), developers learned a coding tool they'd never used. Those who used an AI assistant scored 50% on a quiz about it. Those who coded by hand scored 67%.
-- In [two studies at Aalto University](https://www.aalto.fi/en/news/ai-use-makes-us-overestimate-our-cognitive-performance), people who solved problems with ChatGPT did better, but they guessed their own score about 4 points too high.
+- In [two studies at Aalto University](https://www.aalto.fi/en/news/ai-use-makes-us-overestimate-our-cognitive-performance), people who solved problems with ChatGPT did better. But they guessed their own score about 4 points too high.
 
 Programming students face this every week. Their AI writes their work every day, and code reviews, project defenses and job interviews check it.
 
 ## How it works
 
-1. Pick an idea from your project, like an API, or type your own. You can paste in your notes about it.
-2. Guess your score, out of 8.
-3. Answer four questions about the idea, one at a time:
-   - What kind of thing is it?
-   - What is it often confused with, and how is it different?
-   - What does it need to count as one?
-   - What types of it are there?
-4. If you're stuck, ask for a hint. Each hint costs points, and you get less help as you improve.
-5. See your real score next to your guess.
+A session takes about ten minutes. Here is one, with the app's real buttons.
 
-The firefly on screen is the AI. It asks the questions and checks your answers, and you can type or speak. After enough practice, the roles flip: you ask the questions, and the AI only answers with facts.
+1. **Pick an idea.** The start screen asks: "Can you explain the ideas behind the code your AI wrote?" Tap a concept from your project, like API, JWT or CORS, or type your own. "Add your notes" takes pasted text for the AI to draw on. "Ask your AI what to map" gives you a prompt for your coding agent, so the concepts come from your own project. Then tap "Explore with guidance".
+2. **Predict your score.** Before any question, you pick a number from 0 to 8. A guide on the same screen says what each of the four map areas can earn. A clear, complete answer on the first try earns 2 points. One after a retry or a hint earns 1. A wrong, empty or revealed answer earns 0.
+3. **Explain it in your own words first.** Then the firefly asks about the four areas of the map, one at a time:
+   - Bigger group: what kind of thing is it?
+   - What it isn't: what is it often confused with, and how is it different?
+   - What it needs: what must be true for something to count as one?
+   - Its types: what kinds of it are there?
 
-| Pick and guess | Answer the questions | Get a hint | See your score |
+   You type or speak. Any answer you can defend passes. When an area is right, the feedback also says what you left out.
+4. **Ask for help when you're stuck.** Tap the firefly. The first Help on an area caps it at 1 point, and the third shows the answer for 0. At the early levels, a wrong answer gets a free nudge first. As you get areas right with little or no help, each one moves up a level, and the help fades.
+5. **See your score next to your prediction.** The result says the gap in words, like "You felt 2 points surer than you could explain". Under it, two rows of eight points: your prediction and your map score. Then come each area's points and which areas moved up a level. The coach adds one note for next time. "Share" sends your prediction and your score, never your answers.
+
+After enough practice, all four areas reach level 5 and the roles flip. You build the whole map yourself: tap an area, write your answer, "Save answer". The firefly's highlight points at the next empty area, for free. "Ask a fact (optional)" opens a chat that answers your questions with facts and never with a part of the map. A hint asks you to confirm and names its cost first. "Review & submit", then "Submit my map", scores all four areas together. "Test myself" on the start screen runs this mode on any concept at once and changes no levels. Our pilot's two tests use it.
+
+If you close the app or reload the page, the session waits on the start screen behind a "Resume" button.
+
+The firefly on screen is the AI. It asks and checks, its light warms under your finger or your pointer, and it never hands you the answer.
+
+| Predict | Answer the questions | Get a hint | See your score |
 |:---:|:---:|:---:|:---:|
-| <img src="docs/readme/step-1-guess.jpg" alt="The guess screen: how many of the 8 points will you prove? The guess is 7" width="200" /> | <img src="docs/readme/step-2-map.jpg" alt="A question about API, with two parts of the map already filled in" width="200" /> | <img src="docs/readme/step-3-hint.jpg" alt="After the answer 'A server?', a free nudge and a hint card that costs one point" width="200" /> | <img src="docs/readme/step-4-score.jpg" alt="The result: a guess of 7 and a score of 5, so the learner felt 2 points surer than they could explain" width="200" /> |
+| <img src="docs/readme/step-1-guess.jpg" alt="The prediction screen: how much can you explain on your own? The prediction is 7 of 8 points" width="200" /> | <img src="docs/readme/step-2-map.jpg" alt="A question about API, with two areas of the map already filled in" width="200" /> | <img src="docs/readme/step-3-hint.jpg" alt="After the answer 'A server?', a free nudge and a hint card that costs one point" width="200" /> | <img src="docs/readme/step-4-score.jpg" alt="The result: a prediction of 7 and a map score of 5, so the learner felt 2 points surer than they could explain" width="200" /> |
+
+## What Lumente remembers
+
+After each finished session, Lumente writes a few progress notes to SurrealDB Agent Memory. They hold your level on each area, your prediction next to your score, and how many Helps an area took. Each note is one sentence that code writes from a template. Your words never go in.
+
+The next time you practice the same concept, the hint giver and the coach read up to eight of these notes. They name the ones they used: "From what Lumente remembers: …". Tap that line, or "Memory" on the start screen, to see every note and how it changed. A new level replaces the old note and keeps its history.
+
+Memory never changes a score: the levels still come from plain code. "Delete my data" removes the notes with everything else. Memory went on for the Oct 23 pilot ([`DECISIONS.md`](DECISIONS.md), Oct 23). How it fits the SurrealDB prize is in [the prize notes](wiki/context/surrealdb-sponsor-prize.md).
 
 ## The idea behind it
 
@@ -71,7 +87,7 @@ The four questions come from Conceptual Pedagogy, a way of teaching from Colombi
 | What does it need to count as one? | It orbits a star, its own gravity pulled it into a round shape, and it has cleared other objects out of its path |
 | What types are there? | Rocky planets like Earth and Mars, and giants made mostly of gas or ice, like Jupiter and Neptune |
 
-Each part of the method comes from learning research: help that fades, asking your own questions, explaining in your own words, and checking what you really know. The AI writes the questions and judges the answers. Plain code works out every score, so we can explain every number.
+Research backs each part: help that fades, asking your own questions, explaining in your own words, and checking what you really know. The AI writes the questions and judges the answers. Plain code works out every score, so we can explain every number.
 
 The method, the research and what we haven't proven yet are in the [product thesis](wiki/synthesis/product-thesis.md).
 
@@ -95,29 +111,38 @@ The help fades. The understanding stays.
 
 ## Try it
 
+**In two minutes.** Open [Lumente on the web](https://reality-check.expo.app) in any browser. Sign in with an email code, or with Google on the web. To skip the email, use any address that ends in `+clerk_test@example.com` and the code `424242`. Tap "API", then "Explore with guidance". Pick a prediction, explain the idea in your own words, and answer the four questions. Ask the firefly for help once, to see what a hint costs. The result shows your prediction next to your score.
+
 | On | Do this |
 |---|---|
-| A laptop, or any phone's browser | Open [Lumente on the web](https://reality-check.expo.app) |
-| Android | Install the app from [this link](https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk) |
-| iPhone | Use the web link. There's no iPhone app |
+| A laptop, or any phone's browser | Open [Lumente on the web](https://reality-check.expo.app). On a laptop or an iPhone, you can add it to the home screen: it opens full screen with its own icon |
+| Android | Install the app from [this link](https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk). Android asks once to allow the install. The app updates itself on its second launch after we ship a fix |
+| iPhone | Use the web link. There's no App Store app |
 
-Sign in with Google or an email code. To skip the email, use any address that ends in `+clerk_test@example.com` and the code `424242`. The [five-minute guide](docs/testing-notes.md) walks you through a full session.
+The live addresses:
+
+- The website: https://reality-check.expo.app
+- The pilot's website, the same code deployed by hand before a test: https://reality-check--testers.expo.app
+- The server's health check: https://build-north-api.onrender.com/health answers `{"ok":true}`
+- The Android app: the `preview` build linked above (build 3, Oct 22)
+
+The [five-minute guide](docs/testing-notes.md) walks you through a full session, what is stored, and how to delete it.
 
 ## What we found
 
-Before Demo Day, five computer science students who code with AI tried Lumente. Each one took a test, did two practice sessions, and took a second test. Both tests were on ideas they hadn't practiced in the app.
+On the evening of Oct 23, five computer science students who code with AI tried Lumente. Each one took a test, did two practice sessions, and took a second test. Both tests were on ideas they hadn't practiced in the app.
 
-*TODO(Cynthia): the pilot's numbers (first test against second test, and the gap between guess and score), and when the testers said they'd open the app.*
+*TODO(Cynthia): the pilot's numbers: first test against second test, prediction against score, and when the testers said they'd open the app.*
 
 ## For the judges
 
 | Criterion | Where to look |
 |---|---|
-| Innovation | The AI won't do the thinking for you. You build each answer, the help fades as you improve, and after enough practice you ask the questions |
+| Innovation | The AI won't do the thinking for you. You build each answer, the help fades as you improve, and at level 5 you write the whole map and ask the questions. Between sessions, the app remembers your progress, never your words |
 | Real-world impact | One clear user, a problem backed by research, and our pilot's numbers. Students use it free. Instructors, bootcamps and colleges pay for seats and a view of what each student has mastered |
-| UI and design | Lumente's own look: a dark screen that lights up as you prove each answer. It works on phones, and as a two-column website on laptops |
-| Tech and deployment | Live on the web and on Android, built and shipped with Expo. Only our server talks to the AI, and plain code works out every score |
-| Security and ethics | The AI key stays on our server. Notes that look like a password never leave the phone. You can delete your data from the app. There are no streaks. Our testers were adults who agreed to take part |
+| UI and design | Lumente's own look: a dark screen that lights up as you prove each answer, and a firefly whose light answers your finger. It works on phones, installs as an app from the browser, and lays out as a two-column website on laptops |
+| Tech and deployment | Live on the web and on Android, built, updated and hosted with Expo's EAS. A session survives a reload or a killed app. Only our server talks to the AI, and plain code works out every score |
+| Security and ethics | The AI key stays on our server. Notes that look like a password never leave the phone. Memory keeps progress notes, never your words, and you can delete your data from the app. There are no streaks. Our testers were adults who agreed to take part |
 
 <details>
 <summary><b>How it's built</b></summary>
@@ -126,17 +151,20 @@ In short: the app runs on phones and the web, it talks only to our server, and o
 
 | Layer | What |
 |---|---|
-| App | Expo SDK 58, React Native, Expo Router, TypeScript. EAS Build (Android), EAS Update, EAS Hosting (web) |
-| API | Express 5 on Node 24, hosted on Render. SurrealDB Cloud for sessions, progress and AI logs. Clerk for sign-in |
-| Agents | Six Claude (Anthropic) agents: one asks the questions, one checks each answer, one checks all four answers at once, one answers with facts, one gives hints and one coaches. Each makes one structured call, and plain code runs the session |
+| App | Expo SDK 58, React Native, Expo Router, TypeScript. EAS Build (Android), EAS Update, EAS Hosting (web). The website is also an installable web app |
+| API | Express 5 on Node 24, hosted on Render. SurrealDB Cloud for sessions, levels and AI logs. SurrealDB Agent Memory for the progress notes. Clerk for sign-in |
+| Agents | Six Claude (Anthropic) agents. One asks the questions, one checks each answer, one checks the whole map, one answers with facts, one gives hints and one coaches. Each makes one structured call, and plain code runs the session |
 | Contracts | Zod schemas in `agents/src/contracts.ts` at every boundary: app to API, API to agents, agents to Claude |
+
+Every call to the server carries the Clerk token, and one route moves a session forward. The server reads it back after a reload, returns what Lumente remembers, and deletes everything on request. The full list is in [`agents/CONTRACTS.md`](agents/CONTRACTS.md).
 
 ```mermaid
 flowchart LR
-  App["App: Expo, Android and web<br/>EAS Build, Update, Hosting"] -->|"Clerk session token<br/>POST /sessions, /turns"| API["API: Express 5 on Render"]
+  App["App: Expo, Android and the web<br/>EAS Build, Update, Hosting"] -->|"Clerk session token<br/>POST /sessions, /turns<br/>GET /sessions/:id, /me/memory<br/>DELETE /me/data"| API["API: Express 5 on Render"]
   Clerk["Clerk"] -. "sign-in, token" .-> App
-  API -->|"verifies the token<br/>with the public key"| Clerk
-  API -->|"sessions, mastery, agent logs"| DB[("SurrealDB Cloud")]
+  API -->|"checks the token<br/>with the public key"| Clerk
+  API -->|"sessions, levels, agent logs"| DB[("SurrealDB Cloud")]
+  API -->|"progress notes: written at the result,<br/>read before a hint or the coach"| Memory[("SurrealDB Agent Memory")]
   API -->|"advance(): the orchestrator<br/>in agents/, plain code"| Agents["Agents: prompts and Zod contracts"]
   Agents -->|"one structured call per agent"| Claude["Claude (Anthropic)"]
 ```
@@ -150,29 +178,42 @@ We entered Best Overall, Best Use of Expo, Best Use of Clerk and Best Use of Sur
 <details>
 <summary><b>Best Use of Expo</b>: one codebase, shipped to Android and the web with EAS</summary>
 
-One TypeScript codebase runs on Android and the web. EAS Build made our Android app, starting Oct 21. EAS Update sends fixes straight to phones with no new install, and it shipped its first one the same day. EAS Hosting serves the website.
+One TypeScript codebase runs on Android and on the web, and the web build installs as an app on iPhones and laptops. There is no App Store app. We had no Apple account this week, so iPhones get the web app ([`DECISIONS.md`](DECISIONS.md), Oct 23).
 
-From the Expo SDK we use Expo Router, expo-updates, expo-secure-store (keeps the sign-in token), expo-web-browser (Clerk's sign-in on Android), expo-speech-recognition (answers by voice), expo-haptics, expo-font and Expo Observe.
+What EAS did for us, from the [Expo log](docs/expo-log.md), by the afternoon of Oct 23:
 
-Every build, update and deploy is in the [Expo log](docs/expo-log.md), and [How Expo shaped Lumente](docs/expo-log.md#how-expo-shaped-lumente-oct-22) tells the story, challenges included.
+- **EAS Build:** three Android builds. A development build and a `preview` APK on Oct 21, the day the EAS project was made. Then build 3 on Oct 22, after Lumente's icon and the voice module changed the native code. Build 3 is the APK linked above.
+- **EAS Update, with the fingerprint check:** six updates over the air on the `preview` channel. The first shipped the same day as the first build. The runtime policy is `fingerprint`, so an update only reaches builds with the same native code. Before an update, `eas fingerprint:compare` checked that build 3 could run it. Fixes went out as updates, and no fourth build was needed. On Oct 23, the testers' phones got the day's merges before the evening slots.
+- **The update notice:** when an update is downloaded, the app says "A new version is ready" with a Restart button. It checks again when it comes back to the foreground and when the start screen shows, at most once a minute.
+- **EAS Hosting:** the website, deployed from `main` three times by Oct 23. The `review`, `testers` and `polish` aliases served the design review, the pilot and our own checks. A web deploy uses no build credit.
+- **EAS Workflows:** `ship.yml` publishes the update and deploys the website, and `preview-build.yml` builds an APK when the fingerprint changes. Its first real run stalled in the free queue, so the two jobs ran by hand that day.
+- **Expo Observe:** launch times, time to interactive on each screen, and crashes on the Android app. It also reports the crashes a learner recovers from with Try again.
+- **The installable web app:** a web manifest, icons and Apple's home-screen tags in the static export. Every shared page gets a link card.
+- **The version line:** "Your data" ends with the version and the EAS Update the app runs. A tester or a judge can name exactly what they saw.
+
+From the Expo SDK we use Expo Router, expo-updates, expo-constants, expo-secure-store (the sign-in token), expo-web-browser and expo-auth-session (Clerk's sign-in on Android). Also expo-haptics, expo-font, expo-splash-screen, expo-file-system (the saved session on a phone), expo-dev-client and expo-observe. Answers by voice use expo-speech-recognition, a community module built on the Expo Modules API. Reanimated draws the light and the firefly, and react-native-svg draws the map.
+
+Every build, update and deploy is in the [Expo log](docs/expo-log.md). [How Expo shaped Lumente](docs/expo-log.md#how-expo-shaped-lumente-oct-22) has one line per Expo piece and the job it does. [Challenges we ran into](docs/expo-log.md#challenges-we-ran-into) has the real bugs with their causes and fixes.
 
 </details>
 
 <details>
 <summary><b>Best Use of Clerk</b>: sign-in and sessions, checked on our server without a network call</summary>
 
-Clerk runs sign-in and sessions, by email code or Google. We pick the sign-in methods in the Clerk dashboard, with no code change. The website shows Clerk's ready-made sign-in form, and Android opens Clerk's sign-in page in an in-app browser. Our server checks each session token with Clerk's public key, without a network call, and files every session and progress record under the Clerk user id. Delete my data removes that person's sessions, AI logs and progress.
+Clerk runs sign-in and sessions, by email code or Google. We pick the sign-in methods in the Clerk dashboard, with no code change. The website shows Clerk's ready-made sign-in form, and Android opens Clerk's sign-in page in an in-app browser. In the web app installed on an iPhone, the email code signs in without leaving the window. Our server checks each session token with Clerk's public key, without a network call. Every session, level and progress note is filed under the Clerk user id. Delete my data removes that person's sessions, AI logs, levels and memory notes, and signs them out.
 
 More in [How we used Clerk](docs/clerk.md).
 
 </details>
 
 <details>
-<summary><b>Best Use of SurrealDB Agent Memory</b>: the app remembers each learner across sessions</summary>
+<summary><b>Best Use of SurrealDB Agent Memory</b>: the app remembers each learner's progress across sessions</summary>
 
-<!-- TODO(Cynthia): keep this block only if memory is live at the freeze (plan-to-win, section 4). If the flag stays off, SurrealDB goes back to one line: our database, in plain tables. -->
+<!-- TODO(Cynthia): confirm that memory stayed on through the freeze. If the switch went off, cut this block to one line: SurrealDB Cloud is our database, in plain tables. -->
 
-SurrealDB Cloud stores the sessions, progress and AI logs, with a `dev` and a `prod` database. SurrealDB Agent Memory remembers each learner between sessions: their level on each part, their latest gap between guess and score, and the hints that cost them most. Code writes each memory as a short fact from a template, never in the learner's words, and memory never changes a score. Before the AI gives a hint or advice, our server reads up to 8 of these facts, and the AI names the ones it used, so every message traces back to its facts. Learners see what's remembered, and how it changed, in the app's Memory sheet, and Delete my data erases it ([`DECISIONS.md`](DECISIONS.md), Oct 22).
+SurrealDB Cloud stores the sessions, the levels and the AI logs, with a `dev` and a `prod` database. SurrealDB Agent Memory holds the progress notes from [What Lumente remembers](#what-lumente-remembers), one scope per learner under a salted hash of their Clerk id. Code writes each note from a template and sends it as a plain fact. Memory runs no model over it, and the learner's words never go in.
+
+Three agents write the notes (the evaluator the levels, the coach the gap, the hint giver the Helps), and two read them. Before a hint or the coach's message, the server reads up to 8 notes from earlier sessions. If the read takes over 1.5 seconds, the agent runs without them. The agent names the notes it used, the server keeps only the ids it passed in, and the app shows them under the message. A new level supersedes the old note and keeps its history, which is what the Memory sheet shows. Memory never changes a score, Delete my data purges the scope first, and the switch is one server variable. It went on for the Oct 23 pilot ([`DECISIONS.md`](DECISIONS.md), Oct 22 and Oct 23). What the live context taught us is on the [prize page](wiki/context/surrealdb-sponsor-prize.md).
 
 </details>
 
@@ -183,7 +224,7 @@ SurrealDB Cloud stores the sessions, progress and AI logs, with a `dev` and a `p
 | Name | Role |
 |---|---|
 | Cynthia Salazar | Team lead: the product, the design and the AI agents |
-| Leo Atienza | The server, hosting, Expo builds and sign-in |
+| Leo Atienza | The server, hosting, Expo builds, sign-in and the memory layer |
 | Jonathan *(TODO: last name)* | The app |
 | Kyle *(TODO: last name)* | The pilot, the pitch and the video |
 
@@ -195,9 +236,10 @@ SurrealDB Cloud stores the sessions, progress and AI logs, with a `dev` and a `p
 - We started from Expo's default `create-expo-app` template (SDK 58) and replaced its demo screens, icons and splash screen.
 - Fonts: Newsreader (Production Type), and Atkinson Hyperlegible Next and Mono (Braille Institute), under the SIL Open Font License, from `@expo-google-fonts`.
 - The images in our design boards (`docs/design/`) are CC0, public domain or from Unsplash.
-- AI tools: Lumente's AI runs on Claude (Anthropic), and we built it with Claude Code. *TODO(Cynthia): confirm, and add any other tools.*
+- Voice input uses `expo-speech-recognition`, a community module. The audio goes to the device's own speech service, and only the words reach us. The app's "Your data" sheet says so.
+- AI tools: Lumente's AI runs on Claude (Anthropic), and we built it with Claude Code, with Expo's agent skills and docs loaded. *TODO(Cynthia): confirm, and add any other tools.*
 - *TODO(Cynthia): confirm that nothing was built before Build Week.*
 
 </details>
 
-**For developers:** setup, tests, the repository map and how the team works are in [docs/developers.md](docs/developers.md). The contracts between the app, the server and the AI are in [agents/CONTRACTS.md](agents/CONTRACTS.md), and every decision with a trade-off is in [DECISIONS.md](DECISIONS.md).
+**For developers:** setup, tests, the repository map and how the team works are in [docs/developers.md](docs/developers.md). The path from a merge to production is in [docs/deploy.md](docs/deploy.md). The contracts between the app, the server and the AI are in [agents/CONTRACTS.md](agents/CONTRACTS.md). Every decision with a trade-off is in [DECISIONS.md](DECISIONS.md).
