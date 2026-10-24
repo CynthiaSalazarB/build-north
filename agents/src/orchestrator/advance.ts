@@ -123,10 +123,12 @@ function afterPrediction(s: Session, m: Mastery, prediction: number): Step {
 
 async function afterAttempt(s: Session, m: Mastery, attempt: string, call: CallAgent): Promise<Step> {
   s.firstAttempt = attempt;
-  if (!m.moves.some((move) => move.level === 1)) return startMove(s, m, MOVE_ORDER[0]!, [], call);
+  const acknowledgment = say("app", "feedback", text.firstAttemptAck);
+  if (!m.moves.some((move) => move.level === 1)) return startMove(s, m, s.moveOrder[0]!, [acknowledgment], call);
   s.phase = "example";
   return {
     messages: [
+      acknowledgment,
       say("app", "example", text.exampleIntro(s.concept, WORKED_EXAMPLE.exampleConcept)),
       ...WORKED_EXAMPLE.steps.map((step) => say("example_builder", "example", step.thinkAloud)),
     ],
@@ -139,7 +141,7 @@ async function afterAttempt(s: Session, m: Mastery, attempt: string, call: CallA
 /** Watching the worked example moves every move at level 1 to level 2. */
 async function afterExample(s: Session, m: Mastery, call: CallAgent): Promise<Step> {
   for (const move of m.moves) if (move.level === 1) move.level = 2;
-  return startMove(s, m, MOVE_ORDER[0]!, [], call);
+  return startMove(s, m, s.moveOrder[0]!, [], call);
 }
 
 // ---------- One move at a time (levels 2 to 4) ----------
@@ -171,7 +173,7 @@ async function startMove(s: Session, m: Mastery, move: MoveId, lead: Message[], 
  * that ends a move waits for one Claude call instead of two in a row. Asked once per move, from the map
  * as it is before this answer. If it fails, startMove asks as before. */
 async function askNextQuestionAhead(s: Session, m: Mastery, move: MoveId, call: CallAgent): Promise<void> {
-  const next = nextMove(move);
+  const next = nextMove(move, s.moveOrder);
   if (!next || s.nextQuestion?.move === next) return;
   const level = effectiveLevel(levelOf(m, next));
   if (level >= 4) return;
@@ -247,7 +249,7 @@ async function hint(
 
 async function finishMove(s: Session, m: Mastery, move: MoveId, quality: Quality, lead: Message[], call: CallAgent): Promise<Step> {
   record(s, m, move, quality, true);
-  const next = nextMove(move);
+  const next = nextMove(move, s.moveOrder);
   return next ? startMove(s, m, next, lead, call) : finishSession(s, lead);
 }
 

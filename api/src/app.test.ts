@@ -49,8 +49,8 @@ function memoryStore(): Store {
   const logs: AgentLogEntry[] = [];
   let created = 0;
   return {
-    async createSession(user, input) {
-      const session: Session = { ...initialSession(user, input), id: `s${++created}`, createdAt: new Date().toISOString() };
+    async createSession(user, input, moveOrder) {
+      const session: Session = { ...initialSession(user, input, moveOrder), id: `s${++created}`, createdAt: new Date().toISOString() };
       sessions.set(session.id, session);
       return structuredClone(session);
     },
@@ -69,14 +69,18 @@ function memoryStore(): Store {
       sessions.set(session.id, structuredClone(session));
       return true;
     },
-    async getMastery(user) {
+    async getMastery(user, concept) {
       const fresh = { moves: MOVE_ORDER.map((move) => ({ move, level: 1 as const, unassistedSuccesses: 0 })) };
-      return structuredClone(mastery.get(user) ?? fresh);
+      return structuredClone(mastery.get(`${user}:${concept.trim().toLowerCase()}`) ?? fresh);
     },
-    async saveMastery(user, saved) {
+    async saveMastery(user, concept, saved) {
       // one row per move, as the SurrealDB store upserts them: the moves given change, the others stay
-      const now = await this.getMastery(user);
-      mastery.set(user, { moves: now.moves.map((m) => structuredClone(saved.moves.find((s) => s.move === m.move) ?? m)) });
+      const now = await this.getMastery(user, concept);
+      mastery.set(`${user}:${concept.trim().toLowerCase()}`, { moves: now.moves.map((m) => structuredClone(saved.moves.find((s) => s.move === m.move) ?? m)) });
+    },
+    async getNextFocus(user, concept) {
+      const previous = [...sessions.values()].filter((s) => s.user === user && s.concept.toLowerCase() === concept.trim().toLowerCase() && s.result).sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0];
+      return previous?.result?.coach?.nextFocus ?? null;
     },
     async logAgentCall(entry) {
       logs.push(entry);
@@ -92,7 +96,7 @@ function memoryStore(): Store {
     },
     async deleteUserData(user) {
       for (const [id, session] of sessions) if (session.user === user) sessions.delete(id);
-      mastery.delete(user);
+      for (const key of mastery.keys()) if (key.startsWith(`${user}:`)) mastery.delete(key);
     },
   };
 }
@@ -266,7 +270,7 @@ test("the session routes need a dev user with the right dev key, and never work 
   assert.equal((await post(url, { concept: "democracy" }, as("leo", "wrong-key"))).status, 401);
   const production = await start(t, { ...withStore(), devKey: null });
   assert.equal((await post(production, { concept: "democracy" })).status, 401);
-  for (const [method, path] of [["POST", "/sessions/s1/turns"], ["GET", "/me/mastery"], ["DELETE", "/me/data"]]) {
+  for (const [method, path] of [["POST", "/sessions/s1/turns"], ["GET", "/me/mastery?concept=democracy"], ["DELETE", "/me/data"]]) {
     assert.equal((await fetch(`${url}${path}`, { method, headers: { "x-dev-user": "leo" } })).status, 401);
   }
 });
@@ -448,12 +452,12 @@ test("GET /me/mastery lists the four moves, and DELETE /me/data removes only the
   const store = memoryStore();
   const url = await start(t, { ...noDb, store });
   const call = (path: string, method = "GET", user = "leo") => fetch(`${url}${path}`, { method, headers: as(user) });
-  const levels = async () => MasterySchema.parse(await (await call("/me/mastery")).json()).moves.map((m) => m.level);
+  const levels = async (concept = "democracy") => MasterySchema.parse(await (await call(`/me/mastery?concept=${concept}`)).json()).moves.map((m) => m.level);
 
   assert.deepEqual(await levels(), [1, 1, 1, 1]);
-  const raised = await store.getMastery("leo");
+  const raised = await store.getMastery("leo", "democracy");
   raised.moves[1] = { move: "exclusion", level: 3, unassistedSuccesses: 1 };
-  await store.saveMastery("leo", raised);
+  await store.saveMastery("leo", "democracy", raised);
   assert.deepEqual(await levels(), [1, 3, 1, 1]);
 
   const mine = await (await post(url, { concept: "democracy" })).json();
@@ -464,6 +468,28 @@ test("GET /me/mastery lists the four moves, and DELETE /me/data removes only the
   assert.equal((await call(`/sessions/${theirs.sessionId}`, "GET", "jonathan")).status, 200);
 });
 
+test("a new session starts in the coach's saved focus order and mastery stays concept-specific", async (t) => {
+  const store = memoryStore();
+  const url = await start(t, { ...noDb, store });
+  const focus = t.mock.method(store, "getNextFocus", async () => "infraordinate");
+  let savedOrder: readonly string[] | undefined;
+  const create = store.createSession.bind(store);
+  t.mock.method(store, "createSession", async (user: string, input: Parameters<Store["createSession"]>[1], order: Parameters<Store["createSession"]>[2]) => {
+    savedOrder = order;
+    return create(user, input, order);
+  });
+  const response = await post(url, { concept: "democracy" });
+  assert.equal(response.status, 201);
+  assert.deepEqual(savedOrder, ["infraordinate", "supraordinate", "exclusion", "isoordinate"]);
+  assert.equal(focus.mock.calls[0]?.arguments[1], "democracy");
+
+  const democracy = await store.getMastery("leo", "democracy");
+  democracy.moves[0] = { move: "supraordinate", level: 4, unassistedSuccesses: 2 };
+  await store.saveMastery("leo", "democracy", democracy);
+  assert.equal((await store.getMastery("leo", "democracy")).moves[0]?.level, 4);
+  assert.equal((await store.getMastery("leo", "inflation")).moves[0]?.level, 1);
+});
+
 test("a Clerk session token signs the caller in, and their rows are keyed by the Clerk user id", async (t) => {
   const store = memoryStore();
   const url = await start(t, { ...withClerk(), store });
@@ -472,7 +498,7 @@ test("a Clerk session token signs the caller in, and their rows are keyed by the
   assert.equal(res.status, 201);
   const { sessionId } = await res.json();
   assert.notEqual(await store.getSession("user_2leo", sessionId), null);
-  assert.equal((await fetch(`${url}/me/mastery`, { headers: bearer(sessionToken()) })).status, 200);
+  assert.equal((await fetch(`${url}/me/mastery?concept=democracy`, { headers: bearer(sessionToken()) })).status, 200);
 });
 
 test("an expired, forged or foreign token gets 401, and never falls back to the dev headers", async (t) => {
@@ -574,15 +600,15 @@ test("Cynthia's advance runs the democracy session through callAgent: 4 moves, 2
   assert.equal(sent.agent, "coach");
   assert.deepEqual(rest, { concept: "democracy", mentefacto: latest.mentefacto });
   assert.deepEqual({ ...numbers, coach }, latest.result);
-  const mastery = await (await fetch(`${url}/me/mastery`, { headers: as("leo") })).json();
+  const mastery = await (await fetch(`${url}/me/mastery?concept=democracy`, { headers: as("leo") })).json();
   assert.deepEqual(mastery.moves.map((m: { level: number }) => m.level), [2, 3, 2, 3]);
 });
 
 test("a test session starts at level 5, { question } gets the fact desk's answer, { mentefacto } the whole-map evaluator's score, and mastery is unchanged", async (t) => {
   const store = memoryStore();
-  const before = await store.getMastery("leo");
+  const before = await store.getMastery("leo", "democracy");
   before.moves[1] = { move: "exclusion", level: 3, unassistedSuccesses: 1 };
-  await store.saveMastery("leo", before);
+  await store.saveMastery("leo", "democracy", before);
   const masterySaves = t.mock.method(store, "saveMastery");
   const replies: [keyof typeof AGENTS, unknown][] = [
     ["fact_desk", { kind: "fact", answer: "Yes, when the fish, the plants and the water act on one another.", questionType: "breaking_case" }],
@@ -652,7 +678,7 @@ test("a test session starts at level 5, { question } gets the fact desk's answer
   );
   assert.deepEqual(claude.logged[2]!.input, { concept: "ecosystem", material: null, mentefacto });
   // the mastery from before the session, which the session never wrote
-  assert.deepEqual(await (await fetch(`${url}/me/mastery`, { headers: as("leo") })).json(), before);
+  assert.deepEqual(await (await fetch(`${url}/me/mastery?concept=democracy`, { headers: as("leo") })).json(), before);
   assert.equal(masterySaves.mock.callCount(), 0);
 });
 

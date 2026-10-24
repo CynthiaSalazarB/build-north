@@ -31,6 +31,7 @@ function newSession(concept: string, mode: "learn" | "test" = "learn"): Session 
     id: "ses_demo_democracy",
     user: "tester",
     concept,
+    moveOrder: [...MOVE_ORDER],
     material: null,
     mode,
     turn: 0,
@@ -101,6 +102,27 @@ const evaluation = (verdict: "correct" | "partial" | "incorrect", quality: 0 | 1
   issue,
   reason: "scripted",
   feedback,
+});
+
+describe("session guidance", () => {
+  it("acknowledges the first attempt and starts with the coach's next focus", async () => {
+    const session = { ...newSession("democracy"), moveOrder: rules.moveOrderFromFocus("infraordinate") };
+    const call = scripted([["questioner", { question: "What is a smaller kind?", scaffold: null }]]);
+    const started = await advance({ session, mastery: masteryAt(2) }, { action: "start" }, call.call);
+    const predicted = await advance({ session: started.session, mastery: started.mastery }, { prediction: 4 }, call.call);
+    const attempted = await advance({ session: predicted.session, mastery: predicted.mastery }, { text: "A democracy has local levels." }, call.call);
+    expect(attempted.turn.messages.map(({ text }) => text)).toEqual([
+      "Thanks. We'll test that first idea one part at a time.",
+      "What is a smaller kind?",
+    ]);
+    expect(attempted.session.move).toBe("infraordinate");
+    expect(call.finished()).toBe(true);
+  });
+
+  it("rotates the move sequence from a saved coach focus", () => {
+    expect(rules.moveOrderFromFocus("isoordinate")).toEqual(["isoordinate", "infraordinate", "supraordinate", "exclusion"]);
+    expect(rules.moveOrderFromFocus(null)).toEqual([...MOVE_ORDER]);
+  });
 });
 const hintOutput = (step: string, text: string) => ({ step, text, revealed: null });
 
@@ -299,7 +321,7 @@ describe("mixed levels (decision 16)", () => {
       { text: "A law." },
       { action: "help" },
     ], call);
-    expect(turns[2]!.messages[0]!.text).toBe("Now find the supraordinate class of democracy.");
+    expect(turns[2]!.messages[1]!.text).toBe("Now find the supraordinate class of democracy.");
     expect(turns[2]!.level).toBe(4);
     expect(turns[3]!.messages.map((m) => m.kind)).toEqual(["feedback"]);
     // No free nudge at level 4, so the first Help is the nudge. The next move is level 4 too: no question to ask ahead.
@@ -534,7 +556,8 @@ describe("the chosen concept reaches every Turn (#163: a tap on CORS never opens
       expect(turns[0]!.messages[0]!.text).toBe(`You'll build the map of ${concept} in 4 parts, 2 points each. How many of the 8 points do you think you'll get?`);
       expect(turns[1]!.messages[0]!.text).toBe(`Before any help: in your own words, what is ${concept}?`);
       // the worked example is planet, in `example` only: the learner's map keeps the concept
-      expect(turns[2]!.messages[0]!.text).toBe(`Before ${concept}, watch the four moves on a simpler concept: planet.`);
+      expect(turns[2]!.messages[0]!.text).toBe("Thanks. We'll test that first idea one part at a time.");
+      expect(turns[2]!.messages[1]!.text).toBe(`Before ${concept}, watch the four moves on a simpler concept: planet.`);
       expect(turns[2]!.example!.concept).toBe("planet");
       expect(turns[2]!.mentefacto.concept).toBe(concept);
       expect(sent.map((s) => s.agent)).toEqual(["questioner", "evaluator", "questioner", "evaluator", "questioner", "evaluator", "questioner", "evaluator", "coach"]);

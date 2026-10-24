@@ -19,11 +19,12 @@ DEFINE INDEX OVERWRITE session_user ON session FIELDS user;
 
 DEFINE TABLE IF NOT EXISTS mastery SCHEMALESS;
 DEFINE FIELD OVERWRITE user ON mastery TYPE string;
+DEFINE FIELD OVERWRITE concept ON mastery TYPE string;
 DEFINE FIELD OVERWRITE move ON mastery TYPE "supraordinate" | "exclusion" | "isoordinate" | "infraordinate";
 DEFINE FIELD OVERWRITE level ON mastery TYPE int ASSERT $value >= 1 AND $value <= 5;
 DEFINE FIELD OVERWRITE unassistedSuccesses ON mastery TYPE int ASSERT $value >= 0;
 DEFINE FIELD OVERWRITE updatedAt ON mastery TYPE datetime VALUE time::now();
-DEFINE INDEX OVERWRITE mastery_user ON mastery FIELDS user;
+DEFINE INDEX OVERWRITE mastery_user_concept ON mastery FIELDS user, concept;
 
 DEFINE TABLE IF NOT EXISTS agent_log SCHEMALESS;
 DEFINE FIELD OVERWRITE session ON agent_log TYPE record<session>;
@@ -38,7 +39,7 @@ DEFINE INDEX OVERWRITE agent_log_session ON agent_log FIELDS session;
 export type AgentLogEntry = { session: string; agent: string; input: unknown; output: unknown; ms: number; usd: number; dropped?: string[] };
 
 export type Store = {
-  createSession(user: string, input: NewSession): Promise<Session>;
+  createSession(user: string, input: NewSession, moveOrder?: readonly MoveId[]): Promise<Session>;
   // null when the session doesn't exist or belongs to someone else
   getSession(user: string, id: string): Promise<Session | null>;
   // GET /sessions: the user's sessions that have a Turn, newest first
@@ -46,9 +47,10 @@ export type Store = {
   // false when the stored session is no longer at `previousTurn`: another request answered it first
   saveSession(session: Session, previousTurn: number): Promise<boolean>;
   // every move, in session order; a move the learner hasn't touched yet is at level 1
-  getMastery(user: string): Promise<Mastery>;
+  getMastery(user: string, concept: string): Promise<Mastery>;
   // the moves given, one row each; moves left out keep their rows (a Turn writes only what it changed)
-  saveMastery(user: string, mastery: Mastery): Promise<void>;
+  saveMastery(user: string, concept: string, mastery: Mastery): Promise<void>;
+  getNextFocus(user: string, concept: string): Promise<MoveId | null>;
   logAgentCall(entry: AgentLogEntry): Promise<void>;
   // GET /me/memory: the concepts of the user's finished sessions, newest first, each once
   finishedConcepts(user: string): Promise<string[]>;
@@ -64,10 +66,11 @@ export async function defineSchema(db: Surreal): Promise<void> {
 
 // A new session before the orchestrator's first step, already valid against the Session schema in
 // @build-north/agents: it starts in the predict phase with no hints on any move.
-export function initialSession(user: string, { concept, material, mode }: NewSession): Omit<Session, "id" | "createdAt"> {
+export function initialSession(user: string, { concept, material, mode }: NewSession, moveOrder: readonly MoveId[] = MOVE_ORDER): Omit<Session, "id" | "createdAt"> {
   return {
     user,
     concept,
+    moveOrder: [...moveOrder],
     material,
     mode,
     turn: 0,
@@ -109,9 +112,9 @@ export function createStore(db: Surreal): Store {
   // Rows go through the agents schemas on the way out, so a database that drifted from the contract
   // fails here instead of somewhere downstream.
   return {
-    async createSession(user, input) {
+    async createSession(user, input, moveOrder) {
       const session = await one("CREATE ONLY session CONTENT $content RETURN *, record::id(id) AS id", {
-        content: initialSession(user, input),
+        content: initialSession(user, input, moveOrder),
       });
       return Session.parse(session);
     },
@@ -145,10 +148,10 @@ export function createStore(db: Surreal): Store {
       return saved.length > 0;
     },
 
-    async getMastery(user) {
+    async getMastery(user, concept) {
       const rows = await one<{ move: string; level: number; unassistedSuccesses: number }[]>(
-        "SELECT move, level, unassistedSuccesses FROM mastery WHERE user = $user",
-        { user },
+        "SELECT move, level, unassistedSuccesses FROM mastery WHERE user = $user AND concept = $concept",
+        { user, concept: concept.trim().toLowerCase() },
       );
       return Mastery.parse({
         moves: MOVE_ORDER.map((move) => {
@@ -158,15 +161,26 @@ export function createStore(db: Surreal): Store {
       });
     },
 
-    async saveMastery(user, { moves }) {
+    async saveMastery(user, concept, { moves }) {
       // one statement, so the four moves are saved together or not at all
       await one(
         `FOR $m IN $moves {
-           UPSERT type::record("mastery", [$user, $m.move]) SET user = $user, move = $m.move,
+           UPSERT type::record("mastery", [$user, $concept, $m.move]) SET user = $user, concept = $concept, move = $m.move,
              level = $m.level, unassistedSuccesses = $m.unassistedSuccesses;
          }`,
-        { user, moves },
+        { user, concept: concept.trim().toLowerCase(), moves },
       );
+    },
+
+    async getNextFocus(user, concept) {
+      const rows = await one<{ nextFocus: string | null }[]>(
+        `SELECT result.coach.nextFocus AS nextFocus FROM session
+         WHERE user = $user AND string::lowercase(concept) = $concept AND result != NONE AND result != NULL
+         ORDER BY createdAt DESC LIMIT 1`,
+        { user, concept: concept.trim().toLowerCase() },
+      );
+      const focus = rows[0]?.nextFocus;
+      return MOVE_ORDER.includes(focus as MoveId) ? (focus as MoveId) : null;
     },
 
     async logAgentCall({ session, agent, input, output, ms, usd, dropped }) {

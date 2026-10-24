@@ -1,4 +1,4 @@
-import { CreateSessionBody, Turn, TurnBody, UnexpectedInput, type Advance, type CallAgent, type Expects, type Mastery } from "@build-north/agents";
+import { CreateSessionBody, rules, Turn, TurnBody, UnexpectedInput, type Advance, type CallAgent, type Expects, type Mastery } from "@build-north/agents";
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
 import { rateLimit } from "express-rate-limit";
@@ -157,15 +157,16 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       return;
     }
     // CONTRACTS.md section 3: load, advance, save what comes back, return the Turn
-    const session = await who.store.createSession(who.user, parsed.value);
-    const mastery = await who.store.getMastery(who.user);
+    const focus = await who.store.getNextFocus(who.user, parsed.value.concept);
+    const session = await who.store.createSession(who.user, parsed.value, rules.moveOrderFromFocus(focus));
+    const mastery = await who.store.getMastery(who.user, session.concept);
     const next = await advance({ session, mastery }, { action: "start" }, callAgentFor(session.id));
     // nothing else knows this session's id yet, so this save can't lose to another request
     await who.store.saveSession(next.session, session.turn);
     // CONTRACTS.md section 3: a test session never writes mastery, and a start changes none, so this writes
     // nothing in practice; the rule is the same as /turns
     const changed = changedMoves(mastery, next.mastery);
-    if (session.mode !== "test" && changed.length > 0) await who.store.saveMastery(who.user, { moves: changed });
+    if (session.mode !== "test" && changed.length > 0) await who.store.saveMastery(who.user, session.concept, { moves: changed });
     res.status(201).json(next.turn);
   });
 
@@ -226,7 +227,7 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       conflict(expects === "none" ? "This session is over" : sent === "help" ? "Help works during the moves" : `Turn ${turn} expects ${expects}, not ${sent}`);
       return;
     }
-    const mastery = await who.store.getMastery(who.user);
+    const mastery = await who.store.getMastery(who.user, session.concept);
     // The hint giver and the coach get what this learner's earlier sessions left, read once per Turn and only
     // when one of them runs; over 1.5 s, empty or off, they run without it (CONTRACTS.md section 2, Memory).
     const remembered = memory ? withMemory(callAgentFor(session.id), () => memory.recall(who.user, session.concept, session.id)) : null;
@@ -268,7 +269,7 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     // the copy read before the Claude call is seconds old, and writing all four back could undo a level another
     // session saved since.
     const changed = changedMoves(mastery, next.mastery);
-    if (session.mode !== "test" && changed.length > 0) await who.store.saveMastery(who.user, { moves: changed });
+    if (session.mode !== "test" && changed.length > 0) await who.store.saveMastery(who.user, session.concept, { moves: changed });
     // The session has its result: what it leaves for the next one is written off the request path. The tables
     // above stay the record, so a memory that is down costs the learner nothing but the facts; the cause is logged.
     if (memory && next.session.result && !session.result) {
@@ -292,7 +293,12 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
   app.get("/me/mastery", async (req, res) => {
     const who = await caller(req, res);
     if (!who) return;
-    res.json(await who.store.getMastery(who.user));
+    const concept = typeof req.query.concept === "string" ? req.query.concept.trim() : "";
+    if (!concept || concept.length > MAX_CONCEPT) {
+      res.status(400).json({ error: `concept query parameter must be 1 to ${MAX_CONCEPT} characters` });
+      return;
+    }
+    res.json(await who.store.getMastery(who.user, concept));
   });
 
   // The delete button: the caller's memory scope, then their sessions, their agent logs, and mastery. Memory goes

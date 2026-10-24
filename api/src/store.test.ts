@@ -34,7 +34,7 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     assert.equal(await store.getSession("jonathan", session.id), null);
     assert.equal(await store.getSession("leo", "doesnotexist0000000"), null);
 
-    const next = await advanceStub({ session, mastery: await store.getMastery("leo") }, { action: "start" }, callAgentStub);
+    const next = await advanceStub({ session, mastery: await store.getMastery("leo", "democracy") }, { action: "start" }, callAgentStub);
     assert.equal(await store.saveSession(next.session, session.turn), true);
     const saved = await store.getSession("leo", session.id);
     assert.equal(saved?.turn, 1);
@@ -76,10 +76,10 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
   await t.test("GET /sessions lists the user's sessions that have a Turn, newest first, finished or not, and nobody else's", async () => {
     const result = { predictedScore: 7, score: 3, maxScore: 8 as const, calibrationGap: 4, hintsUsed: 0, rubric: [], masteryChanges: [], questions: { asked: 0, testing: 0 }, coach: null };
     const first = await store.createSession("lister", { concept: "API", material: null, mode: "learn" });
-    const started = await advanceStub({ session: first, mastery: await store.getMastery("lister") }, { action: "start" }, callAgentStub);
+    const started = await advanceStub({ session: first, mastery: await store.getMastery("lister", "API") }, { action: "start" }, callAgentStub);
     assert.equal(await store.saveSession(started.session, first.turn), true);
     const second = await store.createSession("lister", { concept: "JWT", material: null, mode: "test" });
-    const over = await advanceStub({ session: second, mastery: await store.getMastery("lister") }, { action: "start" }, callAgentStub);
+    const over = await advanceStub({ session: second, mastery: await store.getMastery("lister", "JWT") }, { action: "start" }, callAgentStub);
     assert.equal(await store.saveSession({ ...over.session, phase: "result", result }, second.turn), true);
     // never started (the agent failed on the first Turn): nothing to show
     await store.createSession("lister", { concept: "CORS", material: null, mode: "learn" });
@@ -96,17 +96,18 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
   });
 
   await t.test("mastery starts at level 1 and saves all four moves", async () => {
-    const fresh = await store.getMastery("cynthia");
+    const fresh = await store.getMastery("cynthia", "democracy");
     assert.deepEqual(fresh.moves.map((m) => m.level), [1, 1, 1, 1]);
     fresh.moves[1] = { move: "exclusion", level: 3, unassistedSuccesses: 1 };
-    await store.saveMastery("cynthia", fresh);
-    assert.deepEqual((await store.getMastery("cynthia")).moves[1], { move: "exclusion", level: 3, unassistedSuccesses: 1 });
+    await store.saveMastery("cynthia", "democracy", fresh);
+    assert.deepEqual((await store.getMastery("cynthia", "democracy")).moves[1], { move: "exclusion", level: 3, unassistedSuccesses: 1 });
+    assert.deepEqual((await store.getMastery("cynthia", "inflation")).moves.map((m) => m.level), [1, 1, 1, 1]);
   });
 
   await t.test("the schema refuses a level outside 1 to 5 and a mode it doesn't know", async () => {
-    const bad = await store.getMastery("kyle");
+    const bad = await store.getMastery("kyle", "x");
     bad.moves[0] = { move: "supraordinate", level: 9 as 5, unassistedSuccesses: 0 };
-    await assert.rejects(store.saveMastery("kyle", bad));
+    await assert.rejects(store.saveMastery("kyle", "x", bad));
     await assert.rejects(store.createSession("kyle", { concept: "x", material: null, mode: "exam" as "test" }));
   });
 
@@ -139,7 +140,7 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
   await t.test("deleting a user's data removes their sessions, logs and mastery, and nobody else's", async () => {
     const mine = await store.createSession("delete-me", { concept: "inflation", material: "notes", mode: "test" });
     await store.logAgentCall({ session: mine.id, agent: "fact_desk", input: { q: 1 }, output: { a: 2 }, ms: 120.4, usd: 0.0123 });
-    await store.saveMastery("delete-me", await store.getMastery("delete-me"));
+    await store.saveMastery("delete-me", "inflation", await store.getMastery("delete-me", "inflation"));
     const theirs = await store.createSession("keep-me", { concept: "inflation", material: null, mode: "learn" });
 
     await store.deleteUserData("delete-me");
@@ -159,7 +160,7 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
   await t.test("the demo seed puts its user at level 5 on every move, with a CORS session the API carries on", async (st) => {
     const seed = DemoSeed.parse(demoSeed);
     const session = await loadDemoSeed(store, "demo");
-    assert.deepEqual(await store.getMastery("demo"), seed.mastery);
+    assert.deepEqual(await store.getMastery("demo", seed.session.concept), seed.mastery);
     assert.deepEqual(await store.getSession("demo", session.id), session);
 
     // what the app gets when the demo user signs in, then the presenter's first question
@@ -169,7 +170,7 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     await once(server, "listening");
     const api = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
     const headers = { "content-type": "application/json", "x-dev-user": "demo", "x-dev-key": "k" };
-    const mastery = await (await fetch(`${api}/me/mastery`, { headers })).json();
+    const mastery = await (await fetch(`${api}/me/mastery?concept=${encodeURIComponent(seed.session.concept)}`, { headers })).json();
     assert.deepEqual(mastery.moves.map((m: { level: number }) => m.level), [5, 5, 5, 5]);
     const waiting = await (await fetch(`${api}/sessions/${session.id}`, { headers })).json();
     assert.deepEqual(waiting, { ...seed.session.lastTurn, sessionId: session.id });

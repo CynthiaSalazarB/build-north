@@ -17,7 +17,7 @@ import { dirname, join, relative, resolve } from "node:path";
 const ENV_FILES = [".env.production.local", ".env.local", ".env.production", ".env"];
 /** Where `expo export` puts the JavaScript: the web chunks (web/*.js) and the Android bundle (android/*.hbc). */
 const JS_DIR = join("_expo", "static", "js");
-const CLERK_KEY = /^pk_(test|live)_[A-Za-z0-9]+$/;
+const CLERK_KEY = /^pk_(test|live)_[A-Za-z0-9]+\$?$/;
 const ANY_CLERK_KEY = /pk_(test|live)_[A-Za-z0-9]{20,}/;
 /** A deployed build can't reach these: the export was made with a local .env. */
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\d+\.\d+\.\d+\.\d+)(:\d+)?$/;

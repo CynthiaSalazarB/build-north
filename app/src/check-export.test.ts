@@ -11,7 +11,7 @@ import { fileURLToPath } from "node:url";
 
 const SCRIPT = fileURLToPath(new URL("../scripts/check-export.mjs", import.meta.url));
 const API = "https://api.example.test";
-const KEY = "pk_test_Zm9yLWxvY2FsLXRlc3RzLW9ubHk";
+const KEY = "pk_test_Zm9yLWxvY2FsLXRlc3RzLW9ubHk$";
 
 /** A project folder with one web chunk holding `js`, an optional Android bundle, and an optional .env file. */
 function project(t: TestContext, { js, hbc, env }: { js: string; hbc?: string; env?: Record<string, string> }) {

@@ -77,7 +77,7 @@
     }
   },
   {
-    "note": "Level 1: the worked example on planet, from fixtures/worked-example.json. Turn.example holds the planet map.",
+    "note": "Level 1: the app acknowledges the learner's attempt, then shows a worked example on planet from fixtures/worked-example.json. Turn.example holds the planet map.",
     "input": {
       "turn": 2,
       "text": "When people vote."
@@ -89,6 +89,11 @@
       "move": null,
       "level": null,
       "messages": [
+        {
+          "agent": "app",
+          "kind": "feedback",
+          "text": "Thanks. We'll test that first idea one part at a time."
+        },
         {
           "agent": "app",
           "kind": "example",

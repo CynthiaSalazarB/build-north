@@ -9,7 +9,7 @@ import { createStore, defineSchema, type Store } from "./store.ts";
 // second run resets the mastery and adds a fresh session; the earlier sessions stay.
 export async function loadDemoSeed(store: Store, user: string): Promise<Session> {
   const { mastery, session: seeded } = DemoSeed.parse(demoSeed);
-  await store.saveMastery(user, mastery);
+  await store.saveMastery(user, seeded.concept, mastery);
   const created = await store.createSession(user, { concept: seeded.concept, material: seeded.material, mode: seeded.mode });
   const session: Session = {
     ...seeded,
