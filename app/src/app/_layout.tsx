@@ -48,7 +48,7 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
       <Screen>
         <View style={styles.error}>
           <Title>Something broke on our side.</Title>
-          <Failure message="Try again. If it keeps happening, restart the app.">
+          <Failure message={`Try again. If it keeps happening, ${Platform.OS === "web" ? "reload the page" : "restart the app"}.`}>
             <Button kind="secondary" label="Try again" onPress={() => void retry()} />
           </Failure>
         </View>

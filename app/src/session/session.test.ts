@@ -127,6 +127,19 @@ test("a 409 with the latest Turn is drawn; other errors carry the server's messa
   await assert.rejects(down.start({ concept: "x" }), { status: null, retryable: true });
 });
 
+test("a server that is broken or restarting, and a sign-in it refuses, get the learner's words, not the server's", async () => {
+  // the API's own 500 line ends in "the cause is in the server logs", and a host's 502 page isn't JSON at all
+  const broken = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(500, { error: "Something went wrong; the cause is in the server logs" }).fetch });
+  await assert.rejects(broken.send("s", { turn: 1, text: "x" }), { message: "The server hit a problem. Try again in a moment.", status: 500, retryable: true });
+  const restarting = ((async () => new Response("<html>Bad Gateway</html>", { status: 502 })) as unknown) as typeof fetch;
+  await assert.rejects(createApiClient({ baseUrl: "http://api.test", fetch: restarting }).start({ concept: "x" }), { message: "The server hit a problem. Try again in a moment.", status: 502, retryable: true });
+  const refused = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(401, { error: "Sign in first: send the Clerk session token as Authorization: Bearer <token>" }).fetch });
+  await assert.rejects(refused.start({ concept: "x" }), { message: "The server didn't accept your sign-in. Sign out, then sign in again.", status: 401, retryable: false });
+  // a 4xx with a message written for the learner keeps it
+  const long = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(413, { error: "Your notes are over 8,000 characters. Paste a shorter excerpt." }).fetch });
+  await assert.rejects(long.start({ concept: "x", material: "…" }), { message: "Your notes are over 8,000 characters. Paste a shorter excerpt.", status: 413, retryable: false });
+});
+
 test("a session is picked up with GET /sessions/:id, and a 404 says it is gone for good", async () => {
   const { fetch, calls } = fakeFetch(200, first);
   const client = createApiClient({ baseUrl: "http://api.test", getToken: async () => "tok", fetch });
@@ -170,7 +183,7 @@ test("the delete button sends DELETE /me/data with the credentials, no body, and
   assert.deepEqual(calls[0]!.init.headers, { authorization: "Bearer tok" });
 
   const refused = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(401, { error: "Sign in first" }).fetch });
-  await assert.rejects(refused.deleteData(), { message: "Sign in first", status: 401, retryable: false });
+  await assert.rejects(refused.deleteData(), { message: /sign in again/, status: 401, retryable: false });
   // demo mode has nothing to delete, and says nothing
   await createFixtureClient(0).deleteData();
 });

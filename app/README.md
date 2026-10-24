@@ -7,7 +7,7 @@ templates are allowed if disclosed), with the template's demo screens, icons and
 
 The look is round 9, "Lumente", Cynthia's design (`docs/design/09-lumente/`): questions are the light. A
 near-black screen gets a warm light from the top-right corner, one stage per point proved, and the ink turns
-dark once the light fills the screen at 5 points. `src/theme.ts` holds its tokens, and screens take colors only
+dark once the light fills the screen at 7 points. `src/theme.ts` holds its tokens, and screens take colors only
 from there, through the light of the screen they're on, so the phone's light or dark setting doesn't change
 them.
 

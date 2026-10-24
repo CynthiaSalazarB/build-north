@@ -334,6 +334,16 @@ export function wholeMapPartsOf(draft: Mentefacto, server: Mentefacto): PartView
   });
 }
 
+/** The fact desk's side of the session: the learner's questions, its answers, the hints. The opening instruction
+ * is the firefly's line under the map, so it isn't repeated. */
+export const deskOf = (entries: readonly Entry[]): Entry[] =>
+  entries.filter((e) => e.from === "learner" || (e.from === "app" && e.phase === "move" && e.message.kind !== "question"));
+
+/** What the phone's whole-map screen scrolls to the end for: a new line in the fact chat (a question, its answer, a
+ * hint), a call in flight or a failure. The key changes with those and with nothing else, so an edit to the map,
+ * which also grows the page, never pulls the learner away from it. The website layout follows its own column. */
+export const chatKeyOf = (desk: readonly Entry[], pending: boolean, failure: boolean): string => `${desk.length}:${pending ? 1 : 0}:${failure ? 1 : 0}`;
+
 /** What each part asks for, in plain words: the method's moves without its names. */
 export function partMeaningOf(move: MoveId, concept: string): string {
   switch (move) {

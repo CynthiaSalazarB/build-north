@@ -4,9 +4,9 @@ import { MOVE_LABEL, MOVE_ORDER, type Item, type Mentefacto, type MoveId, type T
 import { useRef, useState, type ReactNode } from "react";
 import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from "react-native";
 import Animated from "react-native-reanimated";
-import { filledOf, hintNumberOf, hintPartOf, itemsOf, nextPartOf, partMeaningOf, partTextOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
+import { chatKeyOf, deskOf, filledOf, hintNumberOf, hintPartOf, itemsOf, nextPartOf, partMeaningOf, partTextOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
 import type { LearnerInput } from "../session/session-context.tsx";
-import type { Entry, SessionState } from "../session/transcript.ts";
+import type { SessionState } from "../session/transcript.ts";
 import { maxContentWidth, parts as PARTS, radius, size, space, type } from "../theme.ts";
 import { ConceptMap, type MapGeometry } from "./concept-map.tsx";
 import { Firefly } from "./firefly.tsx";
@@ -51,6 +51,16 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
   const { failure } = state;
   const saved = failure && "mentefacto" in failure.body ? " Your map is saved." : "";
   const openPart = (move: MoveId) => { if (!pending) setEditing(move); };
+  // On the phone the chat's thread sits under the map, the guide and the status, past the first screen, and the
+  // ask bar is pinned below: a reply landed out of view with nothing to say it had. Each new line in the chat
+  // (and a call in flight, and a failure) scrolls into view once, as the website layout's column already does.
+  const followed = useRef("");
+  const follow = () => {
+    const key = chatKeyOf(desk, pending, failure !== null);
+    if (!chatOpen || key === followed.current) return;
+    followed.current = key;
+    scroll.current?.scrollToEnd({ animated: true });
+  };
 
   const conceptMap = (onGeometry?: (geometry: MapGeometry) => void, leader = false) => (
     <ConceptMap
@@ -186,7 +196,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
     <Screen>
       <SessionBar concept={concept} onClose={onClose} end={<Asked n={asked} />} />
       <KeyboardSafe>
-        <ScrollView ref={scroll} style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <ScrollView ref={scroll} style={styles.flex} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled" onContentSizeChange={follow}>
           <View style={styles.intro}>{intro}</View>
           <View onLayout={(e) => setMapHeight(e.nativeEvent.layout.height)}>
             {conceptMap(undefined, true)}
@@ -200,12 +210,6 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
       {sheets}
     </Screen>
   );
-}
-
-/** The fact desk's side of the session: the learner's questions, its answers, the hints. The opening instruction
- * is the firefly's line under the map, so it isn't repeated. */
-function deskOf(entries: readonly Entry[]): Entry[] {
-  return entries.filter((e) => e.from === "learner" || (e.from === "app" && e.phase === "move" && e.message.kind !== "question"));
 }
 
 /** One small amber square per question asked, in the top bar. */
