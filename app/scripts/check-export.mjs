@@ -12,7 +12,6 @@
 // export (.env.production.local, .env.local, .env.production, .env). Exit 0 when every check passes, 1 otherwise.
 import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 
 /** The .env files Expo reads for an export, first one wins. */
 const ENV_FILES = [".env.production.local", ".env.local", ".env.production", ".env"];
@@ -24,7 +23,7 @@ const ANY_CLERK_KEY = /pk_(test|live)_[A-Za-z0-9]{20,}/;
 const LOCAL_HOST = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|\d+\.\d+\.\d+\.\d+)(:\d+)?$/;
 
 /** KEY=value lines of one .env file, as Expo reads them (comments skipped, quotes stripped); {} when it is missing. */
-export function readEnvFile(path) {
+function readEnvFile(path) {
   if (!existsSync(path)) return {};
   const values = {};
   for (const line of readFileSync(path, "utf8").split(/\r?\n/)) {
@@ -40,7 +39,7 @@ export function readEnvFile(path) {
 }
 
 /** The two values Expo inlined into the export: the process first, then the .env files in `projectDir`. */
-export function expectedFrom(env, projectDir) {
+function expectedFrom(env, projectDir) {
   const names = ["EXPO_PUBLIC_API_URL", "EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY"];
   const found = Object.fromEntries(names.map((name) => [name, env[name]?.trim() || undefined]));
   for (const file of ENV_FILES) {
@@ -70,7 +69,7 @@ function bundlesIn(dist) {
  * Checks the export in `dist` against the values the environment named. Returns the problems (none means the export is
  * fit to deploy) and what was found where.
  */
-export function checkExport(dist, { apiUrl, clerkKey }) {
+function checkExport(dist, { apiUrl, clerkKey }) {
   const problems = [];
   const found = [];
   let host = null;
@@ -118,4 +117,4 @@ function main(argv) {
   return ok ? 0 : 1;
 }
 
-if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) process.exitCode = main(process.argv);
+process.exitCode = main(process.argv);
