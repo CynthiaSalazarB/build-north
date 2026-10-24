@@ -86,10 +86,11 @@ organization.
   `npx eas-cli workflow:run .eas/workflows/ship.yml`. Then close and open the app twice: the first launch
   downloads the update, the second uses it.
 - **New build:** `npx eas-cli workflow:run .eas/workflows/preview-build.yml`. Install the new APK on the
-  phones, then Ship.
+  phones, then Ship. Always this workflow (profile `preview`): Ship updates the `preview` channel only, so an APK
+  from the `production` profile would never get another update (DECISIONS.md, Oct 23).
 - **Render deploy:** automatic on every merge while Auto-Deploy is on. When it's off: Render dashboard →
-  `build-north-api` → Manual Deploy → Deploy latest commit (`main`). `/health` answering `{ "ok": true }`
-  means it's up; it doesn't say which version.
+  `build-north-api` → Manual Deploy → Deploy latest commit (`main`). `/health` answering `{ "ok": true, "commit": "<the merged commit>", "memory": "on" | "off" }`
+  means it's up and names the commit it runs (#143).
 - **The testers' website:** `npx eas-cli env:pull --environment production` (it writes `app/.env.local`),
   `npx expo export --platform web --clear`, `npx eas-cli deploy --alias testers`. Then delete `app/.env.local`:
   Expo reads it before `app/.env`, so local runs would otherwise talk to the production API.

@@ -49,6 +49,8 @@ createApp({
   // per IP: a room of testers on one Wi-Fi shares one, so the limit can be raised for the day
   requestsPerMinute: Number(process.env.REQUESTS_PER_MINUTE) || undefined,
   memory,
+  // Render sets RENDER_GIT_COMMIT on every deploy (render.com/docs/environment-variables)
+  commit: process.env.RENDER_GIT_COMMIT?.trim().slice(0, 7) || null,
 }).listen(port, (error) => {
   if (error) throw error;
   const dbInfo = surreal ? `${new URL(surreal.url).host} (${surreal.namespace}/${surreal.database})` : "not configured";
