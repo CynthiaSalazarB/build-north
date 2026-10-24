@@ -30,7 +30,7 @@ local files with their `.ts` extension, and use `import type` for types. The typ
 
 | Route | What it does |
 |---|---|
-| `GET /health` | `{ ok: true }`. Render's health check; never touches the database |
+| `GET /health` | `{ ok: true, commit, memory }`: Render's health check (never touches the database), plus the running commit (Render's `RENDER_GIT_COMMIT`, 7 characters; `null` locally) and `"on"` or `"off"` for Agent Memory, so a deploy and the flag can be checked with one request |
 | `GET /health/db` | Asks SurrealDB for its clock and returns it with how many milliseconds that took. Read-only. `503` when the database is not configured, refuses the login or takes over 5 s; the cause goes to the server log, not the response |
 | `POST /sessions` | `{ concept, material?, mode? }`: saves a new session and returns its first `Turn`, the prediction question. `mode: "test"` (the testers' pre-test and post-test) puts every move at level 5: after the prediction the learner asks the fact desk with `{ question }` and builds the whole map, and the session never writes mastery. `400` for a bad body, `413` for notes over 8,000 characters |
 | `GET /sessions/:id` | The session's latest `Turn`. `404` if it doesn't exist or belongs to someone else |
