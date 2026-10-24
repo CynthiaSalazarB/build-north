@@ -25,7 +25,7 @@ import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { changedMoves, createApp, type AppOptions } from "./app.ts";
 import { clerkUserFromToken } from "./clerk.ts";
 import { createCallAgent, type SendToClaude } from "./call-agent.ts";
-import type { LearnerMemoryStore } from "./memory.ts";
+import { createLearnerMemory, createMemoryApi, type LearnerMemoryStore } from "./memory.ts";
 import { initialSession, type AgentLogEntry, type Store } from "./store.ts";
 
 const WEB = "http://localhost:8081";
@@ -812,4 +812,33 @@ test("with memory on, the hint giver and the coach get what earlier sessions lef
   // with memory off the sheet is empty, and nothing is read or written
   const off = await start(t, withStore());
   assert.deepEqual(await (await fetch(`${off}/me/memory`, { headers: as("leo") })).json(), { concepts: [] });
+});
+
+test("a memory read slower than its budget leaves the hint giver without memory, and the Turn comes back as with memory off", async (t) => {
+  t.mock.method(console, "warn", () => {});
+  const warnings: string[] = [];
+  // memory never answers in time: the read is abandoned at the budget, and the hint giver runs without it
+  const late: typeof fetch = (_input, init) =>
+    new Promise((_resolve, reject) => {
+      init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
+    });
+  const memory = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, late), { salt: "", readMs: 20, warn: (message) => warnings.push(message) });
+  const store = memoryStore();
+  // the hint giver cites a fact anyway; with none given, the id is dropped
+  const claude = fakeClaude([["hint_giver", { step: "nudge", text: "What kind of thing is an ecosystem?", revealed: null, cites: ["attr_sup1"] }]], store);
+  const url = await start(t, { ...noDb, store, advance, callAgentFor: claude.callAgentFor, memory });
+  const first = await (await post(url, { concept: "ecosystem", mode: "test" })).json();
+  const map = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 5 })).json();
+  const res = await answer(url, first.sessionId, { turn: map.turn, action: "help" });
+  assert.equal(res.status, 200);
+  const hinted = await res.json();
+  assert.equal(hinted.error, null);
+  const hint = hinted.messages[0];
+  assert.deepEqual([hint.kind, hint.hintStep, "cites" in hint, "sources" in hint], ["hint", "nudge", false, false]);
+  assert.match(warnings[0] ?? "", /memory read skipped after \d+ ms/);
+  const hintRow = claude.logged.find((row) => row.agent === "hint_giver")!;
+  assert.equal("memory" in (hintRow.input as object), false);
+  assert.deepEqual(hintRow.dropped, ["attr_sup1"]);
+  // the Turn was saved as it went out
+  assert.deepEqual(await (await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") })).json(), hinted);
 });
