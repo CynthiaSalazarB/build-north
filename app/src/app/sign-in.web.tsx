@@ -16,7 +16,7 @@ export function generateMetadata() {
 
 /** The landing page's headline and the line under it (Cynthia, Oct 23). */
 const HEADLINE = "Build understanding, not dependence.";
-const HOW = "Learn to investigate concepts through guided questions, make connections, and figure things out for yourself.";
+const HOW = "Unravel concepts one question at a time, connect the ideas, and figure things out for yourself.";
 
 export default function SignInScreen() {
   const c = useColors();
