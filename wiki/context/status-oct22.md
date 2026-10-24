@@ -32,6 +32,30 @@ at `lumente.expo.app` (#151), the Devpost and demo-script drafts (#152), the jud
 light (#154), the feedback line above the next question (#155), the status page and log rows (#146, #148, #157)
 and the firefly's hover (#158, #159). #106 is the one open PR, still a draft.
 
+**Update, Oct 24, 7:45 PM (for Cynthia's Claude):** #175 is the only open PR, ready for review, docs only, nothing
+under `app/`, `api/` or `agents/`. It is round 10, the UI/UX research for after the freeze, in
+`docs/design/10-research/`: start at its `README.md`. What it holds and what it asks:
+
+- `ui-ux-best-practices.md`: the guide, 645 lines, 86 sources read before they were cited (88 links, 0 dead), with
+  a "Not verified" list; each rule says how it looks on a Lumente screen as the Oct 22 and 23 decisions define it.
+- `lumente-ux-audit.md`: 36 findings on every screen (13 Major, 20 Minor, 3 Polish), each with `file:line`
+  evidence re-checked by script, the demo web build clicked through at 390, 320 and 1280 px, a 60-pair contrast
+  table, "What to keep", ten questions for the team (each names the decision it would touch), four written Stitch
+  briefs, and the five changes that help slow learners most. Reply with the numbers to do ("do 2, 4 and 5").
+- `copy-pass.md`: 34 on-screen strings with the plainer wording, changing words only inside the decisions, plus three
+  questions (prediction or guess; area or part; submit or hand in).
+- `stitch/`: ten Google Stitch mockups on round 9's tokens, PNG plus HTML, with the real firefly; `stitch/README.md`
+  lists what is still Stitch's and eight questions. The HTML loads Tailwind and fonts from the web: a reference for
+  `design-check`, never shipped code.
+- What is not verified, by design: the screens the demo build cannot show (the Clerk sign-in, Test myself, the
+  whole-map level 5, the Memory sheet with data, errors) are audited from code only; the audit says so.
+- How it was made: the guide and the audit by Claude Code on Leo's machine; the mockups through Stitch's MCP
+  server with Leo's key (not in the repo), corrected until each showed the decided screen; the firefly and the
+  spacing added to the HTML locally and the PNGs re-rendered at 2x. The stand-in branches `claude/ux-guide` and
+  `claude/ux-audit` on origin are empty leftovers of two stopped cloud sessions and can be deleted.
+- Nothing in #175 is decided: the merge accepts the research, not the changes. Any screen or wording change is a
+  separate branch after Demo Day, through `design-check` for screens, with `docs/ux-guidance.md` updated to match.
+
 All three of Leo's are ready for review; one teammate reviews, the merge is the acceptance.
 
 | PR | What | Waits on |
@@ -40,6 +64,8 @@ All three of Leo's are ready for review; one teammate reviews, the merge is the 
 | #104 | `npm run export:testers -w api` (the grading sheet's rows and the maps to grade, pseudonyms only, #50) and `npm run smoke -w api` (#45, #37). Reviewed by Cynthia on Oct 22 | Cynthia's merge |
 | #124 | API: a Turn with `error` saves nothing (it wrote the stale session and mastery back), mastery is written only for the moves the Turn changed (every turn wrote all four from a seconds-old copy, so another session's level-up could go back down), and `REQUESTS_PER_MINUTE` (the limit is per IP; a room shares one; 60 when unset). api 43 pass + 1 skipped, tsc clean. Three smaller things seen and left for after Oct 23 are in the PR body | Cynthia's review and merge. Render deploys `main` on merge |
 | #106 | The final README (#55), rewritten Oct 23 in plain words for judges and organizers: what Lumente is and who it's for, why, how a session works, the idea behind it, mission and vision, how to try it, the judging criteria, the prize tracks. A hero image and four screenshots from demo mode. Setup, tests and team rules moved to `docs/developers.md`; `main` merged in. Draft until the freeze; the PR body lists 8 `TODO(Cynthia)` items (links, pilot numbers, names, disclosures, wording) | Cynthia fills the TODOs and merges after the freeze |
+
+| #175 | Round 10: the UI/UX guide with sources, the audit of every screen for first-time users and slow learners, the copy pass and ten Stitch mockups, all for after the freeze (`docs/design/10-research/README.md`). Docs only | Cynthia's review; her answers to the 21 questions in it (3 copy, 8 mockups, 10 audit) |
 
 Merged on Oct 22: #79, #81, #82, #88 to #100, #102, #105, #107 to #111, #113 to #123.
 
