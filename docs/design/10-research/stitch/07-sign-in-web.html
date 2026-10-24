@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lumente — Build understanding, not dependence</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS with Forms and Container Queries -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-dark": "#1f1d22",
+            "on-tertiary-fixed-variant": "#494648",
+            "on-error-container": "#ffdad6",
+            "surface-bright": "#3a3938",
+            "primary": "#ffffff",
+            "on-secondary-fixed-variant": "#5f4100",
+            "question-container-dark": "rgba(40,28,14,0.85)",
+            "secondary-fixed": "#ffdeaa",
+            "gap-light": "#9e3420",
+            "hint-container": "#f6e3a8",
+            "surface-container-highest": "#363434",
+            "on-primary-dark": "#111114",
+            "on-error": "#690005",
+            "inverse-on-surface": "#31302f",
+            "error-container": "#93000a",
+            "surface-container-lowest": "#0f0e0e",
+            "outline-variant": "#494740",
+            "on-tertiary-container": "#676366",
+            "tertiary": "#ffffff",
+            "on-primary-fixed": "#1d1b17",
+            "surface-container-high": "#2b2a29",
+            "on-tertiary-fixed": "#1d1b1d",
+            "on-primary-light": "#f6f1ea",
+            "outline-dark": "rgba(255,240,225,0.22)",
+            "on-hint-container": "#3a2a0e",
+            "primary-fixed-dim": "#cac6bf",
+            "inverse-primary": "#605e59",
+            "surface-variant": "#363434",
+            "lit-dark": "#fbf6ee",
+            "tertiary-fixed": "#e7e1e4",
+            "background": "#141313",
+            "tertiary-container": "#e7e1e4",
+            "surface-dark": "#16151a",
+            "on-surface-variant": "#cbc6bd",
+            "error": "#ffb4ab",
+            "on-background": "#e6e2e0",
+            "surface-light": "#fbdeb4",
+            "on-secondary": "#422c00",
+            "on-surface-dark": "#f4efe8",
+            "on-primary-container": "#67645f",
+            "on-secondary-container": "#392600",
+            "inverse-surface": "#e6e2e0",
+            "outline": "#949088",
+            "on-surface-light": "#17161a",
+            "surface-container-low": "#1c1b1b",
+            "on-surface-variant-dark": "#c9c0b4",
+            "primary-fixed": "#e7e2db",
+            "lit-light": "#fffdf8",
+            "gap-dark": "#ff9b80",
+            "secondary-container": "#bb881c",
+            "surface": "#141313",
+            "on-primary-fixed-variant": "#494742",
+            "tertiary-fixed-dim": "#cac5c8",
+            "on-secondary-fixed": "#271900",
+            "on-primary": "#32302c",
+            "surface-dim": "#141313",
+            "surface-container-light": "#fffaf2",
+            "primary-container": "#e7e2db",
+            "question-container-light": "rgba(242,184,75,0.18)",
+            "on-tertiary": "#323032",
+            "on-surface-variant-light": "#433c35",
+            "secondary-fixed-dim": "#f7bd4f",
+            "outline-light": "rgba(23,22,26,0.22)",
+            "firefly": "#f2b84b",
+            "surface-tint": "#cac6bf",
+            "surface-container": "#201f1f",
+            "secondary": "#f7bd4f",
+            "on-surface": "#e6e2e0"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "gutter": "24px",
+            "space-xs": "8px",
+            "space-xl": "40px",
+            "space-lg": "32px",
+            "space-md": "24px",
+            "margin": "24px",
+            "space-sm": "16px"
+          },
+          "fontFamily": {
+            "body-lg": ["Inter", "sans-serif"],
+            "label-sm": ["Inter", "sans-serif"],
+            "label-md": ["Inter", "sans-serif"],
+            "headline-lg": ["Inter", "sans-serif"],
+            "headline-md": ["Inter", "sans-serif"],
+            "body-md": ["Inter", "sans-serif"],
+            "headline-lg-mobile": ["Inter", "sans-serif"]
+          },
+          "fontSize": {
+            "body-lg": ["17px", { "lineHeight": "1.5", "fontWeight": "400" }],
+            "label-sm": ["13px", { "lineHeight": "1.4", "fontWeight": "500" }],
+            "label-md": ["14px", { "lineHeight": "1.4", "fontWeight": "500" }],
+            "headline-lg": ["32px", { "lineHeight": "1.3", "fontWeight": "600" }],
+            "headline-md": ["28px", { "lineHeight": "1.3", "fontWeight": "600" }],
+            "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+            "headline-lg-mobile": ["28px", { "lineHeight": "1.3", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Technical Graph Paper Background Overlay */
+    .bg-grid-pattern {
+      background-size: 24px 24px, 96px 96px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to right, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+    }
+    
+    /* Radial Firefly Illumination from Top Right */
+    .bg-firefly-glow {
+      background: radial-gradient(circle at 100% 0%, rgba(242, 184, 75, 0.16) 0%, rgba(242, 184, 75, 0.05) 38%, transparent 70%);
+    }
+
+    /* Subtle pulse animation for active firefly guides */
+    @keyframes steadyPulse {
+      0%, 100% { opacity: 0.95; filter: drop-shadow(0 0 4px rgba(242,184,75,0.4)); }
+      50% { opacity: 1; filter: drop-shadow(0 0 10px rgba(242,184,75,0.8)); }
+    }
+    .firefly-glow-active {
+      animation: steadyPulse 4s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body class="bg-surface-dark text-on-surface-dark min-h-screen relative font-body-md selection:bg-firefly selection:text-surface-dark">
+<!-- Atmospheric Background Canvas -->
+<div class="fixed inset-0 pointer-events-none bg-gradient-to-b from-[#111114] to-[#16151a] z-0"></div>
+<div class="fixed inset-0 pointer-events-none bg-grid-pattern z-0 opacity-80"></div>
+<div class="fixed inset-0 pointer-events-none bg-firefly-glow z-0"></div>
+<!-- Main Container -->
+<div class="relative z-10 flex flex-col min-h-screen">
+<!-- TopNavBar (Shared Component Anchor) -->
+<header class="w-full bg-surface dark:bg-surface-dark border-b border-outline-dark transition-all duration-200">
+<div class="flex justify-between items-center w-full px-gutter max-w-7xl mx-auto h-16">
+<!-- Brand identity -->
+<a class="flex items-center gap-space-xs group focus:outline-none" href="#">
+<span class="material-symbols-outlined text-secondary dark:text-firefly text-2xl firefly-glow-active" data-icon="flare" style="font-variation-settings: 'FILL' 1;">flare</span>
+<span class="text-headline-md font-headline-md text-on-surface dark:text-on-surface-dark tracking-tight">Lumente</span>
+</a>
+<!-- Navigation Cluster -->
+<nav class="flex items-center gap-space-lg">
+<a class="text-on-surface-variant dark:text-on-surface-variant-dark font-label-md text-label-md hover:text-secondary dark:hover:text-firefly transition-colors duration-200" href="#how-it-works">
+            How it works
+          </a>
+<a class="text-on-surface-variant dark:text-on-surface-variant-dark font-label-md text-label-md hover:text-secondary dark:hover:text-firefly transition-colors duration-200" href="#signin">
+            I have an account
+          </a>
+</nav>
+</div>
+</header>
+<!-- Main Content: Two-Column Hero Canvas -->
+<main class="flex-1 flex items-center justify-center px-gutter py-space-xl max-w-7xl mx-auto w-full">
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-space-xl items-center w-full">
+<!-- Left Column: Primary Proposition and Onboarding Flow -->
+<section class="lg:col-span-7 flex flex-col gap-space-lg pr-0 lg:pr-space-md">
+<div class="space-y-space-sm max-w-xl">
+<!-- Calm, direct headline (Plain language, 44px on desktop) -->
+<h1 class="text-[44px] leading-[1.2] font-semibold text-on-surface-dark tracking-tight">
+              Build understanding, not dependence.
+            </h1>
+<!-- Reassuring sub-sentence -->
+<p class="text-on-surface-variant-dark text-[18px] leading-[1.6] font-normal">
+              Explain the ideas behind the code your AI wrote, in your own words.
+            </p>
+</div>
+<!-- Primary Call to Action Section -->
+<div class="flex flex-col sm:flex-row items-start sm:items-center gap-space-sm pt-space-xs">
+<!-- Exactly one primary action -->
+<a class="w-full sm:w-auto h-[52px] px-8 bg-on-primary-light text-on-primary-dark font-medium rounded-xl text-base flex items-center justify-center hover:brightness-110 active:scale-[0.99] transition-all duration-200 shadow-sm" href="#start">
+              Get started
+            </a>
+<!-- Secondary outlined action -->
+<a class="w-full sm:w-auto h-[48px] px-6 border border-outline-dark text-on-surface-dark font-medium rounded-xl text-base flex items-center justify-center hover:bg-surface-container-high transition-colors duration-200" href="#signin">
+              I have an account
+            </a>
+</div>
+<!-- Micro context label -->
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-firefly opacity-80"></span>
+<p class="font-label-sm text-label-sm text-on-surface-variant-dark">
+              Free. Takes about 10 minutes.
+            </p>
+</div>
+<!-- Three Distinct Steps (Horizontal Bento Row) -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-space-sm pt-space-md" id="how-it-works">
+<!-- Step 1 -->
+<div class="bg-surface-container-dark border border-outline-dark rounded-2xl p-4 flex flex-col gap-space-xs hover:border-outline transition-colors duration-200">
+<div class="flex items-center gap-2 text-on-surface-dark">
+<span class="material-symbols-outlined text-[20px] text-on-surface-variant-dark" data-icon="adjust">adjust</span>
+<span class="font-label-md text-label-md font-semibold text-on-surface-dark">1. Guess your score</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant-dark leading-relaxed">
+                You say how many of 8 points you will get.
+              </p>
+</div>
+<!-- Step 2 -->
+<div class="bg-surface-container-dark border border-outline-dark rounded-2xl p-4 flex flex-col gap-space-xs hover:border-outline transition-colors duration-200">
+<div class="flex items-center gap-2 text-on-surface-dark">
+<span class="material-symbols-outlined text-[20px] text-firefly" data-icon="flare" style="font-variation-settings: 'FILL' 1;">flare</span>
+<span class="font-label-md text-label-md font-semibold text-on-surface-dark">2. Explain the concept</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant-dark leading-relaxed">
+                The firefly asks. You answer in your own words.
+              </p>
+</div>
+<!-- Step 3 -->
+<div class="bg-surface-container-dark border border-outline-dark rounded-2xl p-4 flex flex-col gap-space-xs hover:border-outline transition-colors duration-200">
+<div class="flex items-center gap-2 text-on-surface-dark">
+<span class="material-symbols-outlined text-[20px] text-gap-dark" data-icon="compare_arrows">compare_arrows</span>
+<span class="font-label-md text-label-md font-semibold text-on-surface-dark">3. See the gap</span>
+</div>
+<p class="font-label-sm text-label-sm text-on-surface-variant-dark leading-relaxed">
+                Your guess next to your score.
+              </p>
+</div>
+</div>
+</section>
+<!-- Right Column: Interactive Phone Preview Showcase -->
+<section class="lg:col-span-5 flex justify-center items-center">
+<!-- Outer Phone Bezel Frame -->
+<div class="w-[380px] rounded-[36px] p-3 bg-gradient-to-b from-[#2b2a2f] via-[#1b1a1f] to-[#141318] border border-outline-dark shadow-2xl relative">
+<!-- Sleek rim illumination line -->
+<div class="absolute inset-0 rounded-[36px] pointer-events-none border border-white/10"></div>
+<!-- Phone Inner Screen Display -->
+<div class="w-full bg-[#16151a] rounded-[28px] overflow-hidden border border-black/40 flex flex-col text-left relative">
+<!-- Subtle Phone Top Notch & Status Bar -->
+<div class="px-5 pt-3 pb-2 flex justify-between items-center text-[11px] text-on-surface-variant-dark font-medium border-b border-outline-dark/40">
+<span>9:41</span>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-[14px]" data-icon="signal_cellular_alt">signal_cellular_alt</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="wifi">wifi</span>
+<span class="material-symbols-outlined text-[14px]" data-icon="battery_full">battery_full</span>
+</div>
+</div>
+<!-- Mini App Header -->
+<div class="px-4 py-3 flex items-center justify-between border-b border-outline-dark/60 bg-surface-container-lowest/60 backdrop-blur-sm">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-firefly text-lg firefly-glow-active" data-icon="flare" style="font-variation-settings: 'FILL' 1;">flare</span>
+<span class="font-semibold text-xs text-on-surface-dark tracking-tight">Lumente</span>
+</div>
+<div class="flex items-center gap-2">
+<span class="px-2 py-0.5 rounded-full text-[11px] font-medium bg-surface-container-high text-on-surface-dark border border-outline-dark/80">
+                    Step 2: Explain
+                  </span>
+<span class="text-[11px] text-on-surface-variant-dark font-normal">
+                    1 of 4 parts lit
+                  </span>
+</div>
+</div>
+<!-- Phone Content Area: The Concept Map -->
+<div class="p-4 space-y-4">
+<!-- Concept Map Cross Container -->
+<div class="relative w-full h-[270px] bg-surface-container-lowest/70 rounded-xl p-2 border border-outline-dark/40 flex items-center justify-center">
+<!-- Background Connecting Orthogonal Lines -->
+<div class="absolute w-[1px] h-[190px] bg-outline-dark/50 z-0"></div>
+<div class="absolute h-[1px] w-[270px] bg-outline-dark/50 z-0"></div>
+<!-- TOP: Bigger Group (LIT PART) -->
+<div class="absolute top-2 w-[190px] bg-lit-dark text-on-surface-light rounded-lg p-2.5 z-10 shadow-sm border border-lit-light">
+<div class="flex justify-between items-center mb-1">
+<span class="text-[10px] font-semibold text-on-surface-variant-light uppercase tracking-wider">bigger group</span>
+<!-- Two small filled point squares -->
+<div class="flex gap-1">
+<span class="w-2 h-2 rounded-[2px] bg-secondary-container" title="1 pt proven"></span>
+<span class="w-2 h-2 rounded-[2px] bg-secondary-container" title="2 pt proven"></span>
+</div>
+</div>
+<p class="text-[11px] leading-snug font-medium text-on-surface-light">
+                      "A way for two programs to talk to each other"
+                    </p>
+</div>
+<!-- LEFT: What it needs (ACTIVE QUESTION - AMBER GLOW & BORDER) -->
+<div class="absolute left-1.5 w-[110px] bg-question-container-dark rounded-lg p-2 z-20 border border-firefly shadow-[0_0_12px_rgba(242,184,75,0.25)]">
+<div class="flex items-center justify-between mb-0.5">
+<span class="text-[10px] font-medium text-firefly">what it needs</span>
+<span class="material-symbols-outlined text-[14px] text-firefly firefly-glow-active" data-icon="flare" style="font-variation-settings: 'FILL' 1;">flare</span>
+</div>
+<div class="h-9 flex items-center justify-center">
+<span class="text-sm font-semibold text-firefly animate-pulse">?</span>
+</div>
+</div>
+<!-- CENTER: Core Concept Hub -->
+<div class="relative z-10 w-[78px] h-[52px] bg-surface-container-high rounded-lg border border-outline flex flex-col items-center justify-center shadow-md">
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-full bg-firefly"></span>
+<span class="text-xs font-semibold text-on-surface-dark">API</span>
+</div>
+<span class="text-[9px] text-on-surface-variant-dark font-mono mt-0.5">weather.js</span>
+</div>
+<!-- RIGHT: What it isn't (UNASKED DASHED BOX) -->
+<div class="absolute right-1.5 w-[110px] h-[58px] rounded-lg p-2 z-10 border border-dashed border-outline-dark bg-surface-container-dark/40 flex flex-col justify-between">
+<span class="text-[10px] font-medium text-on-surface-variant-dark">what it isn't</span>
+<div class="flex items-center justify-center">
+<span class="text-xs font-medium text-on-surface-variant">?</span>
+</div>
+</div>
+<!-- BOTTOM: Types (UNASKED DASHED BOX) -->
+<div class="absolute bottom-2 w-[140px] h-[52px] rounded-lg p-2 z-10 border border-dashed border-outline-dark bg-surface-container-dark/40 flex flex-col justify-between">
+<span class="text-[10px] font-medium text-on-surface-variant-dark">types</span>
+<div class="flex items-center justify-center">
+<span class="text-xs font-medium text-on-surface-variant">?</span>
+</div>
+</div>
+</div>
+<!-- Mini Firefly Interactive Prompt Card -->
+<div class="bg-surface-container-dark border border-outline-dark rounded-xl p-3 flex flex-col gap-2 relative">
+<!-- Firefly Question Banner -->
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-firefly text-base" data-icon="flare" style="font-variation-settings: 'FILL' 1;">flare</span>
+<span class="text-xs font-medium text-firefly">The firefly asks:</span>
+</div>
+<!-- Direct, plain question -->
+<p class="text-xs text-on-surface-dark leading-snug font-medium">
+                    What does an API need to know who is calling it?
+                  </p>
+<!-- Simulated Input Prompt Box -->
+<div class="mt-1 h-9 bg-surface-container-lowest border border-outline-dark rounded-lg px-2.5 flex items-center justify-between text-on-surface-variant-dark text-xs">
+<span class="truncate">Write it in your own words...</span>
+<span class="material-symbols-outlined text-sm text-outline" data-icon="arrow_upward">arrow_upward</span>
+</div>
+</div>
+</div>
+<!-- Phone Safe-Area Bottom Bar -->
+<div class="h-5 flex items-center justify-center pb-2">
+<div class="w-24 h-1 bg-outline-dark rounded-full"></div>
+</div>
+</div>
+</div>
+</section>
+</div>
+</main>
+<!-- Footer (Shared Component Anchor & Reassurance) -->
+<footer class="w-full bg-surface-container-lowest dark:bg-surface-container-lowest border-t border-outline-dark transition-colors duration-150">
+<div class="flex flex-col md:flex-row justify-between items-center w-full px-gutter py-space-md max-w-7xl mx-auto gap-space-sm">
+<!-- Reassuring, gentle privacy text -->
+<p class="text-label-sm font-label-sm text-on-surface-variant dark:text-on-surface-variant-dark text-center md:text-left">
+          Your answers go to Claude through our server. We keep your sessions and your levels. Delete them any time.
+        </p>
+<!-- Legal and auxiliary navigation anchors -->
+<div class="flex items-center gap-space-md">
+<a class="text-label-sm font-label-sm text-on-surface-variant dark:text-on-surface-variant-dark hover:text-on-surface dark:hover:text-on-surface-dark transition-colors duration-200" href="#privacy">
+            Privacy Policy
+          </a>
+<a class="text-label-sm font-label-sm text-on-surface-variant dark:text-on-surface-variant-dark hover:text-on-surface dark:hover:text-on-surface-dark transition-colors duration-200" href="#terms">
+            Terms
+          </a>
+<a class="text-label-sm font-label-sm text-on-surface-variant dark:text-on-surface-variant-dark hover:text-on-surface dark:hover:text-on-surface-dark transition-colors duration-200" href="#status">
+            Server Status
+          </a>
+</div>
+</div>
+</footer>
+</div>
+</body></html>

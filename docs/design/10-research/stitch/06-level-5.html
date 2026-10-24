@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lumente - Level 5: You ask now</title>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS v3 -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "inverse-surface": "#e6e2e0",
+            "firefly": "#f2b84b",
+            "on-primary-dark": "#111114",
+            "on-tertiary": "#323032",
+            "on-surface-light": "#17161a",
+            "question-container-light": "rgba(242,184,75,0.18)",
+            "error": "#ffb4ab",
+            "on-surface-variant": "#cbc6bd",
+            "on-error": "#690005",
+            "on-tertiary-fixed": "#1d1b1d",
+            "lit-dark": "#fbf6ee",
+            "tertiary-fixed-dim": "#cac5c8",
+            "on-secondary-fixed": "#271900",
+            "surface-container-dark": "#1f1d22",
+            "surface-light": "#fbdeb4",
+            "on-tertiary-container": "#676366",
+            "hint-container": "#f6e3a8",
+            "on-secondary": "#422c00",
+            "on-tertiary-fixed-variant": "#494648",
+            "on-error-container": "#ffdad6",
+            "surface-tint": "#cac6bf",
+            "secondary-container": "#bb881c",
+            "question-container-dark": "rgba(40,28,14,0.85)",
+            "primary-fixed-dim": "#cac6bf",
+            "on-primary-container": "#67645f",
+            "inverse-on-surface": "#31302f",
+            "gap-light": "#9e3420",
+            "tertiary-container": "#e7e1e4",
+            "lit-light": "#fffdf8",
+            "surface-bright": "#3a3938",
+            "outline-light": "rgba(23,22,26,0.22)",
+            "on-surface-variant-light": "#433c35",
+            "on-surface-dark": "#f4efe8",
+            "surface-container-low": "#1c1b1b",
+            "on-background": "#e6e2e0",
+            "outline-variant": "#494740",
+            "on-secondary-fixed-variant": "#5f4100",
+            "surface-container-lowest": "#0f0e0e",
+            "primary-container": "#e7e2db",
+            "surface-container-light": "#fffaf2",
+            "secondary-fixed-dim": "#f7bd4f",
+            "primary": "#ffffff",
+            "on-surface-variant-dark": "#c9c0b4",
+            "inverse-primary": "#605e59",
+            "on-surface": "#e6e2e0",
+            "gap-dark": "#ff9b80",
+            "surface-container-high": "#2b2a29",
+            "on-primary-fixed": "#1d1b17",
+            "outline-dark": "rgba(255,240,225,0.22)",
+            "on-primary-fixed-variant": "#494742",
+            "surface-container-highest": "#363434",
+            "surface-container": "#201f1f",
+            "primary-fixed": "#e7e2db",
+            "outline": "#949088",
+            "on-primary-light": "#f6f1ea",
+            "surface-variant": "#363434",
+            "on-hint-container": "#3a2a0e",
+            "surface": "#141313",
+            "error-container": "#93000a",
+            "tertiary": "#ffffff",
+            "on-primary": "#32302c",
+            "surface-dim": "#141313",
+            "on-secondary-container": "#392600",
+            "tertiary-fixed": "#e7e1e4",
+            "surface-dark": "#16151a",
+            "background": "#141313",
+            "secondary-fixed": "#ffdeaa",
+            "secondary": "#f7bd4f"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "margin": "24px",
+            "gutter": "24px",
+            "space-sm": "16px",
+            "space-md": "24px",
+            "space-lg": "32px",
+            "space-xs": "8px",
+            "space-xl": "40px"
+          },
+          "fontFamily": {
+            "headline-lg": ["Inter"],
+            "label-sm": ["Inter"],
+            "headline-md": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "label-md": ["Inter"],
+            "body-md": ["Inter"],
+            "body-lg": ["Inter"]
+          },
+          "fontSize": {
+            "headline-lg": ["32px", { "lineHeight": "1.3", "fontWeight": "600" }],
+            "label-sm": ["13px", { "lineHeight": "1.4", "fontWeight": "500" }],
+            "headline-md": ["28px", { "lineHeight": "1.3", "fontWeight": "600" }],
+            "headline-lg-mobile": ["28px", { "lineHeight": "1.3", "fontWeight": "600" }],
+            "label-md": ["14px", { "lineHeight": "1.4", "fontWeight": "500" }],
+            "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+            "body-lg": ["17px", { "lineHeight": "1.5", "fontWeight": "400" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    /* Subtle structural grid: 24px and 96px */
+    .bg-graph-grid {
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to right, rgba(255, 255, 255, 0.07) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.07) 1px, transparent 1px);
+      background-size: 24px 24px, 24px 24px, 96px 96px, 96px 96px;
+    }
+
+    /* Ambient firefly radial glow at top-right corner */
+    .bg-firefly-glow {
+      background: radial-gradient(circle 380px at 100% 0%, rgba(242, 184, 75, 0.12) 0%, rgba(242, 184, 75, 0.03) 45%, transparent 75%),
+                  linear-gradient(180deg, #16151a 0%, #111114 100%);
+    }
+
+    .firefly-glow-input {
+      border: 1.5px solid #f2b84b;
+      box-shadow: 0 0 14px rgba(242, 184, 75, 0.22);
+      background: rgba(40, 28, 14, 0.6);
+    }
+  </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface antialiased min-h-screen flex justify-center selection:bg-firefly/30 selection:text-lit-dark">
+<!-- Mobile Frame Container -->
+<div class="relative w-full max-w-md min-h-screen bg-firefly-glow bg-graph-grid flex flex-col justify-between pb-8">
+<!-- Top App Bar (Shared Anchor: Task-focused sub-page with close and help action) -->
+<header class="w-full px-margin py-3 flex justify-between items-center bg-surface/90 backdrop-blur-md sticky top-0 z-40 border-b border-outline-variant/30">
+<!-- Left: Logo & Firefly Icon -->
+<div class="flex items-center gap-2">
+<span class="text-headline-md font-headline-md font-semibold text-primary tracking-tight">
+          Lumente
+        </span>
+</div>
+<!-- Right: Help Action Button -->
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 px-margin flex flex-col gap-5 pt-4">
+<!-- Status Chips Row -->
+<section aria-label="Level status" class="flex items-center justify-between gap-2">
+<!-- Chip 1: Level context -->
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-dark border border-outline-variant/40">
+<span aria-hidden="true" class="w-2 h-2 rounded-full bg-firefly animate-pulse"></span>
+<span class="text-label-sm font-label-sm text-on-surface-dark">Level 5: you ask now</span>
+</div>
+<!-- Chip 2: Points Counter (8 unlit points) -->
+<div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-surface-container-dark border border-outline-variant/40">
+<span class="text-label-sm font-label-sm text-on-surface-variant-dark">0 of 8 points</span>
+<div aria-label="0 points proved" class="flex items-center gap-1">
+<span class="w-2 h-2 border border-outline-variant rounded-[1px]"></span>
+<span class="w-2 h-2 border border-outline-variant rounded-[1px]"></span>
+<span class="w-2 h-2 border border-outline-variant rounded-[1px]"></span>
+<span class="w-2 h-2 border border-outline-variant rounded-[1px]"></span>
+<span class="w-2 h-2 border border-outline-variant rounded-[1px]"></span>
+<span class="w-2 h-2 border border-outline-variant rounded-[1px]"></span>
+<span class="w-2 h-2 border border-outline-variant rounded-[1px]"></span>
+<span class="w-2 h-2 border border-outline-variant rounded-[1px]"></span>
+</div>
+</div>
+</section>
+<!-- Plain English Subheader -->
+<div class="pt-1">
+<p class="text-[15px] leading-snug font-body-md text-on-surface-variant-dark">
+          You lead now. Ask for facts, then write each part yourself.
+        </p>
+</div>
+<!-- Concept Map Card -->
+<section aria-label="Concept Map" class="w-full bg-surface-container-dark rounded-2xl p-4 border border-outline-dark relative overflow-hidden">
+<!-- Card Header -->
+<div class="flex justify-between items-center mb-4">
+<span class="text-label-md font-label-md font-semibold text-on-surface-dark tracking-wide">Concept Map</span>
+<span class="text-label-sm font-label-sm text-on-surface-variant-dark">0 of 4 parts lit</span>
+</div>
+<!-- Cross Layout Diagram -->
+<div class="relative w-full aspect-square max-w-[320px] mx-auto flex items-center justify-center p-2">
+<!-- Dashed connection lines (SVG overlay) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none" fill="none" viewbox="0 0 320 320">
+<!-- Vertical connector: Center to Top & Bottom -->
+<line stroke="rgba(255,240,225,0.25)" stroke-dasharray="4 4" stroke-width="1.5" x1="160" x2="160" y1="78" y2="124"></line>
+<line stroke="rgba(255,240,225,0.25)" stroke-dasharray="4 4" stroke-width="1.5" x1="160" x2="160" y1="196" y2="242"></line>
+<!-- Horizontal connector: Center to Left & Right -->
+<line stroke="rgba(255,240,225,0.25)" stroke-dasharray="4 4" stroke-width="1.5" x1="78" x2="114" y1="160" y2="160"></line>
+<line stroke="rgba(255,240,225,0.25)" stroke-dasharray="4 4" stroke-width="1.5" x1="206" x2="242" y1="160" y2="160"></line>
+</svg>
+<!-- Top Node: 'bigger group' -->
+<button class="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-18 py-2 px-1 rounded-xl border border-dashed border-outline/50 bg-surface-container/60 hover:border-firefly/60 transition-colors flex flex-col items-center justify-center text-center group cursor-pointer focus:outline-none focus:border-firefly" type="button">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] mb-0.5">folder</span>
+<span class="text-label-sm font-label-sm font-medium text-on-surface-dark leading-tight">bigger group</span>
+<span class="text-[11px] text-on-surface-variant font-label-sm mt-0.5">Write here</span>
+</button>
+<!-- Left Node: 'what it needs' -->
+<button class="absolute left-0 top-1/2 -translate-y-1/2 w-24 h-22 py-2 px-1 rounded-xl border border-dashed border-outline/50 bg-surface-container/60 hover:border-firefly/60 transition-colors flex flex-col items-center justify-center text-center group cursor-pointer focus:outline-none focus:border-firefly" type="button">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] mb-0.5">extension</span>
+<span class="text-label-sm font-label-sm font-medium text-on-surface-dark leading-tight">what it needs</span>
+<span class="text-[11px] text-on-surface-variant font-label-sm mt-0.5">Write here</span>
+</button>
+<!-- Center Node: Core Concept Box -->
+<div class="relative z-10 w-28 h-20 rounded-xl bg-[#2a2830] border border-outline-variant/70 shadow-sm flex flex-col items-center justify-center p-2 text-center">
+<span class="text-label-md font-label-md font-semibold text-lit-dark">Closures</span>
+<span class="inline-block mt-1 px-2 py-0.5 rounded-full bg-surface-container-dark text-[11px] font-mono text-firefly border border-firefly/20">
+              counter.js
+            </span>
+</div>
+<!-- Right Node: 'what it isn't' -->
+<button class="absolute right-0 top-1/2 -translate-y-1/2 w-24 h-22 py-2 px-1 rounded-xl border border-dashed border-outline/50 bg-surface-container/60 hover:border-firefly/60 transition-colors flex flex-col items-center justify-center text-center group cursor-pointer focus:outline-none focus:border-firefly" type="button">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] mb-0.5">block</span>
+<span class="text-label-sm font-label-sm font-medium text-on-surface-dark leading-tight">what it isn't</span>
+<span class="text-[11px] text-on-surface-variant font-label-sm mt-0.5">Write here</span>
+</button>
+<!-- Bottom Node: 'types' -->
+<button class="absolute bottom-0 left-1/2 -translate-x-1/2 w-28 h-18 py-2 px-1 rounded-xl border border-dashed border-outline/50 bg-surface-container/60 hover:border-firefly/60 transition-colors flex flex-col items-center justify-center text-center group cursor-pointer focus:outline-none focus:border-firefly" type="button">
+<span class="material-symbols-outlined text-on-surface-variant text-[18px] mb-0.5">category</span>
+<span class="text-label-sm font-label-sm font-medium text-on-surface-dark leading-tight">types</span>
+<span class="text-[11px] text-on-surface-variant font-label-sm mt-0.5">Write here</span>
+</button>
+</div>
+</section>
+<!-- Fact Desk Section -->
+<section aria-label="Fact Desk" class="flex flex-col gap-3 pt-1">
+<!-- Section Header -->
+<div class="flex items-center gap-2">
+<span class="w-2.5 h-2.5 rounded-full bg-firefly shrink-0 inline-block" style="box-shadow: 0 0 8px #f2b84b, 0 0 16px rgba(242,184,75,0.4);"></span>
+<h2 class="text-body-lg font-headline-md font-semibold text-[#f4efe8]">
+            Ask the firefly for a fact
+          </h2>
+</div>
+<!-- Q&A Transcript History Card -->
+<div class="w-full bg-surface-container rounded-xl p-3.5 border border-outline-variant/30 flex flex-col gap-2.5">
+<!-- Learner's prior question -->
+<div class="flex items-start gap-2">
+<span class="text-label-sm font-label-sm font-semibold text-on-surface-variant-dark shrink-0 pt-0.5">You:</span>
+<p class="text-label-sm font-body-md text-on-surface-dark leading-snug">
+              Does a closure keep a variable after the function ends?
+            </p>
+</div>
+<!-- Firefly's direct plain answer -->
+<div class="flex items-start gap-2 pt-1 border-t border-outline-variant/20">
+<div class="flex items-center gap-1 shrink-0 pt-0.5">
+<span class="w-2 h-2 rounded-full bg-firefly shrink-0 inline-block" style="box-shadow: 0 0 8px #f2b84b, 0 0 16px rgba(242,184,75,0.4);"></span>
+<span class="text-label-sm font-label-sm font-semibold text-firefly">Firefly:</span>
+</div>
+<p class="text-label-sm font-body-md text-[#f4efe8] leading-snug">
+              Yes. The inner function keeps a link to the variables around it.
+            </p>
+</div>
+</div>
+<!-- Interactive Input Field Glowing Amber -->
+<div class="relative w-full">
+<input class="w-full h-12 px-4 rounded-xl firefly-glow-input text-on-surface-dark placeholder-on-surface-variant/60 text-body-md font-body-md focus:outline-none focus:ring-1 focus:ring-firefly transition-all" id="fact-input" placeholder="Ask for a fact" style="background-color: #1f1d22; border: 1.5px solid #f2b84b; box-shadow: 0 0 12px rgba(242,184,75,0.25), 0 0 20px rgba(242,184,75,0.15); color: #f4efe8;" type="text"/>
+</div>
+<!-- Questions Asked Counter Row -->
+<div class="flex items-center justify-between px-1 text-label-sm font-label-sm text-on-surface-variant-dark">
+<span>Questions asked: 2</span>
+<!-- 4 small 8px squares (2 filled amber, 2 outlined empty) -->
+<div aria-label="2 of 4 questions used" class="flex items-center gap-1.5">
+<span class="w-2 h-2 rounded-[1px] bg-firefly" title="Used question"></span>
+<span class="w-2 h-2 rounded-[1px] bg-firefly" title="Used question"></span>
+<span class="w-2 h-2 rounded-[1px] border border-outline-variant" title="Available question"></span>
+<span class="w-2 h-2 rounded-[1px] border border-outline-variant" title="Available question"></span>
+</div>
+</div>
+<!-- Single Primary Action Button -->
+<button class="w-full h-[52px] mt-1 bg-[#f6f1ea] hover:bg-white active:scale-[0.99] transition-all rounded-xl flex items-center justify-center gap-2 text-on-primary-dark font-label-md font-semibold text-[16px] shadow-sm cursor-pointer" type="button">
+<span>Ask</span>
+<span class="material-symbols-outlined text-[18px]">
+            arrow_forward
+          </span>
+</button>
+<!-- Quiet Reassurance Line -->
+<p class="text-center text-[12px] font-body-md text-[#c9c0b4] pb-2">
+          Facts only. It never writes your answer for you.
+        </p>
+</section>
+</main>
+</div>
+</body></html>
