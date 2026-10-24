@@ -64,8 +64,9 @@ Leo's first read of the fit, from Oct 19:
 ## How Lumente meets the three criteria
 
 For a judge with ten minutes. Each criterion has the mechanism in plain words, the exact pointers, and
-what the running app shows. Every pointer was read in the code on `main` at `179807e` (Oct 23). The pull
-request that added this section changed none of the files it names, so the line numbers hold. The
+what the running app shows. Every pointer was read in the code on `main` at `7a372bc` (Oct 23). The pull
+request that added this section appends to two test files and changes no other file named here, so the
+line numbers hold. The
 contract is `agents/CONTRACTS.md`, section 2, "Memory: what earlier sessions left", with the Zod schemas
 in `agents/src/contracts.ts` (sections 2a and 2b). The unit tests named below run with `npm test -w api`
 and `npm test -w @build-north/agents`, against a stand-in for memory's REST API, with no network.
@@ -128,12 +129,12 @@ cited facts' own words before the Turn goes out. A made-up source never reaches 
 - `agents/src/orchestrator/advance.ts:363` `cited`: the verified ids go onto the hint (line 245) and the
   summary (line 352).
 - `api/src/memory.ts:443` `fillSources`: fills `Message.sources` (`agents/src/contracts.ts:111`) from
-  the facts this Turn was given, called at `api/src/app.ts:237`. `Message.cites` is
+  the facts this Turn was given, called at `api/src/app.ts:242`. `Message.cites` is
   `agents/src/contracts.ts:108`.
 - `api/src/memory.ts:251` `factOf`: each fact carries `writtenBy`, `sessionId`, `turn` and `since`. A
   cited id leads back to the session and the agent that produced the number.
 - Tests: `agents/test/memory-contract.test.ts:127` ("verifyCites") and `api/src/call-agent.test.ts:236`.
-  In `api/src/app.test.ts:708` the hint giver cites a made-up id, and the Turn carries only the real one,
+  In `api/src/app.test.ts:714` the hint giver cites a made-up id, and the Turn carries only the real one,
   with its words. In `api/src/memory.test.ts`: "only the hint giver and the coach receive memory, read
   once per Turn, and the sources of what they cite are filled in".
 
@@ -159,16 +160,16 @@ sheet shows, per row, who wrote it and how many agent calls received it.
   (`api/src/memory.ts:245` `writtenByOf`, contract `agents/src/contracts.ts:193`).
 - `api/src/memory.ts:59` `scopeOf`: one scope per learner, shared by every agent call for that learner.
 - `api/src/memory.ts:426` `withMemory`: the read happens once per Turn and goes to the hint giver and the
-  coach only (line 431). `api/src/app.ts:220` puts it in front of the orchestrator's `callAgent`.
+  coach only (line 431). `api/src/app.ts:225` puts it in front of the orchestrator's `callAgent`.
   `agents/src/contracts.ts:214` is `AgentContext.memory` (the hint giver's input) and
   `agents/src/contracts.ts:333` is `CoachInput.memory`.
 - `api/src/memory.ts:277` `factsOf`: a session's agents read only earlier sessions' rows, so the coach of
   the session that just wrote never reads its own facts.
 - `api/src/store.ts:170` `memoryReads`: the fact ids each hint giver and coach call received, from
   `agent_log`. `api/src/memory.ts:328` `readCountsOf` turns them into `MemoryHistoryRow.readBy`
-  (`agents/src/contracts.ts:358`), served by `GET /me/memory` (`api/src/app.ts:269`).
+  (`agents/src/contracts.ts:358`), served by `GET /me/memory` (`api/src/app.ts:274`).
 - Tests in `api/src/memory.test.ts`: "only the hint giver and the coach receive memory, read once per
-  Turn" and "the Memory sheet's view: ... who read it". In `api/src/app.test.ts:708` the hint giver and
+  Turn" and "the Memory sheet's view: ... who read it". In `api/src/app.test.ts:714` the hint giver and
   the coach of one session both receive the facts, and the sheet counts both reads.
 
 **In the app.** In the Memory sheet, a part with a history shows "the AI read this once" or "the AI read
@@ -204,17 +205,17 @@ leaves the gap and the Helps only.
 What memory does not do, from the code:
 
 - **It never changes a level or a score.** Levels come from `agents/src/orchestrator/rules.ts:34`
-  `levelAfter` and the `mastery` table (`api/src/app.ts:258`). Memory only remembers them, so a wrong,
+  `levelAfter` and the `mastery` table (`api/src/app.ts:263`). Memory only remembers them, so a wrong,
   stale or deleted fact changes no number (CONTRACTS.md, Memory).
 - **Facts are templates, not the learner's words.** The only sentences memory ever holds are the three
   in `api/src/memory.ts:95` `factText`. They go in as triples (`infer: "triples"`, line 199), so memory
   runs no model on them. The learner's answers never go in.
 - **Writes are sequential and off the request path.** One `POST /facts` per fact, one after another
   (`api/src/memory.ts:386`), because the live context refused parallel writes on one entity (Oct 23,
-  above). A failed write is logged, not retried (`api/src/app.ts:263`). The tables stay the record, and
+  above). A failed write is logged, not retried (`api/src/app.ts:268`). The tables stay the record, and
   the next session has fewer facts.
 - **The flag can be off.** With `AGENT_MEMORY_ENABLED` unset, `api/src/memory.ts:44` returns null and
-  nothing is read or written. `GET /me/memory` answers `{ "concepts": [] }` (`api/src/app.ts:272`), and
+  nothing is read or written. `GET /me/memory` answers `{ "concepts": [] }` (`api/src/app.ts:277`), and
   the sheet says "Nothing yet. Finish a session and come back." (`app/src/components/memory-sheet.tsx:15`).
 - **A read has 1.5 s.** `MEMORY_READ_MS` (`api/src/memory.ts:33`). Past it, or on any error, the agent
   runs without memory and the Turn goes on (`api/src/memory.ts:360` `recall`). There is no retry. The
@@ -234,8 +235,8 @@ What memory does not do, from the code:
 - **A session's own coach reads only earlier sessions** (`api/src/memory.ts:278`). On a learner's first
   session on a concept, nothing is cited.
 - **The pseudonym is a hash**, the first 8 hex characters of sha256 over the salt and the Clerk id
-  (`api/src/export-testers.ts:42`). Delete my data purges the scope first (`api/src/app.ts:291`), and a
-  failed purge leaves the tables untouched (`api/src/app.test.ts:798`).
+  (`api/src/export-testers.ts:42`). Delete my data purges the scope first (`api/src/app.ts:296`), and a
+  failed purge leaves the tables untouched (`api/src/app.test.ts:804`).
 
 ## Sources
 
