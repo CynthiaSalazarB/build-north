@@ -131,7 +131,7 @@ TypeScript, Node 24, Express 5, Render, SurrealDB Cloud, SurrealDB Agent Memory,
 
 ## Links
 
-- Try it on the web: https://reality-check.expo.app
+- Try it on the web: https://lumente.expo.app
 - Android app: `[link: Cynthia]` (the install page of the build we freeze on Oct 24; today it is build 3,
   linked from the [Expo log](expo-log.md))
 - Code: https://github.com/CynthiaSalazarB/build-north
@@ -140,7 +140,7 @@ TypeScript, Node 24, Express 5, Render, SurrealDB Cloud, SurrealDB Agent Memory,
 
 ## Try it (testing notes)
 
-Open https://reality-check.expo.app in any browser, or install the Android app. Sign in with an email
+Open https://lumente.expo.app in any browser, or install the Android app. Sign in with an email
 code, or with Google on the web. To skip the email, use any address that ends in
 `+clerk_test@example.com` and the code `424242`. Tap "API", then "Explore with guidance". Pick a
 prediction, explain the idea in your own words, and answer the four questions. Tap the firefly once to

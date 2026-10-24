@@ -6,7 +6,7 @@ carries (#52). Timings are a draft from one read of the screens; the Oct 24 rehe
 Every button name below is the one on the screen today (`main`, Oct 24).
 
 **Where it runs.** Session 1 runs on Kyle's Android phone with the native build, mirrored. The level 5
-part runs on a laptop at https://reality-check.expo.app, in the website layout: the words on the left,
+part runs on a laptop at https://lumente.expo.app, in the website layout: the words on the left,
 the map on the right. Two devices because levels belong to the account, not to the concept: an account at
 level 5 on every part never gets the firefly's questions, so session 1 needs an account below level 5,
 and the level 5 part needs the seeded demo account. If one device has to do everything, Sign out and sign
