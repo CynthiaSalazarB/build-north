@@ -72,7 +72,7 @@ After each finished session, Lumente writes a few progress notes to SurrealDB Ag
 
 The next time you practice the same concept, the hint giver and the coach read up to eight of these notes. They name the ones they used: "From what Lumente remembers: …". Tap that line, or "Memory" on the start screen, to see every note and how it changed. A new level replaces the old note and keeps its history.
 
-Memory never changes a score: the levels still come from plain code. "Delete my data" removes the notes with everything else. Memory went on for the Oct 23 pilot ([`DECISIONS.md`](DECISIONS.md), Oct 23). How it fits the SurrealDB prize is in [the prize notes](wiki/context/surrealdb-sponsor-prize.md).
+Memory never changes a score: the levels still come from plain code. "Delete my data" removes the notes with everything else. Memory has been on since Oct 23, ready for our pilot ([`DECISIONS.md`](DECISIONS.md), Oct 23). How it fits the SurrealDB prize is in [the prize notes](wiki/context/surrealdb-sponsor-prize.md).
 
 ## The idea behind it
 
@@ -128,19 +128,19 @@ The [five-minute guide](docs/testing-notes.md) walks you through a full session,
 
 ## What we found
 
-On the evening of Oct 23, five computer science students who code with AI tried Lumente. Each one took a test, did two practice sessions, and took a second test. Both tests were on ideas they hadn't practiced in the app.
+Our first pilot is coming: computer science students who code with AI. Each one takes a test, does two practice sessions, and takes a second test. Both tests are on ideas they haven't practiced in the app.
 
-*TODO(Cynthia): the pilot's numbers: first test against second test, prediction against score, and when the testers said they'd open the app.*
+We will compare the first test with the second, and each student's prediction with their score. The results go here when the pilot ends.
 
 ## For the judges
 
 | Criterion | Where to look |
 |---|---|
 | Innovation | The AI won't do the thinking for you. You build each answer, the help fades as you improve, and at level 5 you write the whole map and ask the questions. Between sessions, the app remembers your progress, never your words |
-| Real-world impact | One clear user, a problem backed by research, and our pilot's numbers. Students start with free sessions, then pay for more. Schools, colleges, institutes and bootcamps, our main customers, pay per student and see what each student has mastered. Prices come from what a session costs us (about $0.16) and from our first pilots |
+| Real-world impact | One clear user, a problem backed by research, and a pilot with students. Students start with free sessions, then pay for more. Schools, colleges, institutes and bootcamps, our main customers, pay per student and see what each student has mastered. Prices come from what a session costs us (about $0.16) and from our first pilots |
 | UI and design | Lumente's own look: a dark screen that lights up as you prove each answer, and a firefly whose light answers your finger. It works on phones, installs as an app from the browser, and lays out as a two-column website on laptops |
 | Tech and deployment | Live on the web and on Android, built, updated and hosted with Expo's EAS. A session survives a reload or a killed app. Only our server talks to the AI, and plain code works out every score |
-| Security and ethics | The AI key stays on our server. Notes that look like a password never leave the phone. Memory keeps progress notes, never your words, and you can delete your data from the app. There are no streaks. Our testers were adults who agreed to take part |
+| Security and ethics | The AI key stays on our server. Notes that look like a password never leave the phone. Memory keeps progress notes, never your words, and you can delete your data from the app. There are no streaks. Our testers are adults who agree to take part |
 
 <details>
 <summary><b>How it's built</b></summary>
@@ -183,7 +183,7 @@ What EAS did for us, from the [Expo log](docs/expo-log.md), by the Oct 24 freeze
 - **EAS Build:** three Android builds. A development build and a `preview` APK on Oct 21, the day the EAS project was made. Then build 3 on Oct 22, after Lumente's icon and the voice module changed the native code. Build 3 is the APK linked above.
 - **EAS Update, with the fingerprint check:** 21 updates over the air on the `preview` channel. The first shipped the same day as the first build. The runtime policy is `fingerprint`, so an update only reaches builds with the same native code. Before an update, `eas fingerprint:compare` checked that build 3 could run it. Fixes went out as updates, and no fourth build was needed. Every fix after build 3, through the night before the freeze, reached the phones this way.
 - **The update notice:** when an update is downloaded, the app says "A new version is ready" with a Restart button. It checks again when it comes back to the foreground and when the start screen shows, at most once a minute.
-- **EAS Hosting:** the website, redeployed from `main` with every rollout, at `lumente.expo.app`. The `review`, `testers` and `polish` aliases served the design review, the pilot and our own checks. A web deploy uses no build credit.
+- **EAS Hosting:** the website, redeployed from `main` with every rollout, at `lumente.expo.app`. The `review`, `testers` and `polish` aliases serve the design review, the pilot and our own checks. A web deploy uses no build credit.
 - **EAS Workflows:** `ship.yml` publishes the update and deploys the website, and `preview-build.yml` builds an APK when the fingerprint changes. Its first real run stalled in the free queue, so the two jobs ran by hand that day.
 - **Expo Observe:** launch times, time to interactive on each screen, and crashes on the Android app. It also reports the crashes a learner recovers from with Try again.
 - **The installable web app:** a web manifest, icons and Apple's home-screen tags in the static export. Every shared page gets a link card.
@@ -211,20 +211,19 @@ More in [How we used Clerk](docs/clerk.md).
 
 SurrealDB Cloud stores the sessions, the levels and the AI logs, with a `dev` and a `prod` database. SurrealDB Agent Memory holds the progress notes from [What Lumente remembers](#what-lumente-remembers), one scope per learner under a salted hash of their Clerk id. Code writes each note from a template and sends it as a plain fact. Memory runs no model over it, and the learner's words never go in.
 
-Three agents write the notes (the evaluator the levels, the coach the gap, the hint giver the Helps), and two read them. Before a hint or the coach's message, the server reads up to 8 notes from earlier sessions. If the read takes over 1.5 seconds, the agent runs without them. The agent names the notes it used, the server keeps only the ids it passed in, and the app shows them under the message. A new level supersedes the old note and keeps its history, which is what the Memory sheet shows. Memory never changes a score, Delete my data purges the scope first, and the switch is one server variable. It went on for the Oct 23 pilot ([`DECISIONS.md`](DECISIONS.md), Oct 22 and Oct 23). What the live context taught us is on the [prize page](wiki/context/surrealdb-sponsor-prize.md).
+Three agents write the notes (the evaluator the levels, the coach the gap, the hint giver the Helps), and two read them. Before a hint or the coach's message, the server reads up to 8 notes from earlier sessions. If the read takes over 1.5 seconds, the agent runs without them. The agent names the notes it used, the server keeps only the ids it passed in, and the app shows them under the message. A new level supersedes the old note and keeps its history, which is what the Memory sheet shows. Memory never changes a score, Delete my data purges the scope first, and the switch is one server variable. It has been on since Oct 23, ready for our pilot ([`DECISIONS.md`](DECISIONS.md), Oct 22 and Oct 23). What the live context taught us is on the [prize page](wiki/context/surrealdb-sponsor-prize.md).
 
 </details>
 
 ## Team
 
-<!-- TODO(Cynthia): check each role, and add GitHub or LinkedIn links if you want them. -->
 
 | Name | Role |
 |---|---|
 | Cynthia Salazar | Team lead: the product, the design and the AI agents |
 | Leo Atienza | The server, hosting, Expo builds, sign-in and the memory layer |
-| Jonathan *(TODO: last name)* | The app |
-| Kyle *(TODO: last name)* | The pilot, the pitch and the video |
+| Jhonatan Lopez | The app |
+| Kyle Argallon | The pilot, the pitch and the video |
 
 ---
 
@@ -235,8 +234,8 @@ Three agents write the notes (the evaluator the levels, the coach the gap, the h
 - Fonts: Newsreader (Production Type), and Atkinson Hyperlegible Next and Mono (Braille Institute), under the SIL Open Font License, from `@expo-google-fonts`.
 - The images in our design boards (`docs/design/`) are CC0, public domain or from Unsplash.
 - Voice input uses `expo-speech-recognition`, a community module. The audio goes to the device's own speech service, and only the words reach us. The app's "Your data" sheet says so.
-- AI tools: Lumente's AI runs on Claude (Anthropic), and we built it with Claude Code, with Expo's agent skills and docs loaded. *TODO(Cynthia): confirm, and add any other tools.*
-- *TODO(Cynthia): confirm that nothing was built before Build Week.*
+- AI tools: Lumente's AI runs on Claude (Anthropic), and we built it with Claude Code, with Expo's agent skills and docs loaded.
+- Apart from the template, fonts and images above, everything in this repository was built during Build Week.
 
 </details>
 
