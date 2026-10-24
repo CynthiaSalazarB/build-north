@@ -29,6 +29,8 @@ export function PartSheet({ view, closing, onClose }: { view: PartView | null; c
               </View>
             )}
           </View>
+          {view.prompt && <Body>{view.prompt}</Body>}
+          {view.context && <Small dim>{view.context}</Small>}
           <Label dim>{view.state === "revealed" ? "Shown to you · 0 points" : "Your answer"}</Label>
           <Body>{view.text ?? "Nothing on this area yet."}</Body>
           {closing && !closing.revealed && (

@@ -338,11 +338,31 @@ export const nextPartOf = (map: Mentefacto): MoveId | null => MOVE_ORDER.find((m
 /** The whole map while the learner builds it: their words light a part (nothing is scored until they submit),
  * an answer Help revealed stays dim, and an empty part is a "?". */
 export function wholeMapPartsOf(draft: Mentefacto, server: Mentefacto): PartView[] {
-  return MOVE_ORDER.map((move) => {
+  return withMapQuestions(MOVE_ORDER.map((move): PartView => {
     const text = partTextOf(draft, move);
     const shown = itemsOf(server, move).length > 0;
-    return { move, state: text ? (shown ? "revealed" : "lit") : "unasked", text, pips: null, prompt: mapQuestionOf(move, draft.concept), context: move === "exclusion" ? categoryContextOf(draft) : null };
-  });
+    return { move, state: text ? (shown ? "revealed" : "lit") : "unasked", text, pips: null };
+  }), draft);
+}
+
+/** Shared orientation for both modes, independent of the adaptive question, scores and hint ladder. */
+export function withMapQuestions(parts: readonly PartView[], map: Mentefacto, example = false): PartView[] {
+  return parts.map((part) => ({
+    ...part,
+    prompt: mapQuestionOf(part.move, map.concept),
+    context: part.move === "exclusion" ? categoryContextOf(map, example ? "Example category" : "Your chosen category") : null,
+  }));
+}
+
+/** Keep the guided answer field specific, without replacing an AI follow-up or scaffolding the first attempt. */
+export function answerLabelOf(turn: Turn): string {
+  if (turn.phase !== "move" || !turn.move) return "Your first explanation";
+  switch (turn.move) {
+    case "supraordinate": return mapQuestionOf(turn.move, turn.mentefacto.concept);
+    case "exclusion": return "A similar concept in this category + the key difference";
+    case "isoordinate": return "Defining features every example must have";
+    case "infraordinate": return "Your grouping rule + at least two types using that rule";
+  }
 }
 
 /** The fact desk's side of the session: the learner's questions, its answers, the hints. The opening instruction
@@ -366,9 +386,9 @@ export function mapQuestionOf(move: MoveId, concept: string): string {
 }
 
 /** Echo the learner's category without judging it or blocking out-of-order answers. */
-export function categoryContextOf(map: Mentefacto): string | null {
+export function categoryContextOf(map: Mentefacto, label = "Your chosen category"): string | null {
   const category = map.supraordinate?.value.trim();
-  return category ? `Your chosen category: ${category}` : null;
+  return category ? `${label}: ${category}` : null;
 }
 
 /** Task instructions only: no examples or answers for the learner's concept. */

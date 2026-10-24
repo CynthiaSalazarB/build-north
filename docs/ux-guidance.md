@@ -38,3 +38,9 @@ Classification asks for the grouping rule followed by at least two types in the 
 The intended deployment target is the `testers` web alias only, from the review branch. No production alias, Android update, backend or grading change is part of this trial. Keep each tester's pre-/post-test on the same deployed wording version.
 
 Deployed October 24 at about 5:30 PM ET from `014d40b`, draft PR #177: `https://lumente--testers.expo.app`, deployment `ivjrvsdl2h`. The served common bundle matches the checked export byte-for-byte; real API and Clerk configuration, API preflight and the signed-out sign-in screen were verified. Production still serves its previous common bundle. No account or live AI session was created by these checks.
+
+### Guided-mode consistency follow-up
+
+The same task questions now appear on the guided map once its moves begin, with the chosen category on the comparison area and beside its answer field. Guided answer labels explicitly ask for a nearby concept plus its key difference, defining features every example must have, and a grouping rule plus at least two types using that rule. The adaptive AI question and follow-ups remain unchanged. The first explanation remains unprompted; the optional worked example uses its own concept and labels its context as an example category. Finished areas retain their questions/context when opened for read-only review.
+
+Verification: 80 app tests, typecheck, and lint (zero errors, eight existing warnings). Mocked browser checks passed for both modes at 1440, 1000, 390 and 320 pixels, including the first explanation, optional example, adaptive feedback, category context, all four answer tasks, read-only finished areas, unchanged text/map request shapes and no horizontal overflow. This is still the same tester-only wording trial, not an evaluator or production change.
