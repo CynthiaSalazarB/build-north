@@ -1,4 +1,4 @@
-# Design principles for Reality Check
+# Design principles for Lumente
 
 The research behind round 6, version 2 ([`out-of-the-cave.html`](out-of-the-cave.html)), read on October 20, 2026.
 Each rule says what the app does and links its source. The colors and sizes are in

@@ -1,11 +1,11 @@
 ---
 title: Project Wiki Index
 type: index
-updated: 2026-10-22
+updated: 2026-10-24
 total_pages: 8
 ---
 
-# Build North project wiki
+# Lumente project wiki
 
 Shared notes for Lumente: context, research and analysis that don't belong in the code.
 Decisions go in [`DECISIONS.md`](../DECISIONS.md) and nowhere else. Longer reasoning behind one goes
