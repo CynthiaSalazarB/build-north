@@ -4,7 +4,7 @@ The self-test's primary action is writing answers in the concept map. Firefly's 
 
 Following a highlight or opening an editor is interface guidance. It makes no server call, doesn't use a hint, and doesn't affect scores or mastery. The optional fact chat is explicitly separate from answers. A conceptual hint still uses the existing server hint ladder; its confirmation names the actual target and states the score cap or reveal cost before it is requested. The navigation highlight does not change that target.
 
-The prediction has no default selection. Learners choose 0–8 after seeing the task and rubric: four areas, two points each. Prediction records confidence; the map score records the explanation demonstrated in that session. Neither the preview nor the result map assigns a total prediction to particular areas. The gap appears on the overall score comparison; each map area shows its actual earned points. The result reuses the same rubric and explains the comparison without implying that matching one prediction proves general self-knowledge.
+The prediction has no default selection. Learners choose 0–8 after seeing the task and rubric: four areas, two points each. Prediction records confidence; the map score records the explanation demonstrated in that session. The screen's light previews the chosen number, the same light the session grows one stage per point proved; nothing lights before a number is picked. Neither the preview nor the result map assigns a total prediction to particular areas. The gap appears on the overall score comparison; each map area shows its actual earned points. The result reuses the same rubric and explains the comparison without implying that matching one prediction proves general self-knowledge.
 
 ## Review checklist
 
