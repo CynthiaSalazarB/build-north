@@ -216,7 +216,6 @@ Three agents write the notes (the evaluator the guidance stages, the coach the g
 |---|---|
 | Cynthia Salazar | Team lead: the product, the design and the AI agents |
 | Leo Atienza | The server, hosting, Expo builds, sign-in and the memory layer |
-| Jhonatan Lopez | The app |
 | Kyle Argallon | User feedback, the pitch and the video |
 
 ---
