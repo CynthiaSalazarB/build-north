@@ -160,6 +160,8 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     const session = await who.store.createSession(who.user, parsed.value);
     const mastery = await who.store.getMastery(who.user);
     const next = await advance({ session, mastery }, { action: "start" }, callAgentFor(session.id));
+    // the first step of the conversation the app replays when the session is picked up again
+    if (!next.turn.error) next.session.transcript.push({ body: null, turn: next.turn });
     // nothing else knows this session's id yet, so this save can't lose to another request
     await who.store.saveSession(next.session, session.turn);
     // CONTRACTS.md section 3: a test session never writes mastery, and a start changes none, so this writes
@@ -167,6 +169,13 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     const changed = changedMoves(mastery, next.mastery);
     if (session.mode !== "test" && changed.length > 0) await who.store.saveMastery(who.user, { moves: changed });
     res.status(201).json(next.turn);
+  });
+
+  // Start's lists (CONTRACTS.md section 1): the sessions to pick up and "Your maps"
+  app.get("/sessions", async (req, res) => {
+    const who = await caller(req, res);
+    if (!who) return;
+    res.json({ sessions: await who.store.listSessions(who.user) });
   });
 
   app.get("/sessions/:id", async (req, res) => {
@@ -178,6 +187,20 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       return;
     }
     res.json(session.lastTurn);
+  });
+
+  // The session's whole conversation, oldest first, so a session picked up again (or a finished map opened again)
+  // shows every step it had, not only the latest Turn. A session saved before Oct 25 has no steps; the app then shows
+  // its latest Turn alone.
+  app.get("/sessions/:id/transcript", async (req, res) => {
+    const who = await caller(req, res);
+    if (!who) return;
+    const session = SESSION_ID.test(req.params.id) ? await who.store.getSession(who.user, req.params.id) : null;
+    if (!session?.lastTurn) {
+      res.status(404).json({ error: "No such session" });
+      return;
+    }
+    res.json({ steps: session.transcript });
   });
 
   app.post("/sessions/:id/turns", async (req, res) => {
@@ -250,6 +273,8 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       res.json({ ...latest, error: { code: "agent_failed", retryable: true } });
       return;
     }
+    // saved with the session, in the same conditional write, so a step lands exactly when its Turn does
+    next.session.transcript.push({ body: parsed.data, turn: next.turn });
     if (!(await who.store.saveSession(next.session, session.turn))) {
       // another request answering the same Turn saved first, and its Turn is the one that counts
       const saved = await who.store.getSession(who.user, session.id);

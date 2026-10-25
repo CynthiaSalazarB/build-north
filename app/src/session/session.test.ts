@@ -9,7 +9,7 @@ import { createApiClient } from "./api-client.ts";
 import { ClientError } from "./client.ts";
 import { createFixtureClient } from "./fixture-client.ts";
 import { lastPartNoteOf, partClosingsOf, resultMessagesOf } from "./present.ts";
-import { blankMap, drafted, echoFor, failed, initialState, received, resendOf, sent, startedWith, withRevealed } from "./transcript.ts";
+import { blankMap, drafted, echoFor, failed, initialState, received, replayed, resendOf, sent, startedWith, withRevealed } from "./transcript.ts";
 
 const fixtureTurns = sessionOne.map((step) => Turn.parse(step.turn));
 const first = fixtureTurns[0]!;
@@ -169,6 +169,54 @@ test("a session is picked up with GET /sessions/:id, and a 404 says it is gone f
   await assert.rejects(odd.resume("ses_1"), { message: /unexpected/, retryable: true });
   // demo mode keeps nothing to pick up
   await assert.rejects(createFixtureClient(0).resume("ses_1"), { retryable: false });
+});
+
+/** session-1 as the server saves it: the start with no body, then each answer and the Turn it got, numbered one after
+ * another as saved Turns are (the fixture's own numbers skip some). */
+const savedSteps = sessionOne.map((step, i) => ({ body: i === 0 ? null : ({ ...step.input, turn: i } as TurnBody), turn: { ...fixtureTurns[i]!, turn: i + 1 } }));
+
+test("a session's steps are read with GET /sessions/:id/transcript and checked against the contract", async () => {
+  const { fetch, calls } = fakeFetch(200, { steps: savedSteps });
+  const client = createApiClient({ baseUrl: "http://api.test", getToken: async () => "tok", fetch });
+  assert.deepEqual(await client.transcript("ses 1"), savedSteps);
+  assert.equal(calls[0]!.url, "http://api.test/sessions/ses%201/transcript");
+  assert.equal(calls[0]!.init.method, "GET");
+  const gone = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(404, { error: "Not found" }).fetch });
+  await assert.rejects(gone.transcript("ses_1"), { status: 404 });
+  const odd = createApiClient({ baseUrl: "http://api.test", fetch: fakeFetch(200, { steps: [{ body: null }] }).fetch });
+  await assert.rejects(odd.transcript("ses_1"), { message: /unexpected/ });
+  await assert.rejects(createFixtureClient(0).transcript("ses_1"), { retryable: false });
+});
+
+test("a session picked up again replays every saved step: the same conversation as on the screen that ran it", () => {
+  // the screen that ran it: the start, then each body sent and its Turn received
+  const ran = (upTo: number) => {
+    let state = startedWith(savedSteps[0]!.turn, "learn", "my notes");
+    for (const { body, turn } of savedSteps.slice(1, upTo)) state = received(sent(state, body!), turn);
+    return state;
+  };
+  for (const upTo of [1, 4, savedSteps.length - 1]) {
+    assert.deepEqual(replayed(savedSteps.slice(0, upTo), savedSteps[upTo - 1]!.turn, "learn", "my notes"), ran(upTo));
+  }
+  const live = ran(savedSteps.length);
+  const back = replayed(savedSteps, savedSteps.at(-1)!.turn, "learn", "my notes");
+  assert.deepEqual(back, live);
+  // the learner's four typed answers are back with the questions around them (the guess and the taps aren't echoed)
+  assert.equal(back.entries.filter((e) => e.from === "learner").length, 4);
+  // every part's closing and the last part's note, which the result screen reads from the conversation, are back
+  assert.deepEqual(partClosingsOf(back.entries), partClosingsOf(live.entries));
+  assert.deepEqual(lastPartNoteOf(back.entries), lastPartNoteOf(live.entries));
+});
+
+test("steps that miss a Turn, stop short of the latest one, or aren't there fall back to the latest Turn alone", () => {
+  const latest = savedSteps[5]!.turn;
+  const alone = startedWith(latest, "test", null);
+  assert.deepEqual(replayed(null, latest, "test", null), alone);
+  assert.deepEqual(replayed([], latest, "test", null), alone);
+  assert.deepEqual(replayed([...savedSteps.slice(0, 2), ...savedSteps.slice(3, 6)], latest, "test", null), alone);
+  assert.deepEqual(replayed(savedSteps.slice(0, 4), latest, "test", null), alone);
+  // a session saved before Oct 25 kept steps from the deploy on only: not from its first Turn, so not replayed
+  assert.deepEqual(replayed(savedSteps.slice(2, 6), latest, "test", null), alone);
 });
 
 test("a call that outlasts the timeout says so, and is worth trying again", async () => {

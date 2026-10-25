@@ -11,6 +11,7 @@ import {
   Mastery as MasterySchema,
   MemoryView as MemoryViewSchema,
   Session as SessionSchema,
+  Transcript as TranscriptSchema,
   Turn as TurnSchema,
   UnexpectedInput,
   advance,
@@ -57,6 +58,12 @@ function memoryStore(): Store {
     async getSession(user, id) {
       const session = sessions.get(id);
       return session?.user === user ? structuredClone(session) : null;
+    },
+    async listSessions(user) {
+      return [...sessions.values()]
+        .filter((s) => s.user === user && s.lastTurn !== null)
+        .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
+        .map(({ id, concept, mode, createdAt, result }) => ({ id, concept, mode, createdAt, finished: result !== null, score: result?.score ?? null, predictedScore: result?.predictedScore ?? null }));
     },
     async saveSession(session, previousTurn) {
       if (sessions.get(session.id)?.turn !== previousTurn) return false;
@@ -232,6 +239,27 @@ test("a session is invisible to every other user", async (t) => {
   assert.equal(res.status, 404);
 });
 
+test("GET /sessions lists the caller's sessions, newest first, and nobody else's", async (t) => {
+  const url = await start(t, withStore());
+  const empty = await fetch(`${url}/sessions`, { headers: as("leo") });
+  assert.equal(empty.status, 200);
+  assert.deepEqual(await empty.json(), { sessions: [] });
+
+  const first = await (await post(url, { concept: "API" })).json();
+  const second = await (await post(url, { concept: "JWT", mode: "test" })).json();
+  await post(url, { concept: "cache" }, as("jonathan"));
+  const { sessions } = await (await fetch(`${url}/sessions`, { headers: as("leo") })).json();
+  assert.deepEqual(
+    sessions.map((s: Record<string, unknown>) => [s.id, s.concept, s.mode, s.finished, s.score, s.predictedScore]),
+    [
+      [second.sessionId, "JWT", "test", false, null, null],
+      [first.sessionId, "API", "learn", false, null, null],
+    ],
+  );
+  const theirs = await (await fetch(`${url}/sessions`, { headers: as("jonathan") })).json();
+  assert.deepEqual(theirs.sessions.map((s: Record<string, unknown>) => s.concept), ["cache"]);
+});
+
 test("the session routes need a dev user with the right dev key, and never work in production", async (t) => {
   const url = await start(t, withStore());
   assert.equal((await post(url, { concept: "democracy" }, {})).status, 401);
@@ -297,6 +325,49 @@ test("/turns replays the session-1 fixture one Turn per answer, then the session
   assert.deepEqual(await over.json(), latest);
   assert.match(String(warned.mock.calls[0]?.arguments[0]), /This session is over/);
   assert.deepEqual(await (await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") })).json(), latest);
+});
+
+test("GET /sessions/:id/transcript gives back every saved step in order: each body and the Turn it got, nothing for a resend or a 409", async (t) => {
+  t.mock.method(console, "warn", () => {});
+  const url = await start(t, withStore());
+  const first = await (await post(url, { concept: "democracy" })).json();
+  const scripted = (i: number) => ({ ...sessionOne[i]!.turn, sessionId: first.sessionId, turn: i + 1 });
+  const bodies: unknown[] = [null];
+  let latest = first;
+  for (let i = 1; i < sessionOne.length; i++) {
+    const body = { ...sessionOne[i]!.input, turn: latest.turn };
+    latest = await (await answer(url, first.sessionId, body)).json();
+    bodies.push(body);
+    // the same answer again is judged already: the latest Turn comes back and nothing is saved
+    await answer(url, first.sessionId, body);
+  }
+  assert.equal((await answer(url, first.sessionId, { turn: latest.turn, action: "help" })).status, 409);
+
+  const res = await fetch(`${url}/sessions/${first.sessionId}/transcript`, { headers: as("leo") });
+  assert.equal(res.status, 200);
+  const { steps } = TranscriptSchema.parse(await res.json());
+  assert.deepEqual(steps.map((step) => step.turn), sessionOne.map((_, i) => scripted(i)));
+  assert.deepEqual(steps.map((step) => step.body), bodies);
+  assert.equal((await fetch(`${url}/sessions/${first.sessionId}/transcript`, { headers: as("jonathan") })).status, 404);
+  assert.equal((await fetch(`${url}/sessions/not-an-id!/transcript`, { headers: as("leo") })).status, 404);
+});
+
+test("a Turn whose agent failed adds no step, and a session saved before Oct 25 has an empty transcript", async (t) => {
+  const store = memoryStore();
+  const failing: Advance = async (state, input, callAgent) =>
+    "action" in input && input.action === "start"
+      ? advanceStub(state, input, callAgent)
+      : { ...state, turn: { ...state.session.lastTurn!, error: { code: "agent_failed", retryable: true } } };
+  const url = await start(t, { ...noDb, store, advance: failing });
+  const first = await (await post(url, { concept: "democracy" })).json();
+  const failed = await (await answer(url, first.sessionId, { turn: 1, prediction: 5 })).json();
+  assert.deepEqual(failed.error, { code: "agent_failed", retryable: true });
+  const transcript = async () => TranscriptSchema.parse(await (await fetch(`${url}/sessions/${first.sessionId}/transcript`, { headers: as("leo") })).json()).steps;
+  assert.deepEqual((await transcript()).map((step) => [step.body, step.turn.turn]), [[null, 1]]);
+
+  const saved = (await store.getSession("leo", first.sessionId))!;
+  assert.equal(await store.saveSession({ ...saved, transcript: [] }, saved.turn), true);
+  assert.deepEqual(await transcript(), []);
 });
 
 test("POST /sessions on CORS starts a session about CORS when Cynthia's advance runs; the rig's default, the stub, says democracy (#163)", async (t) => {

@@ -217,7 +217,8 @@ test("Claude calls are off without a key, and a key needs a budget and a model w
   assert.throws(() => agentConfigFromEnv({ ...key, AGENT_MODEL: "claude-opus-4-1" }), /AGENT_MODEL/);
 });
 
-test("the coach and the hint giver keep only the cites of facts they were given; the rest go to the log row as dropped, and with no memory every cite goes", async () => {
+test("the coach and the hint giver keep only cites they were given, and a coach cannot invent a prior session without memory", async (t) => {
+  t.mock.method(console, "error", () => {});
   const fact = { id: "attr_gap", text: "Last time on democracy you guessed 7 and proved 4.", concept: "democracy", since: "2026-10-22T18:45:12Z", writtenBy: "coach" as const, sessionId: "s0" };
   const result = { predictedScore: 6, score: 5, maxScore: 8, calibrationGap: 1, hintsUsed: 0, rubric: [], masteryChanges: [], questions: { asked: 0, testing: 0 } };
   const coachInput = { concept: "democracy", mentefacto: context.mentefacto, result };
@@ -227,7 +228,9 @@ test("the coach and the hint giver keep only the cites of facts they were given;
   console.warn = (...args: unknown[]) => void warned.push(args[0]);
   try {
     assert.deepEqual(await callAgent("coach", { ...coachInput, memory: { facts: [fact] } }), { message: "Closer than last time.", nextFocus: null, cites: ["attr_gap"] });
-    assert.deepEqual(await callAgent("coach", coachInput), { message: "Closer than last time.", nextFocus: null, cites: [] });
+    await assert.rejects(callAgent("coach", coachInput), (error: unknown) =>
+      error instanceof AgentCallError && error.code === "agent_failed" && /referred to history/.test(error.message),
+    );
   } finally {
     console.warn = original;
   }

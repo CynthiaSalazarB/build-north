@@ -68,7 +68,9 @@ rejects both when `NODE_ENV=production` or when no `DEV_KEY` is set. Every route
 |---|---|---|---|
 | `POST` | `/sessions` | `{ concept, material?, mode? }` | `Turn` (asks for the prediction) |
 | `POST` | `/sessions/:id/turns` | one of `{ prediction }`, `{ text }`, `{ question }`, `{ mentefacto }`, `{ action: "help" }`, `{ action: "continue" }` | `Turn` |
+| `GET` | `/sessions` | | `{ sessions: SessionSummary[] }`: the caller's sessions that have a Turn, newest first (`id`, `concept`, `mode`, `createdAt`, `finished`, and `score` and `predictedScore` once the result is in; the schema is in `agents/src/contracts.ts`). Start lists the unfinished ones to pick up and the finished ones under "Your maps", each opened through `GET /sessions/:id` |
 | `GET` | `/sessions/:id` | | latest `Turn`: Resume on Start reads it after a reload or a killed app (#137). `404` for a session that isn't the caller's |
+| `GET` | `/sessions/:id/transcript` | | `{ steps: TranscriptStep[] }`: every saved step, oldest first, each the body the learner sent (`null` for the start) and the `Turn` it got. The app replays them so a session picked up again, or a map opened again, shows its whole conversation. Empty for a session saved before Oct 25 (the app then shows the latest `Turn` alone). `404` for a session that isn't the caller's |
 | `GET` | `/me/mastery` | | `Mastery` |
 | `GET` | `/me/memory` | | `MemoryView` (the Memory sheet; see [Memory](#memory-what-earlier-sessions-left)) |
 | `DELETE` | `/me/data` | | `204`, deletes sessions, logs and mastery, and purges the learner's memory (the delete button) |
@@ -514,7 +516,7 @@ with `error` set. What `callAgent` throws carries `code` and `retryable`, the tw
 | Table | Fields | Notes |
 |---|---|---|
 | `mastery` | user, move, level, unassistedSuccesses, updatedAt | one row per user per move; read every turn |
-| `session` | id, user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, recent, retries, lastIssue, nextQuestion, questions, moveLog, result, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat; `hintsPerMove` starts with all four moves at 0, `retries` at 0, `lastIssue` at `"none"`, `nextQuestion` at null |
+| `session` | id, user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, recent, retries, lastIssue, nextQuestion, questions, moveLog, result, transcript, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat; `hintsPerMove` starts with all four moves at 0, `retries` at 0, `lastIssue` at `"none"`, `nextQuestion` at null. `transcript` is the API's, not the orchestrator's: one `{ body, turn }` per saved Turn, appended in the same conditional write as the Turn, never for an error Turn, a resend or a 409; `[]` on sessions saved before Oct 25 |
 | `agent_log` | session, agent, input, output, ms, usd, at, dropped? | append-only; debugging, the testers' numbers (fact desk rows are the questions metric) and what a session costs. `dropped` is on a coach or hint giver row whose output cited a fact id the API hadn't passed in (CONTRACTS.md, Memory) |
 
 With the memory flag on, SurrealDB Agent Memory keeps one scope per learner (a salted hash of the Clerk

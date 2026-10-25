@@ -3,14 +3,15 @@
 // learner's notes (pasted text only, up to 8,000 characters: decision 12). "Ask your AI what to map" gives a
 // prompt to paste into a coding agent, so the concepts come from the learner's own project; notes that look like a
 // key or a password never leave the phone. "Test myself" starts a self-test instead: the whole map alone, the
-// testers' pre-test and post-test. A session closed early, or kept on this device through a reload or a killed app,
-// is offered back at the top. In the website layout the choices are a column on the left and the code and the map
-// stand on the right.
-import type { SessionMode } from "@build-north/agents";
+// testers' pre-test and post-test. Every session the learner didn't finish (closed early, a reload, a killed app,
+// another device) is offered back at the top, from the server's list, and the finished ones wait under "Your maps",
+// each opening on its result (read-only: a finished session is never played again). In the website layout the
+// choices are a column on the left and the code and the map stand on the right.
+import type { SessionMode, SessionSummary } from "@build-north/agents";
 import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
-import { useRouter } from "expo-router";
-import { useState, type ReactNode } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useState, type ReactNode } from "react";
 import { Platform, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { CodePreview } from "../components/code-preview.tsx";
 import { MemorySheet } from "../components/memory-sheet.tsx";
@@ -54,29 +55,50 @@ export default function StartScreen() {
   const router = useRouter();
   const c = useColors();
   const wide = useWide();
-  const { start, offline, state, saved, resume } = useSession();
+  const { start, offline, state, history, refresh, resume } = useSession();
   const [concept, setConcept] = useState<string>("API");
   const [notes, setNotes] = useState("");
   const [notesOpen, setNotesOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
   const [starting, setStarting] = useState<SessionMode | null>(null);
-  const [resuming, setResuming] = useState(false);
+  const [resuming, setResuming] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [listError, setListError] = useState<string | null>(null);
   // a result on screen is finished, even while the coach's words are on their way
   const unfinished = state.turn && state.turn.expects !== "none" && state.turn.phase !== "result" ? state.turn : null;
   // at level 5 the parts fill on the phone until the map is submitted
   const draft = unfinished?.expects === "map" ? state.draft : null;
   const done = draft ? filledOf(draft) : (unfinished?.progress.movesDone ?? 0);
-  // the session this device kept from before a reload or a restart: offered while nothing is on screen
-  const kept = !state.turn && saved ? saved : null;
-  const busy = starting !== null || resuming;
+  // the server's list, read again each time Start shows (a session just finished is on it), so the sessions
+  // to pick up (the one on screen has its own card) and the finished maps are the learner's whole record
+  useFocusEffect(
+    useCallback(() => {
+      void refresh().then(setListError);
+    }, [refresh]),
+  );
+  const kept = history?.filter((s) => !s.finished && s.id !== state.turn?.sessionId) ?? [];
+  const maps = history?.filter((s) => s.finished) ?? [];
+  const busy = starting !== null || resuming !== null;
   const secretLine = secretLineOf(notes);
   const secret = secretLine !== null;
   const name = concept.trim();
   const picked = CONCEPTS.find((chip) => chip === name) ?? null;
+  // A concept the learner already has a session going on, in the same mode, goes on from where it stopped instead of
+  // starting over beside it (Leo, Oct 24: picking a topic he had worked on showed none of it). A finished one starts
+  // fresh, and its map stays under "Your maps".
+  const ongoing = (mode: SessionMode): "on screen" | SessionSummary | null => {
+    const same = (other: string, otherMode: SessionMode) => otherMode === mode && other.trim().toLowerCase() === name.toLowerCase();
+    if (unfinished && same(unfinished.mentefacto.concept, state.mode)) return "on screen";
+    return kept.find((s) => same(s.concept, s.mode)) ?? null;
+  };
+  const going = { learn: ongoing("learn"), test: ongoing("test") };
+  const pickingUp = (session: ReturnType<typeof ongoing>) => session !== null && session !== "on screen" && resuming === session.id;
 
   const begin = async (mode: SessionMode) => {
     if (!name || busy || secret) return;
+    const session = going[mode];
+    if (session === "on screen") return router.push("/session");
+    if (session) return pickUp(session);
     setStarting(mode);
     setError(null);
     const problem = await start({ concept: name, ...(notes.trim() ? { material: notes } : {}), ...(mode === "test" ? { mode } : {}) });
@@ -84,23 +106,33 @@ export default function StartScreen() {
     if (problem) setError(problem);
     else router.push("/session");
   };
-  const pickUp = async () => {
+  const pickUp = async (session: SessionSummary) => {
     if (busy) return;
-    setResuming(true);
+    setResuming(session.id);
     setError(null);
-    const problem = await resume();
-    setResuming(false);
+    const problem = await resume(session);
+    setResuming(null);
     if (problem) setError(problem);
     else router.push("/session");
   };
 
-  const startButton = <Button label={name ? "Explore with guidance" : "Pick a concept"} hint={GUIDED} fit={wide} busy={starting === "learn"} disabled={!name || secret || busy} onPress={() => void begin("learn")} />;
+  // the label says what the tap does: a concept with a session going on continues it
+  const startButton = (
+    <Button
+      label={going.learn ? "Continue with guidance" : name ? "Explore with guidance" : "Pick a concept"}
+      hint={going.learn ? `Picks up your ${name} session where you left it` : GUIDED}
+      fit={wide}
+      busy={starting === "learn" || pickingUp(going.learn)}
+      disabled={!name || secret || busy}
+      onPress={() => void begin("learn")}
+    />
+  );
   const testButton = !offline && (
     <Button
       kind={wide ? "secondary" : "text"}
-      label="Test myself"
-      hint="Write your answers in the four map areas. The optional chat answers factual questions. Your levels don't change."
-      busy={starting === "test"}
+      label={going.test ? "Continue self-test" : "Test myself"}
+      hint={going.test ? `Picks up your ${name} self-test where you left it` : "Write your answers in the four map areas. The optional chat answers factual questions. Your levels don't change."}
+      busy={starting === "test" || pickingUp(going.test)}
       disabled={!name || secret || busy}
       onPress={() => void begin("test")}
       style={wide && styles.tall}
@@ -122,19 +154,19 @@ export default function StartScreen() {
           </Card>
         </Rise>
       )}
-      {kept && (
-        <Rise order={1}>
+      {kept.map((session) => (
+        <Rise key={session.id} order={1}>
           <Card style={styles.resume}>
             <View style={styles.resumeHead}>
               <Body style={styles.flex} numberOfLines={1}>
-                {kept.concept}
+                {session.concept}
               </Body>
-              <Label dim>{`${kept.mode === "test" ? "self-test" : "session"} saved${shortDateOf(kept.savedAt) ? ` ${shortDateOf(kept.savedAt)}` : ""}`}</Label>
+              <Label dim>{`${session.mode === "test" ? "self-test" : "session"} started${shortDateOf(session.createdAt) ? ` ${shortDateOf(session.createdAt)}` : ""}`}</Label>
             </View>
-            <Button kind="secondary" label="Resume" hint="Picks the session up where you left it" busy={resuming} disabled={busy} onPress={() => void pickUp()} />
+            <Button kind="secondary" label="Resume" hint="Picks the session up where you left it" busy={resuming === session.id} disabled={busy} onPress={() => void pickUp(session)} />
           </Card>
         </Rise>
-      )}
+      ))}
       {/* demo mode replays one recorded session, on API, whatever is picked (fixture-client.ts): it offers that
           concept alone, so a tap on "CORS" never opens a session about API */}
       {offline && <Label dim>Demo mode: a recorded session on API</Label>}
@@ -178,6 +210,24 @@ export default function StartScreen() {
         </View>
       )}
       {error && <Failure message={error} />}
+      {/* every finished session, newest first: its result opens again, read-only (the thesis's "Your maps") */}
+      {(maps.length > 0 || listError) && (
+        <Rise order={5} style={styles.maps}>
+          <Label dim>Your maps</Label>
+          {listError && <Small dim>{`Couldn't load them: ${listError}`}</Small>}
+          {maps.map((session) => (
+            <Card key={session.id} style={styles.resume}>
+              <View style={styles.resumeHead}>
+                <Body style={styles.flex} numberOfLines={1}>
+                  {session.concept}
+                </Body>
+                <Label dim>{`${session.score ?? 0} of 8${session.mode === "test" ? " · self-test" : ""}${shortDateOf(session.createdAt) ? ` · ${shortDateOf(session.createdAt)}` : ""}`}</Label>
+              </View>
+              <Button kind="text" label="Open" hint="Shows this map and its result again" busy={resuming === session.id} disabled={busy} onPress={() => void pickUp(session)} style={styles.left} />
+            </Card>
+          ))}
+        </Rise>
+      )}
     </>
   );
   const sheet = (
@@ -403,6 +453,7 @@ const styles = StyleSheet.create({
   flex: { flex: 1 },
   resume: { gap: space.m },
   resumeHead: { flexDirection: "row", alignItems: "center", gap: space.m },
+  maps: { gap: space.m, marginTop: space.l },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
   extras: { flexDirection: "row", flexWrap: "wrap", columnGap: space.l },
   left: { alignSelf: "flex-start", paddingHorizontal: 0 },
