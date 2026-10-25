@@ -20,6 +20,7 @@ import {
   filledOf,
   firstOnPart,
   gapOf,
+  guidedHelpOf,
   helpOf,
   hintCardOf,
   hintNumberOf,
@@ -190,10 +191,34 @@ test("the exclusion's follow-up question stays in the part, with the answer befo
   assert.equal(helpOf(retried).tag, "help");
 });
 
-test("the hint card counts the Helps on the part, and the first one shows its price", () => {
-  assert.deepEqual(hintCardOf(1, true), { title: "hint 1 of 3 · −1 pt", filled: 1, note: "this part can now light 1 point at most" });
-  assert.equal(hintCardOf(2, false).title, "hint 2 of 3");
-  assert.equal(hintCardOf(5, false).filled, 3);
+test("hint cards use actual server steps, without inventing a count or charging a second point", () => {
+  assert.deepEqual(hintCardOf("nudge"), { title: "Hint: where to look", filled: 1, note: "This area can now earn at most 1 point." });
+  assert.equal(hintCardOf("hint").filled, 2);
+  assert.equal(hintCardOf("partial").filled, 3);
+  assert.equal(hintCardOf("reveal").note, "This area scores 0 points.");
+  assert.equal(hintCardOf(undefined).filled, null);
+  assert.equal(hintCardOf(undefined).title, "Hint");
+  for (const step of [undefined, "nudge", "hint", "partial"] as const) assert.doesNotMatch(hintCardOf(step).title, /cost|−1|of 3/);
+});
+
+test("guided help previews the cap, no further loss after a retry, and zero before a reveal without mutating entries", () => {
+  const question: Entry = { id: "q", from: "app", phase: "move", move: "supraordinate", level: 2, message: { agent: "questioner", kind: "question", text: "What category?" } };
+  const retry: Entry = { ...question, id: "retry", message: { agent: "evaluator", kind: "feedback", text: "Try again." } };
+  const hint = (step: "nudge" | "hint" | "partial" | undefined): Entry => ({ ...question, id: "hint", message: { agent: "hint_giver", kind: "hint", text: "Think it through.", ...(step ? { hintStep: step } : {}) } });
+  const part = [question, retry];
+  const before = JSON.stringify(part);
+  assert.match(guidedHelpOf([question]).detail, /at most 1 point instead of 2/);
+  assert.match(guidedHelpOf(part).detail, /does not reduce it further/);
+  assert.equal(guidedHelpOf([question, hint("partial")]).confirm, "Show the answer");
+  assert.match(guidedHelpOf([hint("partial")]).detail, /0 points/);
+  assert.match(guidedHelpOf([hint("hint")]).detail, /does not reduce it further/);
+  assert.match(guidedHelpOf([hint("partial"), question]).detail, /at most 1 point instead of 2/);
+  assert.equal(JSON.stringify(part), before);
+  for (const resumed of [[], [retry], [hint(undefined)], [question, hint(undefined)]]) {
+    assert.equal(guidedHelpOf(resumed).confirm, "Request help");
+    assert.match(guidedHelpOf(resumed).detail, /hint or the answer/);
+    assert.match(guidedHelpOf(resumed).detail, /makes it 0/);
+  }
 });
 
 test("the screen shows the Turn that asked the latest question, with the feedback that came with it", () => {

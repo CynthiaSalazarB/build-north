@@ -108,16 +108,15 @@ export function Nudge({ text, capNote, tag }: { text: string; capNote: boolean; 
     <View style={useIndent()}>
       <Tag style={{ color: c.question }}>{tag ?? (text.trim().endsWith("?") ? "nudge · free" : "not yet")}</Tag>
       <Reply style={styles.replyText}>{areaCopyOf(text)}</Reply>
-      {capNote && <Label dim style={styles.note}>this part can now light 1 point at most</Label>}
+      {capNote && <Label dim style={styles.note}>This area can now earn at most 1 point.</Label>}
     </View>
   );
 }
 
-/** A hint: amber, the firefly's light. Its head says which of the three it is (`n`) and, on a part's first, its price.
- * With memory on, the facts the help relies on come under it (`concept` is where the Memory sheet then opens). */
-export function HintCard({ message, n, capNote, part, concept = "" }: { message: Message; n: number; capNote: boolean; part?: string; concept?: string }) {
+/** A hint names its server step, never a guessed count or a new charge. Memory citations remain under it. */
+export function HintCard({ message, capNote, part, concept = "" }: { message: Message; capNote: boolean; part?: string; concept?: string }) {
   const c = useColors();
-  const card = hintCardOf(n, n === 1);
+  const card = hintCardOf(message.hintStep);
   // on the whole map (level 5) the card names the part it helps with
   const title = part ? `${part} · ${card.title}` : card.title;
   const text = areaCopyOf(message.text);
@@ -125,11 +124,11 @@ export function HintCard({ message, n, capNote, part, concept = "" }: { message:
     <View style={[styles.hint, { backgroundColor: c.hintContainer }]} role="note" accessibilityLabel={`${title}. ${text}${capNote ? ` ${card.note}` : ""}`}>
       <View style={styles.hintHead}>
         <Text style={[type.label, styles.hintTitle, { color: c.hint }]}>{title}</Text>
-        <View style={styles.hintSteps}>
+        {card.filled !== null && <View style={styles.hintSteps}>
           {[1, 2, 3].map((n) => (
-            <View key={n} style={[styles.step, n <= card.filled ? { backgroundColor: c.hint } : { borderColor: c.hint, borderWidth: 1 }]} />
+            <View key={n} style={[styles.step, n <= (card.filled ?? 0) ? { backgroundColor: c.hint } : { borderColor: c.hint, borderWidth: 1 }]} />
           ))}
-        </View>
+        </View>}
       </View>
       <Text style={[type.body, styles.hintText, { color: c.onHintContainer }]}>{text}</Text>
       {capNote && <Text style={[type.label, styles.note, { color: c.hintNote }]}>{card.note}</Text>}
@@ -260,10 +259,11 @@ export function useSlow(waiting: boolean): boolean {
   return slow;
 }
 
-/** While the firefly checks: screen readers hear what is happening; after 10 s everyone sees it. */
+/** Visible feedback immediately; the extra explanation appears only when the call is slow. */
 export function Waiting({ line, slow }: { line: string; slow: boolean }) {
   return (
     <View role="status" accessibilityLiveRegion="polite" accessibilityLabel={slow ? `${line} Taking longer than usual.` : line} style={useIndent()}>
+      <Label dim>{line}</Label>
       {slow && <Label dim>taking longer than usual…</Label>}
     </View>
   );

@@ -181,7 +181,7 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, closings 
 
   return (
     <>
-      <SessionBar concept={concept} onClose={onDone} />
+      <SessionBar concept={concept} onClose={onDone} done />
       <ScrollView contentContainerStyle={styles.content}>{words}</ScrollView>
       <View style={styles.foot}>
         {again}

@@ -239,11 +239,26 @@ export function justLitOf(turn: Turn): MoveId | null {
   return MOVE_ORDER[turn.progress.movesDone - 1] ?? null;
 }
 
-/** The hint card's head: the nth Help on the part, of the three before the answer (0 points). The first hint on a
- * part is the one that costs the point, so only it shows the price. */
-export function hintCardOf(n: number, first: boolean): { title: string; filled: number; note: string } {
-  const step = Math.max(1, Math.min(3, n));
-  return { title: `hint ${step} of 3${first ? " · −1 pt" : ""}`, filled: step, note: "this part can now light 1 point at most" };
+/** Describe the step the server actually sent, not a guessed count or a second charge after a retry. */
+export function hintCardOf(step: Message["hintStep"]): { title: string; filled: number | null; note: string } {
+  const stages = { nudge: { title: "Hint: where to look", filled: 1 }, hint: { title: "Hint: think it through", filled: 2 }, partial: { title: "Hint: a partial answer", filled: 3 }, reveal: { title: "Answer shown", filled: 3 } };
+  return { ...(step ? stages[step] : { title: "Hint", filled: null }), note: step === "reveal" ? "This area scores 0 points." : "This area can now earn at most 1 point." };
+}
+
+export type GuidedHelpView = { label: string; detail: string; confirm: string };
+
+/** Preview only. A reload can hide the previous step: never promise a free hint when it might reveal an answer. */
+export function guidedHelpOf(part: readonly Entry[]): GuidedHelpView {
+  const asked = part.findIndex(e => e.from === "app" && e.message.kind === "question");
+  const last = part.slice(asked + 1).reverse().find(e => e.from === "app" && e.message.kind === "hint");
+  const step = last?.from === "app" ? last.message.hintStep : undefined;
+  if (step === "partial") return { label: "Show answer · 0 points", detail: "This shows you the answer. This area will score 0 points. The other areas are not affected.", confirm: "Show the answer" };
+  if (!step && (last || asked < 0)) {
+    return { label: "Get help · review effect", detail: "The previous hint step is not available. The next help may be a hint or the answer. A hint limits this area to 1 point; showing the answer makes it 0. Other areas are not affected.", confirm: "Request help" };
+  }
+  return cappedOf(part)
+    ? { label: "More help · no extra cost", detail: "This area is already limited to 1 point. This hint does not reduce it further.", confirm: "Get the hint" }
+    : { label: "Get a hint · 1 point max", detail: "After this hint, this area can earn at most 1 point instead of 2. The other areas are not affected.", confirm: "Get the hint" };
 }
 
 /** What the firefly says under itself: Help costs a point only while the part could still score 2. After a

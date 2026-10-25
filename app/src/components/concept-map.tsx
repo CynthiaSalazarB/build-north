@@ -262,7 +262,7 @@ function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }
       ) : null}
       {/* on the result, a part that moved up a level: the help fades there next time */}
       {view.badge && <Text style={[type.partLabel, styles.badge, { color: look.labelInk }]}>{`↑ ${view.badge}`}</Text>}
-      {onPress && !reads && <Text style={[type.partLabel, { color: look.labelInk }]}>{view.text ? "Edit answer" : active ? "Write here →" : "Write answer"}</Text>}
+      {onPress && <Text style={[type.partLabel, { color: look.labelInk }]}>{reads ? "Read answer" : view.text ? "Edit answer" : active ? "Write here →" : "Write answer"}</Text>}
       {ring && <Sparks />}
     </Animated.View>
   );
