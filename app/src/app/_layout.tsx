@@ -2,7 +2,8 @@ import { ClerkProvider, useAuth } from "@clerk/expo";
 import { tokenCache } from "@clerk/expo/token-cache";
 import { AtkinsonHyperlegibleMono_400Regular, AtkinsonHyperlegibleMono_600SemiBold } from "@expo-google-fonts/atkinson-hyperlegible-mono";
 import { AtkinsonHyperlegibleNext_400Regular, AtkinsonHyperlegibleNext_600SemiBold } from "@expo-google-fonts/atkinson-hyperlegible-next";
-import { Newsreader_400Regular, Newsreader_400Regular_Italic, Newsreader_500Medium, useFonts } from "@expo-google-fonts/newsreader";
+import { Newsreader_400Regular, Newsreader_400Regular_Italic, Newsreader_500Medium } from "@expo-google-fonts/newsreader";
+import { FontDisplay } from "expo-font";
 import { Observe, ObserveRoot } from "expo-observe";
 import { Stack, type ErrorBoundaryProps } from "expo-router";
 import * as SplashScreen from "expo-splash-screen";
@@ -12,6 +13,7 @@ import { Platform, StyleSheet, View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Failure } from "../components/messages.tsx";
 import { Button, Screen, Title } from "../components/ui.tsx";
+import { useBrandFonts } from "../components/use-brand-fonts.ts";
 import type { SessionClient } from "../session/client.ts";
 import { clerkKey, createClient } from "../session/config.ts";
 import { SessionProvider } from "../session/session-context.tsx";
@@ -73,16 +75,18 @@ export function ErrorBoundary({ error, retry }: ErrorBoundaryProps) {
   );
 }
 
+const BRAND_FONTS = {
+  Newsreader_400Regular: { uri: Newsreader_400Regular, display: FontDisplay.SWAP },
+  Newsreader_400Regular_Italic: { uri: Newsreader_400Regular_Italic, display: FontDisplay.SWAP },
+  Newsreader_500Medium: { uri: Newsreader_500Medium, display: FontDisplay.SWAP },
+  AtkinsonHyperlegibleNext_400Regular: { uri: AtkinsonHyperlegibleNext_400Regular, display: FontDisplay.SWAP },
+  AtkinsonHyperlegibleNext_600SemiBold: { uri: AtkinsonHyperlegibleNext_600SemiBold, display: FontDisplay.SWAP },
+  AtkinsonHyperlegibleMono_400Regular: { uri: AtkinsonHyperlegibleMono_400Regular, display: FontDisplay.SWAP },
+  AtkinsonHyperlegibleMono_600SemiBold: { uri: AtkinsonHyperlegibleMono_600SemiBold, display: FontDisplay.SWAP },
+};
+
 function RootLayout() {
-  const [loaded, failed] = useFonts({
-    Newsreader_400Regular,
-    Newsreader_400Regular_Italic,
-    Newsreader_500Medium,
-    AtkinsonHyperlegibleNext_400Regular,
-    AtkinsonHyperlegibleNext_600SemiBold,
-    AtkinsonHyperlegibleMono_400Regular,
-    AtkinsonHyperlegibleMono_600SemiBold,
-  });
+  const [loaded, failed] = useBrandFonts(BRAND_FONTS);
   // a font that fails to load falls back to the system's rather than blocking the app
   if (!loaded && !failed) return null;
   return (
@@ -101,11 +105,12 @@ function RootLayout() {
 
 // #22: every API call carries the Clerk session token, and a signed-out learner only sees sign-in.
 function ClerkApp() {
-  const { isLoaded, isSignedIn, getToken } = useAuth();
+  const { isLoaded, isSignedIn, userId, getToken } = useAuth();
   const client = useMemo(() => createClient(() => getToken()), [getToken]);
   // nothing to show until Clerk knows whether someone is signed in
   if (!isLoaded) return null;
-  return <App client={client} signedIn={!!isSignedIn} clerk />;
+  // Expiry and account switching can bypass our Sign out button; no previous learner's UI survives an identity change.
+  return <App key={userId ?? "signed-out"} client={client} signedIn={!!isSignedIn} clerk />;
 }
 
 function App({ client, signedIn, clerk }: { client: SessionClient; signedIn: boolean; clerk: boolean }) {
@@ -117,6 +122,7 @@ function App({ client, signedIn, clerk }: { client: SessionClient; signedIn: boo
       <Stack screenOptions={{ headerShown: false, contentStyle: { backgroundColor: base.bottom } }}>
         <Stack.Protected guard={signedIn}>
           <Stack.Screen name="index" />
+          <Stack.Screen name="concepts" />
           {/* a session rises from the start screen */}
           <Stack.Screen name="session" options={{ animation: "slide_from_bottom" }} />
         </Stack.Protected>

@@ -7,7 +7,7 @@ import Svg, { Circle, Path } from "react-native-svg";
  * aria-hidden, since an <svg> element has no `accessible` attribute and React warns about it. */
 export const decorative = Platform.select({ web: { "aria-hidden": true } as const, default: { accessible: false } as const });
 
-export type IconName = "x" | "up" | "plus" | "minus" | "check" | "alert" | "mic" | "stop";
+export type IconName = "x" | "up" | "plus" | "minus" | "check" | "alert" | "mic" | "stop" | "folder" | "folder-check" | "right";
 
 const PATHS: Record<Exclude<IconName, "alert">, string> = {
   x: "M6 6l12 12M18 6L6 18",
@@ -18,6 +18,9 @@ const PATHS: Record<Exclude<IconName, "alert">, string> = {
   plus: "M12 5v14M5 12h14",
   minus: "M5 12h14",
   check: "M5 12.5l4.5 4.5L19 7.5",
+  folder: "M3 7V5a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7h8",
+  "folder-check": "M3 7V5a1 1 0 0 1 1-1h5l2 3h9a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7h8M8 13l3 3 5-5",
+  right: "M9 5l7 7-7 7",
 };
 
 /** A 24-unit icon. Decorative: the control around it carries the label. */
