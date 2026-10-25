@@ -50,6 +50,8 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
 
   await t.test("every field the orchestrator changes is saved, the fields it added to Session included", async () => {
     const session = await store.createSession("leo", { concept: "democracy", material: null, mode: "learn" });
+    assert.deepEqual(session.transcript, []);
+    const started = await advanceStub({ session, mastery: await store.getMastery("leo") }, { action: "start" }, callAgentStub);
     const changed: typeof session = {
       ...session,
       turn: 6,
@@ -62,6 +64,11 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
       nextQuestion: { move: "isoordinate", level: 2, question: "What other kinds of government are there?", scaffold: null },
       questions: { asked: 1, testing: 0 },
       moveLog: [{ move: "supraordinate", points: 2, hints: 1, retries: 1, from: 2, to: 3 }],
+      // the API's record of the conversation: the start (no body), then an answer and the Turn it got
+      transcript: [
+        { body: null, turn: started.turn },
+        { body: { turn: 1, prediction: 5 }, turn: { ...started.turn, turn: 2 } },
+      ],
     };
     assert.equal(await store.saveSession(changed, session.turn), true);
     assert.deepEqual(await store.getSession("leo", session.id), changed);
@@ -71,6 +78,28 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     const session = await store.createSession("leo", { concept: "drift", material: null, mode: "learn" });
     await db.query("UPDATE $id SET phase = 'lost'", { id: new RecordId("session", session.id) }).collect();
     await assert.rejects(store.getSession("leo", session.id));
+  });
+
+  await t.test("GET /sessions lists the user's sessions that have a Turn, newest first, finished or not, and nobody else's", async () => {
+    const result = { predictedScore: 7, score: 3, maxScore: 8 as const, calibrationGap: 4, hintsUsed: 0, rubric: [], masteryChanges: [], questions: { asked: 0, testing: 0 }, coach: null };
+    const first = await store.createSession("lister", { concept: "API", material: null, mode: "learn" });
+    const started = await advanceStub({ session: first, mastery: await store.getMastery("lister") }, { action: "start" }, callAgentStub);
+    assert.equal(await store.saveSession(started.session, first.turn), true);
+    const second = await store.createSession("lister", { concept: "JWT", material: null, mode: "test" });
+    const over = await advanceStub({ session: second, mastery: await store.getMastery("lister") }, { action: "start" }, callAgentStub);
+    assert.equal(await store.saveSession({ ...over.session, phase: "result", result }, second.turn), true);
+    // never started (the agent failed on the first Turn): nothing to show
+    await store.createSession("lister", { concept: "CORS", material: null, mode: "learn" });
+    await store.createSession("someone-else", { concept: "cache", material: null, mode: "learn" });
+
+    const listed = await store.listSessions("lister");
+    assert.deepEqual(listed, [
+      { id: second.id, concept: "JWT", mode: "test", createdAt: second.createdAt, finished: true, score: 3, predictedScore: 7 },
+      { id: first.id, concept: "API", mode: "learn", createdAt: first.createdAt, finished: false, score: null, predictedScore: null },
+    ]);
+    assert.deepEqual(await store.listSessions("nobody"), []);
+    await store.deleteUserData("lister");
+    await store.deleteUserData("someone-else");
   });
 
   await t.test("mastery starts at level 1 and saves all four moves", async () => {

@@ -61,6 +61,25 @@ export const CreateSessionBody = z.strictObject({
 });
 export type CreateSessionBody = z.infer<typeof CreateSessionBody>;
 
+/**
+ * GET /sessions: one line per session of the caller, newest first, so Start can list what the learner went
+ * through (the unfinished ones to pick up, the finished ones under "Your maps"). A session the orchestrator never
+ * started (no Turn yet) is left out. `score` and `predictedScore` are set once the session has its result.
+ */
+export const SessionSummary = z.strictObject({
+  id: z.string(),
+  concept: z.string(),
+  mode: SessionMode,
+  /** ISO 8601. */
+  createdAt: z.string(),
+  finished: z.boolean(),
+  score: z.number().int().min(0).max(8).nullable(),
+  predictedScore: z.number().int().min(0).max(8).nullable(),
+});
+export type SessionSummary = z.infer<typeof SessionSummary>;
+/** What GET /sessions answers. */
+export const SessionList = z.strictObject({ sessions: z.array(SessionSummary) });
+
 /** POST /sessions/:id/turns. `turn` is the number of the Turn being answered (decision 18). */
 const answering = { turn: z.number().int() };
 export const TurnBody = z.union([
@@ -155,6 +174,16 @@ export const Turn = z.strictObject({
   error: z.strictObject({ code: z.enum(["agent_failed", "rate_limited"]), retryable: z.boolean() }).nullable(),
 });
 export type Turn = z.infer<typeof Turn>;
+
+/**
+ * One saved step of a session: the body the learner sent (null for the start) and the Turn that came back. The API
+ * keeps every step on the session row (`Session.transcript`), so a session picked up again, or a finished map opened
+ * from "Your maps", shows its whole conversation instead of the latest Turn alone.
+ */
+export const TranscriptStep = z.strictObject({ body: TurnBody.nullable(), turn: Turn });
+export type TranscriptStep = z.infer<typeof TranscriptStep>;
+/** What GET /sessions/:id/transcript answers: every saved step, oldest first. Empty for a session saved before Oct 25. */
+export const Transcript = z.strictObject({ steps: z.array(TranscriptStep) });
 
 export const Mastery = z.strictObject({
   moves: z.array(
@@ -449,6 +478,9 @@ export const Session = z.strictObject({
     }),
   ),
   result: Result.nullable(),
+  /** Every saved step, oldest first, written by the API (never read by the orchestrator). Sessions saved before
+   * Oct 25 have none. */
+  transcript: z.array(TranscriptStep).default([]),
   createdAt: z.string(),
 });
 export type Session = z.infer<typeof Session>;

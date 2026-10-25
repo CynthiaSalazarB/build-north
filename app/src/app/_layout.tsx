@@ -25,8 +25,24 @@ const devClient = createClient();
 
 /** Clerk's sign-in (on the web) names the app and skips its "Welcome back! Please sign in to continue". */
 const localization = {
-  signIn: { start: { title: `Sign in to ${brand.name}`, titleCombined: `Sign in to ${brand.name}`, subtitle: "", subtitleCombined: "" } },
-  signUp: { start: { title: `Join ${brand.name}`, titleCombined: `Join ${brand.name}`, subtitle: "", subtitleCombined: "" } },
+  signIn: {
+    start: {
+      title: `Sign in to ${brand.name}`,
+      titleCombined: `Sign in to ${brand.name}`,
+      subtitle: "Use Google or get a one-time code by email. No password needed.",
+      subtitleCombined: "Use Google or get a one-time code by email. No password needed.",
+    },
+    emailCode: { subtitle: "Check your inbox, then enter the code here." },
+  },
+  signUp: {
+    start: {
+      title: `Join ${brand.name}`,
+      titleCombined: `Join ${brand.name}`,
+      subtitle: "Create your account with Google or a one-time code by email.",
+      subtitleCombined: "Create your account with Google or a one-time code by email.",
+    },
+    emailCode: { subtitle: "Enter the one-time code we sent to your email." },
+  },
 };
 
 // Expo Observe records launch times and crashes on phone release builds (it does nothing on the web)
@@ -72,7 +88,8 @@ function RootLayout() {
   return (
     <SafeAreaProvider>
       {clerkKey ? (
-        <ClerkProvider publishableKey={clerkKey} tokenCache={tokenCache} localization={localization}>
+        // the web's two forms link to each other on this site, and both end on Start; a phone ignores these
+        <ClerkProvider publishableKey={clerkKey} tokenCache={tokenCache} localization={localization} signInUrl="/sign-in" signUpUrl="/sign-up" signInFallbackRedirectUrl="/" signUpFallbackRedirectUrl="/">
           <ClerkApp />
         </ClerkProvider>
       ) : (
@@ -105,6 +122,7 @@ function App({ client, signedIn, clerk }: { client: SessionClient; signedIn: boo
         </Stack.Protected>
         <Stack.Protected guard={clerk && !signedIn}>
           <Stack.Screen name="sign-in" options={{ animation: "fade" }} />
+          <Stack.Screen name="sign-up" options={{ animation: "fade" }} />
         </Stack.Protected>
       </Stack>
     </SessionProvider>

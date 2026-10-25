@@ -21,16 +21,20 @@ in again between the two sessions costs about 15 seconds.
 - **The phone** is signed in to the session 1 account: any `name+clerk_test@example.com` with the code
   `424242` works without an inbox, and a new account starts every part at level 2. After each rehearsal,
   "Your data", then "Delete my data": it resets the levels and signs out, so the next run gets the same
-  questions. Start is open on API. The screen is mirrored; Do Not Disturb is on.
+  questions. It also clears the API session the rehearsal left open at 1:18; without the delete, picking API
+  says "Continue with guidance" and opens that session instead of a new one. Start is open on API. The
+  screen is mirrored; Do Not Disturb is on.
 - **The laptop** is signed in to the demo account, the one `npm run seed:demo -w api` put at level 5 on
   all four parts (today that is Leo's Google account: pick one Cynthia and Kyle can sign into `[account: Cynthia]`).
   One thing has to be true for the Memory sheet to have something to show: one CORS session was
   finished on this account before Demo Day with memory on (on since Oct 23). #147, merged and on Render since
   Oct 23 night, writes a level row for every finished part even when no level moved, so each part reads
   "level 5 since …" instead of "no level yet"; a session finished before #147 left only the gap and the Helps.
-- During the warm-up, start the CORS session on the laptop ("Explore with guidance", predict 7, "Save my
-  prediction") and fill three areas of the map with the answers Cynthia rehearsed: Bigger group, What it
-  isn't, What it needs. Leave Its types empty. The draft survives a reload, and Start offers "Resume".
+- During the warm-up, open the CORS session on the laptop and fill three areas of the map with the answers
+  Cynthia rehearsed: Bigger group, What it isn't, What it needs. Leave Its types empty. With CORS picked,
+  Start's button says "Continue with guidance" while a CORS session is unfinished (the seeded one already
+  holds the prediction 7) and opens it; with none, it says "Explore with guidance": predict 7, "Save my
+  prediction". The draft survives a reload, and Start offers "Resume".
 - The video is open on the laptop at the fallback chapter (below), and on a USB stick.
 - The deck's numbers slide is ready; the testers' numbers are not in the app.
 
