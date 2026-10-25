@@ -1,8 +1,9 @@
 # Devpost page: draft for Cynthia
 
 The text for every field of our Devpost project page (#30, #53), in the order Devpost shows them, plus
-one section for each sponsor prize we enter with its own evidence. Each field stays under 150 words so
-it reads on the page without scrolling. Judges skim the standard headings, so we keep them.
+one section for each sponsor prize we enter with its own evidence. Build North publishes no word limit
+for these fields. The opening stays concise enough to skim, but explaining the problem, the method and
+the value matters more than an arbitrary count. Judges skim the standard headings, so we keep them.
 
 Every number here comes from a file in this repo. A number we don't have yet is written as
 `[number: Cynthia]`; a link we don't have yet as `[link: Cynthia]`. The research figures under
@@ -24,32 +25,43 @@ Build with AI. Understand the concepts yourself.
 
 ## Inspiration
 
-Coding agents write working code faster than students can understand it. The gap shows when someone
-asks them to explain it: in a code review, a project defense or a job interview. The code works, so it
-feels understood. One of us lives this problem, and the comments on a reel about it were full of people
-describing their own routine: explain the concept to the AI and let it correct you.
+AI coding agents can produce working code faster than a student can understand the ideas underneath it.
+The code runs, so it feels understood. Then a professor, teammate or interviewer asks, "Why does this
+work?" and the answer disappears.
 
-Two studies shaped the design. At Anthropic, developers who learned a new tool with an AI assistant
-scored 50% on a quiz about it, against 67% for those who coded by hand. At Aalto University, people who
-solved problems with ChatGPT guessed their own score about 4 points too high. The confidence came with
-the AI; the learner didn't earn it. So Lumente asks for a prediction before anything else, and it never
-writes the answer.
+Lumente starts with programming students who build class and side projects with Claude Code, Cursor or
+Copilot. They meet this gap in code reviews, project defenses and interviews. One of us lives it. In the
+comments on a reel about the problem, people described routines they had invented for themselves:
+explain the concept to the AI, ask it to challenge the explanation, and find the gaps before someone
+else does.
+
+The research shows the same pattern. At
+[Anthropic](https://www.anthropic.com/research/AI-assistance-coding-skills), developers learning a new
+tool with AI scored 50% on a concepts quiz, compared with 67% for those who coded by hand. In
+[Aalto University's reasoning studies](https://www.aalto.fi/en/news/ai-use-makes-us-overestimate-our-cognitive-performance),
+people using ChatGPT overestimated their score by about four points. AI can lend confidence before the
+learner has earned it.
 
 ## What it does
 
-Lumente is for computer science students who build with Claude Code, Cursor or Copilot and can't explain
-the ideas behind the code.
+Lumente turns a concept from an AI-built project into something the student can explain in their own
+words.
 
-1. Pick a concept from your project, like API, JWT or CORS. "Ask your AI what to map" asks your coding
-   agent for the list.
-2. Predict your score, 0 to 8, before any question.
-3. Build the concept's map in four areas: Bigger group, What it isn't, What it needs, Its types. A
-   firefly asks and checks your answers. It never writes the map. Tap it for Help; the first Help on an
-   area caps it at 1 point.
-4. See your map score next to your prediction, and the gap in words.
+1. Pick a concept your project uses, such as API, JWT or CORS. "Ask your AI what to map" gives your
+   coding agent a prompt that finds the concepts in your own code.
+2. Predict your score from 0 to 8 before seeing a question. This puts your confidence on record.
+3. Build a **conceptual mentefact**, a specialized visual map from Conceptual Pedagogy. It places one
+   concept in four areas: the bigger group it belongs to, what it is often confused with, what must be
+   true for it to count as one, and the types that exist.
+4. The firefly asks questions and checks each answer. You write the map. Help is available, but it costs
+   points and fades as you improve.
+5. See the score you proved beside the one you predicted. Lumente puts the gap into words: "You felt two
+   points surer than you could explain."
 
-As you get areas right with little help, the help fades. At level 5 the roles flip: you build the whole
-map and ask a fact desk for facts only. Lumente remembers your levels.
+A concept is the practice material. Questioning is the skill. By level 5, the roles flip: you build the
+whole map, decide what you need to know and ask a fact desk for facts. The immediate value is being able
+to explain the API or CORS rule in your project. The longer-term value is learning how to investigate
+the next unfamiliar idea without handing the thinking back to AI.
 
 ## How we built it
 
@@ -114,23 +126,30 @@ names or emails appear in the repository or submission.
 - Worked examples help beginners but slow experts, so ours is optional.
 - Hiding the answer is not enough. AI tutors with guardrails stop the harm but don't beat studying alone.
   Structure, fading help and measurement are our bet, not proven yet: our pilot has no comparison group.
+- The concept map gives students something concrete to investigate while they practice forming their
+  own questions. The questioning habit is the larger goal.
 - Turn a feature on for real users before the freeze. Memory went on before the pilot, behind a kill
   switch, and sessions survive a reload because getting ready for testers demanded it.
 
 ## What's next for Lumente
 
-The next layer is the student's own project. Check the AI comes next: judging whether your coding
-agent's answer holds up, its assumption and the kind of claim it makes. It starts only when learners
-improve on the second test.
+First, we need evidence that the concepts loop improves what students can explain. Our first pilot uses
+a test, two practice sessions and a second test on concepts the student did not practice in Lumente. It
+gives us a first signal. Without a comparison group, it cannot prove the effect yet.
 
-Before that, on the same engine: concepts read straight from your repo; material from a trusted source
-when you only type a topic; a fact desk that says where each fact came from; a concept compared across
-two examples; a skill inside the coding agent as the doorway ("your agent just used an API; want to
-practice it?"); Spanish.
+The next skill is **Check the AI**: judging whether a coding agent's answer holds up, which assumptions
+it made and what kind of claim it is making. That phase starts only after students improve on the
+second test.
 
-Students use it free. Instructors, bootcamps and colleges pay for seats and a class view of what each
-student has mastered, the evidence they seek today through oral exams. At Demo Day we ask for a pilot
-with one CS program.
+Lumente begins with programming students because they face this problem often and at a real cost. The
+same questioning loop can later work in other subjects, but we will widen the audience one group at a
+time and only when the evidence supports it. Nearer steps include reading concepts from a repository,
+using trusted sources, comparing a concept across examples, showing where the fact desk got each fact,
+and Spanish.
+
+Students use Lumente free. Instructors, bootcamps and colleges pay for seats and a class view of what
+each student has mastered, the evidence they now try to get through oral exams. At Demo Day, we are
+looking for one CS program to run the next pilot with us.
 
 ## Built with
 
