@@ -10,8 +10,11 @@ secrets here: the repo is public.
   from the Clerk dashboard, so the app ships no sign-in form of its own.
 - **The web:** the landing page is the sign-in. `app/src/app/sign-in.web.tsx` renders Clerk's prebuilt
   `<SignIn />` (`@clerk/expo/web`) in Lumente's colors, next to the code and the empty map the learner is
-  about to light. Expo Router picks the `.web.tsx` file on the web and `sign-in.tsx` on Android: one
-  route, two platforms.
+  about to light, and `sign-up.web.tsx` does the same with `<SignUp />`: the "Sign up" link stays on the
+  site, and a new account lands on Start (`signUpUrl` and `signUpFallbackRedirectUrl` on the `ClerkProvider`
+  in `_layout.tsx`; DECISIONS.md, 2026-10-24, "Sign-up stays on the site"). Both forms use `routing="hash"`,
+  since the static build has no `/sign-in/factor-one` to serve. Expo Router picks the `.web.tsx` files on the
+  web and `sign-in.tsx` on Android: one route each, two platforms.
 - **Methods:** email verification code and Google (DECISIONS.md, 2026-10-22, "Sign-in by email code and
   Google"). Google sign-ins don't count against the development instance's 100 emails a month.
 - **Only signed-in learners see the app.** `app/src/app/_layout.tsx` wraps the screens in

@@ -7,12 +7,13 @@ import { initialSession } from "./store.ts";
 // that is erased at the end. npm run memory:smoke -w api. Exit 0 and a note when the memory variables aren't set,
 // so it can run anywhere the API's smoke test runs; exit 1 on any failure. Prints no secret and no real learner.
 
-const config = memoryConfigFromEnv({ ...process.env, AGENT_MEMORY_ENABLED: "true" });
-if (!config) throw new Error("unreachable: the flag is forced on");
+// before the config: with the flag forced on, memoryConfigFromEnv throws when a variable is missing
 if (!process.env.AGENT_MEMORY_ENDPOINT || !process.env.AGENT_MEMORY_CONTEXT || !process.env.AGENT_MEMORY_API_KEY) {
   console.log("memory:smoke skipped: AGENT_MEMORY_ENDPOINT, AGENT_MEMORY_CONTEXT and AGENT_MEMORY_API_KEY are not all set");
   process.exit(0);
 }
+const config = memoryConfigFromEnv({ ...process.env, AGENT_MEMORY_ENABLED: "true" });
+if (!config) throw new Error("unreachable: the flag is forced on");
 
 type Check = { name: string; ok: boolean; detail: string };
 const checks: Check[] = [];

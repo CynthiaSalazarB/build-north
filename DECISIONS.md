@@ -838,3 +838,73 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   guards us: the API's rate limit (240 a minute per IP), the Claude budget cap (`AGENT_BUDGET_USD`), the development
   instance's 100-user cap, and Clerk's lockout after failed sign-ins. Native apps were never challenged.
 
+### 2026-10-24 · Sign-up stays on the site
+- **Decision:** the web build has its own sign-up page, `app/src/app/sign-up.web.tsx`, Clerk's prebuilt `<SignUp />`
+  inside the same landing as the sign-in (`components/landing.tsx`). `ClerkProvider` in `_layout.tsx` names the two
+  pages (`signInUrl="/sign-in"`, `signUpUrl="/sign-up"`) and where both end (`signInFallbackRedirectUrl="/"`,
+  `signUpFallbackRedirectUrl="/"`), so account switching and new accounts stay on lumente.expo.app and a new
+  account lands on Start. The web forms put an app-owned "Get started" / "I have an account" link above Clerk's form
+  and explain the email-code steps. Both forms use `routing="hash"`, so every step of a form stays on the one page the
+  static build has. Android's "Get started" still opens Clerk's hosted sign-up in the in-app browser (`sign-in.tsx`).
+- **Instead of:** the "Sign up" link going to Clerk's hosted Account Portal (`enjoyed-goshawk-6043.accounts.dev/sign-up`),
+  which was the state on Oct 24; or setting a Home URL in the Clerk dashboard so the portal sends people back.
+- **Why:** on Oct 24 a new account made through that link never came back to Lumente: the Clerk instance has no Home
+  URL (its public environment lists `after_sign_up_url` as the portal's own `/default-redirect`, a "My account" page),
+  so the learner ended on Clerk's page with no way into the app. Clerk's `<SignIn />` also moves to `/sign-in/factor-one`
+  for the code step, a path the static build doesn't have (a reload there is a 404), which hash routing avoids. A
+  dashboard Home URL would fix the first part with a click, but a page of our own is the one fix that is in the
+  repo, reviewed, and the same on every deploy.
+- **Pattern / trade-off:** keep the whole sign-in and sign-up on our own pages; the hosted portal is for the phone
+  only. One more web route, and a native twin (`sign-up.tsx`) that only redirects, since Expo Router wants every
+  screen the root layout names on both platforms. JavaScript only; the fingerprint doesn't change.
+
+### 2026-10-24 · Start lists every session from the API; the device keeps only the notes and the level-5 map
+- **Decision:** `GET /sessions` (`api/src/app.ts`, `store.ts` `listSessions`) returns the caller's sessions that have
+  a Turn, newest first, as `SessionSummary` rows (`agents/src/contracts.ts`): id, concept, mode, date, whether it is
+  finished, and the score and the prediction once it is. Start reads it each time it is shown
+  (`app/src/app/index.tsx`): every unfinished session gets a "Resume" card (the one on screen keeps its own), and
+  the finished ones are listed under "Your maps", each opening on its result through `GET /sessions/:id`, the
+  session's last Turn, which expects nothing, so nothing on it can be answered or edited. The device no longer
+  keeps which session to resume: it keeps one record per session with only what the server doesn't hold (the
+  notes it started with and, at level 5, the map being built: `app/src/session/saved.ts`), and drops the record
+  once the server stops listing the session as unfinished. Supersedes the "which session" part of "A session
+  survives a reload or a killed app" (2026-10-23); the rest of it stands.
+- **Instead of:** one saved pointer on the device (a second session in progress replaced the first, so only the last
+  one could be resumed, and nothing from another device could), and no list of past sessions at all, which the
+  plan's cut list left out because the API had no sessions list.
+- **Why:** Leo, Oct 24: the app should collect all of what each learner went through, which concepts they used, and
+  let them get back to it. The server already kept every session; only the app forgot them. A finished session
+  never reopens for play, a new session on the same concept starts fresh, and no score changes: the list only
+  shows what is already there.
+- **Pattern / trade-off:** the server is the record, the device a cache of what it lacks. A map opened again shows
+  its result Turn: the map, the points, the coach's words and the evaluator's notes that came with that Turn, not
+  the whole conversation (the session row keeps only the current part's exchanges; the full exchange is in the
+  `agent_log` rows, out of this contract). A session picked up on another device comes back without the notes it
+  started with (the agents still have them on the server) and, at level 5, without the unsent map. The list is one
+  extra request each time Start shows, capped at 200 rows.
+
+### 2026-10-25 · A session keeps its whole conversation, and picking its concept again continues it
+- **Decision:** the API appends one step per saved Turn to the session row (`Session.transcript`: the body the learner
+  sent, `null` for the start, and the Turn it got), in the same conditional write as the Turn, and
+  `GET /sessions/:id/transcript` returns them. When the app picks a session up or opens a finished map, it replays the
+  steps through the same `sent` and `received` the live screen used (`replayed` in `app/src/session/transcript.ts`), so
+  every question, answer, hint and part's closing comes back, the result's per-part notes included. On Start, a concept
+  with an unfinished session in the same mode continues it: the button says "Continue with guidance" (or "Continue
+  self-test") and opens that session instead of starting a second one beside it. Supersedes two lines of "Start lists
+  every session" (2026-10-24): "a new session on the same concept starts fresh" (now only once the earlier one is
+  finished) and "a map opened again shows its result Turn, not the whole conversation".
+- **Instead of:** the latest Turn alone on a resume (a session picked up after two parts showed only the third part's
+  question, and a reopened map showed no notes for its parts), rebuilding the conversation from `agent_log` (the agents'
+  inputs and outputs, not what the screen showed), or keeping the conversation on the device (lost on another device,
+  after Delete my data on a second phone, or with the app's storage cleared).
+- **Why:** Leo, Oct 24 and 25: picking a topic he had worked on showed none of it, and "all of the topics and progress
+  made by a user should be remembered". The server already keeps the session; the screen just couldn't rebuild it.
+  The label follows what the tap does, so "Explore with guidance" never quietly reopens a session and "Continue" never
+  starts a new one (a signifier should say what will happen: Norman, *The Design of Everyday Things*, ch. 1).
+- **Pattern / trade-off:** an append-only event log beside the state, replayed by the same reducer that built it
+  (event sourcing, light). The session row grows by a few kilobytes a Turn, and `GET /sessions` never reads it. A
+  session saved before Oct 25 has no first steps, so it comes back on its latest Turn alone, as before; the app also
+  falls back to that when the steps don't run from the first Turn to the latest without a gap, or when the API doesn't
+  have the route yet, so the app and the API can deploy in either order. A learner who wants a fresh map of a concept
+  they left unfinished finishes the old one first.
+

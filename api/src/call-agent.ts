@@ -178,6 +178,13 @@ export function createCallAgent({ send, model, budgetUsd, log }: CallAgentOption
     log({ session: sessionId, agent, input: parsed.data, output, ms, usd, ...(dropped.length > 0 ? { dropped } : {}) }).catch((error: unknown) => {
       console.error("agent_log write failed:", error);
     });
+    if (
+      agent === "coach" &&
+      !(parsed.data as { memory?: LearnerMemory }).memory?.facts.length &&
+      /\b(?:last time|previous(?:ly)?|earlier session|compared with before)\b/i.test((output as CoachOutput).message)
+    ) {
+      throw new AgentCallError("agent_failed", false, "The coach referred to history that this session did not receive");
+    }
     return output;
   };
 

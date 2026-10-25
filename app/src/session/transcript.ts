@@ -1,7 +1,7 @@
 // What the session screen shows, as pure functions of the Turns that came back: the conversation so
 // far, the latest Turn, the call in flight, a failed call to retry and, at level 5, the map the learner
 // is building. No React here, so it's tested under Node.
-import { MOVE_ORDER, type Item, type Level, type Mentefacto, type Message, type MoveId, type Phase, type SessionMode, type Turn, type TurnBody } from "@build-north/agents";
+import { MOVE_ORDER, type Item, type Level, type Mentefacto, type Message, type MoveId, type Phase, type SessionMode, type TranscriptStep, type Turn, type TurnBody } from "@build-north/agents";
 
 /** An app entry keeps the phase, part and level of the Turn it came with, so the screen can draw a
  * question with its stage, and leave the guess's own messages to the guess screen. A map entry is the
@@ -33,6 +33,15 @@ export const initialState: SessionState = { turn: null, entries: [], pending: nu
 
 /** A session that just started, in learn or test mode, with the notes it was given. */
 export const startedWith = (turn: Turn, mode: SessionMode = "learn", material: string | null = null): SessionState => received({ ...initialState, mode, material }, turn);
+
+/** A session picked up again, with the whole conversation it had: the steps the server saved are sent and received
+ * again, as they were on the screen that ran them. Only when they run from the first Turn to `latest` with none
+ * missing; otherwise (a session saved before Oct 25, an API without the steps) the latest Turn alone, as before. */
+export function replayed(steps: readonly TranscriptStep[] | null, latest: Turn, mode: SessionMode = "learn", material: string | null = null): SessionState {
+  const whole = !!steps?.length && steps.every((step, i) => step.turn.turn === i + 1) && steps.at(-1)!.turn.turn === latest.turn;
+  if (!whole) return startedWith(latest, mode, material);
+  return steps.reduce((state, { body, turn }) => received(body ? sent(state, body) : state, turn), { ...initialState, mode, material });
+}
 
 /** The learner's side of the conversation, as it shows in the transcript. The guess has its own
  * screen and comes back on the result, and Help shows as the hint card it brings, so neither is echoed. */

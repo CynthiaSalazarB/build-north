@@ -87,6 +87,7 @@ let session: Session = {
   questions: { asked: 0, testing: 0 },
   moveLog: [],
   result: null,
+  transcript: [],
   createdAt: new Date().toISOString(),
 };
 let mastery: Mastery = { moves: MOVE_ORDER.map((move) => ({ move, level: 1 as const, unassistedSuccesses: 0 })) };

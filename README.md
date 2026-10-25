@@ -158,7 +158,7 @@ Every call to the server carries the Clerk token, and one route moves a session 
 
 ```mermaid
 flowchart LR
-  App["App: Expo, Android and the web<br/>EAS Build, Update, Hosting"] -->|"Clerk session token<br/>POST /sessions, /turns<br/>GET /sessions/:id, /me/memory<br/>DELETE /me/data"| API["API: Express 5 on Render"]
+  App["App: Expo, Android and the web<br/>EAS Build, Update, Hosting"] -->|"Clerk session token<br/>POST /sessions, /turns<br/>GET /sessions, /sessions/:id, /me/memory<br/>DELETE /me/data"| API["API: Express 5 on Render"]
   Clerk["Clerk"] -. "sign-in, token" .-> App
   API -->|"checks the token<br/>with the public key"| Clerk
   API -->|"sessions, levels, agent logs"| DB[("SurrealDB Cloud")]

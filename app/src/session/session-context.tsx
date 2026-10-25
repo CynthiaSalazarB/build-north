@@ -1,13 +1,14 @@
 // The session the screens share: the transcript state plus what a learner can do (start, send, retry,
 // and at level 5 edit their map). The rules live in transcript.ts; this file only wires them to the
-// client. Starting a session replaces the previous one. The session on screen is also kept on the device
-// (saved.ts, storage.ts), so a reload or a killed app loses nothing: Start offers to pick it up again.
-import type { CreateSessionBody, MemoryView, Mentefacto, TurnInput } from "@build-north/agents";
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+// client. Starting a session replaces the one on screen; the server keeps every session, and GET /sessions lists
+// them (`history`), so Start offers the unfinished ones to pick up and the finished ones to read again. The device
+// keeps, per session, only what the server doesn't hold (saved.ts, storage.ts): the notes and the level-5 map.
+import type { CreateSessionBody, MemoryView, Mentefacto, SessionSummary, TurnInput } from "@build-north/agents";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ClientError, type SessionClient } from "./client.ts";
-import { parseSaved, savedOf, serializeSaved, type SavedSession } from "./saved.ts";
+import { createSavedSessions, savedOf } from "./saved.ts";
 import { clearSaved, readSaved, writeSaved } from "./storage.ts";
-import { drafted, failed, initialState, received, resendOf, sent, startedWith, withRevealed, type SessionState } from "./transcript.ts";
+import { drafted, failed, initialState, received, replayed, resendOf, sent, startedWith, withRevealed, type SessionState } from "./transcript.ts";
 
 /** What the learner can send: a /turns body without its `turn` number, which the provider adds. */
 export type LearnerInput = Exclude<TurnInput, { action: "start" }>;
@@ -21,16 +22,18 @@ type SessionApi = {
   retry(): void;
   /** Level 5: keeps the learner's map; `send({ mentefacto })` submits it. */
   edit(draft: Mentefacto): void;
-  /** The session this device kept from before a reload or a restart, or null. Start offers to resume it while
-   * no session is on screen. */
-  saved: SavedSession | null;
-  /** Picks the saved session up from the server, where it went on. Resolves with an error message to show, or
-   * null when it is back on screen. A session the server no longer has is forgotten. */
-  resume(): Promise<string | null>;
-  /** Sign-out: the session on screen and the one kept on the device both go, since the next learner on this
+  /** The learner's sessions on the server, newest first (GET /sessions); null until the first read. Demo mode has none. */
+  history: SessionSummary[] | null;
+  /** Reads the list again (Start does when it is shown). Resolves with an error message, or null. */
+  refresh(): Promise<string | null>;
+  /** Picks a session up from the server: unfinished, it goes on from its latest Turn, with the notes and the level-5
+   * map this device kept; finished, its result shows again, read-only. Resolves with an error message to show, or
+   * null when it is on screen. A session the server no longer has is forgotten. */
+  resume(session: Pick<SessionSummary, "id" | "mode">): Promise<string | null>;
+  /** Sign-out: the session on screen, the list and what the device kept all go, since the next learner on this
    * device isn't this one. */
   forget(): void;
-  /** The delete button (#43): everything the server kept goes, and so does the session on this device.
+  /** The delete button (#43): everything the server kept goes, and so does everything on this device.
    * Resolves with an error message to show, or null when it's done. */
   deleteData(): Promise<string | null>;
   /** The Memory sheet (#112): what Lumente remembers of this learner. Rejects with a ClientError. */
@@ -44,32 +47,36 @@ const retryableOf = (error: unknown) => (error instanceof ClientError ? error.re
 
 export function SessionProvider({ client, children }: { client: SessionClient; children: ReactNode }) {
   const [state, setState] = useState<SessionState>(initialState);
-  const [saved, setSaved] = useState<SavedSession | null>(null);
-
-  // the record the device kept is read once; demo mode keeps nothing (its sessions can't be picked up)
-  useEffect(() => {
-    if (client.offline) return;
-    let gone = false;
-    void readSaved().then((text) => {
-      if (!gone) setSaved(parseSaved(text));
-    });
-    return () => {
-      gone = true;
-    };
-  }, [client]);
+  const [history, setHistory] = useState<SessionSummary[] | null>(null);
+  const saved = useRef<ReturnType<typeof createSavedSessions> | null>(null);
+  if (!saved.current) saved.current = createSavedSessions({ read: readSaved, write: writeSaved, clear: clearSaved });
 
   // the session on screen is kept as it moves (the level-5 map with it), and dropped once it is over
   useEffect(() => {
     if (client.offline || !state.turn) return;
-    const record = savedOf(state);
-    setSaved(record);
-    void (record ? writeSaved(serializeSaved(record)) : clearSaved());
+    void saved.current!.keep(state.turn.sessionId, savedOf(state));
   }, [client, state]);
+
+  const refresh = useCallback(async () => {
+    if (client.offline) return null;
+    try {
+      const before = await saved.current!.snapshot();
+      const list = await client.list();
+      setHistory(list);
+      // Don't prune a record created while this list request was in flight; the response can predate that session.
+      const knownIds = new Set(before.map((record) => record.sessionId));
+      const unfinishedIds = new Set(list.filter((session) => !session.finished).map((session) => session.id));
+      await saved.current!.prune(knownIds, unfinishedIds);
+      return null;
+    } catch (error) {
+      return messageOf(error);
+    }
+  }, [client]);
 
   const forget = () => {
     setState(initialState);
-    setSaved(null);
-    void clearSaved();
+    setHistory(null);
+    void saved.current!.clear();
   };
 
   const deliver = (body: Parameters<typeof sent>[1], retry: boolean) => {
@@ -107,20 +114,24 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     edit(draft) {
       setState((s) => drafted(s, draft));
     },
-    saved,
-    async resume() {
-      if (!saved) return "Nothing to pick up.";
+    history,
+    refresh,
+    async resume({ id, mode }) {
       try {
-        const turn = await client.resume(saved.sessionId);
+        // the latest Turn says whether the session is still there (a 404 when it isn't); the steps bring its whole
+        // conversation back, and without them (an older session, or an API from before they were kept) the latest
+        // Turn shows alone
+        const [turn, steps] = await Promise.all([client.resume(id), client.transcript(id).catch(() => null)]);
+        const kept = await saved.current!.get(id);
         // the server's map holds what Help revealed; the learner's own words come back from the device
-        const back = startedWith(turn, saved.mode, saved.material);
-        setState(saved.draft ? drafted(back, withRevealed(saved.draft, turn.mentefacto)) : back);
+        const back = replayed(steps, turn, mode, kept?.material ?? null);
+        setState(kept?.draft ? drafted(back, withRevealed(kept.draft, turn.mentefacto)) : back);
         return null;
       } catch (error) {
         // deleted, over for longer than the server keeps it, or another learner's: it isn't coming back
         if (error instanceof ClientError && error.status === 404) {
-          setSaved(null);
-          void clearSaved();
+          void saved.current!.keep(id, null);
+          setHistory((list) => list?.filter((s) => s.id !== id) ?? null);
           return "That session is gone. Start a new one.";
         }
         return messageOf(error);
@@ -131,6 +142,7 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
       try {
         await client.deleteData();
         forget();
+        setHistory([]);
         return null;
       } catch (error) {
         return messageOf(error);
