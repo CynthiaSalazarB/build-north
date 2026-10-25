@@ -9,7 +9,7 @@ Every number here comes from a file in this repo. A number we don't have yet is 
 Inspiration come from the studies the README cites, not from our pilot. Paste each field as it is, or
 edit freely: this is a draft.
 
-Sources: the README (`main` and PR #106), the [product thesis](../wiki/synthesis/product-thesis.md),
+Sources: the README, the [product thesis](../wiki/synthesis/product-thesis.md),
 the [plan to win](../wiki/synthesis/plan-to-win.md), the [Expo prize plan](../wiki/synthesis/expo-prize-plan.md),
 the [SurrealDB prize page](../wiki/context/surrealdb-sponsor-prize.md), [`DECISIONS.md`](../DECISIONS.md),
 [`docs/expo-log.md`](expo-log.md), [`docs/clerk.md`](clerk.md) and the app's own screens.
@@ -53,7 +53,7 @@ map and ask a fact desk for facts only. Lumente remembers your levels.
 
 ## How we built it
 
-One TypeScript repo with three npm workspaces; no build step on the server.
+TypeScript monorepo with three npm workspaces; no server build step.
 
 - **App:** Expo SDK 58 and Expo Router, one codebase for Android and the web. EAS Build makes the Android
   app, EAS Update ships fixes over the air, EAS Hosting serves the website, which installs as a web app
@@ -64,14 +64,24 @@ One TypeScript repo with three npm workspaces; no build step on the server.
 - **Agents:** six Claude agents: a questioner, an evaluator, a whole-map evaluator, a fact desk, a hint
   giver and a coach, one structured call each. Zod schemas guard every boundary.
 
-Numbers in code, words in the model: plain code computes every score, level and hint cost. Claude writes
+Numbers in code, words in the model: code computes every score, level and hint cost. Claude writes
 the questions, judges the answers and words the hints.
+
+## Responsible by design
+
+The Anthropic key stays on our server, and every private API route requires a Clerk session token.
+Learner text is fenced as data in every agent prompt. SurrealDB Agent Memory stores progress notes
+written from code templates, never the learner's answers, and memory cannot change a score. Voice audio
+goes to the device's speech service; only the transcript reaches Lumente.
+
+"Your data" explains what we keep. "Delete my data" purges the learner's sessions, agent logs, levels
+and memory notes, then signs them out. Our pilot uses adults who agreed to participate, and no tester
+names or emails appear in the repository or submission.
 
 ## Challenges we ran into
 
-- **"A server" is related to an API, but it isn't a kind of API.** Learners offered things that were
-  close instead of the group a concept belongs to. The bigger group is now tested with one sentence,
-  "An API is a kind of ___".
+- **"A server" is related to an API, but it isn't a kind of API.** The bigger group is now tested with
+  one sentence, "An API is a kind of ___".
 - **A fact desk that gives nothing away.** At level 5 the learner asks the questions. One that fishes
   for the structure gets one fixed line, chosen by code: "That part is yours to decide." An answer typed
   into the chat gets its own line; the chat never grades it.
@@ -89,6 +99,8 @@ the questions, judges the answers and words the hints.
   `[the numbers, if the pilot ends before we submit: Cynthia]`
 - A fix reaches every phone the day it merges, over the air, without a new build.
 - Agent Memory has been on in production since the evening of Oct 23.
+- Learners can resume every unfinished session with its whole conversation and reopen finished maps
+  from "Your maps".
 - Plain code computes every score, level and hint cost, so we can explain every number a learner sees.
 - The AI never wrote a map.
 
@@ -99,8 +111,7 @@ the questions, judges the answers and words the hints.
   someone asks them to explain it.
 - A learner reads the biggest number on screen as their grade. Confidence and knowledge need separate
   rows and plain words.
-- Worked examples help beginners and slow down people who know the topic, so ours sits behind a "See an
-  example" button.
+- Worked examples help beginners but slow experts, so ours is optional.
 - Hiding the answer is not enough. AI tutors with guardrails stop the harm but don't beat studying alone.
   Structure, fading help and measurement are our bet, not proven yet: our pilot has no comparison group.
 - Turn a feature on for real users before the freeze. Memory went on before the pilot, behind a kill
@@ -114,8 +125,8 @@ improve on the second test.
 
 Before that, on the same engine: concepts read straight from your repo; material from a trusted source
 when you only type a topic; a fact desk that says where each fact came from; a concept compared across
-two examples; "Your maps", every map you built, by concept; a skill inside the coding agent as the
-doorway ("your agent just used an API; want to practice it?"); Spanish.
+two examples; a skill inside the coding agent as the doorway ("your agent just used an API; want to
+practice it?"); Spanish.
 
 Students use it free. Instructors, bootcamps and colleges pay for seats and a class view of what each
 student has mastered, the evidence they seek today through oral exams. At Demo Day we ask for a pilot
@@ -143,7 +154,18 @@ code, or with Google on the web. To skip the email, use any address that ends in
 `+clerk_test@example.com` and the code `424242`. Tap "API", then "Explore with guidance". Pick a
 prediction, explain the idea in your own words, and answer the four questions. Tap the firefly once to
 see what a hint costs. The result shows your prediction next to your score. "Your data" says what is
-kept, and "Delete my data" removes it. The full guide is `docs/testing-notes.md`, which arrives with the README in PR #106 (not on `main` yet, so no link here).
+kept, and "Delete my data" removes it. The full guide is
+https://github.com/CynthiaSalazarB/build-north/blob/main/docs/testing-notes.md.
+
+## Media to upload
+
+- Hero/result screen: `docs/readme/hero.jpg`
+- Predict your score: `docs/readme/step-1-guess.jpg`
+- Build the map: `docs/readme/step-2-map.jpg`
+- Ask for help: `docs/readme/step-3-hint.jpg`
+- Compare prediction with score: `docs/readme/step-4-score.jpg`
+
+These are the app's real demo-mode screens. Demo mode replays a session recorded live with Claude.
 
 ## Team
 
@@ -171,21 +193,37 @@ Best Overall, Best Use of Expo, Best Use of Clerk, Best Use of SurrealDB Agent M
 
 ## Sponsor prize: Best Use of Expo
 
-One TypeScript codebase runs on Android and the web, and the website installs as an app on iPhones and
-laptops. We had no Apple account this week, so iPhones get the web app: a decision with a reason.
+One TypeScript codebase runs on Android and the web; the web app installs on iPhones and laptops. With
+no Apple account, we shipped iPhones the installable web app.
 
-- **EAS Build:** three Android builds, on SDK 58 the week it came out, as development
-  builds because Expo Go could not run it yet.
-- **EAS Update** with the fingerprint policy: 21 updates over the air on the `preview` channel by
-  the Oct 24 freeze. A fix merged in the day reaches every phone without a new build. The app says "A new version is
-  ready" and offers Restart.
+- **EAS Build:** three Android builds on SDK 58 the week it came out: an initial development build, a
+  preview APK, and build 3 after the icon and voice module changed the native fingerprint.
+- **EAS Update** with the fingerprint policy: 22 updates over the air on the `preview` channel through
+  Oct 25. A merged fix reaches every phone without a new build.
 - **EAS Hosting and Workflows:** the website, deployed from `main`.
 - **Expo Observe:** launch times and crashes on the Android app.
 - **From the SDK:** Expo Router, expo-updates, expo-secure-store, expo-haptics, expo-font,
   expo-splash-screen, expo-file-system, Reanimated, react-native-svg, and expo-speech-recognition, a
   community module.
 
-Every build, update and deploy is in [`docs/expo-log.md`](expo-log.md), with the bugs and their fixes.
+Every build, update and deploy is in the
+[Expo log](https://github.com/CynthiaSalazarB/build-north/blob/main/docs/expo-log.md), with the bugs
+and their fixes.
+
+## Sponsor prize: Best Use of Clerk
+
+Clerk handles identity and sessions instead of an authentication system we built ourselves. Learners
+sign in with a one-time email code or Google. The website uses Clerk's prebuilt sign-in and sign-up
+components in Lumente's design; Android opens Clerk's hosted flow in an in-app browser.
+
+Every app request carries a Clerk session token. Our API verifies its signature locally with Clerk's
+public key, so a learning turn does not wait on another network call. Sessions, levels and progress
+notes are keyed by the Clerk user id; we store no name or email. On Android, Expo SecureStore protects
+the token. "Delete my data" removes that learner's Lumente data and signs them out.
+
+Judges can use any address ending in `+clerk_test@example.com` and code `424242`, with no inbox. The
+[implementation notes](https://github.com/CynthiaSalazarB/build-north/blob/main/docs/clerk.md) link
+every claim to its code and tests.
 
 ## Sponsor prize: Best Use of SurrealDB Agent Memory
 
@@ -200,5 +238,5 @@ a template. The learner's words never go in.
   under the message.
 - **Memory shared across agents.** Three agents' work goes in; two read it.
 
-Memory never changes a score. Delete my data purges it. Code pointers are on the
-[prize page](../wiki/context/surrealdb-sponsor-prize.md).
+Memory never changes a score. Delete my data purges it. Pointers are on the
+[prize page](https://github.com/CynthiaSalazarB/build-north/blob/main/wiki/context/surrealdb-sponsor-prize.md).
