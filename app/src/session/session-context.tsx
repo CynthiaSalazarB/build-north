@@ -8,7 +8,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { ClientError, type SessionClient } from "./client.ts";
 import { createSavedSessions, savedOf } from "./saved.ts";
 import { clearSaved, readSaved, writeSaved } from "./storage.ts";
-import { drafted, failed, initialState, received, replayed, resendOf, sent, startedWith, withRevealed, type SessionState } from "./transcript.ts";
+import { arrived, drafted, failed, initialState, replayed, resendOf, sent, startedWith, withRevealed, type SessionState } from "./transcript.ts";
 
 /** What the learner can send: a /turns body without its `turn` number, which the provider adds. */
 export type LearnerInput = Exclude<TurnInput, { action: "start" }>;
@@ -87,7 +87,7 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     // came) changes nothing
     const same = (s: SessionState) => s.turn?.sessionId === sessionId;
     client.send(sessionId, body).then(
-      (turn) => setState((s) => (same(s) ? received(s, turn) : s)),
+      (turn) => setState((s) => (same(s) ? arrived(s, body, turn) : s)),
       (error: unknown) => setState((s) => (same(s) ? failed(s, messageOf(error), retryableOf(error)) : s)),
     );
   };

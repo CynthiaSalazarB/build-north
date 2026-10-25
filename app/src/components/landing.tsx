@@ -117,6 +117,7 @@ const styles = StyleSheet.create({
   stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: page.header },
   spot: { width: "100%", maxWidth: page.map },
   authForm: { gap: space.m },
-  authSwitch: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.s },
-  authSwitchLink: { borderWidth: 1, borderRadius: radius.field, paddingHorizontal: space.m, paddingVertical: space.xs, overflow: "hidden" },
+  // on a narrow phone the link drops under the question instead of both breaking across two lines
+  authSwitch: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "center", columnGap: space.s, rowGap: space.xs },
+  authSwitchLink: { flexShrink: 0, borderWidth: 1, borderRadius: radius.field, paddingHorizontal: space.m, paddingVertical: space.xs, overflow: "hidden" },
 });
