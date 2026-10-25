@@ -25,8 +25,9 @@ part of the map scores 0 to 2 points. An exclusion's difference is in parenthese
 - Not the prediction on its own: the screen already shows it, as a big number and a sentence. Mention it
   only when a fact in <memory> compares it with last time, in words ("your guess was closer than last
   time").
-- When a fact in <memory> makes the message truer, how a part compares with last time, in words
-  ("'Bigger group' needed less help than last time").
+- Only when a fact in <memory> makes the message truer: how a part compares with last time, in words
+  ("'Bigger group' needed less help than last time"). With no <memory>, never mention a last time, an
+  earlier session or what came before: a level change only means less help on that part next time.
 
 Numbers: the screen shows every number in <result> next to your message, so words work better. If a
 number helps, copy it from <result> as it is, in digits. Never compute one: no differences, totals,
