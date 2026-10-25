@@ -86,16 +86,17 @@ them out.
 
 ## Challenges we ran into
 
-- **Related is not the same as belonging.** The evaluator initially treated "a server" as a possible
-  bigger group for API. We made the rule explainable with one sentence: "An API is a kind of ___".
-  "Software interface" passes; "server" does not.
-- **The AI had to support the learner without doing the thinking.** During independent practice, the
-  fact desk answers factual questions but redirects requests to fill the map. When learners typed their
-  answers into the chat instead, we made the map the primary action, collapsed the chat behind "Ask a
-  fact (optional)" and taught the agent to point them back without judging the answer.
-- **The final answer was making learners wait.** Evaluating the last answer and then generating coaching
-  took 9.2 seconds. We now return the code-computed result first and request the coach in the next turn.
-  We also prepare the next question while the current answer is being evaluated.
+- **A blank first screen looked like a broken link.** Local WebKit cold starts waited roughly 12
+  seconds for seven custom fonts before showing the interface. On the web, we now render readable
+  fallback text first and load the brand fonts after the first frame with `FontDisplay.SWAP`. Android
+  keeps its native font-loading gate.
+- **Static web authentication broke multi-step sign-in.** Clerk's form moved to nested paths that a
+  static export could not serve on reload, and hosted sign-up could leave learners in Clerk's account
+  portal. We added app-owned sign-in and sign-up pages with hash routing and explicit return paths;
+  Android keeps Clerk's hosted flow.
+- **Multiple agents made latency a workflow problem.** Some transitions waited for one agent and then
+  another; evaluation followed by final coaching took 9.2 seconds. We now prepare the next question in
+  parallel with evaluation and show the code-computed result before requesting the coach.
 - **Agent Memory rejected parallel writes on one concept record.** We changed its progress-fact writes
   to run sequentially and off the request path. A slow or failed memory operation never blocks the
   learning session.
@@ -149,14 +150,10 @@ TypeScript, Node 24, Express 5, Render, SurrealDB Cloud, SurrealDB Agent Memory,
 
 - Try it on the web: https://lumente.expo.app
 - Android app: https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk
+- Quick test: Sign in with Google on the web or use any address ending in
+  `+clerk_test@example.com` with code `424242`. Choose "API", then "Explore with guidance".
 - Code: https://github.com/CynthiaSalazarB/build-north
 - Demo video: `[link: Cynthia]`
-
-## Try Lumente
-
-Open https://lumente.expo.app or install the Android app. Sign in with Google on the web or use any
-address ending in `+clerk_test@example.com` with code `424242`. Choose "API", then "Explore with
-guidance".
 
 ## Disclosures
 
@@ -182,10 +179,6 @@ Because Expo is cross-platform, a native iOS build is a next distribution step, 
   Oct 25. A merged fix reaches every phone without a new build.
 - **EAS Hosting and Workflows:** the website, deployed from `main`.
 
-Every build, update and deploy is in the
-[Expo log](https://github.com/CynthiaSalazarB/build-north/blob/main/docs/expo-log.md), with the bugs
-and their fixes.
-
 ## Sponsor prize: Best Use of Clerk
 
 Clerk handles identity and sessions instead of an authentication system we built ourselves. Learners
@@ -196,10 +189,6 @@ Every app request carries a Clerk session token. Our API verifies its signature 
 public key, so a learning turn does not wait on another network call. Sessions, guidance stages and
 progress notes are keyed by the Clerk user id; we store no name or email. On Android, Expo SecureStore
 protects the token. "Delete my data" removes that learner's Lumente data and signs them out.
-
-Judges can use any address ending in `+clerk_test@example.com` and code `424242`, with no inbox. The
-[implementation notes](https://github.com/CynthiaSalazarB/build-north/blob/main/docs/clerk.md) link
-every claim to its code and tests.
 
 ## Sponsor prize: Best Use of SurrealDB Agent Memory
 
@@ -216,5 +205,4 @@ learner's words never go in.
   Lumente remembers:" under the message.
 - **Memory shared across agents.** Three agents' work goes in; two read it.
 
-Memory never changes a score. Delete my data purges it. Pointers are on the
-[prize page](https://github.com/CynthiaSalazarB/build-north/blob/main/wiki/context/surrealdb-sponsor-prize.md).
+Memory never changes a score. Delete my data purges it.
