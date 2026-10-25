@@ -217,7 +217,7 @@ Render dashboard → **New → Web Service**:
 
 | Field | Value |
 |---|---|
-| Source | **Git Provider** once the Render GitHub app has access to this repo (auto-deploys on merge). Until then, **Public Git Repository** with `https://github.com/CynthiaSalazarB/build-north` (manual deploys only) |
+| Source | **Git Provider** once the Render GitHub app has access to this repo (auto-deploys on merge). Until then, **Public Git Repository** with `https://github.com/CynthiaSalazarB/lumente` (manual deploys only) |
 | Branch | `main` |
 | Region | Closest to the SurrealDB instance, whose AWS region code is in `SURREAL_URL` (`aws-euw1` would be eu-west-1). It can't be changed later |
 | Root directory | Empty (the repo root): the API needs the workspace lockfile and `agents/` (`@build-north/agents`) |
