@@ -17,8 +17,5 @@ jobs:
     name: Deploy the web build
     type: deploy
     environment: production
-    hooks:
-      after_checkout:
-        - run: node app/scripts/check-clerk-production.mjs
     params:
       prod: true

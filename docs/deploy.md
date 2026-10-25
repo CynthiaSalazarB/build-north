@@ -111,10 +111,8 @@ organization.
   to `dist` (`app/.env.local` after an `env:pull`), so a missing URL, a `localhost` one or a missing key fails too.
   No dependencies, and it is not an npm script: Expo hashes `app/package.json`'s `scripts` into the fingerprint
   (above), so adding one would strand the installed build. `app/src/check-export.test.ts` keeps it honest. The
-  Ship workflow checks that the production EAS environment has a `pk_live_` Clerk publishable key before
-  EAS Hosting deploys. Set `EXPO_PUBLIC_CLERK_PUBLISHABLE_KEY` to the production Clerk instance's live key in
-  EAS `production`, and set that instance's matching JWT public key as `CLERK_JWT_KEY` in Render. The checker
-  blocks a missing or `pk_test_` key; `app/src/check-clerk-production.test.ts` covers both paths.
+  Ship workflow's web deploy exports on EAS with the `production` environment, where this check doesn't run;
+  the smoke test (`npm run smoke -w api`) checks the live site for the API host afterwards.
 
 ## What could be automatic
 

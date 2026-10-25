@@ -34,11 +34,11 @@ const checks: Check[] = [
     return { ok: res.status === 200 && body?.ok === true, detail: `${res.status} in ${ms} ms, database ${body?.ms ?? "?"} ms` };
   }),
   await check("API refuses a call with no token", async () => {
-    const { res } = await timed(() => fetch(`${API}/me/mastery?concept=smoke`));
+    const { res } = await timed(() => fetch(`${API}/me/mastery`));
     return { ok: res.status === 401, detail: `${res.status}` };
   }),
   await check("API refuses the dev headers", async () => {
-    const { res } = await timed(() => fetch(`${API}/me/mastery?concept=smoke`, { headers: { "x-dev-user": "smoke", "x-dev-key": "smoke" } }));
+    const { res } = await timed(() => fetch(`${API}/me/mastery`, { headers: { "x-dev-user": "smoke", "x-dev-key": "smoke" } }));
     return { ok: res.status === 401, detail: `${res.status}` };
   }),
   await check("API allows the web build's origin (CORS preflight)", async () => {

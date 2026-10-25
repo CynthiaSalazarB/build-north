@@ -69,7 +69,6 @@ let session: Session = {
   id: "play",
   user: "script",
   concept,
-  moveOrder: [...MOVE_ORDER],
   material: null,
   mode: "learn",
   turn: 0,

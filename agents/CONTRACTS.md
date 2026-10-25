@@ -70,7 +70,7 @@ rejects both when `NODE_ENV=production` or when no `DEV_KEY` is set. Every route
 | `POST` | `/sessions/:id/turns` | one of `{ prediction }`, `{ text }`, `{ question }`, `{ mentefacto }`, `{ action: "help" }`, `{ action: "continue" }` | `Turn` |
 | `GET` | `/sessions` | | `{ sessions: SessionSummary[] }`: the caller's sessions that have a Turn, newest first (`id`, `concept`, `mode`, `createdAt`, `finished`, and `score` and `predictedScore` once the result is in; the schema is in `agents/src/contracts.ts`). Start lists the unfinished ones to pick up and the finished ones under "Your maps", each opened through `GET /sessions/:id` |
 | `GET` | `/sessions/:id` | | latest `Turn`: Resume on Start reads it after a reload or a killed app (#137). `404` for a session that isn't the caller's |
-| `GET` | `/me/mastery` | `?concept=...` | That concept's `Mastery`; each learner starts at level 1 per concept |
+| `GET` | `/me/mastery` | | `Mastery` |
 | `GET` | `/me/memory` | | `MemoryView` (the Memory sheet; see [Memory](#memory-what-earlier-sessions-left)) |
 | `DELETE` | `/me/data` | | `204`, deletes sessions, logs and mastery, and purges the learner's memory (the delete button) |
 | `GET` | `/health` | | `{ ok: true, commit, memory }`: the running commit (7 characters, `null` locally) and `"on"` or `"off"` for Agent Memory (#143). Never touches the database, and the rate limit skips it |
@@ -514,7 +514,7 @@ with `error` set. What `callAgent` throws carries `code` and `retryable`, the tw
 
 | Table | Fields | Notes |
 |---|---|---|
-| `mastery` | user, concept, move, level, unassistedSuccesses, updatedAt | one row per user, concept and move; read every turn |
+| `mastery` | user, move, level, unassistedSuccesses, updatedAt | one row per user per move; read every turn |
 | `session` | id, user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, recent, retries, lastIssue, nextQuestion, questions, moveLog, result, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat; `hintsPerMove` starts with all four moves at 0, `retries` at 0, `lastIssue` at `"none"`, `nextQuestion` at null |
 | `agent_log` | session, agent, input, output, ms, usd, at, dropped? | append-only; debugging, the testers' numbers (fact desk rows are the questions metric) and what a session costs. `dropped` is on a coach or hint giver row whose output cited a fact id the API hadn't passed in (CONTRACTS.md, Memory) |
 

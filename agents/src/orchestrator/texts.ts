@@ -6,8 +6,6 @@ export const prediction = (concept: string) =>
 
 export const attempt = (concept: string) => `Before any help: in your own words, what is ${concept}?`;
 
-export const firstAttemptAck = "Thanks. We'll test that first idea one part at a time.";
-
 export const exampleIntro = (concept: string, exampleConcept: string) =>
   `Before ${concept}, watch the four moves on a simpler concept: ${exampleConcept}.`;
 

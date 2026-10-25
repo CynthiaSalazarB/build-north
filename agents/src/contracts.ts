@@ -431,8 +431,6 @@ export const Session = z.strictObject({
   id: z.string(),
   user: z.string(),
   concept: z.string(),
-  /** Guided order, starting with the previous coach's next focus when available. */
-  moveOrder: z.array(MoveId).length(MOVE_ORDER.length).default([...MOVE_ORDER]),
   material: z.string().nullable(),
   mode: SessionMode,
   turn: z.number().int().min(0),

@@ -55,12 +55,6 @@ export function effectiveLevel(level: Level): Level {
   return level === 5 ? 4 : level;
 }
 
-export function moveOrderFromFocus(focus: MoveId | null): MoveId[] {
-  if (!focus) return [...MOVE_ORDER];
-  const index = MOVE_ORDER.indexOf(focus);
-  return [...MOVE_ORDER.slice(index), ...MOVE_ORDER.slice(0, index)];
-}
-
-export function nextMove(move: MoveId, order: readonly MoveId[] = MOVE_ORDER): MoveId | null {
-  return order[order.indexOf(move) + 1] ?? null;
+export function nextMove(move: MoveId): MoveId | null {
+  return MOVE_ORDER[MOVE_ORDER.indexOf(move) + 1] ?? null;
 }
