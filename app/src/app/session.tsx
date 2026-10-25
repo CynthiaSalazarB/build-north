@@ -10,6 +10,7 @@ import { Redirect, useRouter } from "expo-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ScrollView, StyleSheet, View, type ScrollViewInstance } from "react-native";
 import Animated from "react-native-reanimated";
+import { AREA_LABEL, areaCopyOf } from "../area-copy.ts";
 import { Composer } from "../components/composer.tsx";
 import { ConceptMap } from "../components/concept-map.tsx";
 import { GuessScreen } from "../components/guess.tsx";
@@ -18,7 +19,7 @@ import { PartSheet } from "../components/part-sheet.tsx";
 import { ResultScreen } from "../components/result.tsx";
 import { SessionBar } from "../components/session-bar.tsx";
 import { SiteHeader } from "../components/site-header.tsx";
-import { Body, Button, KeyboardSafe, Screen, useEntrance, useWide } from "../components/ui.tsx";
+import { Body, Button, KeyboardSafe, Screen, Sheet, Small, Title, useEntrance, useWide } from "../components/ui.tsx";
 import { WideStage } from "../components/work-stage.tsx";
 import { WholeMapScreen } from "../components/whole-map.tsx";
 import { tick } from "../haptics.ts";
@@ -28,6 +29,7 @@ import {
   exampleParts,
   exampleStepsOf,
   eyebrowOf,
+  guidedHelpOf,
   helpOf,
   isFollowUpFeedback,
   isReveal,
@@ -41,6 +43,7 @@ import {
   resultMessagesOf,
   revealHoldOf,
   waitingLineOf,
+  withMapQuestions,
 } from "../session/present.ts";
 import { useSession } from "../session/session-context.tsx";
 import type { Entry, SessionState } from "../session/transcript.ts";
@@ -136,10 +139,13 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   const offered = turn.phase === "example" && !!turn.example && !exampleOpen;
   const shown = offered ? entries.filter((e) => !(e.from === "app" && e.phase === "example")) : entries;
   const example = turn.phase === "example" && turn.example && exampleOpen ? turn.example : null;
-  const parts = example ? exampleParts(example) : partsOf(turn, all, { held });
+  const baseParts = example ? exampleParts(example) : partsOf(turn, all, { held });
+  // The first explanation stays unprompted; opening the example or starting the guided moves adds orientation.
+  const parts = example ? withMapQuestions(baseParts, example, true) : turn.phase === "move" ? withMapQuestions(baseParts, turn.mentefacto) : baseParts;
   // a lit or revealed area opens to be read again, with what closed it (Cynthia, Oct 24); the worked example's map
   // has nothing of the learner's to open
   const [openPart, setOpenPart] = useState<MoveId | null>(null);
+  const [hintAt, setHintAt] = useState<number | null>(null);
   const closings = partClosingsOf(all);
   const partSheet = <PartSheet view={openPart && !example ? (parts.find((p) => p.move === openPart) ?? null) : null} closing={openPart ? (closings[openPart] ?? null) : null} onClose={() => setOpenPart(null)} />;
   const onPartOpen = example ? undefined : setOpenPart;
@@ -153,6 +159,20 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   const { failure } = state;
   const saved = failure && "text" in failure.body ? " Your answer is saved." : "";
   const help = helpOf(entries);
+  const hint = guidedHelpOf(entries);
+  const requestHelp = () => { if (!pending && !held && turn.phase === "move") setHintAt(turn.turn); };
+  const hintSheet = (
+    <Sheet open={hintAt === turn.turn && !pending && !held && turn.phase === "move"} onClose={() => setHintAt(null)} label="guided help">
+      <Title>{`Help for ${turn.move ? AREA_LABEL[turn.move] : "this area"}`}</Title>
+      <Body>{hint.detail}</Body>
+      <Button label={hint.confirm} onPress={() => {
+        if (hintAt !== turn.turn || pending || held) return;
+        setHintAt(null);
+        send({ action: "help" });
+      }} />
+      <Button kind="text" label="Keep working" onPress={() => setHintAt(null)} />
+    </Sheet>
+  );
   const askedNow = !held && turn.phase === "move" && parts.some((p) => p.state === "asked");
   const placeholder = help.more ? "Your answer" : turn.phase === "move" && cappedOf(entries) ? "Try again, in your own words" : "In your own words";
   const concept = example ? example.concept : turn.mentefacto.concept;
@@ -166,7 +186,7 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
       pending={pending}
       help={help}
       fireflyAfter={wide}
-      onHelp={() => send({ action: "help" })}
+      onHelp={requestHelp}
       onAskLayout={(y) => setPlace((p) => (p.ask === y ? p : { ...p, ask: y }))}
     />
   );
@@ -174,6 +194,7 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
     <>
       {offered && (
         <View style={styles.offer}>
+          <Small dim>Your first explanation is saved. It is not scored.</Small>
           <Button kind="secondary" label="See an example" onPress={() => setExampleOpen(true)} />
         </View>
       )}
@@ -186,7 +207,8 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
       turn={turn}
       pending={pending}
       placeholder={placeholder}
-      moreHelp={help.more}
+      help={hint}
+      onHelp={requestHelp}
       onNext={held && hold ? () => setPassed(hold.key) : null}
       onSend={send}
       flush={wide}
@@ -215,6 +237,7 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
           map={(onGeometry) => <ConceptMap concept={concept} parts={parts} justLit={lit} pulse={turn.turn} onPartOpen={onPartOpen} onGeometry={onGeometry} />}
         />
         {partSheet}
+        {hintSheet}
       </Screen>
     );
   }
@@ -244,6 +267,7 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
         {composer}
       </KeyboardSafe>
       {partSheet}
+      {hintSheet}
     </Screen>
   );
 }
@@ -272,7 +296,6 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
   const entrance = useEntrance();
   const asked = entries.findIndex((e) => e.from === "app" && e.message.kind === "question");
   const lead = leadOf(entries);
-  const hints = entries.filter((e) => e.from === "app" && e.message.kind === "hint" && e.message.hintStep !== "reveal").map((e) => e.id);
   // the cap note goes with the first retry's nudge or the first hint of the part, once
   const capAt = entries.findIndex(
     (e, i) => i > asked && e.from === "app" && ((e.message.kind === "feedback" && !isFollowUpFeedback(entries, i)) || (e.message.kind === "hint" && e.message.hintStep !== "reveal")),
@@ -301,7 +324,7 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
       return (
         <>
           <Ask text={text} eyebrow={eyebrow} firefly={firefly} fireflyAfter={fireflyAfter} />
-          {active && turn.scaffold && <Aside text={`Already on your map: ${turn.scaffold.given.join(", ")}. ${turn.scaffold.blanks} more for you to find.`} />}
+          {active && turn.scaffold && <Aside text={`Already on your map: ${turn.scaffold.given.join(", ")}. ${turn.scaffold.blanks} more for you to find.`} verbatim />}
         </>
       );
     }
@@ -312,10 +335,10 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
       case "feedback":
         return <Nudge text={message.text} capNote={i === capAt} tag={isFollowUpFeedback(entries, i) ? "almost" : undefined} />;
       case "hint":
-        return isReveal(entry) ? <Revealed text={message.text} /> : <HintCard message={message} n={hints.indexOf(entry.id) + 1} capNote={i === capAt} concept={turn.mentefacto.concept} />;
+        return isReveal(entry) ? <Revealed text={message.text} /> : <HintCard message={message} capNote={i === capAt} concept={turn.mentefacto.concept} />;
       case "example":
         if (message.agent === "app") return <ExampleIntro text={message.text} />;
-        if (!steps) return <Body>{message.text}</Body>;
+        if (!steps) return <Body>{areaCopyOf(message.text)}</Body>;
         return entry.id === thinking[0]?.id ? <ExampleSteps steps={steps} /> : null;
       case "fact":
       case "redirect":

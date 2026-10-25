@@ -6,7 +6,9 @@ import { MemoryView, Turn, type Mentefacto, type Result } from "@build-north/age
 import memoryView from "@build-north/agents/fixtures/memory-view.json" with { type: "json" };
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import {
+  answerLabelOf,
   cappedOf,
+  categoryContextOf,
   chatKeyOf,
   currentPartOf,
   deskOf,
@@ -18,6 +20,7 @@ import {
   filledOf,
   firstOnPart,
   gapOf,
+  guidedHelpOf,
   helpOf,
   hintCardOf,
   hintNumberOf,
@@ -28,11 +31,16 @@ import {
   justLitOf,
   leadOf,
   memoryConceptOf,
+  mapQuestionOf,
   nextPartOf,
   partMeaningOf,
   partNotesOf,
   partsOf,
   partTextOf,
+  PREDICTION_MEANING,
+  PREDICTION_TOTAL,
+  predictionStatusOf,
+  predictionTaskOf,
   pointsOf,
   provedOf,
   rememberedLineOf,
@@ -45,6 +53,7 @@ import {
   waitingLineOf,
   wholeMapHelpOf,
   wholeMapPartsOf,
+  withMapQuestions,
   withPart,
 } from "./present.ts";
 import { blankMap, initialState, received, sent, type Entry } from "./transcript.ts";
@@ -58,6 +67,18 @@ test("Start opens on the concept's line of code, or a comment for a concept type
   assert.deepEqual(editorLinesOf("API")[1], { n: 12, text: "app.get('/api/users/:id', getUser);", current: true });
   assert.equal(editorLinesOf("cors")[1]!.text, "app.use(cors({ origin: CLIENT_URL }));");
   assert.equal(editorLinesOf("monads")[1]!.text, "// explain: monads");
+});
+
+test("prediction wording uses the selected concept and separates confidence from possible points", () => {
+  assert.equal(predictionTaskOf("JWT"), "Explain JWT across four areas of a concept map. Before you begin, predict your score out of 8.");
+  assert.match(predictionTaskOf("database index"), /^Explain database index /);
+  assert.equal(PREDICTION_TOTAL, "4 areas × 2 points = 8 possible points");
+  assert.equal(PREDICTION_MEANING, "Your prediction reflects your confidence; your score reflects what you can explain.");
+});
+
+test("prediction status starts without a default and preserves zero as a deliberate choice", () => {
+  assert.equal(predictionStatusOf(null), "Choose a number first.");
+  for (let value = 0; value <= 8; value++) assert.equal(predictionStatusOf(value), `Your prediction: ${value} of 8 points`);
 });
 
 test("the democracy session lights the map part by part: asked, capped after a retry, lit with its points", () => {
@@ -186,10 +207,34 @@ test("the exclusion's follow-up question stays in the part, with the answer befo
   assert.equal(helpOf(retried).tag, "help");
 });
 
-test("the hint card counts the Helps on the part, and the first one shows its price", () => {
-  assert.deepEqual(hintCardOf(1, true), { title: "hint 1 of 3 · −1 pt", filled: 1, note: "this part can now light 1 point at most" });
-  assert.equal(hintCardOf(2, false).title, "hint 2 of 3");
-  assert.equal(hintCardOf(5, false).filled, 3);
+test("hint cards use actual server steps, without inventing a count or charging a second point", () => {
+  assert.deepEqual(hintCardOf("nudge"), { title: "Hint: where to look", filled: 1, note: "This area can now earn at most 1 point." });
+  assert.equal(hintCardOf("hint").filled, 2);
+  assert.equal(hintCardOf("partial").filled, 3);
+  assert.equal(hintCardOf("reveal").note, "This area scores 0 points.");
+  assert.equal(hintCardOf(undefined).filled, null);
+  assert.equal(hintCardOf(undefined).title, "Hint");
+  for (const step of [undefined, "nudge", "hint", "partial"] as const) assert.doesNotMatch(hintCardOf(step).title, /cost|−1|of 3/);
+});
+
+test("guided help previews the cap, no further loss after a retry, and zero before a reveal without mutating entries", () => {
+  const question: Entry = { id: "q", from: "app", phase: "move", move: "supraordinate", level: 2, message: { agent: "questioner", kind: "question", text: "What category?" } };
+  const retry: Entry = { ...question, id: "retry", message: { agent: "evaluator", kind: "feedback", text: "Try again." } };
+  const hint = (step: "nudge" | "hint" | "partial" | undefined): Entry => ({ ...question, id: "hint", message: { agent: "hint_giver", kind: "hint", text: "Think it through.", ...(step ? { hintStep: step } : {}) } });
+  const part = [question, retry];
+  const before = JSON.stringify(part);
+  assert.match(guidedHelpOf([question]).detail, /at most 1 point instead of 2/);
+  assert.match(guidedHelpOf(part).detail, /does not reduce it further/);
+  assert.equal(guidedHelpOf([question, hint("partial")]).confirm, "Show the answer");
+  assert.match(guidedHelpOf([hint("partial")]).detail, /0 points/);
+  assert.match(guidedHelpOf([hint("hint")]).detail, /does not reduce it further/);
+  assert.match(guidedHelpOf([hint("partial"), question]).detail, /at most 1 point instead of 2/);
+  assert.equal(JSON.stringify(part), before);
+  for (const resumed of [[], [retry], [hint(undefined)], [question, hint(undefined)]]) {
+    assert.equal(guidedHelpOf(resumed).confirm, "Request help");
+    assert.match(guidedHelpOf(resumed).detail, /hint or the answer/);
+    assert.match(guidedHelpOf(resumed).detail, /makes it 0/);
+  }
 });
 
 test("the screen shows the Turn that asked the latest question, with the feedback that came with it", () => {
@@ -391,13 +436,67 @@ test("the whole-map evaluator's note on each part comes off its label", () => {
     { agent: "evaluator", kind: "feedback", text: "Not quite: a law is one rule." },
   ]);
   assert.deepEqual(notes, { supraordinate: "'Security' is too broad. What's the closest group?", exclusion: "A sharp exclusion." });
-  assert.equal(partMeaningOf("isoordinate", "CORS"), "What something needs to count as CORS.");
+  assert.equal(partMeaningOf("isoordinate", "CORS"), "List the features every example must have. Together, they should distinguish CORS from other things in the same category.");
+});
+
+test("self-test questions explain category, comparison, defining features and a consistent classification rule", () => {
+  assert.equal(mapQuestionOf("supraordinate", "API"), "API is a kind of…");
+  assert.equal(mapQuestionOf("exclusion", "API"), "What else belongs to the same category, but isn't API?");
+  assert.equal(mapQuestionOf("isoordinate", "API"), "What are the defining features of API?");
+  assert.equal(mapQuestionOf("infraordinate", "API"), "How would you classify API?");
+  assert.match(partMeaningOf("infraordinate", "API"), /grouping rule.*at least two types.*same rule/);
+  assert.match(partMeaningOf("exclusion", "API"), /same category.*key difference/);
+  assert.equal(mapQuestionOf("supraordinate", "hashing"), "hashing is a kind of…");
+});
+
+test("comparison context echoes the learner's ungraded category and follows edits without changing answers", () => {
+  const blank = blankMap("API");
+  assert.equal(categoryContextOf(blank), null);
+  assert.equal(categoryContextOf({ ...blank, supraordinate: { value: "  ", note: null } }), null);
+  const draft = withPart(blank, "supraordinate", [{ value: "  my proposed category  ", note: null }]);
+  const before = JSON.stringify(draft);
+  const comparison = wholeMapPartsOf(draft, blank).find(part => part.move === "exclusion")!;
+  assert.equal(comparison.context, "Your chosen category: my proposed category");
+  assert.equal(comparison.prompt, mapQuestionOf("exclusion", "API"));
+  assert.equal(JSON.stringify(draft), before);
+  const changed = withPart(draft, "supraordinate", [{ value: "a different category", note: null }]);
+  assert.equal(wholeMapPartsOf(changed, blank).find(part => part.move === "exclusion")!.context, "Your chosen category: a different category");
+  assert.equal(wholeMapPartsOf(blank, blank).find(part => part.move === "exclusion")!.context, null);
+});
+
+test("guided map orientation preserves answers, earned points, asked state and the adaptive Turn", () => {
+  const turn = turnAt(7);
+  const base = partsOf(turn, through(7).entries);
+  const before = JSON.stringify({ turn, base });
+  const guided = withMapQuestions(base, turn.mentefacto);
+  assert.equal(guided[1]!.context, "Your chosen category: form of government");
+  for (const [i, part] of guided.entries()) {
+    const { prompt, context: _context, ...unchanged } = part;
+    assert.equal(prompt, mapQuestionOf(part.move, turn.mentefacto.concept));
+    assert.deepEqual(unchanged, base[i]);
+  }
+  assert.equal(JSON.stringify({ turn, base }), before);
+});
+
+test("guided answer labels clarify each task without prompting the initial explanation", () => {
+  assert.equal(answerLabelOf(turnAt(2)), "Your first explanation");
+  assert.equal(answerLabelOf(turnAt(4)), "democracy is a kind of…");
+  assert.match(answerLabelOf(turnAt(7)), /similar concept in this category.*key difference/);
+  assert.match(answerLabelOf(turnAt(11)), /Defining features every example must have/);
+  assert.match(answerLabelOf({ ...turnAt(11), move: "infraordinate" }), /grouping rule.*at least two types.*that rule/);
+});
+
+test("the optional worked example uses its own concept and clearly labels its category as an example", () => {
+  const example = turnAt(3).example!;
+  const parts = withMapQuestions(exampleParts(example), example, true);
+  assert.equal(parts[0]!.prompt, mapQuestionOf("supraordinate", example.concept));
+  assert.equal(parts[1]!.context, categoryContextOf(example, "Example category"));
 });
 
 test("the memory line under a hint or the coach's words joins the cited facts' own sentences", () => {
   assert.equal(
     rememberedLineOf([{ text: "Last time on API you guessed 7 and proved 3." }, { text: " 'Its types' took 2 Helps on API last time. " }]),
-    "From what Lumente remembers: Last time on API you guessed 7 and proved 3. 'Its types' took 2 Helps on API last time.",
+    "From what Lumente remembers: Last time on API you guessed 7 and proved 3. 'Classification' took 2 Helps on API last time.",
   );
 });
 
@@ -406,10 +505,10 @@ test("the Memory sheet's words: each part's level now and how it got there, the 
   const cors = memoryConceptOf(view.concepts[0]!);
   assert.equal(cors.concept, "CORS");
   assert.deepEqual(cors.moves.map((m) => [m.label, m.now, m.reads]), [
-    ["Bigger group", "level 3", 5],
-    ["What it isn't", "level 2", 1],
-    ["What it needs", "level 2", 1],
-    ["Its types", "no level yet", 0],
+    ["Category", "level 3", 5],
+    ["Similar concepts & differences", "level 2", 1],
+    ["Defining features", "level 2", 1],
+    ["Classification", "no level yet", 0],
   ]);
   // the dates read in the device's time zone, so only their shape is fixed here
   assert.equal(cors.moves[0]?.history.length, 2);

@@ -1,10 +1,11 @@
 // Confidence is an explicit prediction on the same 0–8 scale as the map's score. No preselected answer.
-import { MOVE_LABEL, MOVE_ORDER, type Turn } from "@build-north/agents";
+import { MOVE_ORDER, type Turn } from "@build-north/agents";
+import { AREA_LABEL } from "../area-copy.ts";
 import { useEffect, useState, type ReactNode } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { css, useReducedMotion } from "react-native-reanimated";
 import { tick } from "../haptics.ts";
-import { POINTS_RULE, type PartView } from "../session/present.ts";
+import { PREDICTION_MEANING, PREDICTION_TOTAL, predictionStatusOf, predictionTaskOf, type PartView } from "../session/present.ts";
 import type { Failure as CallFailure } from "../session/transcript.ts";
 import { motion, page, radius, size, space, type } from "../theme.ts";
 import { ConceptMap } from "./concept-map.tsx";
@@ -56,6 +57,7 @@ export function GuessScreen({ turn, pending, failure, onLock, onClose }: Props) 
   const action = (
     <View style={styles.action}>
       {failure && <Failure message={failure.message} />}
+      <View accessibilityLiveRegion="polite"><Small>{predictionStatusOf(guess)}</Small></View>
       <Button label={failure ? "Try saving my prediction again" : "Save my prediction"} fit={wide} disabled={guess === null || (!!failure && !failure.retryable)} busy={pending} onPress={lock} />
     </View>
   );
@@ -89,26 +91,25 @@ export function GuessScreen({ turn, pending, failure, onLock, onClose }: Props) 
 }
 
 function Prediction({ concept, guess, pending, onChoose, footer, wide }: { concept: string; guess: number | null; pending: boolean; onChoose: (score: number) => void; footer: ReactNode; wide: boolean }) {
-  const c = useColors();
   return (
-    <Rise style={styles.column}>
+    <Rise style={[styles.column, !wide && styles.mobileColumn]}>
       <Title style={wide ? styles.display : styles.question}>How much can you explain on your own?</Title>
-      <Body dim>{`You'll explain ${concept} across four areas of a concept map. Predict how many points your answers will earn.`}</Body>
-      <Small>{POINTS_RULE}</Small>
+      <View style={styles.explanation}>
+        <Body dim>{predictionTaskOf(concept)}</Body>
+        <Small>{PREDICTION_TOTAL}</Small>
+        <Small dim>{PREDICTION_MEANING}</Small>
+      </View>
       {/* the phone has no map beside the numbers, so the areas are named once */}
-      {!wide && <Small dim>{`The four areas: ${MOVE_ORDER.map((move) => MOVE_LABEL[move].toLowerCase()).join(", ")}.`}</Small>}
+      {!wide && <Small dim>{`The four areas: ${MOVE_ORDER.map((move) => AREA_LABEL[move].toLowerCase()).join(", ")}.`}</Small>}
       <View style={styles.picker}>
-        <View style={styles.numbers}>
-          {Array.from({ length: MAX + 1 }, (_, value) => (
-            <NumberChoice key={value} value={value} chosen={guess === value} pending={pending} onChoose={onChoose} />
-          ))}
-        </View>
         <View style={styles.anchors}>
           <Small dim>{"0 · I can't explain it yet"}</Small>
           <Small dim>8 · I can explain all four</Small>
         </View>
-        <View accessibilityLiveRegion="polite">
-          <Small style={{ color: c.question }}>{guess === null ? "No prediction selected" : `Your prediction: ${guess} of 8 points`}</Small>
+        <View style={styles.numbers}>
+          {Array.from({ length: MAX + 1 }, (_, value) => (
+            <NumberChoice key={value} value={value} chosen={guess === value} pending={pending} onChoose={onChoose} mobile={!wide} />
+          ))}
         </View>
         {/* why the learner guesses at all: the comparison at the end is the reality check (Cynthia, Oct 24) */}
         <Small dim>{"At the end, you'll compare this with your score."}</Small>
@@ -124,12 +125,12 @@ const settle = css.keyframes({ from: { transform: [{ scale: 1.04 }] }, to: { tra
 
 /** One of the nine numbers. The chosen one fills with warm light (its fill and ink swap at once, so the digit never
  * sits on a half-faded fill) and settles into place; on the web a hover firms up the edge of the others. */
-function NumberChoice({ value, chosen, pending, onChoose }: { value: number; chosen: boolean; pending: boolean; onChoose: (score: number) => void }) {
+function NumberChoice({ value, chosen, pending, onChoose, mobile }: { value: number; chosen: boolean; pending: boolean; onChoose: (score: number) => void; mobile: boolean }) {
   const c = useColors();
   const still = useReducedMotion();
   const { hovered, bind, feel } = usePress({ colors: false });
   return (
-    <Animated.View style={chosen && !still ? { animationName: settle, animationDuration: motion.feedback, animationTimingFunction: easeOut } : null}>
+    <Animated.View style={[mobile && styles.mobileNumber, chosen && !still ? { animationName: settle, animationDuration: motion.feedback, animationTimingFunction: easeOut } : null]}>
       <AnimatedPressable
         accessibilityRole="button"
         accessibilityLabel={`Predict ${value} of 8 points`}
@@ -148,10 +149,13 @@ function NumberChoice({ value, chosen, pending, onChoose }: { value: number; cho
 const styles = StyleSheet.create({
   content: { flexGrow: 1, justifyContent: "center", paddingHorizontal: space.margin, paddingVertical: space.xl },
   column: { width: "100%", gap: space.l },
+  mobileColumn: { gap: space.m },
+  explanation: { gap: space.s },
   question: { fontSize: 28, lineHeight: 34 },
   display: { fontSize: 42, lineHeight: 46 },
   picker: { gap: space.m, marginVertical: space.s },
   numbers: { flexDirection: "row", flexWrap: "wrap", gap: space.xs },
+  mobileNumber: { flexBasis: "30%", flexGrow: 1 },
   number: { minWidth: size.touch, minHeight: size.touch, borderWidth: 1, borderRadius: radius.button, alignItems: "center", justifyContent: "center" },
   anchors: { flexDirection: "row", flexWrap: "wrap", justifyContent: "space-between", gap: space.s },
   action: { gap: space.s },

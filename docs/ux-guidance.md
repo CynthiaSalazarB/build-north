@@ -28,3 +28,53 @@ The login and start-page headlines stay as Cynthia wrote them on October 23. Onl
 - The browser checks used local mocked API replies. They didn't call production or a live AI model. Native Android keyboard and authentication behavior still require a device check.
 - Reload/resume integration: the map draft and next-area guidance survive a reload, and a resumed sixth hint is labelled for the exclusion area using the Turn's cumulative hint count.
 - EAS fingerprint comparison against installed Android build 3 (`93910cdd-2d88-4da3-8250-a3de32cc4d46`), using the preview environment: both hashes are `56eeb40fb5a207446053818ae3785913a3d4ffc5`. No build or update was published by this check.
+
+## October 24: tester-only wording trial
+
+The self-test/whole-map cards and editors show the task as a question, not just the method's short label: a kind of, a same-category comparison and its difference, defining features, and classification by one consistent rule. The comparison repeats the learner's chosen category neutrally, without confirming it or blocking answers out of order. Instructions remain visible when typing, so the optional worked example is not required to understand the task.
+
+Classification asks for the grouping rule followed by at least two types in the existing answer field (multiline, up to 500 characters). It is kept verbatim in the existing `Item.value`; no new criterion field, API schema or evaluator prompt is introduced. Comparisons still use the existing value/difference pair. The current evaluator checks a close concept plus a meaningful difference, not strict membership in the learner's proposed category. This is a usability wording trial; scores are provisional for the new instruction and must not be treated as validation of the stricter category requirement or compared across different pre-/post-test interfaces.
+
+The intended deployment target is the `testers` web alias only, from the review branch. No production alias, Android update, backend or grading change is part of this trial. Keep each tester's pre-/post-test on the same deployed wording version.
+
+Deployed October 24 at about 5:30 PM ET from `014d40b`, draft PR #177: `https://lumente--testers.expo.app`, deployment `ivjrvsdl2h`. The served common bundle matches the checked export byte-for-byte; real API and Clerk configuration, API preflight and the signed-out sign-in screen were verified. Production still serves its previous common bundle. No account or live AI session was created by these checks.
+
+### Guided-mode consistency follow-up
+
+The same task questions now appear on the guided map once its moves begin, with the chosen category on the comparison area and beside its answer field. Guided answer labels explicitly ask for a nearby concept plus its key difference, defining features every example must have, and a grouping rule plus at least two types using that rule. The adaptive AI question and follow-ups remain unchanged. The first explanation remains unprompted; the optional worked example uses its own concept and labels its context as an example category. Finished areas retain their questions/context when opened for read-only review.
+
+Verification: 80 app tests, typecheck, and lint (zero errors, eight existing warnings). Mocked browser checks passed for both modes at 1440, 1000, 390 and 320 pixels, including the first explanation, optional example, adaptive feedback, category context, all four answer tasks, read-only finished areas, unchanged text/map request shapes and no horizontal overflow. This is still the same tester-only wording trial, not an evaluator or production change.
+
+Deployed October 24 at about 5:46 PM ET from `2a737bc`, draft PR #177, to the same tester URL: deployment `jpbhehq6ou`, common bundle `fe3f9f67…`. All nine served JavaScript chunks match the checked export byte-for-byte and the real sign-in screen loads. Production still serves common bundle `53593c34…`; no production or Android deployment was made. Browser flow checks used mocks, not live AI sessions.
+
+### Consistent area names
+
+On Cynthia's follow-up request, the UI now uses Category, Similar concepts & differences, Defining features, and Classification everywhere an area is named: all map states, prediction, worked example, hint targets/confirmation, review, result, read-only area sheets and Memory. `app/src/area-copy.ts` is the app's single label source; internal move IDs, shared server labels, API payloads and evaluator prompts/rules are unchanged. Result-note parsing accepts both old and new labels, so saved sessions remain readable. Tutor prose and quoted legacy label references are adapted for display only; the stored transcript, learner messages, map answers, scaffolds and code are not rewritten. Natural instructions such as naming two types retain their meaning.
+
+Narrow map headers put icons and points above the area name so the longer labels use the card's full width. The explanatory task questions and chosen-category context remain in place; changing a label is not a conceptual hint. This follow-up is on `codex/consistent-area-labels`, stacked on the existing tester-wording branch, not on production or main.
+
+Cynthia's accompanying sign-in copy change replaces the web page's supporting sentence with: "Unravel concepts one question at a time, connect the ideas, and figure things out for yourself." The desktop and mobile web layouts and their page metadata share this sentence. The headline and sign-in behavior are unchanged.
+
+Deployed October 24 at about 6:43 PM ET from `8f5d5a0`, draft PR #178 stacked on #177, to the tester alias only: deployment `3qgf4ez27i`, common bundle `1ac20c3a…`. All nine live JavaScript chunks match the checked export byte-for-byte; the exact sign-in sentence, page metadata, unchanged headline and Google sign-in were verified at 1440, 390 and 320 pixels. Both session modes passed mocked checks at four widths, including new map labels, hint confirmation, results, Memory, and unchanged learner text/payloads. 84 app tests and typecheck passed; lint has zero errors and eight existing warnings. Production retains common bundle `53593c34…`. No account, live AI session, main merge, production/Android update, backend or evaluator change was made.
+
+### Selective adoption from PR #175
+
+On Cynthia's request to take only useful improvements, keep the established layout, typography, Firefly/light identity, her headlines/sign-in sentence, descriptive area labels, task questions, optional example/fact chat and scoring rules. Do not implement the mockups wholesale: no concept definitions before assessment, skip/edit promises in guided mode, invented duration or step counts, changed confidence defaults, or repeated point deductions.
+
+Selected improvements: immediate visible checking/lookup feedback and a busy send indicator; an unscored-first-explanation note and saved acknowledgement; a visible Save caption on mobile (Done on results); Read answer cues on finished areas; clearer no-selection/empty-review instructions. Keep the prediction picker's existing placement after inspecting narrow-phone screenshots, with the unchanged shared rubric on the same page.
+
+Guided help is now a quiet link above the input instead of beside the mic. Both that link and the Firefly open a confirmation naming the area and explaining the cap or reveal before any help request. Opening/cancelling sends nothing and preserves an unsent answer; confirming still sends the existing `{ action: "help", turn }` body. If a resumed session lacks its prior hint step, explicitly warn that the next help may reveal the answer rather than promising a free hint. Hint cards use the server's actual step name, not a guessed "1 of 3" count or a price that may already have been paid through a retry. No evaluator, API, mastery or scoring logic changes.
+
+Verification: 85 app tests and typecheck pass; lint has zero errors/eight existing warnings. Both existing modes and the new loading/help/cancellation/reveal/resume paths were checked with mocked replies at 1440, 1000, 390 and 320 pixels, including visible feedback through scroll ancestors, unchanged request bodies, draft preservation and no horizontal overflow. No real AI session was used in these checks.
+
+Deployed October 24 at about 7:28 PM ET from `56b2670`, draft PR #180 stacked on #178, to the tester alias only: deployment `vj47z622gi`, common bundle `0a89e573…`. All nine live JavaScript chunks match the checked export byte-for-byte. Real sign-in and Cynthia's exact sentence/metadata still pass at desktop and phone widths. Production remains on common bundle `53593c34…`; no main merge, production/Android, backend or evaluator deployment was made.
+
+### Prediction-screen follow-up
+
+Cynthia approved: "Explain {concept} across four areas of a concept map. Before you begin, predict your score out of 8." Keep "4 areas × 2 points = 8 possible points" visible, followed by "Your prediction reflects your confidence; your score reflects what you can explain." Omit the separate repeated two-point sentence; the concept is dynamic, not hardcoded to JWT. The existing headline and shared 2/1/0 rubric remain.
+
+On phones, nine choices form a consistent 3 × 3 grid with at least 44 px targets; desktop keeps one row. Range descriptions sit above the choices, not under a wrapping row. A single live status sits immediately above Save: "Choose a number first." until a deliberate choice, then "Your prediction: {n} of 8 points". On phones, this stays with the pinned action; errors appear above the status so the choice remains beside the retry button. Nothing is preselected, zero stays valid, failed saves retain the choice, and the total still does not fill individual map areas. Request shape, scoring, keyboard shortcuts, light preview and result wording are unchanged.
+
+Verification: 87 app tests and typecheck pass; lint has zero errors/eight existing warnings. Mocked browser checks at 1440, 1000, 390 and 320 pixels verify exact copy, row counts, target sizes, no default, zero/8/6 and keyboard selection, one adjacent status, save retry with the same body, no errors or horizontal overflow. Both existing session-mode regressions also pass at those widths. No real AI session was used.
+
+Deployed October 24 at about 7:57 PM ET from `3dbbb0f`, draft PR #181 stacked on #180, to the tester alias only: deployment `sqhnx6luly`, common bundle `6ec3c0df…`. All nine live JavaScript chunks match the checked export byte-for-byte; the prediction wording is present, and sign-in sentence/metadata still pass at desktop and phone widths. Production remains on common bundle `53593c34…`. No main merge, production/Android, backend or evaluator deployment was made.

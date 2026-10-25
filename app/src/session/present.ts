@@ -1,7 +1,8 @@
 // What the screens say and draw, as pure functions of the Turns and the transcript: the map's parts and their
 // points, the light (points proved so far), the hint card, Help's price, the reveal, and the gap. No React here,
 // so it's tested under Node. The rules behind the words are in CONTRACTS.md section 3.
-import { MOVE_LABEL, MOVE_ORDER, WORKED_EXAMPLE, type Item, type MemoryGap, type MemoryView, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
+import { MOVE_ORDER, WORKED_EXAMPLE, type Item, type MemoryGap, type MemoryView, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
+import { AREA_LABEL, areaCopyOf, areaNoteOf } from "../area-copy.ts";
 import type { Entry } from "./transcript.ts";
 
 /** The concepts Start offers (Lumente's board): what coding agents put in student projects. */
@@ -143,7 +144,7 @@ export type PartState = "unasked" | "asked" | "lit" | "revealed";
 export type Pip = "earned" | "open" | "capped" | "claimed" | "missed";
 /** `pips` is null where nothing is scored yet: the whole map at level 5, until it's submitted. */
 /** `badge` is a short line under the part's words: on the result, a part that moved up a level. */
-export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] | null; badge?: string | null };
+export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] | null; badge?: string | null; prompt?: string; context?: string | null };
 
 const pipsFor = (points: number, capped = false): [Pip, Pip] => [points >= 1 ? "earned" : "open", points >= 2 ? "earned" : capped ? "capped" : "open"];
 
@@ -238,11 +239,26 @@ export function justLitOf(turn: Turn): MoveId | null {
   return MOVE_ORDER[turn.progress.movesDone - 1] ?? null;
 }
 
-/** The hint card's head: the nth Help on the part, of the three before the answer (0 points). The first hint on a
- * part is the one that costs the point, so only it shows the price. */
-export function hintCardOf(n: number, first: boolean): { title: string; filled: number; note: string } {
-  const step = Math.max(1, Math.min(3, n));
-  return { title: `hint ${step} of 3${first ? " · −1 pt" : ""}`, filled: step, note: "this part can now light 1 point at most" };
+/** Describe the step the server actually sent, not a guessed count or a second charge after a retry. */
+export function hintCardOf(step: Message["hintStep"]): { title: string; filled: number | null; note: string } {
+  const stages = { nudge: { title: "Hint: where to look", filled: 1 }, hint: { title: "Hint: think it through", filled: 2 }, partial: { title: "Hint: a partial answer", filled: 3 }, reveal: { title: "Answer shown", filled: 3 } };
+  return { ...(step ? stages[step] : { title: "Hint", filled: null }), note: step === "reveal" ? "This area scores 0 points." : "This area can now earn at most 1 point." };
+}
+
+export type GuidedHelpView = { label: string; detail: string; confirm: string };
+
+/** Preview only. A reload can hide the previous step: never promise a free hint when it might reveal an answer. */
+export function guidedHelpOf(part: readonly Entry[]): GuidedHelpView {
+  const asked = part.findIndex(e => e.from === "app" && e.message.kind === "question");
+  const last = part.slice(asked + 1).reverse().find(e => e.from === "app" && e.message.kind === "hint");
+  const step = last?.from === "app" ? last.message.hintStep : undefined;
+  if (step === "partial") return { label: "Show answer · 0 points", detail: "This shows you the answer. This area will score 0 points. The other areas are not affected.", confirm: "Show the answer" };
+  if (!step && (last || asked < 0)) {
+    return { label: "Get help · review effect", detail: "The previous hint step is not available. The next help may be a hint or the answer. A hint limits this area to 1 point; showing the answer makes it 0. Other areas are not affected.", confirm: "Request help" };
+  }
+  return cappedOf(part)
+    ? { label: "More help · no extra cost", detail: "This area is already limited to 1 point. This hint does not reduce it further.", confirm: "Get the hint" }
+    : { label: "Get a hint · 1 point max", detail: "After this hint, this area can earn at most 1 point instead of 2. The other areas are not affected.", confirm: "Get the hint" };
 }
 
 /** What the firefly says under itself: Help costs a point only while the part could still score 2. After a
@@ -308,6 +324,11 @@ export function shareLineOf(concept: string, result: Pick<Result, "predictedScor
 /** How a part earns its points (CONTRACTS.md section 3, `pointsFor`), in one line for the screens. */
 export const POINTS_RULE = "4 areas × 2 points = 8 points total. Points reflect what you can explain; your prediction records how confident you feel.";
 
+export const PREDICTION_TOTAL = "4 areas × 2 points = 8 possible points";
+export const PREDICTION_MEANING = "Your prediction reflects your confidence; your score reflects what you can explain.";
+export const predictionTaskOf = (concept: string): string => `Explain ${concept} across four areas of a concept map. Before you begin, predict your score out of 8.`;
+export const predictionStatusOf = (value: number | null): string => value === null ? "Choose a number first." : `Your prediction: ${value} of 8 points`;
+
 export const SCORING = [
   { points: 2, text: "A clear, complete answer on your first try, without a hint." },
   { points: 1, text: "A partly correct answer, or a correct one after a retry or hint." },
@@ -338,11 +359,31 @@ export const nextPartOf = (map: Mentefacto): MoveId | null => MOVE_ORDER.find((m
 /** The whole map while the learner builds it: their words light a part (nothing is scored until they submit),
  * an answer Help revealed stays dim, and an empty part is a "?". */
 export function wholeMapPartsOf(draft: Mentefacto, server: Mentefacto): PartView[] {
-  return MOVE_ORDER.map((move) => {
+  return withMapQuestions(MOVE_ORDER.map((move): PartView => {
     const text = partTextOf(draft, move);
     const shown = itemsOf(server, move).length > 0;
     return { move, state: text ? (shown ? "revealed" : "lit") : "unasked", text, pips: null };
-  });
+  }), draft);
+}
+
+/** Shared orientation for both modes, independent of the adaptive question, scores and hint ladder. */
+export function withMapQuestions(parts: readonly PartView[], map: Mentefacto, example = false): PartView[] {
+  return parts.map((part) => ({
+    ...part,
+    prompt: mapQuestionOf(part.move, map.concept),
+    context: part.move === "exclusion" ? categoryContextOf(map, example ? "Example category" : "Your chosen category") : null,
+  }));
+}
+
+/** Keep the guided answer field specific, without replacing an AI follow-up or scaffolding the first attempt. */
+export function answerLabelOf(turn: Turn): string {
+  if (turn.phase !== "move" || !turn.move) return "Your first explanation";
+  switch (turn.move) {
+    case "supraordinate": return mapQuestionOf(turn.move, turn.mentefacto.concept);
+    case "exclusion": return "A similar concept in this category + the key difference";
+    case "isoordinate": return "Defining features every example must have";
+    case "infraordinate": return "Your grouping rule + at least two types using that rule";
+  }
 }
 
 /** The fact desk's side of the session: the learner's questions, its answers, the hints. The opening instruction
@@ -355,17 +396,33 @@ export const deskOf = (entries: readonly Entry[]): Entry[] =>
  * which also grows the page, never pulls the learner away from it. The website layout follows its own column. */
 export const chatKeyOf = (desk: readonly Entry[], pending: boolean, failure: boolean): string => `${desk.length}:${pending ? 1 : 0}:${failure ? 1 : 0}`;
 
-/** What each part asks for, in plain words: the method's moves without its names. */
+/** The task stays visible even when the learner skips the optional worked example. */
+export function mapQuestionOf(move: MoveId, concept: string): string {
+  switch (move) {
+    case "supraordinate": return `${concept} is a kind of…`;
+    case "exclusion": return `What else belongs to the same category, but isn't ${concept}?`;
+    case "isoordinate": return `What are the defining features of ${concept}?`;
+    case "infraordinate": return `How would you classify ${concept}?`;
+  }
+}
+
+/** Echo the learner's category without judging it or blocking out-of-order answers. */
+export function categoryContextOf(map: Mentefacto, label = "Your chosen category"): string | null {
+  const category = map.supraordinate?.value.trim();
+  return category ? `${label}: ${category}` : null;
+}
+
+/** Task instructions only: no examples or answers for the learner's concept. */
 export function partMeaningOf(move: MoveId, concept: string): string {
   switch (move) {
     case "supraordinate":
-      return `The closest bigger group that ${concept} belongs to.`;
+      return `Name the closest category that ${concept} belongs to.`;
     case "exclusion":
-      return `Something close to ${concept} that it isn't, and how they differ.`;
+      return "Choose a similar concept in the same category, then explain the key difference.";
     case "isoordinate":
-      return `What something needs to count as ${concept}.`;
+      return `List the features every example must have. Together, they should distinguish ${concept} from other things in the same category.`;
     case "infraordinate":
-      return `The kinds of ${concept}.`;
+      return "Choose one way to group them. State your grouping rule, then name at least two types using that same rule.";
   }
 }
 
@@ -399,8 +456,6 @@ export function wholeMapHelpOf(hintsUsed: number): { tag: string; label: string 
   return firstOnPart(hintsUsed) ? { tag: "help −1", label: "Help, costs a point" } : { tag: "help", label: "More help" };
 }
 
-const LABELED = new RegExp(`^(${MOVE_ORDER.map((m) => MOVE_LABEL[m]).join("|")}): ([\\s\\S]+)$`);
-
 /** The whole-map evaluator's note on each part. The orchestrator writes each one as "Bigger group: …"
  * (submitMap in agents/src/orchestrator/advance.ts). */
 /** What came with the result and after it: the result's Turn (the part notes are there), then the coach's
@@ -412,9 +467,8 @@ export function partNotesOf(messages: readonly Message[]): Partial<Record<MoveId
   const notes: Partial<Record<MoveId, string>> = {};
   for (const message of messages) {
     if (message.kind !== "feedback") continue;
-    const match = LABELED.exec(message.text);
-    const move = match && MOVE_ORDER.find((m) => MOVE_LABEL[m] === match[1]);
-    if (move) notes[move] = match[2]!.trim();
+    const note = areaNoteOf(message.text);
+    if (note) notes[note.move] = note.text;
   }
   return notes;
 }
@@ -425,7 +479,7 @@ export function partNotesOf(messages: readonly Message[]): Partial<Record<MoveId
  * nothing in a self-test, whose notes are labeled (`partNotesOf`). */
 export function lastPartNoteOf(entries: readonly Entry[]): Partial<Record<MoveId, string>> {
   const app = entries.filter((e): e is Extract<Entry, { from: "app" }> => e.from === "app");
-  const words = app.find((e) => e.phase === "result" && e.message.agent === "evaluator" && e.message.kind === "feedback" && !LABELED.test(e.message.text));
+  const words = app.find((e) => e.phase === "result" && e.message.agent === "evaluator" && e.message.kind === "feedback" && !areaNoteOf(e.message.text));
   const asked = [...app].reverse().find((e) => e.phase !== "result" && e.move !== null);
   return words && asked?.move ? { [asked.move]: words.message.text } : {};
 }
@@ -458,7 +512,7 @@ export function partClosingsOf(entries: readonly Entry[]): Partial<Record<MoveId
 /** The dim line under a hint or the coach's words with memory on (#112): the facts the text relies on, in their
  * own sentences, which code wrote from the session's numbers. */
 export function rememberedLineOf(sources: readonly { text: string }[]): string {
-  return `From what Lumente remembers: ${sources.map((source) => source.text.trim()).join(" ")}`;
+  return `From what Lumente remembers: ${sources.map((source) => areaCopyOf(source.text.trim())).join(" ")}`;
 }
 
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -479,7 +533,7 @@ const gapLineOf = (gap: MemoryGap) => `${shortDateOf(gap.at)}: you guessed ${gap
 export function memoryConceptOf(entry: MemoryView["concepts"][number]): MemoryConceptLines {
   const moves = entry.moves.map((move) => ({
     move: move.move,
-    label: MOVE_LABEL[move.move],
+    label: AREA_LABEL[move.move],
     now: move.level === null ? "no level yet" : `level ${move.level}`,
     history: move.history.map((row) => (row.until ? `level ${row.level} from ${shortDateOf(row.since)} to ${shortDateOf(row.until)}` : `level ${row.level} since ${shortDateOf(row.since)}`)),
     reads: move.history.reduce((count, row) => count + row.readBy, 0),

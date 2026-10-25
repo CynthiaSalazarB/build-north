@@ -90,6 +90,14 @@ export function received(state: SessionState, turn: Turn): SessionState {
   return { ...state, turn, entries, pending: null, failure, draft };
 }
 
+/** The Turn that answers `body` came back. If the session was picked up again while it was on its way (closed
+ * mid-answer, another concept opened, then Continue), the state came from the server before this answer was saved,
+ * so the learner's words go back in ahead of the reply. A reply the picked-up state already holds adds nothing. */
+export function arrived(state: SessionState, body: TurnBody, turn: Turn): SessionState {
+  const echoLost = state.pending === null && turn.turn > (state.turn?.turn ?? 0);
+  return received(echoLost ? sent(state, body) : state, turn);
+}
+
 /** The call failed before any Turn came back. */
 export function failed(state: SessionState, message: string, retryable: boolean): SessionState {
   return state.pending ? { ...state, pending: null, failure: { message, retryable, body: state.pending } } : state;

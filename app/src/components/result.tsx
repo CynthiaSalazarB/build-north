@@ -9,6 +9,7 @@
 import { MOVE_ORDER, type Mentefacto, type Message, type MoveId, type Result } from "@build-north/agents";
 import { useEffect, useState } from "react";
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { areaCopyOf } from "../area-copy.ts";
 import { success } from "../haptics.ts";
 import { gapOf, POINTS_RULE, resultPartsOf, resultStepsOf, shareLineOf, type Pip, type ResultStep } from "../session/present.ts";
 import { brand, page, parts as PARTS, radius, space, type } from "../theme.ts";
@@ -137,7 +138,7 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, closings 
           <Tag style={{ color: c.question }}>for next time</Tag>
           {result.coach ? (
             <>
-              <Body>{result.coach.message}</Body>
+              <Body>{areaCopyOf(result.coach.message)}</Body>
               <Remembered sources={coachSources} concept={concept} />
             </>
           ) : coachFailure ? (
@@ -180,7 +181,7 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, closings 
 
   return (
     <>
-      <SessionBar concept={concept} onClose={onDone} />
+      <SessionBar concept={concept} onClose={onDone} done />
       <ScrollView contentContainerStyle={styles.content}>{words}</ScrollView>
       <View style={styles.foot}>
         {again}
@@ -266,7 +267,7 @@ function ResultSteps({ steps, dark }: { steps: ResultStep[]; dark: boolean }) {
           )}
           {step.note && (
             <Body dim style={type.bubble}>
-              {step.note}
+              {areaCopyOf(step.note)}
             </Body>
           )}
         </View>

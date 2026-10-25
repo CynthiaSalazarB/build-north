@@ -224,6 +224,14 @@ function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }
   const glow = ring ? "0 0 0 3px rgba(242, 184, 75, 0.6), 0 0 22px rgba(255, 236, 205, 0.45)" : look.glow;
   const points = view.pips ? `${view.pips.filter((p) => p === "earned").length} of 2 points` : "not scored yet";
   const said = view.text ?? (view.state === "asked" ? "being asked now" : "not answered yet");
+  const narrow = width < 160;
+  const pips = view.pips && (
+    <View style={styles.pips}>
+      {view.pips.map((pip, i) => (
+        <PointSquare key={i} pip={pip} dark={view.state === "lit" || !night} />
+      ))}
+    </View>
+  );
   const box = (
     <Animated.View
       style={[
@@ -238,28 +246,23 @@ function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }
       accessible={!onPress}
       accessibilityLabel={onPress ? undefined : `${label}: ${said}. ${points}${view.state === "revealed" ? ", shown to you" : ""}.${view.badge ? ` ${view.badge}.` : ""}`}
     >
-      <View style={styles.partHead}>
-        <PartIcon d={icon} color={look.labelInk} />
-        <Text style={[type.partLabel, styles.partLabel, { color: look.labelInk }]}>{onPress && !reads ? `${MOVE_ORDER.indexOf(view.move) + 1} · ${label}` : label}</Text>
-        {view.pips && (
-          <View style={styles.pips}>
-            {view.pips.map((pip, i) => (
-              // points on a lit part, or on any part once the light fills the screen, are dark ink
-              <PointSquare key={i} pip={pip} dark={view.state === "lit" || !night} />
-            ))}
-          </View>
-        )}
+      <View style={[styles.partHead, narrow && styles.narrowHead]}>
+        {narrow ? <View style={styles.partSymbols}><PartIcon d={icon} color={look.labelInk} />{pips}</View> : <PartIcon d={icon} color={look.labelInk} />}
+        <Text style={[type.partLabel, styles.partLabel, narrow && styles.narrowLabel, { color: look.labelInk }]}>{onPress && !reads ? `${MOVE_ORDER.indexOf(view.move) + 1} · ${label}` : label}</Text>
+        {!narrow && pips}
       </View>
+      {view.prompt && <Text style={[type.ui, { color: look.ink }]}>{view.prompt}</Text>}
+      {view.context && <Text style={[type.partLabel, { color: look.labelInk }]}>{view.context}</Text>}
       {view.text ? (
         <Text style={[view.state === "revealed" ? type.revealedText : type.partText, { color: look.ink }, view.state === "revealed" && styles.dim]} numberOfLines={5}>
           {view.text}
         </Text>
-      ) : (
+      ) : !view.prompt ? (
         <Text style={[type.partUnknown, { color: look.ink }]}>?</Text>
-      )}
+      ) : null}
       {/* on the result, a part that moved up a level: the help fades there next time */}
       {view.badge && <Text style={[type.partLabel, styles.badge, { color: look.labelInk }]}>{`↑ ${view.badge}`}</Text>}
-      {onPress && !reads && <Text style={[type.partLabel, { color: look.labelInk }]}>{view.text ? "Edit answer" : active ? "Write here →" : "Write answer"}</Text>}
+      {onPress && <Text style={[type.partLabel, { color: look.labelInk }]}>{reads ? "Read answer" : view.text ? "Edit answer" : active ? "Write here →" : "Write answer"}</Text>}
       {ring && <Sparks />}
     </Animated.View>
   );
@@ -269,7 +272,7 @@ function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }
       onPress={onPress}
       onLayout={onLayout}
       accessibilityRole="button"
-      accessibilityLabel={`${label}: ${said}${active ? ". Suggested next area" : ""}`}
+      accessibilityLabel={`${label}${view.prompt ? `. ${view.prompt}` : ""}${view.context ? `. ${view.context}` : ""}: ${said}${active ? ". Suggested next area" : ""}`}
       accessibilityHint={reads ? "Opens this area to read it in full, with the feedback on it." : "Opens this area to write or edit your answer. Your map is scored when you submit it."}
       {...bind}
       style={feel()}
@@ -339,6 +342,9 @@ const styles = StyleSheet.create({
   concept: { textAlign: "center" },
   part: { minHeight: map.partMinHeight, borderRadius: radius.part, paddingTop: space.s, paddingHorizontal: 10, paddingBottom: 10, gap: space.xs },
   partHead: { flexDirection: "row", alignItems: "center", gap: 6 },
+  narrowHead: { flexDirection: "column", alignItems: "stretch", gap: space.xs },
+  partSymbols: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 6 },
+  narrowLabel: { flex: 0 },
   partLabel: { flex: 1 },
   badge: { marginTop: 4 },
   pips: { flexDirection: "row", gap: 3 },

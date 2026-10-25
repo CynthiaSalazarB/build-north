@@ -1,11 +1,12 @@
-// The bottom of a session screen (round 9 "Lumente"): the one input the latest Turn asks for (`expects`). Help is
-// the firefly itself until the first hint; after it, "More help" sits by the input. A revealed answer holds the
-// next question behind "Next question". Everything waits while a call is pending (decision 18). The guess has its
+// The bottom of a session screen: the one input the latest Turn asks for (`expects`). The quiet help link opens
+// the scoring preview, also reached through the firefly. A revealed answer holds the next question behind
+// "Next question". Everything waits while a call is pending (decision 18). The guess has its
 // own screen (guess.tsx), and so does the whole map at level 5 (whole-map.tsx).
-import { MOVE_LABEL, type Turn } from "@build-north/agents";
+import type { Turn } from "@build-north/agents";
 import { useState } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import type { LearnerInput } from "../session/session-context.tsx";
+import { answerLabelOf, categoryContextOf, type GuidedHelpView } from "../session/present.ts";
 import { space } from "../theme.ts";
 import { Button, MicButton, PromptField, SendButton, Small, VoiceNote } from "./ui.tsx";
 import { useVoice } from "./use-voice.ts";
@@ -15,8 +16,8 @@ type Props = {
   pending: boolean;
   /** The words in the empty field: "In your own words", "Try again, in your own words", "Your answer". */
   placeholder: string;
-  /** "More help" by the input, once the part has had a hint. */
-  moreHelp: boolean;
+  help: GuidedHelpView | null;
+  onHelp: () => void;
   /** A revealed answer waits to be read: the button opens the next question. */
   onNext: (() => void) | null;
   onSend: (input: LearnerInput) => void;
@@ -24,7 +25,7 @@ type Props = {
   flush?: boolean;
 };
 
-export function Composer({ turn, pending, placeholder, moreHelp, onNext, onSend, flush = false }: Props) {
+export function Composer({ turn, pending, placeholder, help, onHelp, onNext, onSend, flush = false }: Props) {
   const bar = [styles.bar, flush && styles.flush];
   if (onNext) {
     return (
@@ -35,7 +36,7 @@ export function Composer({ turn, pending, placeholder, moreHelp, onNext, onSend,
   }
   switch (turn.expects) {
     case "text":
-      return <AnswerBar pending={pending} placeholder={placeholder} label={turn.move ? `Your answer · ${MOVE_LABEL[turn.move]}` : "Your first explanation"} moreHelp={turn.phase === "move" && moreHelp} onSend={onSend} style={bar} />;
+      return <AnswerBar pending={pending} placeholder={placeholder} label={answerLabelOf(turn)} context={turn.phase === "attempt" ? "This first explanation is not scored. It is your starting point." : turn.phase === "move" && turn.move === "exclusion" ? categoryContextOf(turn.mentefacto) : null} help={turn.phase === "move" ? help : null} onHelp={onHelp} onSend={onSend} style={bar} />;
     case "continue":
       return (
         <View style={bar}>
@@ -50,9 +51,9 @@ export function Composer({ turn, pending, placeholder, moreHelp, onNext, onSend,
   }
 }
 
-type AnswerProps = { pending: boolean; placeholder: string; label: string; moreHelp: boolean; onSend: (input: LearnerInput) => void; style: StyleProp<ViewStyle> };
+type AnswerProps = { pending: boolean; placeholder: string; label: string; context: string | null; help: GuidedHelpView | null; onHelp: () => void; onSend: (input: LearnerInput) => void; style: StyleProp<ViewStyle> };
 
-function AnswerBar({ pending, placeholder, label, moreHelp, onSend, style }: AnswerProps) {
+function AnswerBar({ pending, placeholder, label, context, help, onHelp, onSend, style }: AnswerProps) {
   const [text, setText] = useState("");
   const answer = text.trim();
   // speech lands in the same field, editable, and still needs Send
@@ -67,8 +68,9 @@ function AnswerBar({ pending, placeholder, label, moreHelp, onSend, style }: Ans
   return (
     <View style={style}>
       <Small dim style={styles.label}>{label}</Small>
+      {context && <Small dim style={styles.label}>{context}</Small>}
+      {help && <Button kind="hintLink" label={help.label} disabled={pending} onPress={onHelp} />}
       <View style={styles.row}>
-        {moreHelp && <Button kind="hint" label="More help" disabled={pending} onPress={() => onSend({ action: "help" })} />}
         <MicButton state={voice.state} onPress={voice.toggle} disabled={pending && voice.state.kind !== "listening"} />
         <PromptField
           value={text}
@@ -80,7 +82,7 @@ function AnswerBar({ pending, placeholder, label, moreHelp, onSend, style }: Ans
           onSubmitEditing={submit}
           submitBehavior="submit"
           style={[styles.flex, pending && styles.dim]}
-          end={<SendButton busy={false} disabled={!answer || pending} onPress={submit} />}
+          end={<SendButton busy={pending} disabled={!answer || pending} onPress={submit} />}
         />
       </View>
       <VoiceNote state={voice.state} />
