@@ -19,7 +19,7 @@ import { PartSheet } from "../components/part-sheet.tsx";
 import { ResultScreen } from "../components/result.tsx";
 import { SessionBar } from "../components/session-bar.tsx";
 import { SiteHeader } from "../components/site-header.tsx";
-import { Body, Button, KeyboardSafe, Screen, Sheet, Small, Title, useEntrance, useWide } from "../components/ui.tsx";
+import { Body, Button, KeyboardSafe, Screen, Sheet, Small, Title, useEntrance, usePageTitle, useWide } from "../components/ui.tsx";
 import { WideStage } from "../components/work-stage.tsx";
 import { WholeMapScreen } from "../components/whole-map.tsx";
 import { tick } from "../haptics.ts";
@@ -50,12 +50,15 @@ import { useSession } from "../session/session-context.tsx";
 import type { Entry, SessionState } from "../session/transcript.ts";
 import { brand, firefly as FIREFLY, pageMetadata, size, space } from "../theme.ts";
 
+const TITLE = `${brand.name}: build the concept's map yourself`;
+
 /** The web page's title and card: a session opened or shared by its address, before the app sends it home. */
 export function generateMetadata() {
-  return pageMetadata(`${brand.name}: build the concept's map yourself`, "Your guess, the AI's questions, the help that costs a point, and the gap between how sure you felt and what you proved.");
+  return pageMetadata(TITLE, "Your guess, the AI's questions, the help that costs a point, and the gap between how sure you felt and what you proved.");
 }
 
 export default function SessionScreen() {
+  usePageTitle(TITLE);
   const router = useRouter();
   const { state, send, retry, start, edit } = useSession();
   const [again, setAgain] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null });
@@ -75,8 +78,9 @@ export default function SessionScreen() {
   }, [turn, coachDue, state.pending, state.failure, send]);
   if (!turn) return <Redirect href="/" />;
 
+  // back to the Start underneath: replacing this screen with "/" would stack a second Start on it (B14), and a
+  // phone's back button would then open that stale one
   const close = () => (router.canGoBack() ? router.back() : router.replace("/"));
-  const home = () => router.replace("/");
 
   // the same concept with the same notes; a self-test is tried again as a self-test
   const tryAgain = async () => {
@@ -106,7 +110,8 @@ export default function SessionScreen() {
         onAgain={() => void tryAgain()}
         againBusy={again.busy}
         againError={again.error}
-        onDone={home}
+        onDone={close}
+        onAnother={() => router.dismissTo("/")}
       />
     );
   } else if (turn.expects === "map") {

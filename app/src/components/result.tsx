@@ -45,6 +45,8 @@ type Props = {
   againBusy?: boolean;
   againError?: string | null;
   onDone: () => void;
+  /** "Map another concept" lands on Start, where concepts are picked, even when the session opened from a folder. */
+  onAnother: () => void;
 };
 
 export function ResultScreen(props: Props) {
@@ -60,7 +62,7 @@ export function ResultScreen(props: Props) {
 }
 
 /** Inside the Screen, so the colors follow the light the score reached. */
-function ResultBody({ concept, result, map, firstExplanation, comparisonAreas, notes = {}, lastPart = {}, closings = {}, coachFailure, coachSources, onRetryCoach, onAgain, againBusy, againError, onDone }: Props) {
+function ResultBody({ concept, result, map, firstExplanation, comparisonAreas, notes = {}, lastPart = {}, closings = {}, coachFailure, coachSources, onRetryCoach, onAgain, againBusy, againError, onDone, onAnother }: Props) {
   const c = useColors();
   const wide = useWide();
   const lit = useMode() === "day";
@@ -162,7 +164,7 @@ function ResultBody({ concept, result, map, firstExplanation, comparisonAreas, n
     </>
   );
   const again = <Button label={`Try ${concept} again`} fit={wide} busy={againBusy} onPress={onAgain} />;
-  const another = <Button kind="text" label="Map another concept" onPress={onDone} />;
+  const another = <Button kind="text" label="Map another concept" onPress={onAnother} />;
   const share = <ShareButton concept={concept} result={result} />;
 
   if (wide) {
