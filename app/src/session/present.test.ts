@@ -12,6 +12,7 @@ import {
   chatKeyOf,
   currentPartOf,
   deskOf,
+  CHIPS,
   editorLinesOf,
   exampleParts,
   exampleQuestionOf,
@@ -68,6 +69,11 @@ test("Start opens on the concept's line of code, or a comment for a concept type
   assert.deepEqual(editorLinesOf("API")[1], { n: 12, text: "app.get('/api/users/:id', getUser);", current: true });
   assert.equal(editorLinesOf("cors")[1]!.text, "app.use(cors({ origin: CLIENT_URL }));");
   assert.equal(editorLinesOf("monads")[1]!.text, "// explain: monads");
+});
+
+test("Start's chips are four examples, each with its own code line", () => {
+  assert.deepEqual([...CHIPS], ["API", "JWT", "cache", "CORS"]);
+  for (const chip of CHIPS) assert.equal(editorLinesOf(chip)[1]!.current, true);
 });
 
 test("prediction wording uses the selected concept and separates confidence from possible points", () => {

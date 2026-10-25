@@ -7,6 +7,8 @@ import type { Entry } from "./transcript.ts";
 
 /** The concepts Start offers (Lumente's board): what coding agents put in student projects. */
 export const CONCEPTS = ["API", "JWT", "hashing", "database index", "cache", "rate limiting", "environment variable", "CORS"] as const;
+/** Start's chips: examples of what a concept is, one row on a phone. The rest keep their code when typed. */
+export const CHIPS = ["API", "JWT", "cache", "CORS"] as const satisfies readonly (typeof CONCEPTS)[number][];
 
 /** The line from the learner's project that Start shows in amber, one dim line above and below. */
 const CODE: Record<(typeof CONCEPTS)[number], string> = {

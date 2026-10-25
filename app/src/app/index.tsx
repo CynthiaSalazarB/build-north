@@ -1,26 +1,27 @@
-// Start (round 9 "Lumente"): concept choices lead on phones, followed by the code/map preview. The website shows
-// the preview beside the choices. A concept is picked in one tap or typed, plus optionally the
-// learner's notes (pasted text only, up to 8,000 characters: decision 12). "Ask your AI what to map" gives a
-// prompt to paste into a coding agent, so the concepts come from the learner's own project; notes that look like a
-// key or a password never leave the phone. "Test myself" starts a self-test instead: the whole map alone, the
-// testers' pre-test and post-test. Every session the learner didn't finish (closed early, a reload, a killed app,
-// another device) is in Your concepts, alongside completed maps for read-only review. Start keeps one quick resume.
-// In the website layout the choices are a column on the left and the code and the map stand on the right.
+// Start (round 9 "Lumente"): one task, pick a concept and start. The top bar holds the two places to go, "Your
+// concepts" and "Account" (Memory, Your data, Sign out in one sheet). A concept is picked from four chips or typed;
+// "Use your own project (optional)" opens, in place, the prompt for a coding agent and the notes field (pasted text
+// only, up to 8,000 characters: decision 12), so the concepts can come from the learner's own project; notes that
+// look like a key or a password never leave the phone. The learner picks how to start, guided by default or "Test
+// myself" (the whole map alone, the testers' pre-test and post-test), and one button starts it, naming the mode.
+// Every session the learner didn't finish is in Your concepts, alongside completed maps for read-only review; Start
+// keeps one quick resume. In the website layout the choices are a column on the left and the code and the map stand
+// on the right; on a phone the code and the map follow the choices.
 import type { SessionMode, SessionSummary } from "@build-north/agents";
 import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState, type ReactNode } from "react";
-import { Platform, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
+import { Platform, ScrollView, Share, StyleSheet, Text, TextInput, View, type ViewStyle } from "react-native";
 import { CodePreview } from "../components/code-preview.tsx";
-import { ConceptsLink } from "../components/concepts-link.tsx";
+import { Icon } from "../components/icons.tsx";
 import { MemorySheet } from "../components/memory-sheet.tsx";
 import { Failure } from "../components/messages.tsx";
 import { SiteHeader } from "../components/site-header.tsx";
-import { Body, Button, Card, Chip, KeyboardSafe, Label, PromptField, Rise, Screen, Sheet, Small, Title, useColors, usePageTitle, useWide } from "../components/ui.tsx";
+import { AnimatedPressable, Body, Button, Card, Chip, KeyboardSafe, Label, PromptField, Rise, Screen, Sheet, Small, Title, useColors, usePageTitle, usePress, useWide } from "../components/ui.tsx";
 import { UpdateNotice } from "../components/update-notice.tsx";
 import { VersionLine } from "../components/version-line.tsx";
-import { AI_PROMPT, CONCEPTS, resumeLineOf, secretLineOf } from "../session/present.ts";
+import { AI_PROMPT, CHIPS, resumeLineOf, secretLineOf } from "../session/present.ts";
 import { clerkKey } from "../session/config.ts";
 import { useSession } from "../session/session-context.tsx";
 import { brand, page, pageMetadata, radius, size, space, type } from "../theme.ts";
@@ -40,17 +41,44 @@ const QUESTION = "Can you explain the ideas behind the code your AI wrote?";
 const SUBTITLE = "Choose a concept and start figuring it out.";
 const GUIDED = "Answer questions. Your map fills as you go.";
 const ALONE = "Write on the map. Ask facts if you need them.";
+const ALONE_HINT = "Write your answers in the four map areas. The optional chat answers factual questions. Your levels don't change.";
 
-/** One way to start, with what it means under it. */
-function Choice({ line, children }: { line: string; children: ReactNode }) {
+/** One way to start, picked before the one Start button, with what it means under its name. The picked one is amber,
+ * like a picked chip. */
+function ModeOption({ label, line, hint, selected, onPress, style }: { label: string; line: string; hint: string; selected: boolean; onPress: () => void; style?: ViewStyle | false }) {
+  const c = useColors();
+  const { hovered, bind, feel } = usePress();
   return (
-    <View style={styles.choice}>
-      {children}
-      <Small dim style={styles.choiceLine}>
-        {line}
-      </Small>
-    </View>
+    <AnimatedPressable
+      accessibilityRole="radio"
+      accessibilityLabel={label}
+      accessibilityHint={hint}
+      accessibilityState={{ checked: selected }}
+      // react-native-web drops accessibilityState, as on Chip
+      {...(Platform.OS === "web" ? ({ "aria-checked": selected } as object) : {})}
+      onPress={onPress}
+      {...bind}
+      style={[styles.row, style, selected ? { backgroundColor: "rgba(242, 184, 75, 0.16)", borderColor: c.firefly } : { backgroundColor: c.controlFill, borderColor: hovered ? c.onSurfaceVariant : c.outline }, feel(true, hovered)]}
+    >
+      <View style={[styles.dot, { borderColor: selected ? c.firefly : c.onSurfaceVariant }]}>{selected && <View style={[styles.dotFill, { backgroundColor: c.firefly }]} />}</View>
+      <View style={styles.rowWords}>
+        <Text style={[type.button, { color: selected ? c.question : c.onSurface }]}>{label}</Text>
+        <Small dim>{line}</Small>
+      </View>
+    </AnimatedPressable>
   );
+}
+
+/** The prompt for a coding agent: copied on the web, shared on a phone (the copy button needs a native module, which
+ * waits for the next build). */
+async function copyPrompt(): Promise<"copied" | "refused" | "shared"> {
+  if (Platform.OS !== "web") {
+    await Share.share({ message: AI_PROMPT }).catch(() => undefined);
+    return "shared";
+  }
+  const clipboard = typeof navigator === "undefined" ? undefined : navigator.clipboard;
+  const ok = clipboard ? await clipboard.writeText(AI_PROMPT).then(() => true, () => false) : false;
+  return ok ? "copied" : "refused";
 }
 
 export default function StartScreen() {
@@ -61,8 +89,10 @@ export default function StartScreen() {
   const { start, offline, state, history, refresh, resume } = useSession();
   const [concept, setConcept] = useState<string>("API");
   const [notes, setNotes] = useState("");
-  const [notesOpen, setNotesOpen] = useState(false);
+  const [ownOpen, setOwnOpen] = useState(false);
   const [askOpen, setAskOpen] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [mode, setMode] = useState<SessionMode>("learn");
   const [starting, setStarting] = useState<SessionMode | null>(null);
   const [resuming, setResuming] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -85,7 +115,7 @@ export default function StartScreen() {
   const secretLine = secretLineOf(notes);
   const secret = secretLine !== null;
   const name = concept.trim();
-  const picked = CONCEPTS.find((chip) => chip === name) ?? null;
+  const picked = CHIPS.find((chip) => chip === name) ?? null;
   // A concept the learner already has a session going on, in the same mode, goes on from where it stopped instead of
   // starting over beside it (Leo, Oct 24: picking a topic he had worked on showed none of it). A finished one starts
   // fresh, and its map stays under "Your maps".
@@ -119,28 +149,41 @@ export default function StartScreen() {
     else router.push("/session");
   };
 
-  // the label says what the tap does: a concept with a session going on continues it
+  // demo mode has no self-test (fixture-client.ts replays one guided session)
+  const chosen: SessionMode = offline ? "learn" : mode;
+  const session = going[chosen];
+  // the one button names the mode it starts, so it stays clear when the choices scroll away on a phone; a concept
+  // with a session going on in that mode continues it
+  const startLabel = !name ? "Pick a concept" : chosen === "test" ? (session ? "Continue self-test" : "Start self-test") : session ? "Continue with guidance" : "Start with guidance";
   const startButton = (
     <Button
-      label={going.learn ? "Continue with guidance" : name ? "Explore with guidance" : "Pick a concept"}
-      hint={going.learn ? `Picks up your ${name} session where you left it` : GUIDED}
+      label={startLabel}
+      hint={session ? `Picks up your ${name} ${chosen === "test" ? "self-test" : "session"} where you left it` : chosen === "test" ? ALONE_HINT : GUIDED}
       fit={wide}
-      busy={starting === "learn" || pickingUp(going.learn)}
+      busy={starting === chosen || pickingUp(session)}
       disabled={!name || secret || busy}
-      onPress={() => void begin("learn")}
+      onPress={() => void begin(chosen)}
     />
   );
-  const testButton = !offline && (
-    <Button
-      kind={wide ? "secondary" : "text"}
-      label={going.test ? "Continue self-test" : "Test myself"}
-      hint={going.test ? `Picks up your ${name} self-test where you left it` : "Write your answers in the four map areas. The optional chat answers factual questions. Your levels don't change."}
-      busy={starting === "test" || pickingUp(going.test)}
-      disabled={!name || secret || busy}
-      onPress={() => void begin("test")}
-      style={wide && styles.tall}
-    />
+  const modes = !offline && (
+    <Rise order={4}>
+      <View accessibilityRole="radiogroup" accessibilityLabel="How do you want to start?" style={styles.modes}>
+        <Label dim>How do you want to start?</Label>
+        {/* side by side in the website layout, so the Start button stays above a laptop's fold */}
+        <View style={[styles.modes, wide && styles.modeRow]}>
+          <ModeOption label="Explore with guidance" line={GUIDED} hint={GUIDED} selected={mode === "learn"} onPress={() => setMode("learn")} style={wide && styles.modeWide} />
+          <ModeOption label="Test myself" line={ALONE} hint={ALONE_HINT} selected={mode === "test"} onPress={() => setMode("test")} style={wide && styles.modeWide} />
+        </View>
+      </View>
+    </Rise>
   );
+  const copyLabel = Platform.OS !== "web" ? "Share the prompt" : copied ? "Copied" : "Copy the prompt";
+  const getPrompt = async () => {
+    const outcome = await copyPrompt();
+    // a browser that refuses the clipboard gets the prompt to select by hand
+    if (outcome === "refused") setAskOpen(true);
+    setCopied(outcome === "copied");
+  };
   const keyWarning = secret && <Failure message={`Line ${secretLine} looks like it has a key, a token or a password. Take it out before you start: your notes go to the AI.`} />;
   // the choices, in the order both layouts read them
   const choices = (
@@ -177,7 +220,7 @@ export default function StartScreen() {
           concept alone, so a tap on "CORS" never opens a session about API */}
       {offline && <Label dim>Demo mode: a recorded session on API</Label>}
       <Rise order={2} style={styles.chips}>
-        {(offline ? CONCEPTS.slice(0, 1) : CONCEPTS).map((chip) => (
+        {(offline ? CHIPS.slice(0, 1) : CHIPS).map((chip) => (
           <Chip key={chip} label={chip} selected={picked === chip} onPress={() => setConcept(chip)} />
         ))}
       </Rise>
@@ -191,16 +234,18 @@ export default function StartScreen() {
             autoCapitalize="none"
             accessibilityLabel="A concept to map"
             returnKeyType="go"
-            onSubmitEditing={() => void begin("learn")}
+            onSubmitEditing={() => void begin(chosen)}
           />
         </Rise>
       )}
-      <Rise order={4} style={styles.extras}>
-        {!notesOpen && <Button kind="text" label="Add your notes" hint="Optional: paste text the firefly can draw on" onPress={() => setNotesOpen(true)} style={styles.left} />}
-        <Button kind="text" label="Ask your AI what to map" hint="A prompt for your coding agent, so you map concepts from your own project" onPress={() => setAskOpen(true)} style={styles.left} />
-      </Rise>
-      {notesOpen && (
-        <View style={styles.notesGroup}>
+      {/* one optional path, opened in place: the two steps belong to the form the Start button sends, so what was
+          pasted stays in view (a sheet would hide it); once open it stays open */}
+      {ownOpen ? (
+        <View style={styles.own}>
+          <Label dim>Use your own project (optional)</Label>
+          <Small dim>1. Ask your coding agent which concepts your project uses. Paste the prompt into Claude Code, Cursor or Copilot inside your project.</Small>
+          <Button kind="secondary" label={copyLabel} onPress={() => void getPrompt()} />
+          <Small dim>2. Paste its answer here, or notes from your class.</Small>
           <TextInput
             value={notes}
             onChangeText={setNotes}
@@ -214,30 +259,32 @@ export default function StartScreen() {
           <Label dim style={styles.count}>{`${notes.length.toLocaleString("en-US")} / 8,000`}</Label>
           {wide && keyWarning}
         </View>
+      ) : (
+        <Rise order={3}>
+          <Button kind="text" label="Use your own project (optional)" hint="A prompt for your coding agent, then a place to paste its answer or your notes" onPress={() => setOwnOpen(true)} style={styles.left} />
+        </Rise>
       )}
+      {modes}
       {error && <Failure message={error} />}
     </>
   );
-  const sheet = (
-    <AskYourAi
-      open={askOpen}
-      onClose={() => setAskOpen(false)}
-      onPaste={() => {
-        setAskOpen(false);
-        setNotesOpen(true);
-      }}
-    />
+  const sheet = <AskYourAi open={askOpen} onClose={() => setAskOpen(false)} />;
+  // the two places to go from Start, in its top bar: with two, both stay in sight (a menu would hide them)
+  const places = (
+    <View style={styles.places}>
+      {!offline && <ConceptsEntry wide={wide} />}
+      <Account solid={wide} />
+    </View>
   );
 
   if (wide) {
     return (
       <Screen>
-        <SiteHeader end={<Account solid />} />
+        <SiteHeader end={places} />
         <View style={styles.split}>
           <ScrollView style={styles.words} contentContainerStyle={styles.wordsContent} keyboardShouldPersistTaps="handled">
             {/* an Android tablet in the website layout still gets "Update ready"; the web never does */}
             <UpdateNotice />
-            {!offline && <ConceptsLink />}
             <Rise style={styles.heading}>
               <Text style={[type.display, { color: c.onSurface }]} accessibilityRole="header">
                 {QUESTION}
@@ -246,8 +293,7 @@ export default function StartScreen() {
             </Rise>
             {choices}
             <Rise order={5} style={styles.actions}>
-              <Choice line={GUIDED}>{startButton}</Choice>
-              {testButton && <Choice line={ALONE}>{testButton}</Choice>}
+              {startButton}
             </Rise>
           </ScrollView>
           <View style={styles.stage}>
@@ -271,9 +317,8 @@ export default function StartScreen() {
             <Text style={[type.wordmark, { color: c.onSurface }]} accessibilityRole="header">
               {brand.name}
             </Text>
-            <Account />
+            {places}
           </View>
-          {!offline && <ConceptsLink />}
           <Rise order={1} style={styles.heading}>
             <Title>{QUESTION}</Title>
             <Body dim>{SUBTITLE}</Body>
@@ -284,14 +329,9 @@ export default function StartScreen() {
           </Rise>
         </ScrollView>
         <View style={styles.foot}>
-          {/* on the phone the key warning sits by the buttons it turns off: under the notes, the sticky foot hid it (B18) */}
+          {/* on the phone the key warning sits by the button it turns off: under the notes, the sticky foot hid it (B18) */}
           {keyWarning}
-          <Choice line={GUIDED}>{startButton}</Choice>
-          {testButton && (
-            <View style={styles.footRow}>
-              <Choice line={ALONE}>{testButton}</Choice>
-            </View>
-          )}
+          {startButton}
         </View>
       </KeyboardSafe>
       {sheet}
@@ -300,38 +340,52 @@ export default function StartScreen() {
   );
 }
 
-/** The prompt for your coding agent: copied on the web, shared on a phone (the copy button needs a native
- * module, which waits for the next build). A browser that refuses the clipboard says so, and the text stays
- * selectable. */
-function AskYourAi({ open, onClose, onPaste }: { open: boolean; onClose: () => void; onPaste: () => void }) {
+/** The prompt for a browser that refused the clipboard: the text to select and copy by hand. */
+function AskYourAi({ open, onClose }: { open: boolean; onClose: () => void }) {
   const c = useColors();
-  const [copied, setCopied] = useState<"no" | "yes" | "refused">("no");
-  const copy = async () => {
-    if (Platform.OS === "web") {
-      const clipboard = typeof navigator === "undefined" ? undefined : navigator.clipboard;
-      const ok = clipboard ? await clipboard.writeText(AI_PROMPT).then(() => true, () => false) : false;
-      setCopied(ok ? "yes" : "refused");
-    } else {
-      await Share.share({ message: AI_PROMPT }).catch(() => undefined);
-    }
-  };
-  const copyLabel = copied === "yes" ? "Copied" : copied === "refused" ? "Select the text and copy it" : "Copy";
   return (
     <Sheet open={open} onClose={onClose} label="the prompt">
-      <Title style={styles.sheetTitle}>Ask your AI what to map</Title>
-      <Small dim>Paste this into Claude Code, Cursor or Copilot inside your project.</Small>
+      <Title style={styles.sheetTitle}>Copy the prompt</Title>
+      <Small dim>{"Your browser didn't let us copy it. Select the text and copy it, then paste it into Claude Code, Cursor or Copilot inside your project."}</Small>
       <View style={[styles.prompt, { backgroundColor: c.codeFill, borderColor: c.fieldEdge }]}>
         <Text selectable style={[type.label, styles.promptText, { color: c.onSurface }]}>
           {AI_PROMPT}
         </Text>
       </View>
-      <Button label={Platform.OS === "web" ? copyLabel : "Share"} onPress={() => void copy()} />
-      <Button kind="text" label="Paste its answer" onPress={onPaste} />
+      <Button label="Done" onPress={onClose} />
     </Sheet>
   );
 }
 
-/** The account's controls, at the top of Start: "Memory" (what Lumente remembers, #112), "Your data" (what is kept,
+/** Same control as Account, so the two sit on one line in the header. */
+function ConceptsEntry({ wide }: { wide: boolean }) {
+  const router = useRouter();
+  return <Button kind={wide ? "secondary" : "text"} solid={wide} label="Your concepts" hint="Resume a session or review a completed map" onPress={() => router.push("/concepts")} style={!wide && styles.bare} />;
+}
+
+/** One place in the Account sheet, with what it holds under its name. */
+function AccountItem({ label, line, onPress }: { label: string; line: string; onPress: () => void }) {
+  const c = useColors();
+  const { hovered, bind, feel } = usePress();
+  return (
+    <AnimatedPressable
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityHint={line}
+      onPress={onPress}
+      {...bind}
+      style={[styles.row, { backgroundColor: c.controlFill, borderColor: hovered ? c.onSurfaceVariant : c.outline }, feel(true, hovered)]}
+    >
+      <View style={styles.rowWords}>
+        <Text style={[type.button, { color: c.onSurface }]}>{label}</Text>
+        <Small dim>{line}</Small>
+      </View>
+      <Icon name="right" color={c.onSurfaceVariant} />
+    </AnimatedPressable>
+  );
+}
+
+/** "Account" in Start's top bar opens one sheet: "Memory" (what Lumente remembers, #112), "Your data" (what is kept,
  * and the delete button, #43) and, with Clerk on, "Sign out". `solid` is the website header's opaque look. */
 function Account({ solid = false }: { solid?: boolean }): ReactNode {
   // useAuth needs the ClerkProvider in the root layout, which is only there with a Clerk key (#22)
@@ -348,6 +402,7 @@ function ClerkAccount({ solid }: { solid: boolean }) {
 
 function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Promise<void>) | null }) {
   const { offline, deleteData } = useSession();
+  const [accountOpen, setAccountOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -359,17 +414,27 @@ function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Pr
     try {
       await signOut();
     } catch {
+      setAccountOpen(false);
       setSignOutError(dataDeleted ? "Your data was deleted, but we couldn't sign you out. Try signing out again." : "Couldn't sign out. Check your connection and try again.");
     } finally {
       setSigningOut(false);
     }
   };
+  // one sheet at a time: the account sheet closes before the one it opens
+  const go = (next: () => void) => {
+    setAccountOpen(false);
+    next();
+  };
   return (
-    <View style={styles.account}>
-      {!offline && <Button kind="text" label="Memory" onPress={() => setMemoryOpen(true)} style={!solid && styles.signOut} />}
+    <>
+      <Button kind={solid ? "secondary" : "text"} solid={solid} label="Account" hint={offline ? "Your data" : signOut ? "Memory, your data and sign out" : "Memory and your data"} onPress={() => setAccountOpen(true)} style={!solid && styles.bare} />
+      <Sheet open={accountOpen} onClose={() => setAccountOpen(false)} label="your account">
+        <Title style={styles.sheetTitle}>Account</Title>
+        {!offline && <AccountItem label="Memory" line="What Lumente remembers about your progress" onPress={() => go(() => setMemoryOpen(true))} />}
+        <AccountItem label="Your data" line="What we keep, and how to delete it" onPress={() => go(() => setOpen(true))} />
+        {signOut && <Button kind="secondary" label="Sign out" busy={signingOut} onPress={() => void leave()} />}
+      </Sheet>
       <MemorySheet open={memoryOpen} onClose={() => setMemoryOpen(false)} />
-      <Button kind="text" label="Your data" onPress={() => setOpen(true)} style={!solid && styles.signOut} />
-      {signOut && <Button kind={solid ? "secondary" : "text"} solid={solid} label="Sign out" busy={signingOut} onPress={() => void leave()} style={!solid && styles.signOut} />}
       <Sheet open={signOutError !== null} onClose={() => setSignOutError(null)} label="Sign out">
         <Title style={styles.sheetTitle}>Sign out</Title>
         {signOutError && <Failure message={signOutError} />}
@@ -387,7 +452,7 @@ function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Pr
           return problem;
         }}
       />
-    </View>
+    </>
   );
 }
 
@@ -461,21 +526,26 @@ function YourData({ open, onClose, offline, signsOut, onDelete }: { open: boolea
 const styles = StyleSheet.create({
   content: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.xl, gap: space.l },
   top: { flexDirection: "row", flexWrap: "wrap", columnGap: space.l, rowGap: space.xs, alignItems: "center", justifyContent: "space-between", minHeight: size.touch },
-  account: { flexDirection: "row", alignItems: "center", gap: space.l },
-  signOut: { paddingHorizontal: 0 },
+  places: { flexDirection: "row", alignItems: "center", gap: space.s },
+  bare: { paddingHorizontal: 0 },
   confirm: { gap: space.m, marginTop: space.s },
   resume: { gap: space.m },
   resumeCard: { flexDirection: "row", alignItems: "center", gap: space.l },
   resumeWords: { flex: 1, minWidth: 0, gap: space.xs },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
-  extras: { flexDirection: "row", flexWrap: "wrap", columnGap: space.l },
   left: { alignSelf: "flex-start", paddingHorizontal: 0 },
-  notesGroup: { gap: space.s },
+  own: { gap: space.s },
+  modes: { gap: space.s },
+  modeRow: { flexDirection: "row" },
+  modeWide: { flex: 1, flexBasis: 0, alignItems: "flex-start", paddingHorizontal: space.m },
+  row: { flexDirection: "row", alignItems: "center", gap: space.m, minHeight: size.touch, paddingHorizontal: space.l, paddingVertical: space.m, borderRadius: radius.field, borderWidth: 1 },
+  rowWords: { flex: 1, minWidth: 0, gap: space.xs },
+  dot: { width: 20, height: 20, borderRadius: 10, borderWidth: 2, alignItems: "center", justifyContent: "center" },
+  dotFill: { width: 10, height: 10, borderRadius: 5 },
   // no custom line height on a multiline field: Android would show only its last line
   notes: { fontFamily: type.input.fontFamily, fontSize: type.input.fontSize, minHeight: 140, paddingHorizontal: space.l, paddingVertical: space.m, borderRadius: radius.field, borderWidth: 1, textAlignVertical: "top" },
   count: { alignSelf: "flex-end" },
   foot: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m, gap: space.xs },
-  footRow: { flexDirection: "row", justifyContent: "center" },
   sheetTitle: { fontSize: 24, lineHeight: 30 },
   dataScroll: { flex: 1, minHeight: 0 },
   dataContent: { gap: space.l, paddingBottom: space.s },
@@ -483,13 +553,10 @@ const styles = StyleSheet.create({
   promptText: { lineHeight: 18 },
   split: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },
   words: { width: page.words, flexGrow: 0 },
-  wordsContent: { flexGrow: 1, justifyContent: "center", paddingTop: space.xxl, paddingBottom: page.header, gap: space.xl },
+  wordsContent: { flexGrow: 1, justifyContent: "center", paddingTop: space.xxl, paddingBottom: page.header, gap: space.l },
   actions: { flexDirection: "row", alignItems: "flex-start", gap: space.m, marginTop: space.s },
   heading: { gap: space.m },
   preview: { marginTop: space.l },
-  choice: { gap: space.xs, alignItems: "center", flexShrink: 1 },
-  choiceLine: { textAlign: "center" },
-  tall: { height: 56 },
   stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: page.header },
   spot: { width: "100%", maxWidth: page.map },
 });
