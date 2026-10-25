@@ -9,7 +9,7 @@ import { createApiClient } from "./api-client.ts";
 import { ClientError } from "./client.ts";
 import { createFixtureClient } from "./fixture-client.ts";
 import { lastPartNoteOf, partClosingsOf, resultMessagesOf } from "./present.ts";
-import { blankMap, drafted, echoFor, failed, initialState, received, replayed, resendOf, sent, startedWith, withRevealed } from "./transcript.ts";
+import { arrived, blankMap, drafted, echoFor, failed, initialState, received, replayed, resendOf, sent, startedWith, withRevealed } from "./transcript.ts";
 
 const fixtureTurns = sessionOne.map((step) => Turn.parse(step.turn));
 const first = fixtureTurns[0]!;
@@ -206,6 +206,21 @@ test("a session picked up again replays every saved step: the same conversation 
   // every part's closing and the last part's note, which the result screen reads from the conversation, are back
   assert.deepEqual(partClosingsOf(back.entries), partClosingsOf(live.entries));
   assert.deepEqual(lastPartNoteOf(back.entries), lastPartNoteOf(live.entries));
+});
+
+test("an answer whose reply lands after the session was picked up again keeps the learner's words", () => {
+  // the screen that sent it: the answer is echoed, then its reply arrives
+  const before = replayed(savedSteps.slice(0, 4), savedSteps[3]!.turn);
+  const { body, turn } = savedSteps[4]!;
+  const live = arrived(sent(before, body!), body!, turn);
+  assert.deepEqual(live, received(sent(before, body!), turn));
+  // closed mid-answer, another concept opened, then Continue: the server didn't have the answer yet, so the
+  // picked-up state stops at the question; the reply still in flight lands on it with the learner's words
+  assert.deepEqual(arrived(before, body!, turn).entries, live.entries);
+  assert.equal(arrived(before, body!, turn).pending, null);
+  // picked up after the server saved it: the reply is already there, and nothing is added twice
+  const after = replayed(savedSteps.slice(0, 5), turn);
+  assert.deepEqual(arrived(after, body!, turn), after);
 });
 
 test("steps that miss a Turn, stop short of the latest one, or aren't there fall back to the latest Turn alone", () => {
