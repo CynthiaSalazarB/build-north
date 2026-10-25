@@ -108,15 +108,10 @@ submission.
 - **Related is not the same as belonging.** The evaluator initially treated "a server" as a possible
   bigger group for API. We made the rule explainable with one sentence: "An API is a kind of ___".
   "Software interface" passes; "server" does not.
-- **The interface was inviting the wrong action.** In independent practice, learners typed map answers
-  into the fact chat because it looked like the main task. We made the map the primary action, collapsed
-  the chat behind "Ask a fact (optional)" and added a review step before submission.
-- **The fact desk had to help without taking over.** It answers factual questions, but a question that
-  asks it to fill part of the map gets a fixed redirect. If the learner types an answer into the chat,
-  it points them back to the map without judging the answer.
-- **The confidence gap looked like a grade.** A large signed number made "−2" feel like losing points,
-  even though a gap of zero means accurate confidence. The result now names the direction in words and
-  shows two separate rows: prediction and map score.
+- **The AI had to support the learner without doing the thinking.** During independent practice, the
+  fact desk answers factual questions but redirects requests to fill the map. When learners typed their
+  answers into the chat instead, we made the map the primary action, collapsed the chat behind "Ask a
+  fact (optional)" and taught the agent to point them back without judging the answer.
 - **The final answer was making learners wait.** Evaluating the last answer and then generating coaching
   took 9.2 seconds. We now return the code-computed result first and request the coach in the next turn.
   We also prepare the next question while the current answer is being evaluated.
