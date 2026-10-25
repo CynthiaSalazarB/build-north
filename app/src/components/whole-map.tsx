@@ -15,7 +15,7 @@ import { FactCard, Failure, HintCard, LearnerMessage, Revealed, useSlow, Waiting
 import { SessionBar } from "./session-bar.tsx";
 import { SiteHeader } from "./site-header.tsx";
 import { WideStage } from "./work-stage.tsx";
-import { Body, Button, IconButton, KeyboardSafe, Label, MicButton, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useEntrance, useColors, useWide, VoiceNote } from "./ui.tsx";
+import { Body, Button, IconButton, KeyboardSafe, Label, MicButton, PromptField, Reply, Screen, SendButton, Sheet, Small, Title, useEntrance, useColors, useInertPage, useWide, VoiceNote } from "./ui.tsx";
 import { useVoice } from "./use-voice.ts";
 
 const MAX_ITEMS = 6;
@@ -286,10 +286,13 @@ function PartEditor({ move, concept, category, items, onDone }: { move: MoveId; 
   // no custom line height on these fields: on Android a multiline one would show only its last line
   const field = [styles.input, { fontFamily: type.input.fontFamily, fontSize: type.input.fontSize, color: c.onSurface, backgroundColor: c.surface, borderColor: c.fieldEdge }];
   const scrim = <Pressable style={[wide ? StyleSheet.absoluteFill : styles.flex, { backgroundColor: c.scrim }]} onPress={done} accessibilityRole="button" accessibilityLabel="Save and close" />;
+  // mounted only while open, like a Sheet's open state: the map under it is inert on the web
+  useInertPage(true);
 
-  // the scrim fades in with the Modal and the editor rises into place over 240 ms, as a Sheet does
+  // the scrim fades in with the Modal and the editor rises into place over 240 ms, as a Sheet does; on the web the Modal
+  // is the dialog, named after its area as a Sheet is after its label
   return (
-    <Modal visible transparent animationType="fade" onRequestClose={done}>
+    <Modal visible transparent animationType="fade" onRequestClose={done} accessibilityLabel={AREA_LABEL[move]}>
       <KeyboardAvoidingView style={[styles.flex, wide && styles.center]} behavior="padding">
         {scrim}
         <Animated.View style={[wide ? styles.dialog : styles.sheet, { backgroundColor: c.surfaceContainer, borderColor: c.fieldEdge }, entrance(0, "rise", motion.sheet)]} accessibilityViewIsModal>

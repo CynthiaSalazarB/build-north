@@ -1,7 +1,7 @@
 // What the screens say and draw, as pure functions of the Turns and the transcript: the map's parts and their
 // points, the light (points proved so far), the hint card, Help's price, the reveal, and the gap. No React here,
 // so it's tested under Node. The rules behind the words are in CONTRACTS.md section 3.
-import { MOVE_ORDER, WORKED_EXAMPLE, type Item, type MemoryGap, type MemoryView, type Mentefacto, type Message, type MoveId, type Quality, type Result, type Turn, type TurnBody } from "@build-north/agents";
+import { MOVE_ORDER, WORKED_EXAMPLE, type Item, type MemoryGap, type MemoryView, type Mentefacto, type Message, type MoveId, type Quality, type Result, type SessionSummary, type Turn, type TurnBody } from "@build-north/agents";
 import { AREA_LABEL, areaCopyOf, areaNoteOf } from "../area-copy.ts";
 import type { Entry } from "./transcript.ts";
 
@@ -247,13 +247,17 @@ export function hintCardOf(step: Message["hintStep"]): { title: string; filled: 
 
 export type GuidedHelpView = { label: string; detail: string; confirm: string };
 
+/** The part's first question on screen is the exclusion's follow-up: a session picked up on its latest Turn alone
+ * (no saved steps), so the retries and hints before it aren't on screen, and neither is Help's real price. */
+const startsAtFollowUp = (part: readonly Entry[], asked: number) => asked > 0 && isFollowUpFeedback(part, asked - 1);
+
 /** Preview only. A reload can hide the previous step: never promise a free hint when it might reveal an answer. */
 export function guidedHelpOf(part: readonly Entry[]): GuidedHelpView {
   const asked = part.findIndex(e => e.from === "app" && e.message.kind === "question");
   const last = part.slice(asked + 1).reverse().find(e => e.from === "app" && e.message.kind === "hint");
   const step = last?.from === "app" ? last.message.hintStep : undefined;
   if (step === "partial") return { label: "Show answer · 0 points", detail: "This shows you the answer. This area will score 0 points. The other areas are not affected.", confirm: "Show the answer" };
-  if (!step && (last || asked < 0)) {
+  if (!step && (last || asked < 0 || startsAtFollowUp(part, asked))) {
     return { label: "Get help · review effect", detail: "The previous hint step is not available. The next help may be a hint or the answer. A hint limits this area to 1 point; showing the answer makes it 0. Other areas are not affected.", confirm: "Request help" };
   }
   return cappedOf(part)
@@ -265,9 +269,9 @@ export function guidedHelpOf(part: readonly Entry[]): GuidedHelpView {
  * hint, Help is the "More help" button by the input instead. */
 export function helpOf(part: readonly Entry[]): { tag: string; label: string; more: boolean } {
   const asked = part.findIndex((e) => e.from === "app" && e.message.kind === "question");
-  // a part picked up after a reload shows the latest Turn's lines only (saved.ts): no question, so no firefly to
-  // tap. Help goes by the input instead, as it does after a hint.
-  if (asked < 0 && part.some((e) => e.from === "app" && e.phase === "move")) return { tag: "help", label: "More help", more: true };
+  // a part picked up after a reload shows the latest Turn's lines only (saved.ts): no question, or only the
+  // exclusion's follow-up, so what Help costs can't be told. Help goes by the input instead, as it does after a hint.
+  if ((asked < 0 || startsAtFollowUp(part, asked)) && part.some((e) => e.from === "app" && e.phase === "move")) return { tag: "help", label: "More help", more: true };
   // only what came after the question counts: a reveal before it ended the last part
   const since = part.slice(asked + 1);
   if (since.some((e) => e.from === "app" && e.message.kind === "hint")) return { tag: "help", label: "More help", more: true };
@@ -521,6 +525,13 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
 export function shortDateOf(iso: string): string {
   const date = new Date(iso);
   return Number.isNaN(date.getTime()) ? "" : `${MONTHS[date.getMonth()]} ${date.getDate()}`;
+}
+
+/** The line on an unfinished session's Resume card: which kind it is and the day it started. Every card says it the
+ * same way, the one on screen included, so a reload never changes what a card says (B12). */
+export function resumeLineOf(session: Pick<SessionSummary, "mode" | "createdAt">): string {
+  const day = shortDateOf(session.createdAt);
+  return `${session.mode === "test" ? "self-test" : "session"} started${day ? ` ${day}` : ""}`;
 }
 
 export type MemoryMoveLines = { move: MoveId; label: string; now: string; history: string[]; reads: number };

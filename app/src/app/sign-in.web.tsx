@@ -3,14 +3,18 @@
 // never to Clerk's hosted pages. The methods come from the Clerk dashboard. Android uses sign-in.tsx.
 import { SignIn } from "@clerk/expo/web";
 import { AuthSwitch, HEADLINE, HOW, Landing, useClerkAppearance } from "../components/landing.tsx";
+import { usePageTitle } from "../components/ui.tsx";
 import { brand, pageMetadata } from "../theme.ts";
+
+const TITLE = `${brand.name}: ${HEADLINE.toLowerCase().replace(/\.$/, "")}`;
 
 /** The web page's title, description and card, in the static HTML, so a shared link previews well. */
 export function generateMetadata() {
-  return pageMetadata(`${brand.name}: ${HEADLINE.toLowerCase().replace(/\.$/, "")}`, HOW);
+  return pageMetadata(TITLE, HOW);
 }
 
 export default function SignInScreen() {
+  usePageTitle(TITLE);
   return (
     <Landing
       form={

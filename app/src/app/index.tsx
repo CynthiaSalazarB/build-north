@@ -17,10 +17,10 @@ import { CodePreview } from "../components/code-preview.tsx";
 import { MemorySheet } from "../components/memory-sheet.tsx";
 import { Failure } from "../components/messages.tsx";
 import { SiteHeader } from "../components/site-header.tsx";
-import { Body, Button, Card, Chip, KeyboardSafe, Label, PromptField, Rise, Screen, Sheet, Small, Title, useColors, useWide } from "../components/ui.tsx";
+import { Body, Button, Card, Chip, KeyboardSafe, Label, PromptField, Rise, Screen, Sheet, Small, Title, useColors, usePageTitle, useWide } from "../components/ui.tsx";
 import { UpdateNotice } from "../components/update-notice.tsx";
 import { VersionLine } from "../components/version-line.tsx";
-import { AI_PROMPT, CONCEPTS, filledOf, secretLineOf, shortDateOf } from "../session/present.ts";
+import { AI_PROMPT, CONCEPTS, resumeLineOf, secretLineOf, shortDateOf } from "../session/present.ts";
 import { clerkKey } from "../session/config.ts";
 import { useSession } from "../session/session-context.tsx";
 import { brand, page, pageMetadata, radius, size, space, type } from "../theme.ts";
@@ -28,9 +28,11 @@ import { brand, page, pageMetadata, radius, size, space, type } from "../theme.t
 const MAX_CONCEPT = 100;
 const MAX_NOTES = 8000;
 
+const TITLE = `${brand.name}: can you explain the ideas behind the code your AI wrote?`;
+
 /** The web page's title, description and card, in the static HTML, so a shared link previews well. */
 export function generateMetadata() {
-  return pageMetadata(`${brand.name}: can you explain the ideas behind the code your AI wrote?`, `${SUBTITLE} ${GUIDED} Or you lead the investigation.`);
+  return pageMetadata(TITLE, `${SUBTITLE} ${GUIDED} Or you lead the investigation.`);
 }
 
 /** Start's words (Cynthia, Oct 23): the question, the line under it, and what each way to start means. */
@@ -52,6 +54,7 @@ function Choice({ line, children }: { line: string; children: ReactNode }) {
 }
 
 export default function StartScreen() {
+  usePageTitle(TITLE);
   const router = useRouter();
   const c = useColors();
   const wide = useWide();
@@ -66,9 +69,9 @@ export default function StartScreen() {
   const [listError, setListError] = useState<string | null>(null);
   // a result on screen is finished, even while the coach's words are on their way
   const unfinished = state.turn && state.turn.expects !== "none" && state.turn.phase !== "result" ? state.turn : null;
-  // at level 5 the parts fill on the phone until the map is submitted
-  const draft = unfinished?.expects === "map" ? state.draft : null;
-  const done = draft ? filledOf(draft) : (unfinished?.progress.movesDone ?? 0);
+  // the card on screen says what the listed ones say, so a reload doesn't change it (B12); a session started since the
+  // list was read isn't on it yet, and it started today
+  const onScreenLine = unfinished ? resumeLineOf(history?.find((s) => s.id === unfinished.sessionId) ?? { mode: state.mode, createdAt: new Date().toISOString() }) : "";
   // the server's list, read again each time Start shows (a session just finished is on it), so the sessions
   // to pick up (the one on screen has its own card) and the finished maps are the learner's whole record
   useFocusEffect(
@@ -138,6 +141,7 @@ export default function StartScreen() {
       style={wide && styles.tall}
     />
   );
+  const keyWarning = secret && <Failure message={`Line ${secretLine} looks like it has a key, a token or a password. Take it out before you start: your notes go to the AI.`} />;
   // the choices, in the order both layouts read them
   const choices = (
     <>
@@ -148,7 +152,7 @@ export default function StartScreen() {
               <Body style={styles.flex} numberOfLines={1}>
                 {unfinished.mentefacto.concept}
               </Body>
-              <Label dim>{`${done} of ${unfinished.progress.movesTotal} parts`}</Label>
+              <Label dim>{onScreenLine}</Label>
             </View>
             <Button kind="secondary" label="Resume" disabled={busy} onPress={() => router.push("/session")} />
           </Card>
@@ -161,7 +165,7 @@ export default function StartScreen() {
               <Body style={styles.flex} numberOfLines={1}>
                 {session.concept}
               </Body>
-              <Label dim>{`${session.mode === "test" ? "self-test" : "session"} started${shortDateOf(session.createdAt) ? ` ${shortDateOf(session.createdAt)}` : ""}`}</Label>
+              <Label dim>{resumeLineOf(session)}</Label>
             </View>
             <Button kind="secondary" label="Resume" hint="Picks the session up where you left it" busy={resuming === session.id} disabled={busy} onPress={() => void pickUp(session)} />
           </Card>
@@ -206,7 +210,7 @@ export default function StartScreen() {
             style={[styles.notes, { color: c.onSurface, backgroundColor: c.surfaceContainer, borderColor: secret ? c.gap : c.fieldEdge }]}
           />
           <Label dim style={styles.count}>{`${notes.length.toLocaleString("en-US")} / 8,000`}</Label>
-          {secret && <Failure message={`Line ${secretLine} looks like it has a key, a token or a password. Take it out before you start: your notes go to the AI.`} />}
+          {wide && keyWarning}
         </View>
       )}
       {error && <Failure message={error} />}
@@ -294,6 +298,8 @@ export default function StartScreen() {
           {choices}
         </ScrollView>
         <View style={styles.foot}>
+          {/* on the phone the key warning sits by the buttons it turns off: under the notes, the sticky foot hid it (B18) */}
+          {keyWarning}
           <Choice line={GUIDED}>{startButton}</Choice>
           {testButton && (
             <View style={styles.footRow}>

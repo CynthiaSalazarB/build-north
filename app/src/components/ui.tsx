@@ -1,8 +1,9 @@
 // Small building blocks every screen uses (round 9 "Lumente"). A Screen sets the light (the points proved, 0 to
 // 8); everything inside reads its colors from that light's mode, dark ink once the light fills the screen at 7.
 // Nothing here holds a color of its own.
+import { useFocusEffect } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { createContext, useContext, useRef, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -37,6 +38,16 @@ const LightContext = createContext(0);
 /** The website layout: a header, and the words beside the map. Below `wideFrom`, the phone layout. */
 export function useWide(): boolean {
   return useWindowDimensions().width >= wideFrom;
+}
+
+/** On the web the tab's title follows the screen in view. The exported page's <title> comes from generateMetadata,
+ * which runs only at export, so without this the title changed only on a reload (B13). */
+export function usePageTitle(title: string): void {
+  useFocusEffect(
+    useCallback(() => {
+      if (isWeb) document.title = title;
+    }, [title]),
+  );
 }
 
 /** A Pressable's state; react-native-web adds hover and focus to the press. */
@@ -298,6 +309,8 @@ export function Chip({ label, selected, onPress }: { label: string; selected: bo
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected }}
+      // react-native-web drops accessibilityState, so on the web the picked chip says so itself (B14)
+      {...(isWeb ? ({ "aria-pressed": selected } as object) : {})}
       onPress={onPress}
       {...bind}
       style={[
@@ -392,6 +405,24 @@ export function SendButton({ busy, disabled, onPress, label = "Send", amber = fa
   );
 }
 
+/** How many sheets are open on the web. While any is, the page under them is inert, so Tab and a screen reader stay in
+ * the sheet (B14): react-native-web traps focus and marks the dialog aria-modal, which not every screen reader honors.
+ * Its portal hangs off the body, outside `#root`. A Modal that isn't a Sheet (the self-test's area editor) calls it too. */
+let openSheets = 0;
+
+export function useInertPage(open: boolean): void {
+  useEffect(() => {
+    const page = isWeb && open ? document.getElementById("root") : null;
+    if (!page) return;
+    openSheets += 1;
+    page.inert = true;
+    return () => {
+      openSheets -= 1;
+      if (openSheets === 0) page.inert = false;
+    };
+  }, [open]);
+}
+
 /** A sheet over the screen, with a scrim that closes it; in the website layout, a dialog in the middle. The scrim
  * fades in (the Modal's own fade) and the panel rises into place over 240 ms, like a block of the screen; with
  * Reduce Motion the panel is simply there. Escape closes either on the web. */
@@ -403,6 +434,7 @@ export function Sheet({ open, onClose, label, children, reading = false }: { ope
   const still = useReducedMotion();
   const insets = useSafeAreaInsets();
   const panelRef = useRef<ViewInstance>(null);
+  useInertPage(open);
   // Reading sheets keep their own scroll region between a fixed heading and exit. The existing small sheets
   // keep their layout; this one gets room for long answers and two columns on the website.
   const scrim = <Pressable style={[wide || reading ? StyleSheet.absoluteFill : styles.flex, { backgroundColor: c.scrim }]} onPress={onClose} accessibilityRole="button" accessibilityLabel={`Close ${label}`} {...(reading ? { accessible: false, tabIndex: -1 as const, accessibilityElementsHidden: true, importantForAccessibility: "no-hide-descendants" as const } : {})} />;

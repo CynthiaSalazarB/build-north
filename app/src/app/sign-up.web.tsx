@@ -5,14 +5,18 @@
 // Android's "Get started" opens Clerk's hosted sign-up instead (sign-in.tsx).
 import { SignUp } from "@clerk/expo/web";
 import { AuthSwitch, HEADLINE, HOW, Landing, useClerkAppearance } from "../components/landing.tsx";
+import { usePageTitle } from "../components/ui.tsx";
 import { brand, pageMetadata } from "../theme.ts";
+
+const TITLE = `${brand.name}: join and ${HEADLINE.toLowerCase().replace(/\.$/, "")}`;
 
 /** The web page's title, description and card, in the static HTML, so a shared link previews well. */
 export function generateMetadata() {
-  return pageMetadata(`${brand.name}: join and ${HEADLINE.toLowerCase().replace(/\.$/, "")}`, HOW);
+  return pageMetadata(TITLE, HOW);
 }
 
 export default function SignUpScreen() {
+  usePageTitle(TITLE);
   return (
     <Landing
       form={
