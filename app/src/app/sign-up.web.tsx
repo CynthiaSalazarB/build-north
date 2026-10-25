@@ -4,7 +4,7 @@
 // the account is made, Clerk sends the learner to "/" (`signUpFallbackRedirectUrl` in _layout.tsx), Start.
 // Android's "Get started" opens Clerk's hosted sign-up instead (sign-in.tsx).
 import { SignUp } from "@clerk/expo/web";
-import { HEADLINE, HOW, Landing, useClerkAppearance } from "../components/landing.tsx";
+import { AuthSwitch, HEADLINE, HOW, Landing, useClerkAppearance } from "../components/landing.tsx";
 import { brand, pageMetadata } from "../theme.ts";
 
 /** The web page's title, description and card, in the static HTML, so a shared link previews well. */
@@ -13,5 +13,14 @@ export function generateMetadata() {
 }
 
 export default function SignUpScreen() {
-  return <Landing form={<SignUp routing="hash" appearance={useClerkAppearance()} />} />;
+  return (
+    <Landing
+      form={
+        <>
+          <AuthSwitch mode="sign-up" />
+          <SignUp routing="hash" appearance={useClerkAppearance()} />
+        </>
+      }
+    />
+  );
 }

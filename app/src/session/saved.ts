@@ -46,3 +46,56 @@ export function parseSaved(text: string | null): SavedSession[] {
     return [{ sessionId: record.sessionId, material: typeof record.material === "string" ? record.material : null, draft: draft.data }];
   });
 }
+
+export type SavedSessionStorage = {
+  read: () => Promise<string | null>;
+  write: (text: string) => Promise<void>;
+  clear: () => Promise<void>;
+};
+
+export type SavedSessions = {
+  snapshot: () => Promise<SavedSession[]>;
+  get: (sessionId: string) => Promise<SavedSession | null>;
+  keep: (sessionId: string, record: SavedSession | null) => Promise<void>;
+  prune: (knownIds: ReadonlySet<string>, unfinishedIds: ReadonlySet<string>) => Promise<void>;
+  clear: () => Promise<void>;
+};
+
+/** Serializes access to the device cache: its read, every update and every write. */
+export function createSavedSessions(storage: SavedSessionStorage): SavedSessions {
+  let records: SavedSession[] = [];
+  let ready: Promise<void> | null = null;
+  let writes: Promise<void> = Promise.resolve();
+
+  const load = () => (ready ??= storage.read().then((text) => { records = parseSaved(text); }));
+
+  async function persist(next: SavedSession[]) {
+    await (next.length ? storage.write(serializeSaved(next)) : storage.clear());
+  }
+
+  function update(change: (current: SavedSession[]) => SavedSession[]) {
+    const write = writes.then(async () => {
+      await load();
+      records = change(records);
+      await persist(records);
+    });
+    writes = write.catch(() => {});
+    return write;
+  }
+
+  return {
+    async snapshot() {
+      await load();
+      await writes;
+      return [...records];
+    },
+    async get(sessionId) {
+      await load();
+      await writes;
+      return records.find((record) => record.sessionId === sessionId) ?? null;
+    },
+    keep: (sessionId, record) => update((current) => withSaved(current, sessionId, record)),
+    prune: (knownIds, unfinishedIds) => update((current) => current.filter((record) => !knownIds.has(record.sessionId) || unfinishedIds.has(record.sessionId))),
+    clear: () => update(() => []),
+  };
+}

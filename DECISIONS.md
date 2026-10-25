@@ -842,9 +842,10 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
 - **Decision:** the web build has its own sign-up page, `app/src/app/sign-up.web.tsx`, Clerk's prebuilt `<SignUp />`
   inside the same landing as the sign-in (`components/landing.tsx`). `ClerkProvider` in `_layout.tsx` names the two
   pages (`signInUrl="/sign-in"`, `signUpUrl="/sign-up"`) and where both end (`signInFallbackRedirectUrl="/"`,
-  `signUpFallbackRedirectUrl="/"`), so the "Sign up" link under the sign-in form stays on lumente.expo.app and a new
-  account lands on Start. Both forms use `routing="hash"`, so every step of a form stays on the one page the static
-  build has. Android's "Get started" still opens Clerk's hosted sign-up in the in-app browser (`sign-in.tsx`).
+  `signUpFallbackRedirectUrl="/"`), so account switching and new accounts stay on lumente.expo.app and a new
+  account lands on Start. The web forms put an app-owned "Get started" / "I have an account" link above Clerk's form
+  and explain the email-code steps. Both forms use `routing="hash"`, so every step of a form stays on the one page the
+  static build has. Android's "Get started" still opens Clerk's hosted sign-up in the in-app browser (`sign-in.tsx`).
 - **Instead of:** the "Sign up" link going to Clerk's hosted Account Portal (`enjoyed-goshawk-6043.accounts.dev/sign-up`),
   which was the state on Oct 24; or setting a Home URL in the Clerk dashboard so the portal sends people back.
 - **Why:** on Oct 24 a new account made through that link never came back to Lumente: the Clerk instance has no Home

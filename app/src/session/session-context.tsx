@@ -6,7 +6,7 @@
 import type { CreateSessionBody, MemoryView, Mentefacto, SessionSummary, TurnInput } from "@build-north/agents";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ClientError, type SessionClient } from "./client.ts";
-import { parseSaved, savedOf, serializeSaved, withSaved, type SavedSession } from "./saved.ts";
+import { createSavedSessions, savedOf } from "./saved.ts";
 import { clearSaved, readSaved, writeSaved } from "./storage.ts";
 import { drafted, failed, initialState, received, resendOf, sent, startedWith, withRevealed, type SessionState } from "./transcript.ts";
 
@@ -48,38 +48,25 @@ const retryableOf = (error: unknown) => (error instanceof ClientError ? error.re
 export function SessionProvider({ client, children }: { client: SessionClient; children: ReactNode }) {
   const [state, setState] = useState<SessionState>(initialState);
   const [history, setHistory] = useState<SessionSummary[] | null>(null);
-  // the records the device keeps, read once; nothing on screen draws them, so a ref is enough
-  const records = useRef<SavedSession[]>([]);
-  const keep = (next: SavedSession[]) => {
-    records.current = next;
-    void (next.length > 0 ? writeSaved(serializeSaved(next)) : clearSaved());
-  };
-
-  // demo mode keeps nothing (its sessions can't be picked up)
-  useEffect(() => {
-    if (client.offline) return;
-    let gone = false;
-    void readSaved().then((text) => {
-      if (!gone) records.current = parseSaved(text);
-    });
-    return () => {
-      gone = true;
-    };
-  }, [client]);
+  const saved = useRef<ReturnType<typeof createSavedSessions> | null>(null);
+  if (!saved.current) saved.current = createSavedSessions({ read: readSaved, write: writeSaved, clear: clearSaved });
 
   // the session on screen is kept as it moves (the level-5 map with it), and dropped once it is over
   useEffect(() => {
     if (client.offline || !state.turn) return;
-    keep(withSaved(records.current, state.turn.sessionId, savedOf(state)));
+    void saved.current!.keep(state.turn.sessionId, savedOf(state));
   }, [client, state]);
 
   const refresh = useCallback(async () => {
     if (client.offline) return null;
     try {
+      const before = await saved.current!.snapshot();
       const list = await client.list();
       setHistory(list);
-      // a record for a session the server no longer lists as unfinished has nothing left to add
-      keep(records.current.filter((r) => list.some((s) => s.id === r.sessionId && !s.finished)));
+      // Don't prune a record created while this list request was in flight; the response can predate that session.
+      const knownIds = new Set(before.map((record) => record.sessionId));
+      const unfinishedIds = new Set(list.filter((session) => !session.finished).map((session) => session.id));
+      await saved.current!.prune(knownIds, unfinishedIds);
       return null;
     } catch (error) {
       return messageOf(error);
@@ -89,7 +76,7 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
   const forget = () => {
     setState(initialState);
     setHistory(null);
-    keep([]);
+    void saved.current!.clear();
   };
 
   const deliver = (body: Parameters<typeof sent>[1], retry: boolean) => {
@@ -132,7 +119,7 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     async resume({ id, mode }) {
       try {
         const turn = await client.resume(id);
-        const kept = records.current.find((r) => r.sessionId === id);
+        const kept = await saved.current!.get(id);
         // the server's map holds what Help revealed; the learner's own words come back from the device
         const back = startedWith(turn, mode, kept?.material ?? null);
         setState(kept?.draft ? drafted(back, withRevealed(kept.draft, turn.mentefacto)) : back);
@@ -140,7 +127,7 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
       } catch (error) {
         // deleted, over for longer than the server keeps it, or another learner's: it isn't coming back
         if (error instanceof ClientError && error.status === 404) {
-          keep(withSaved(records.current, id, null));
+          void saved.current!.keep(id, null);
           setHistory((list) => list?.filter((s) => s.id !== id) ?? null);
           return "That session is gone. Start a new one.";
         }

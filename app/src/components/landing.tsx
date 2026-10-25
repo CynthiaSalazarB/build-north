@@ -3,6 +3,7 @@
 // and the map the learner is about to light. sign-in.web.tsx and sign-up.web.tsx are the two pages; Android uses
 // sign-in.tsx instead.
 import type { ReactNode } from "react";
+import { Link } from "expo-router";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import { brand, page, radius, space, type, webSans } from "../theme.ts";
 import { CodePreview } from "./code-preview.tsx";
@@ -19,6 +20,9 @@ export const HOW = "Learn to investigate concepts through guided questions, make
 export function useClerkAppearance() {
   const c = useColors();
   return {
+    // Temporary: hides the "Development mode" badge (B1, Oct 24 web test) while the site runs on Clerk's development
+    // instance; a production instance needs a domain of our own with DNS records, so drop this once we move to one.
+    layout: { unsafe_disableDevelopmentModeWarnings: true },
     variables: {
       colorPrimary: c.primary,
       colorPrimaryForeground: c.onPrimary,
@@ -33,6 +37,24 @@ export function useClerkAppearance() {
       borderRadius: `${radius.field}px`,
     },
   } as const;
+}
+
+/** Keep account switching on Lumente and make the two routes easy to find above Clerk's form. */
+export function AuthSwitch({ mode }: { mode: "sign-in" | "sign-up" }) {
+  const c = useColors();
+  const signingIn = mode === "sign-in";
+  return (
+    <View style={styles.authSwitch}>
+      <Small dim>{signingIn ? "New to Lumente?" : "Already have an account?"}</Small>
+      <Link
+        href={signingIn ? "/sign-up" : "/sign-in"}
+        accessibilityLabel={signingIn ? "Get started and create an account" : "I have an account, sign in"}
+        style={[type.button, styles.authSwitchLink, { color: c.onSurface, backgroundColor: c.controlFill, borderColor: c.outline }]}
+      >
+        {signingIn ? "Get started" : "I have an account"}
+      </Link>
+    </View>
+  );
 }
 
 export function Landing({ form }: { form: ReactNode }) {
@@ -51,7 +73,9 @@ export function Landing({ form }: { form: ReactNode }) {
               </Text>
               <Text style={[type.lead, { color: c.onSurfaceVariant }]}>{HOW}</Text>
             </Rise>
-            <Rise order={2}>{form}</Rise>
+            <Rise order={2}>
+              <View style={styles.authForm}>{form}</View>
+            </Rise>
           </ScrollView>
           <View style={styles.stage}>
             <Rise order={1} style={styles.spot}>
@@ -74,7 +98,9 @@ export function Landing({ form }: { form: ReactNode }) {
           </View>
           <Small dim>{HOW}</Small>
         </Rise>
-        <Rise order={1}>{form}</Rise>
+        <Rise order={1}>
+          <View style={styles.authForm}>{form}</View>
+        </Rise>
       </ScrollView>
     </Screen>
   );
@@ -90,4 +116,7 @@ const styles = StyleSheet.create({
   wordsContent: { flexGrow: 1, justifyContent: "center", paddingVertical: space.xxl, gap: space.xxl },
   stage: { flex: 1, alignItems: "center", justifyContent: "center", paddingBottom: page.header },
   spot: { width: "100%", maxWidth: page.map },
+  authForm: { gap: space.m },
+  authSwitch: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: space.s },
+  authSwitchLink: { borderWidth: 1, borderRadius: radius.field, paddingHorizontal: space.m, paddingVertical: space.xs, overflow: "hidden" },
 });

@@ -25,8 +25,24 @@ const devClient = createClient();
 
 /** Clerk's sign-in (on the web) names the app and skips its "Welcome back! Please sign in to continue". */
 const localization = {
-  signIn: { start: { title: `Sign in to ${brand.name}`, titleCombined: `Sign in to ${brand.name}`, subtitle: "", subtitleCombined: "" } },
-  signUp: { start: { title: `Join ${brand.name}`, titleCombined: `Join ${brand.name}`, subtitle: "", subtitleCombined: "" } },
+  signIn: {
+    start: {
+      title: `Sign in to ${brand.name}`,
+      titleCombined: `Sign in to ${brand.name}`,
+      subtitle: "Use Google or get a one-time code by email. No password needed.",
+      subtitleCombined: "Use Google or get a one-time code by email. No password needed.",
+    },
+    emailCode: { subtitle: "Check your inbox, then enter the code here." },
+  },
+  signUp: {
+    start: {
+      title: `Join ${brand.name}`,
+      titleCombined: `Join ${brand.name}`,
+      subtitle: "Create your account with Google or a one-time code by email.",
+      subtitleCombined: "Create your account with Google or a one-time code by email.",
+    },
+    emailCode: { subtitle: "Enter the one-time code we sent to your email." },
+  },
 };
 
 // Expo Observe records launch times and crashes on phone release builds (it does nothing on the web)
