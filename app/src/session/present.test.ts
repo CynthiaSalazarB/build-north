@@ -44,6 +44,7 @@ import {
   pointsOf,
   provedOf,
   rememberedLineOf,
+  resumeLineOf,
   shortDateOf,
   resultPartsOf,
   resultStepsOf,
@@ -205,6 +206,16 @@ test("the exclusion's follow-up question stays in the part, with the answer befo
   const retried = [...part, learner("learner-4", "Server!"), at("turn-10-0", "feedback", "Not yet: what does a server do that an API doesn't?")];
   assert.equal(cappedOf(retried), true);
   assert.equal(helpOf(retried).tag, "help");
+  // picked up on the latest Turn alone (no saved steps), the follow-up is the first question on screen: the Helps and
+  // retries before it are gone, so neither the firefly nor the sheet may promise a hint that the server would answer
+  // with the answer itself (0 points)
+  const alone = currentPartOf(entries.slice(-2));
+  assert.deepEqual(alone.map((e) => e.id), ["turn-9-0", "turn-9-1"]);
+  assert.deepEqual(helpOf(alone), { tag: "help", label: "More help", more: true });
+  assert.equal(guidedHelpOf(alone).confirm, "Request help");
+  assert.match(guidedHelpOf(alone).detail, /hint or the answer/);
+  // the whole part, with the move's own question first, still knows the price
+  assert.match(guidedHelpOf(part).detail, /at most 1 point instead of 2/);
 });
 
 test("hint cards use actual server steps, without inventing a count or charging a second point", () => {
@@ -518,4 +529,12 @@ test("the Memory sheet's words: each part's level now and how it got there, the 
   assert.match(cors.gap!, /^Last time, [A-Z][a-z]{2} \d{1,2}: you guessed 6 and proved 5\. Before, [A-Z][a-z]{2} \d{1,2}: you guessed 7 and proved 4\.$/);
   assert.equal(memoryConceptOf({ ...view.concepts[0]!, gap: { latest: null, previous: null } }).gap, null);
   assert.equal(shortDateOf("not a date"), "");
+});
+
+test("every unfinished session's Resume card says the same thing, the one on screen included: its kind and the day it started", () => {
+  // the date reads in the device's time zone, so the session starts at noon on Oct 24 in the zone the test runs in
+  const createdAt = new Date(2026, 9, 24, 12).toISOString();
+  assert.equal(resumeLineOf({ mode: "learn", createdAt }), "session started Oct 24");
+  assert.equal(resumeLineOf({ mode: "test", createdAt }), "self-test started Oct 24");
+  assert.equal(resumeLineOf({ mode: "learn", createdAt: "not a date" }), "session started");
 });

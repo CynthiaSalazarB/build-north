@@ -46,8 +46,11 @@ export function AuthSwitch({ mode }: { mode: "sign-in" | "sign-up" }) {
   return (
     <View style={styles.authSwitch}>
       <Small dim>{signingIn ? "New to Lumente?" : "Already have an account?"}</Small>
+      {/* replace, never push: a form left mounted under the other one takes over its next step (the code step jumped
+          back to /sign-in), so only one Clerk form is ever on the page */}
       <Link
         href={signingIn ? "/sign-up" : "/sign-in"}
+        replace
         accessibilityLabel={signingIn ? "Get started and create an account" : "I have an account, sign in"}
         style={[type.button, styles.authSwitchLink, { color: c.onSurface, backgroundColor: c.controlFill, borderColor: c.outline }]}
       >
