@@ -922,3 +922,38 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   summary and the beginning explains that it will return. The existing transcript is the source, not a new
   persistence field or a model reconstruction. This is read-only UI; scoring, sequencing and API contracts stay.
 
+### 2026-10-25 · Saved concepts have their own two-folder library
+- **Decision:** Start has a visible "View your concepts" entry leading to `/concepts`, with "In progress" and
+  "Completed" folders. Each session keeps its own concept, mode and start date; completed sessions also show their
+  score. Resume continues the saved session; Review map opens its existing result and conversation. Folder selection
+  lives in the URL, with normal browser and native back navigation. Start keeps one quick resume instead of every
+  session card. On phones, the heading and concept controls precede the decorative code/map preview; desktop keeps
+  the preview beside the controls.
+- **Instead of:** mixing the full session history into the new-session form and making the learner scroll past it
+  to choose a concept, or collapsing repeated sessions into one concept and losing their separate results.
+- **Why:** Leo asked for clearer, more professional app and web layouts, including Cynthia's proposed folders for
+  saved work. The distinction between continuing and reviewing should be visible before opening a session. All
+  instructions, modes, notes and the preview remain available. This supports the learner's map-building task in
+  `wiki/synthesis/product-thesis.md` without changing assessment, help, mastery or the order of a session.
+- **Pattern / trade-off:** saved work takes one additional navigation step; the quick resume keeps the common path
+  short. The existing sessions endpoint remains the record, including its 200-session limit. Lists virtualize,
+  counts describe sessions rather than mastery, and cached results are explicitly marked when refreshing fails.
+  Back cancels delayed navigation. Clearing data invalidates older reads, so a late response cannot restore deleted
+  work on screen. The privacy sheet scrolls its full content with a fixed exit; sign-out failures have a retry, and
+  changing Clerk user identity remounts session UI.
+
+### 2026-10-25 · Web font loading cannot block the interface
+- **Decision:** keep Newsreader and both Atkinson families. Web fonts use `FontDisplay.SWAP` and load in sequence
+  through `expo-font`; after the first hydration frame, the interface is usable while they arrive. Static export
+  still registers the font resources, and native retains Expo's font-loading gate. A failed font leaves readable
+  system text instead of preventing access to the app.
+- **Instead of:** waiting for the entire parallel font load before showing any web UI, or changing the brand fonts
+  or editing Expo's installed package.
+- **Why:** local WebKit cold-start checks showed a blank screen until a roughly 12-second font timeout despite
+  successful file downloads. Serial registration avoids overlapping changes to the shared stylesheet. Matching the
+  first server/client frame also avoids hydration mismatches on responsive and query-driven screens.
+- **Pattern / trade-off:** web text can briefly use its fallback face on a slow connection. Content and controls
+  remain available; typography replaces the fallback when ready. This changes loading behavior, not the type scale,
+  palette, session flow or native dependency set. Timings in the verification record are local browser measurements,
+  not production performance claims.
+

@@ -1,7 +1,7 @@
 // The session the screens share: the transcript state plus what a learner can do (start, send, retry,
 // and at level 5 edit their map). The rules live in transcript.ts; this file only wires them to the
 // client. Starting a session replaces the one on screen; the server keeps every session, and GET /sessions lists
-// them (`history`), so Start offers the unfinished ones to pick up and the finished ones to read again. The device
+// them (`history`), so Your concepts offers unfinished sessions to resume and finished maps to review. The device
 // keeps, per session, only what the server doesn't hold (saved.ts, storage.ts): the notes and the level-5 map.
 import type { CreateSessionBody, MemoryView, Mentefacto, SessionSummary, TurnInput } from "@build-north/agents";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
@@ -44,12 +44,15 @@ const SessionContext = createContext<SessionApi | null>(null);
 
 const messageOf = (error: unknown) => (error instanceof ClientError ? error.message : "Something went wrong. Try again.");
 const retryableOf = (error: unknown) => (error instanceof ClientError ? error.retryable : true);
+const CLEARED = "Your session changed while this was loading. Try again.";
 
 export function SessionProvider({ client, children }: { client: SessionClient; children: ReactNode }) {
   const [state, setState] = useState<SessionState>(initialState);
   const [history, setHistory] = useState<SessionSummary[] | null>(null);
+  const epoch = useRef(0);
+  const listRequest = useRef(0);
   const saved = useRef<ReturnType<typeof createSavedSessions> | null>(null);
-  if (!saved.current) saved.current = createSavedSessions({ read: readSaved, write: writeSaved, clear: clearSaved });
+  if (saved.current === null) saved.current = createSavedSessions({ read: readSaved, write: writeSaved, clear: clearSaved });
 
   // the session on screen is kept as it moves (the level-5 map with it), and dropped once it is over
   useEffect(() => {
@@ -59,9 +62,11 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
 
   const refresh = useCallback(async () => {
     if (client.offline) return null;
+    const request = ++listRequest.current;
     try {
       const before = await saved.current!.snapshot();
       const list = await client.list();
+      if (request !== listRequest.current) return null;
       setHistory(list);
       // Don't prune a record created while this list request was in flight; the response can predate that session.
       const knownIds = new Set(before.map((record) => record.sessionId));
@@ -69,11 +74,15 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
       await saved.current!.prune(knownIds, unfinishedIds);
       return null;
     } catch (error) {
+      if (request !== listRequest.current) return null;
       return messageOf(error);
     }
   }, [client]);
 
   const forget = () => {
+    // Late reads must not put deleted data or a previous learner's session back on screen.
+    epoch.current++;
+    listRequest.current++;
     setState(initialState);
     setHistory(null);
     void saved.current!.clear();
@@ -96,11 +105,14 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     state,
     offline: client.offline,
     async start(body) {
+      const version = ++epoch.current;
       try {
         const turn = await client.start(body);
+        if (version !== epoch.current) return CLEARED;
         setState(startedWith(turn, body.mode, body.material ?? null));
         return null;
       } catch (error) {
+        if (version !== epoch.current) return CLEARED;
         return messageOf(error);
       }
     },
@@ -117,17 +129,20 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     history,
     refresh,
     async resume({ id, mode }) {
+      const version = ++epoch.current;
       try {
         // the latest Turn says whether the session is still there (a 404 when it isn't); the steps bring its whole
         // conversation back, and without them (an older session, or an API from before they were kept) the latest
         // Turn shows alone
         const [turn, steps] = await Promise.all([client.resume(id), client.transcript(id).catch(() => null)]);
         const kept = await saved.current!.get(id);
+        if (version !== epoch.current) return CLEARED;
         // the server's map holds what Help revealed; the learner's own words come back from the device
         const back = replayed(steps, turn, mode, kept?.material ?? null);
         setState(kept?.draft ? drafted(back, withRevealed(kept.draft, turn.mentefacto)) : back);
         return null;
       } catch (error) {
+        if (version !== epoch.current) return CLEARED;
         // deleted, over for longer than the server keeps it, or another learner's: it isn't coming back
         if (error instanceof ClientError && error.status === 404) {
           void saved.current!.keep(id, null);

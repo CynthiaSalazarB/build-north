@@ -1,12 +1,11 @@
-// The start screen (round 9 "Lumente"): it opens on the learner's code, the concept's line lit in amber, over the
-// empty map in the dark, with the firefly beside it. A concept is picked in one tap or typed, plus optionally the
+// Start (round 9 "Lumente"): concept choices lead on phones, followed by the code/map preview. The website shows
+// the preview beside the choices. A concept is picked in one tap or typed, plus optionally the
 // learner's notes (pasted text only, up to 8,000 characters: decision 12). "Ask your AI what to map" gives a
 // prompt to paste into a coding agent, so the concepts come from the learner's own project; notes that look like a
 // key or a password never leave the phone. "Test myself" starts a self-test instead: the whole map alone, the
 // testers' pre-test and post-test. Every session the learner didn't finish (closed early, a reload, a killed app,
-// another device) is offered back at the top, from the server's list, and the finished ones wait under "Your maps",
-// each opening on its result (read-only: a finished session is never played again). In the website layout the
-// choices are a column on the left and the code and the map stand on the right.
+// another device) is in Your concepts, alongside completed maps for read-only review. Start keeps one quick resume.
+// In the website layout the choices are a column on the left and the code and the map stand on the right.
 import type { SessionMode, SessionSummary } from "@build-north/agents";
 import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
@@ -14,13 +13,14 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useState, type ReactNode } from "react";
 import { Platform, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { CodePreview } from "../components/code-preview.tsx";
+import { ConceptsLink } from "../components/concepts-link.tsx";
 import { MemorySheet } from "../components/memory-sheet.tsx";
 import { Failure } from "../components/messages.tsx";
 import { SiteHeader } from "../components/site-header.tsx";
 import { Body, Button, Card, Chip, KeyboardSafe, Label, PromptField, Rise, Screen, Sheet, Small, Title, useColors, usePageTitle, useWide } from "../components/ui.tsx";
 import { UpdateNotice } from "../components/update-notice.tsx";
 import { VersionLine } from "../components/version-line.tsx";
-import { AI_PROMPT, CONCEPTS, resumeLineOf, secretLineOf, shortDateOf } from "../session/present.ts";
+import { AI_PROMPT, CONCEPTS, resumeLineOf, secretLineOf } from "../session/present.ts";
 import { clerkKey } from "../session/config.ts";
 import { useSession } from "../session/session-context.tsx";
 import { brand, page, pageMetadata, radius, size, space, type } from "../theme.ts";
@@ -80,7 +80,7 @@ export default function StartScreen() {
     }, [refresh]),
   );
   const kept = history?.filter((s) => !s.finished && s.id !== state.turn?.sessionId) ?? [];
-  const maps = history?.filter((s) => s.finished) ?? [];
+  const recent = kept[0];
   const busy = starting !== null || resuming !== null;
   const secretLine = secretLineOf(notes);
   const secret = secretLine !== null;
@@ -145,32 +145,34 @@ export default function StartScreen() {
   // the choices, in the order both layouts read them
   const choices = (
     <>
+      {listError && (
+        <View style={styles.resume}>
+          <Small dim>{`Couldn't load saved concepts. ${listError}`}</Small>
+          <Button kind="text" label="Try again" onPress={() => void refresh().then(setListError)} style={styles.left} />
+        </View>
+      )}
       {unfinished && (
         <Rise order={1}>
-          <Card style={styles.resume}>
-            <View style={styles.resumeHead}>
-              <Body style={styles.flex} numberOfLines={1}>
-                {unfinished.mentefacto.concept}
-              </Body>
-              <Label dim>{onScreenLine}</Label>
+          <Card style={styles.resumeCard}>
+            <View style={styles.resumeWords}>
+              <Body>{unfinished.mentefacto.concept}</Body>
+              <Small dim>{onScreenLine}</Small>
             </View>
             <Button kind="secondary" label="Resume" disabled={busy} onPress={() => router.push("/session")} />
           </Card>
         </Rise>
       )}
-      {kept.map((session) => (
-        <Rise key={session.id} order={1}>
-          <Card style={styles.resume}>
-            <View style={styles.resumeHead}>
-              <Body style={styles.flex} numberOfLines={1}>
-                {session.concept}
-              </Body>
-              <Label dim>{resumeLineOf(session)}</Label>
+      {!unfinished && recent && (
+        <Rise order={1}>
+          <Card style={styles.resumeCard}>
+            <View style={styles.resumeWords}>
+              <Body>{recent.concept}</Body>
+              <Small dim>{resumeLineOf(recent)}</Small>
             </View>
-            <Button kind="secondary" label="Resume" hint="Picks the session up where you left it" busy={resuming === session.id} disabled={busy} onPress={() => void pickUp(session)} />
+            <Button kind="secondary" label="Resume" hint={`Continue your ${recent.concept} session`} busy={resuming === recent.id} disabled={busy} onPress={() => void pickUp(recent)} />
           </Card>
         </Rise>
-      ))}
+      )}
       {/* demo mode replays one recorded session, on API, whatever is picked (fixture-client.ts): it offers that
           concept alone, so a tap on "CORS" never opens a session about API */}
       {offline && <Label dim>Demo mode: a recorded session on API</Label>}
@@ -214,24 +216,6 @@ export default function StartScreen() {
         </View>
       )}
       {error && <Failure message={error} />}
-      {/* every finished session, newest first: its result opens again, read-only (the thesis's "Your maps") */}
-      {(maps.length > 0 || listError) && (
-        <Rise order={5} style={styles.maps}>
-          <Label dim>Your maps</Label>
-          {listError && <Small dim>{`Couldn't load them: ${listError}`}</Small>}
-          {maps.map((session) => (
-            <Card key={session.id} style={styles.resume}>
-              <View style={styles.resumeHead}>
-                <Body style={styles.flex} numberOfLines={1}>
-                  {session.concept}
-                </Body>
-                <Label dim>{`${session.score ?? 0} of 8${session.mode === "test" ? " · self-test" : ""}${shortDateOf(session.createdAt) ? ` · ${shortDateOf(session.createdAt)}` : ""}`}</Label>
-              </View>
-              <Button kind="text" label="Open" hint="Shows this map and its result again" busy={resuming === session.id} disabled={busy} onPress={() => void pickUp(session)} style={styles.left} />
-            </Card>
-          ))}
-        </Rise>
-      )}
     </>
   );
   const sheet = (
@@ -253,6 +237,7 @@ export default function StartScreen() {
           <ScrollView style={styles.words} contentContainerStyle={styles.wordsContent} keyboardShouldPersistTaps="handled">
             {/* an Android tablet in the website layout still gets "Update ready"; the web never does */}
             <UpdateNotice />
+            {!offline && <ConceptsLink />}
             <Rise style={styles.heading}>
               <Text style={[type.display, { color: c.onSurface }]} accessibilityRole="header">
                 {QUESTION}
@@ -288,14 +273,15 @@ export default function StartScreen() {
             </Text>
             <Account />
           </View>
-          <Rise>
-            <CodePreview concept={name} />
-          </Rise>
+          {!offline && <ConceptsLink />}
           <Rise order={1} style={styles.heading}>
             <Title>{QUESTION}</Title>
             <Body dim>{SUBTITLE}</Body>
           </Rise>
           {choices}
+          <Rise order={5} style={styles.preview}>
+            <CodePreview concept={name} />
+          </Rise>
         </ScrollView>
         <View style={styles.foot}>
           {/* on the phone the key warning sits by the buttons it turns off: under the notes, the sticky foot hid it (B18) */}
@@ -357,19 +343,38 @@ function ClerkAccount({ solid }: { solid: boolean }) {
   const { forget } = useSession();
   // a sign-out that fails (offline, say) leaves the learner signed in, with nothing to show for it; one that works
   // takes the session with it, since the next learner on this device isn't this one
-  return <AccountButtons solid={solid} signOut={() => signOut().then(forget, () => undefined)} />;
+  return <AccountButtons solid={solid} signOut={() => signOut().then(forget)} />;
 }
 
 function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Promise<void>) | null }) {
   const { offline, deleteData } = useSession();
   const [open, setOpen] = useState(false);
   const [memoryOpen, setMemoryOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const leave = async (dataDeleted = false) => {
+    if (!signOut || signingOut) return;
+    setSigningOut(true);
+    setSignOutError(null);
+    try {
+      await signOut();
+    } catch {
+      setSignOutError(dataDeleted ? "Your data was deleted, but we couldn't sign you out. Try signing out again." : "Couldn't sign out. Check your connection and try again.");
+    } finally {
+      setSigningOut(false);
+    }
+  };
   return (
     <View style={styles.account}>
       {!offline && <Button kind="text" label="Memory" onPress={() => setMemoryOpen(true)} style={!solid && styles.signOut} />}
       <MemorySheet open={memoryOpen} onClose={() => setMemoryOpen(false)} />
       <Button kind="text" label="Your data" onPress={() => setOpen(true)} style={!solid && styles.signOut} />
-      {signOut && <Button kind={solid ? "secondary" : "text"} solid={solid} label="Sign out" onPress={() => void signOut()} style={!solid && styles.signOut} />}
+      {signOut && <Button kind={solid ? "secondary" : "text"} solid={solid} label="Sign out" busy={signingOut} onPress={() => void leave()} style={!solid && styles.signOut} />}
+      <Sheet open={signOutError !== null} onClose={() => setSignOutError(null)} label="Sign out">
+        <Title style={styles.sheetTitle}>Sign out</Title>
+        {signOutError && <Failure message={signOutError} />}
+        <Button label="Try signing out again" busy={signingOut} onPress={() => void leave()} />
+      </Sheet>
       <YourData
         open={open}
         onClose={() => setOpen(false)}
@@ -378,7 +383,7 @@ function AccountButtons({ solid, signOut }: { solid: boolean; signOut: (() => Pr
         onDelete={async () => {
           const problem = await deleteData();
           // the data is gone either way: a sign-out that fails (offline, say) isn't a failed delete
-          if (!problem && signOut) await signOut().catch(() => undefined);
+          if (!problem && signOut) await leave(true);
           return problem;
         }}
       />
@@ -419,47 +424,49 @@ function YourData({ open, onClose, offline, signsOut, onDelete }: { open: boolea
     }
   };
   return (
-    <Sheet open={open} onClose={close} label="your data">
+    <Sheet open={open} onClose={close} label="your data" reading>
       <Title style={styles.sheetTitle}>Your data</Title>
-      {offline ? (
-        <Body>{DEMO}</Body>
-      ) : (
-        <>
-          <Body>{KEPT}</Body>
-          <Small dim>{MEMORY_KEPT}</Small>
-          <Small dim>{TO_CLAUDE}</Small>
-          <Small dim>{VOICE}</Small>
-          <Small dim>{OBSERVE}</Small>
-        </>
-      )}
-      <Small dim>{WHO_ASKS}</Small>
-      {!offline &&
-        (confirming ? (
-          <View style={styles.confirm}>
-            <Body>{`This deletes every session and your levels${signsOut ? ", and signs you out" : ""}. It can't be undone.`}</Body>
-            {error && <Failure message={error} />}
-            <Button label={signsOut ? "Delete and sign out" : "Delete my data"} busy={busy} onPress={() => void remove()} />
-            <Button kind="text" label="Keep my data" disabled={busy} onPress={() => setConfirming(false)} />
-          </View>
+      <ScrollView style={styles.dataScroll} contentContainerStyle={styles.dataContent}>
+        {offline ? (
+          <Body>{DEMO}</Body>
         ) : (
-          <Button kind="secondary" label="Delete my data" onPress={() => setConfirming(true)} style={styles.left} />
-        ))}
-      {/* what is running, so a tester or a judge can say exactly what they saw */}
-      <VersionLine />
+          <>
+            <Body>{KEPT}</Body>
+            <Small dim>{MEMORY_KEPT}</Small>
+            <Small dim>{TO_CLAUDE}</Small>
+            <Small dim>{VOICE}</Small>
+            <Small dim>{OBSERVE}</Small>
+          </>
+        )}
+        <Small dim>{WHO_ASKS}</Small>
+        {!offline &&
+          (confirming ? (
+            <View style={styles.confirm}>
+              <Body>{`This deletes every session, your levels and progress memory${signsOut ? ", and signs you out" : ""}. It can't be undone.${signsOut ? " Your sign-in account stays." : ""}`}</Body>
+              {error && <Failure message={error} />}
+              <Button label={signsOut ? "Delete and sign out" : "Delete my data"} busy={busy} onPress={() => void remove()} />
+              <Button kind="text" label="Keep my data" disabled={busy} onPress={() => setConfirming(false)} />
+            </View>
+          ) : (
+            <Button kind="secondary" label="Delete my data" onPress={() => setConfirming(true)} style={styles.left} />
+          ))}
+        {/* what is running, so a tester or a judge can say exactly what they saw */}
+        <VersionLine />
+      </ScrollView>
+      <Button kind="secondary" label="Back to Start" disabled={busy} onPress={close} />
     </Sheet>
   );
 }
 
 const styles = StyleSheet.create({
   content: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.xl, gap: space.l },
-  top: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", minHeight: size.touch },
+  top: { flexDirection: "row", flexWrap: "wrap", columnGap: space.l, rowGap: space.xs, alignItems: "center", justifyContent: "space-between", minHeight: size.touch },
   account: { flexDirection: "row", alignItems: "center", gap: space.l },
   signOut: { paddingHorizontal: 0 },
   confirm: { gap: space.m, marginTop: space.s },
-  flex: { flex: 1 },
   resume: { gap: space.m },
-  resumeHead: { flexDirection: "row", alignItems: "center", gap: space.m },
-  maps: { gap: space.m, marginTop: space.l },
+  resumeCard: { flexDirection: "row", alignItems: "center", gap: space.l },
+  resumeWords: { flex: 1, minWidth: 0, gap: space.xs },
   chips: { flexDirection: "row", flexWrap: "wrap", gap: space.s },
   extras: { flexDirection: "row", flexWrap: "wrap", columnGap: space.l },
   left: { alignSelf: "flex-start", paddingHorizontal: 0 },
@@ -470,6 +477,8 @@ const styles = StyleSheet.create({
   foot: { paddingHorizontal: space.margin, paddingTop: space.s, paddingBottom: space.m, gap: space.xs },
   footRow: { flexDirection: "row", justifyContent: "center" },
   sheetTitle: { fontSize: 24, lineHeight: 30 },
+  dataScroll: { flex: 1, minHeight: 0 },
+  dataContent: { gap: space.l, paddingBottom: space.s },
   prompt: { borderRadius: radius.field, borderWidth: 1, padding: space.l },
   promptText: { lineHeight: 18 },
   split: { flex: 1, flexDirection: "row", gap: page.gap, paddingHorizontal: page.gutter },
@@ -477,6 +486,7 @@ const styles = StyleSheet.create({
   wordsContent: { flexGrow: 1, justifyContent: "center", paddingTop: space.xxl, paddingBottom: page.header, gap: space.xl },
   actions: { flexDirection: "row", alignItems: "flex-start", gap: space.m, marginTop: space.s },
   heading: { gap: space.m },
+  preview: { marginTop: space.l },
   choice: { gap: space.xs, alignItems: "center", flexShrink: 1 },
   choiceLine: { textAlign: "center" },
   tall: { height: 56 },
