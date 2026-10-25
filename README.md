@@ -4,7 +4,7 @@
 
 # Lumente
 
-**Build with AI. Understand the concepts yourself.**
+**Build with AI. Explain the concepts yourself.**
 
 Lumente helps students who code with AI learn to explain the ideas behind their code, in their own words.
 
@@ -27,25 +27,27 @@ Lumente helps students who code with AI learn to explain the ideas behind their 
 
 Lumente is an app for computer science students who build projects with AI tools like Claude Code, Cursor or Copilot. The AI writes code that works, and the student often can't explain the ideas behind it.
 
-In Lumente, the student picks one of those ideas and explains it by answering an AI's questions. At the end, they see how well they really know the idea, next to how well they thought they knew it.
+In Lumente, the student picks one of those ideas and explains it by answering an AI's questions. At the end, they see how well they really know the idea, next to how well they thought they knew it. The concept is the anchor; questioning is the skill they practice.
 
 It runs on the web and on Android. On an iPhone or a laptop, the website installs as an app from the browser, with its own icon.
 
 ## Why we built it
 
-AI writes code faster than students can understand it. The gap shows when someone asks them to explain it: in a code review, an exam or a job interview. AI makes this more common, because code that works feels understood.
+AI writes code faster than students can understand it. The gap shows when someone asks them to explain it: in a code review, an exam or a job interview. Psychologists call this the illusion of explanatory depth: something feels understood until we try to explain it. AI makes this more common, because code that works feels understood.
 
 - In a [study at Anthropic](https://www.anthropic.com/research/AI-assistance-coding-skills) (January 2026), developers learned a coding tool they'd never used. Those who used an AI assistant scored 50% on a quiz about it. Those who coded by hand scored 67%.
 - In [a study at Aalto University](https://www.aalto.fi/en/news/ai-use-makes-us-overestimate-our-cognitive-performance), people solved law-school reasoning problems with ChatGPT. They scored about 3 points better than the norm, but guessed their own score about 4 points too high ([the paper](https://arxiv.org/abs/2409.16708), published in *Computers in Human Behavior*, 2025).
 
 Programming students face this every week. Their AI writes their work every day, and code reviews, project defenses and job interviews check it.
 
+Lumente starts with concepts because they give questioning a concrete structure. We see questioning, driven by curiosity, as a foundational habit of critical thinking. The product helps a student explain an API today while practicing how to investigate the next unfamiliar idea.
+
 ## How it works
 
 A session takes about ten minutes. Here is one, with the app's real buttons.
 
 1. **Pick an idea.** The start screen asks: "Can you explain the ideas behind the code your AI wrote?" Tap a concept from your project, like API, JWT or CORS, or type your own. "Add your notes" takes pasted text for the AI to draw on. "Ask your AI what to map" gives you a prompt for your coding agent, so the concepts come from your own project. Then tap "Explore with guidance".
-2. **Predict your score.** Before any question, you pick a number from 0 to 8. A guide on the same screen says what each of the four map areas can earn. A clear, complete answer on the first try earns 2 points. One after a retry or a hint earns 1. A wrong, empty or revealed answer earns 0.
+2. **Predict your score.** Before any question, you pick a number from 0 to 8. This is not a grade; it records how sure you feel before receiving help. A guide on the same screen says what each of the four map areas can earn. A clear, complete answer on the first try earns 2 points. One after a retry or a hint earns 1. A wrong, empty or revealed answer earns 0.
 3. **Explain it in your own words first.** Then the firefly asks about the four areas of the map, one at a time:
    - Bigger group: what kind of thing is it?
    - What it isn't: what is it often confused with, and how is it different?
@@ -53,14 +55,14 @@ A session takes about ten minutes. Here is one, with the app's real buttons.
    - Its types: what kinds of it are there?
 
    You type or speak. Any answer you can defend passes. When an area is right, the feedback also says what you left out.
-4. **Ask for help when you're stuck.** Tap the firefly. The first Help on an area caps it at 1 point, and the third shows the answer for 0. At the early levels, a wrong answer gets a free nudge first. As you get areas right with little or no help, each one moves up a level, and the help fades.
-5. **See your score next to your prediction.** The result says the gap in words, like "You felt 2 points surer than you could explain". Under it, two rows of eight points: your prediction and your map score. Then come each area's points and which areas moved up a level. The coach adds one note for next time. "Share" sends your prediction and your score, never your answers.
+4. **Ask for help when you're stuck.** Tap the firefly. The first Help on an area caps it at 1 point, and the third shows the answer for 0. In the early guidance stages, a wrong answer gets a free nudge first. As you handle each area with less help, its guidance stage advances and carries into the next concept, so the support fades.
+5. **See your score next to your prediction.** The result says the gap in words, like "You felt 2 points surer than you could explain". Under it, two rows of eight points: your prediction and your map score. That gap shows how well your confidence matched what you could explain. The coach adds one note for next time. "Share" sends your prediction and your score, never your answers.
 
-After enough practice, all four areas reach level 5 and the roles flip. You build the whole map yourself: tap an area, write your answer, "Save answer". The firefly's highlight points at the next empty area, for free. "Ask a fact (optional)" opens a chat that answers your questions with facts and never with a part of the map. A hint asks you to confirm and names its cost first. "Review & submit", then "Submit my map", scores all four areas together. "Test myself" on the start screen runs this mode on any concept at once and changes no levels. Our pilot's two tests use it.
+The guidance stages track independence in the four map areas across concepts; they are not scores for API, CORS or another individual concept. Once guidance has faded across all four areas, the roles flip. You build the whole map yourself: tap an area, write your answer, "Save answer". The firefly's highlight points at the next empty area, for free. "Ask a fact (optional)" opens a chat that answers your questions with facts and never with a part of the map. A hint asks you to confirm and names its cost first. "Review & submit", then "Submit my map", scores all four areas together. "Test myself" runs this independent mode on any concept immediately and does not change your guidance stages. Our pilot's two tests use it.
 
 Tap any lit area of the map to read your full answer and the feedback on it. If you close the app or reload the page, the session waits on the start screen behind a "Resume" button.
 
-The firefly on screen is the AI. It asks and checks, its light warms under your finger or your pointer, and it never hands you the answer.
+The firefly on screen is the AI. It asks and checks, and its light warms under your finger or pointer. The learner writes the map; asking all the way to a revealed answer scores that area 0.
 
 | Predict | Answer the questions | Get a hint | See your score |
 |:---:|:---:|:---:|:---:|
@@ -68,11 +70,11 @@ The firefly on screen is the AI. It asks and checks, its light warms under your 
 
 ## What Lumente remembers
 
-After each finished session, Lumente writes a few progress notes to SurrealDB Agent Memory. They hold your level on each area, your prediction next to your score, and how many Helps an area took. Each note is one sentence that code writes from a template. Your words never go in.
+After each finished session, Lumente writes a few progress notes to SurrealDB Agent Memory. They hold the guidance stage you had on each area when you practiced that concept, your prediction next to your score, and how many Helps an area took. The stages track independence across concepts, not mastery of the concept named in the note. Each note is one sentence that code writes from a template. Your words never go in.
 
-The next time you practice the same concept, the hint giver and the coach read up to eight of these notes. They name the ones they used: "From what Lumente remembers: …". Tap that line, or "Memory" on the start screen, to see every note and how it changed. A new level replaces the old note and keeps its history.
+The next time you practice the same concept, the hint giver and the coach read up to eight of these notes. They name the ones they used: "From what Lumente remembers: …". Tap that line, or "Memory" on the start screen, to see every note and how it changed. A new guidance-stage note replaces the old one and keeps its history.
 
-Memory never changes a score: the levels still come from plain code. "Delete my data" removes the notes with everything else. Memory has been on since Oct 23, ready for our pilot ([`DECISIONS.md`](DECISIONS.md), Oct 23). How it fits the SurrealDB prize is in [the prize notes](wiki/context/surrealdb-sponsor-prize.md).
+Memory never changes a score or guidance stage: both still come from plain code. "Delete my data" removes the notes with everything else. Memory has been on since Oct 23, ready for our pilot ([`DECISIONS.md`](DECISIONS.md), Oct 23). How it fits the SurrealDB prize is in [the prize notes](wiki/context/surrealdb-sponsor-prize.md).
 
 ## The idea behind it
 
@@ -136,7 +138,7 @@ We will compare the first test with the second, and each student's prediction wi
 
 | Criterion | Where to look |
 |---|---|
-| Innovation | The AI won't do the thinking for you. You build each answer, the help fades as you improve, and at level 5 you write the whole map and ask the questions. Between sessions, the app remembers your progress, never your words |
+| Innovation | The AI won't do the thinking for you. You build each answer, guidance fades as you become more independent across the four map areas, and then you write the whole map and ask the questions. Between sessions, the app remembers your progress, never your words |
 | Real-world impact | One clear user, a problem backed by research, and a pilot with students. Students start with free sessions, then pay for more. Schools, colleges, institutes and bootcamps, our main customers, pay per student and see what each student has mastered. Prices come from what a session costs us (about $0.16) and from our first pilots |
 | UI and design | Lumente's own look: a dark screen that lights up as you prove each answer, and a firefly whose light answers your finger. It works on phones, installs as an app from the browser, and lays out as a two-column website on laptops |
 | Tech and deployment | Live on the web and on Android, built, updated and hosted with Expo's EAS. A session survives a reload or a killed app. Only our server talks to the AI, and plain code works out every score |
@@ -150,7 +152,7 @@ In short: the app runs on phones and the web, it talks only to our server, and o
 | Layer | What |
 |---|---|
 | App | Expo SDK 58, React Native, Expo Router, TypeScript. EAS Build (Android), EAS Update, EAS Hosting (web). The website is also an installable web app |
-| API | Express 5 on Node 24, hosted on Render. SurrealDB Cloud for sessions, levels and AI logs. SurrealDB Agent Memory for the progress notes. Clerk for sign-in |
+| API | Express 5 on Node 24, hosted on Render. SurrealDB Cloud for sessions, guidance stages and AI logs. SurrealDB Agent Memory for the progress notes. Clerk for sign-in |
 | Agents | Six Claude (Anthropic) agents. One asks the questions, one checks each answer, one checks the whole map, one answers with facts, one gives hints and one coaches. Each makes one structured call, and plain code runs the session |
 | Contracts | Zod schemas in `agents/src/contracts.ts` at every boundary: app to API, API to agents, agents to Claude |
 
@@ -161,7 +163,7 @@ flowchart LR
   App["App: Expo, Android and the web<br/>EAS Build, Update, Hosting"] -->|"Clerk session token<br/>POST /sessions, /turns<br/>GET /sessions, /sessions/:id, /me/memory<br/>DELETE /me/data"| API["API: Express 5 on Render"]
   Clerk["Clerk"] -. "sign-in, token" .-> App
   API -->|"checks the token<br/>with the public key"| Clerk
-  API -->|"sessions, levels, agent logs"| DB[("SurrealDB Cloud")]
+  API -->|"sessions, guidance stages, agent logs"| DB[("SurrealDB Cloud")]
   API -->|"progress notes: written at the result,<br/>read before a hint or the coach"| Memory[("SurrealDB Agent Memory")]
   API -->|"advance(): the orchestrator<br/>in agents/, plain code"| Agents["Agents: prompts and Zod contracts"]
   Agents -->|"one structured call per agent"| Claude["Claude (Anthropic)"]
@@ -198,7 +200,7 @@ Every build, update and deploy is in the [Expo log](docs/expo-log.md). [How Expo
 <details>
 <summary><b>Best Use of Clerk</b>: sign-in and sessions, checked on our server without a network call</summary>
 
-Clerk runs sign-in and sessions, by email code or Google. We pick the sign-in methods in the Clerk dashboard, with no code change. The website shows Clerk's ready-made sign-in form, and Android opens Clerk's sign-in page in an in-app browser. In the web app installed on an iPhone, the email code signs in without leaving the window. Our server checks each session token with Clerk's public key, without a network call. Every session, level and progress note is filed under the Clerk user id. Delete my data removes that person's sessions, AI logs, levels and memory notes, and signs them out.
+Clerk runs sign-in and sessions, by email code or Google. We pick the sign-in methods in the Clerk dashboard, with no code change. The website shows Clerk's ready-made sign-in form, and Android opens Clerk's sign-in page in an in-app browser. In the web app installed on an iPhone, the email code signs in without leaving the window. Our server checks each session token with Clerk's public key, without a network call. Every session, guidance stage and progress note is filed under the Clerk user id. Delete my data removes that person's sessions, AI logs, guidance stages and memory notes, and signs them out.
 
 More in [How we used Clerk](docs/clerk.md).
 
@@ -209,9 +211,9 @@ More in [How we used Clerk](docs/clerk.md).
 
 <!-- TODO(Cynthia): confirm that memory stayed on through the freeze. If the switch went off, cut this block to one line: SurrealDB Cloud is our database, in plain tables. -->
 
-SurrealDB Cloud stores the sessions, the levels and the AI logs, with a `dev` and a `prod` database. SurrealDB Agent Memory holds the progress notes from [What Lumente remembers](#what-lumente-remembers), one scope per learner under a salted hash of their Clerk id. Code writes each note from a template and sends it as a plain fact. Memory runs no model over it, and the learner's words never go in.
+SurrealDB Cloud stores the sessions, the guidance stages and the AI logs, with a `dev` and a `prod` database. SurrealDB Agent Memory holds the progress notes from [What Lumente remembers](#what-lumente-remembers), one scope per learner under a salted hash of their Clerk id. Code writes each note from a template and sends it as a plain fact. Memory runs no model over it, and the learner's words never go in.
 
-Three agents write the notes (the evaluator the levels, the coach the gap, the hint giver the Helps), and two read them. Before a hint or the coach's message, the server reads up to 8 notes from earlier sessions. If the read takes over 1.5 seconds, the agent runs without them. The agent names the notes it used, the server keeps only the ids it passed in, and the app shows them under the message. A new level supersedes the old note and keeps its history, which is what the Memory sheet shows. Memory never changes a score, Delete my data purges the scope first, and the switch is one server variable. It has been on since Oct 23, ready for our pilot ([`DECISIONS.md`](DECISIONS.md), Oct 22 and Oct 23). What the live context taught us is on the [prize page](wiki/context/surrealdb-sponsor-prize.md).
+Three agents write the notes (the evaluator the guidance stages, the coach the gap, the hint giver the Helps), and two read them. Before a hint or the coach's message, the server reads up to 8 notes from earlier sessions. If the read takes over 1.5 seconds, the agent runs without them. The agent names the notes it used, the server keeps only the ids it passed in, and the app shows them under the message. A new guidance-stage note supersedes the old one and keeps its history, which is what the Memory sheet shows. Memory never changes a score or stage, Delete my data purges the scope first, and the switch is one server variable. It has been on since Oct 23, ready for our pilot ([`DECISIONS.md`](DECISIONS.md), Oct 22 and Oct 23). What the live context taught us is on the [prize page](wiki/context/surrealdb-sponsor-prize.md).
 
 </details>
 

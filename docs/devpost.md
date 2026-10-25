@@ -21,47 +21,44 @@ Lumente
 
 ## Tagline
 
-Build with AI. Understand the concepts yourself.
+Build with AI. Explain the concepts yourself.
 
 ## Inspiration
 
-AI coding agents can produce working code faster than a student can understand the ideas underneath it.
+AI coding agents can produce working code faster than students can understand the ideas underneath it.
 The code runs, so it feels understood. Then a professor, teammate or interviewer asks, "Why does this
 work?" and the answer disappears.
 
-Lumente starts with programming students who build class and side projects with Claude Code, Cursor or
-Copilot. They meet this gap in code reviews, project defenses and interviews. One of us lives it. In the
-comments on a reel about the problem, people described routines they had invented for themselves:
-explain the concept to the AI, ask it to challenge the explanation, and find the gaps before someone
-else does.
+Psychologists call this the illusion of explanatory depth: we think we understand something until we
+try to explain it. AI can make that gap larger. In
+[Anthropic's study](https://www.anthropic.com/research/AI-assistance-coding-skills), developers learning
+with AI scored 50% on a concepts quiz, compared with 67% for those who coded by hand.
+[Aalto University](https://www.aalto.fi/en/news/ai-use-makes-us-overestimate-our-cognitive-performance)
+found that people using ChatGPT overestimated their performance by about four points.
 
-The research shows the same pattern. At
-[Anthropic](https://www.anthropic.com/research/AI-assistance-coding-skills), developers learning a new
-tool with AI scored 50% on a concepts quiz, compared with 67% for those who coded by hand. In
-[Aalto University's reasoning studies](https://www.aalto.fi/en/news/ai-use-makes-us-overestimate-our-cognitive-performance),
-people using ChatGPT overestimated their score by about four points. AI can lend confidence before the
-learner has earned it.
+Lumente starts with programming students because they face this moment constantly. It helps them
+explain the concepts behind their own projects. But concepts are the anchor, not the final goal. The
+skill underneath is questioning: noticing what you do not understand, asking what you need to know and
+building the answer yourself. We see that as a foundational habit of critical thinking.
 
 ## What it does
 
-Lumente turns a concept from an AI-built project into something the student can explain in their own
-words.
+A learner chooses a concept from their project, such as API or CORS, and predicts their score before
+seeing a question. The prediction is not a grade. It records how sure they feel before receiving help.
 
-1. Pick a concept your project uses, such as API, JWT or CORS. "Ask your AI what to map" gives your
-   coding agent a prompt that finds the concepts in your own code.
-2. Predict your score from 0 to 8 before seeing a question. This puts your confidence on record.
-3. Build a **conceptual mentefact**, a specialized visual map from Conceptual Pedagogy. It places one
-   concept in four areas: the bigger group it belongs to, what it is often confused with, what must be
-   true for it to count as one, and the types that exist.
-4. The firefly asks questions and checks each answer. You write the map. Help is available, but it costs
-   points and fades as you improve.
-5. See the score you proved beside the one you predicted. Lumente puts the gap into words: "You felt two
-   points surer than you could explain."
+They then build a **conceptual mentefact**, a specialized visual map from Conceptual Pedagogy. It places
+one concept in four areas: the bigger group it belongs to, what it is often confused with, what must be
+true for it to count as one, and the types that exist. The firefly asks questions and checks each
+answer, while the learner builds the map in their own words. Help costs points and fades as the learner
+becomes more independent.
 
-A concept is the practice material. Questioning is the skill. By level 5, the roles flip: you build the
-whole map, decide what you need to know and ask a fact desk for facts. The immediate value is being able
-to explain the API or CORS rule in your project. The longer-term value is learning how to investigate
-the next unfamiliar idea without handing the thinking back to AI.
+At the end, Lumente shows the predicted score beside the score they proved. That gap makes confidence
+visible: how well what they felt they knew matches what they could actually explain.
+
+The guidance stages track independence in the four map areas across concepts; they are not scores for
+API, CORS or another individual concept. Once guidance has faded across all four areas, the roles flip.
+The learner builds the whole map, decides what they need to know and asks a fact desk for facts. That is
+where Lumente moves from helping with one concept to practicing how to investigate the next one.
 
 ## How we built it
 
@@ -71,12 +68,12 @@ TypeScript monorepo with three npm workspaces; no server build step.
   app, EAS Update ships fixes over the air, EAS Hosting serves the website, which installs as a web app
   on iPhones and laptops.
 - **API:** Express 5 on Node 24, on Render. One route moves a session forward. SurrealDB Cloud holds
-  sessions, levels and AI logs; SurrealDB Agent Memory holds the progress notes. Clerk signs learners in,
-  checked without a network call.
+  sessions, guidance stages and AI logs; SurrealDB Agent Memory holds the progress notes. Clerk signs
+  learners in, checked without a network call.
 - **Agents:** six Claude agents: a questioner, an evaluator, a whole-map evaluator, a fact desk, a hint
   giver and a coach, one structured call each. Zod schemas guard every boundary.
 
-Numbers in code, words in the model: code computes every score, level and hint cost. Claude writes
+Numbers in code, words in the model: code computes every score, guidance stage and hint cost. Claude writes
 the questions, judges the answers and words the hints.
 
 ## Responsible by design
@@ -86,17 +83,17 @@ Learner text is fenced as data in every agent prompt. SurrealDB Agent Memory sto
 written from code templates, never the learner's answers, and memory cannot change a score. Voice audio
 goes to the device's speech service; only the transcript reaches Lumente.
 
-"Your data" explains what we keep. "Delete my data" purges the learner's sessions, agent logs, levels
-and memory notes, then signs them out. Our pilot uses adults who agreed to participate, and no tester
-names or emails appear in the repository or submission.
+"Your data" explains what we keep. "Delete my data" purges the learner's sessions, agent logs, guidance
+stages and memory notes, then signs them out. Our pilot uses adults who agreed to participate, and no
+tester names or emails appear in the repository or submission.
 
 ## Challenges we ran into
 
 - **"A server" is related to an API, but it isn't a kind of API.** The bigger group is now tested with
   one sentence, "An API is a kind of ___".
-- **A fact desk that gives nothing away.** At level 5 the learner asks the questions. One that fishes
-  for the structure gets one fixed line, chosen by code: "That part is yours to decide." An answer typed
-  into the chat gets its own line; the chat never grades it.
+- **A fact desk that gives nothing away.** During independent practice, the learner asks the questions.
+  One that fishes for the structure gets one fixed line, chosen by code: "That part is yours to
+  decide." An answer typed into the chat gets its own line; the chat never grades it.
 - **The gap read as a grade.** Shown as a signed number, "−2" read as losing points, when 0 is the best
   calibration there is. The result now leads with the gap in words, over two rows of eight points.
 - **Agent Memory refused parallel writes on one entity.** The notes now go one after another, off the
@@ -113,7 +110,7 @@ names or emails appear in the repository or submission.
 - Agent Memory has been on in production since the evening of Oct 23.
 - Learners can resume every unfinished session with its whole conversation and reopen finished maps
   from "Your maps".
-- Plain code computes every score, level and hint cost, so we can explain every number a learner sees.
+- Plain code computes every score, guidance stage and hint cost, so we can explain every number a learner sees.
 - The AI never wrote a map.
 
 ## What we learned
@@ -236,9 +233,9 @@ sign in with a one-time email code or Google. The website uses Clerk's prebuilt 
 components in Lumente's design; Android opens Clerk's hosted flow in an in-app browser.
 
 Every app request carries a Clerk session token. Our API verifies its signature locally with Clerk's
-public key, so a learning turn does not wait on another network call. Sessions, levels and progress
-notes are keyed by the Clerk user id; we store no name or email. On Android, Expo SecureStore protects
-the token. "Delete my data" removes that learner's Lumente data and signs them out.
+public key, so a learning turn does not wait on another network call. Sessions, guidance stages and
+progress notes are keyed by the Clerk user id; we store no name or email. On Android, Expo SecureStore
+protects the token. "Delete my data" removes that learner's Lumente data and signs them out.
 
 Judges can use any address ending in `+clerk_test@example.com` and code `424242`, with no inbox. The
 [implementation notes](https://github.com/CynthiaSalazarB/build-north/blob/main/docs/clerk.md) link
@@ -247,11 +244,12 @@ every claim to its code and tests.
 ## Sponsor prize: Best Use of SurrealDB Agent Memory
 
 After each finished session, our server writes progress notes to SurrealDB Agent Memory: the learner's
-level on each area, the prediction next to the score, the Helps an area took. Code writes each note from
-a template. The learner's words never go in.
+guidance stage on each area when they practiced that concept, the prediction next to the score, and the
+Helps an area took. The stages track independence across concepts, not mastery of the concept named in
+the note. Code writes each note from a template. The learner's words never go in.
 
-- **Facts that replace old facts, history kept.** A new level supersedes the old note, and the Memory
-  sheet shows the chain: "level 3 since Oct 23" above "level 2 from Oct 22 to Oct 23".
+- **Facts that replace old facts, history kept.** A new guidance-stage note supersedes the old one, and the Memory
+  sheet shows the chain of guidance stages over time.
 - **Answers traced to their source.** The hint giver and the coach read up to eight notes and cite the
   ones they use; the server keeps only ids it passed in. The learner sees "From what Lumente remembers:"
   under the message.
