@@ -63,7 +63,8 @@ where Lumente moves from helping with one concept to practicing how to unravel t
 
 ## How we built it
 
-Lumente is a TypeScript monorepo with three parts: the Expo app, an Express API and a learning engine.
+Lumente is a TypeScript monorepo with three parts: the Expo app, an Express API and a guided-thinking
+engine.
 
 - **One app, two platforms:** Expo SDK 58 and Expo Router power the Android and responsive web apps.
   EAS Build creates the APK, EAS Update sends fixes to installed phones and EAS Hosting serves
@@ -100,8 +101,7 @@ without it.
 Lumente never receives a voice recording: the device or browser's speech provider processes it, and only
 the editable transcript reaches us when the learner submits it. "Your data" explains what we keep, and
 "Delete my data" purges the learner's memory, sessions, agent logs and guidance stages before signing
-them out. Our pilot uses consenting adults, and no tester names or emails appear in the repository or
-submission.
+them out.
 
 ## Challenges we ran into
 
@@ -121,52 +121,42 @@ submission.
 
 ## Accomplishments that we're proud of
 
-- Lumente is live on the web and on Android, built, updated and hosted with EAS. The website installs
-  as an app from the browser.
-- Our first pilot is coming: computer science students who code with AI take a test, two practice
-  sessions and a second test, and we compare each student's prediction with their score.
-  `[the numbers, if the pilot ends before we submit: Cynthia]`
-- A fix reaches every phone the day it merges, over the air, without a new build.
-- Agent Memory has been on in production since the evening of Oct 23.
-- Learners can resume every unfinished session with its whole conversation and reopen finished maps
-  from "Your maps".
-- Plain code computes every score, guidance stage and hint scoring effect, so we can explain every number a learner sees.
-- The AI never wrote a map.
+- We shipped a working product on Android and the web from one Expo codebase. A learner can complete
+  the full experience, leave, return to the conversation and reopen finished maps.
+- Six specialized agents work inside one predictable flow while plain code owns every score and
+  guidance-stage change. Flexible answers can be accepted without giving the model control of the
+  rules.
 
 ## What we learned
 
-- Open with the pain, not the method. At Expo's office hours we heard that "make people more curious"
-  is too broad: nobody wakes up wanting it. People act on a moment they feel: the code works, and
-  someone asks them to explain it.
-- A learner reads the biggest number on screen as their grade. Confidence and knowledge need separate
-  rows and plain words.
-- Worked examples help beginners but slow experts, so ours is optional.
-- Hiding the answer is not enough. AI tutors with guardrails stop the harm but don't beat studying alone.
-  Structure, fading help and measurement are our bet, not proven yet: our pilot has no comparison group.
-- The concept map gives students a concrete way to unravel an idea while they practice forming their
-  own questions. The questioning habit is the larger goal.
-- Turn a feature on for real users before the freeze. Memory went on before the pilot, behind a kill
-  switch, and sessions survive a reload because getting ready for testers demanded it.
+- Performance, confidence and independence are different signals. The map score measures what someone
+  explained in one session, the prediction gap compares that with their confidence, and the guidance
+  stages track how independently they work across concepts.
+- Designing the agents meant designing a handoff of responsibility, not a chatbot. Each agent needed
+  one role in a flow that moves the learner from explaining, to answering guided questions, to forming
+  their own questions.
+- In a thinking tool, reliability affects the thinking itself. Losing a session on reload or waiting
+  on non-essential coaching interrupts the work, so recovery and progressive results became part of
+  the experience.
 
 ## What's next for Lumente
 
-First, we need evidence that the concepts loop improves what students can explain. Our first pilot uses
-a test, two practice sessions and a second test on concepts the student did not practice in Lumente. It
-gives us a first signal. Without a comparison group, it cannot prove the effect yet.
+Critical thinking is the larger goal, and concepts are the first anchor. Next, **Check the AI** will
+help learners practice judgment: examine whether an agent's answer holds up, uncover its assumptions,
+identify what kind of claim it makes and notice possible bias. Later phases will apply shared skills
+such as questioning, explaining and noticing uncertainty to perspectives and decisions.
 
-The next skill is **Check the AI**: judging whether a coding agent's answer holds up, which assumptions
-it made and what kind of claim it is making. That phase starts only after students improve on the
-second test.
+The nearest product steps strengthen the concepts experience: show where each fact came from, connect
+to a learner's repository to suggest concepts from their code, compare one concept across examples and
+add Spanish. We begin with programming students and expand to other groups through the thinking skills
+they need, rather than turning Lumente into a collection of unrelated courses.
 
-Lumente begins with programming students because they face this problem often and at a real cost. The
-same questioning loop can later work in other subjects, but we will widen the audience one group at a
-time and only when the evidence supports it. Nearer steps include reading concepts from a repository,
-using trusted sources, comparing a concept across examples, showing where the fact desk got each fact,
-and Spanish.
-
-Students use Lumente free. Instructors, bootcamps and colleges pay for seats and a class view of what
-each student has mastered, the evidence they now try to get through oral exams. At Demo Day, we are
-looking for one CS program to run the next pilot with us.
+The business model should match the cost of AI without turning learning into a meter. Learners can try
+a small number of complete concept sessions free, then buy packs of additional sessions. Instructors,
+bootcamps and colleges can fund access per active learner for a term, with a shared session allowance
+and a class view of what students could explain, where they needed guidance and where their confidence
+differed from what they could demonstrate. Exact prices will be set after we know how often people use
+Lumente and what learners and schools find valuable.
 
 ## Built with
 
@@ -229,8 +219,10 @@ Best Overall, Best Use of Expo, Best Use of Clerk, Best Use of SurrealDB Agent M
 
 ## Sponsor prize: Best Use of Expo
 
-One TypeScript codebase runs on Android and the web; the web app installs on iPhones and laptops. With
-no Apple account, we shipped iPhones the installable web app.
+One Expo codebase runs on Android and the web, and iPhone users can install the progressive web app
+full screen with its own icon. During Build Week we prioritized Android and web because native iOS
+distribution requires an Apple Developer account, signing, device testing and TestFlight review.
+Because Expo is cross-platform, a native iOS build is a next distribution step, not a rewrite.
 
 - **EAS Build:** three Android builds on SDK 58 the week it came out: an initial development build, a
   preview APK, and build 3 after the icon and voice module changed the native fingerprint.
