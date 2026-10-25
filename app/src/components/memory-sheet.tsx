@@ -78,8 +78,8 @@ export function MemorySheet({ open, onClose, concept = null }: Props) {
             {entry.moves.map((move) => (
               <View key={move.move} style={[styles.move, { borderLeftColor: c.partEdge }]} accessible accessibilityLabel={`${move.label}: ${move.now}. ${move.history.join(". ")}`}>
                 <View style={styles.moveHead}>
-                  <Tag style={{ color: c.question }}>{move.label}</Tag>
-                  <Label>{move.now}</Label>
+                  <Tag style={{ color: c.question, flexShrink: 1 }}>{move.label}</Tag>
+                  <Label style={{ flexShrink: 0 }}>{move.now}</Label>
                 </View>
                 {move.history.map((line, i) => (
                   <Small key={i} dim>

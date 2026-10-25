@@ -4,6 +4,7 @@
 // fills the screen (full light at 8). Nothing blinks or pulses. Screens take colors only through useColors() in components/ui.tsx.
 import type { Metadata } from "expo-router/server";
 import { Platform } from "react-native";
+import { AREA_LABEL } from "./area-copy.ts";
 
 /** `site` is the production web build on EAS Hosting: link previews need absolute image addresses. */
 export const brand = { name: "Lumente", tagline: "Build with AI. Understand the concepts yourself.", site: "https://lumente.expo.app" } as const;
@@ -172,10 +173,10 @@ export const grid = { minor: 24, major: 96, offset: { x: 13, y: 9 } } as const;
 /** The map's four parts, in the mentefacto layout: the bigger group above the concept, what it needs on the
  *  left, what it isn't on the right, its types below. Icons are 24 x 24 stroke paths. */
 export const parts = {
-  supraordinate: { label: "bigger group", icon: "M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM12 11a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7z" },
-  exclusion: { label: "what it isn't", icon: "M5 9h14M5 15h14M16 4L8 20" },
-  isoordinate: { label: "what it needs", icon: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
-  infraordinate: { label: "types", icon: "M12 3v7M12 10L5 20M12 10v10M12 10l7 10" },
+  supraordinate: { label: AREA_LABEL.supraordinate, icon: "M12 3a9 9 0 1 0 0 18a9 9 0 1 0 0-18zM12 11a3.5 3.5 0 1 0 0 7a3.5 3.5 0 1 0 0-7z" },
+  exclusion: { label: AREA_LABEL.exclusion, icon: "M5 9h14M5 15h14M16 4L8 20" },
+  isoordinate: { label: AREA_LABEL.isoordinate, icon: "M4 4h7v7H4zM13 4h7v7h-7zM4 13h7v7H4zM13 13h7v7h-7z" },
+  infraordinate: { label: AREA_LABEL.infraordinate, icon: "M12 3v7M12 10L5 20M12 10v10M12 10l7 10" },
 } as const;
 
 /** The map's proportions, from the board's 372 x 296 box: the side parts take 128 of 372, the top and bottom 180. */

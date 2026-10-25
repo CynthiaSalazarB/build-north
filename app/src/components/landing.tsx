@@ -13,7 +13,7 @@ import { Rise, Screen, Small, Title, useColors, useWide } from "./ui.tsx";
 
 /** The landing page's headline and the line under it (Cynthia, Oct 23). */
 export const HEADLINE = "Build understanding, not dependence.";
-export const HOW = "Learn to investigate concepts through guided questions, make connections, and figure things out for yourself.";
+export const HOW = "Unravel concepts one question at a time, connect the ideas, and figure things out for yourself.";
 
 /** Clerk's components in Lumente's colors; `routing="hash"` keeps every step of the form on this one page, since the
  * web build is static and has no `/sign-in/factor-one` to serve on a reload. */

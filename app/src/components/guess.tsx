@@ -1,5 +1,6 @@
 // Confidence is an explicit prediction on the same 0–8 scale as the map's score. No preselected answer.
-import { MOVE_LABEL, MOVE_ORDER, type Turn } from "@build-north/agents";
+import { MOVE_ORDER, type Turn } from "@build-north/agents";
+import { AREA_LABEL } from "../area-copy.ts";
 import { useEffect, useState, type ReactNode } from "react";
 import { Platform, ScrollView, StyleSheet, Text, View } from "react-native";
 import Animated, { css, useReducedMotion } from "react-native-reanimated";
@@ -96,7 +97,7 @@ function Prediction({ concept, guess, pending, onChoose, footer, wide }: { conce
       <Body dim>{`You'll explain ${concept} across four areas of a concept map. Predict how many points your answers will earn.`}</Body>
       <Small>{POINTS_RULE}</Small>
       {/* the phone has no map beside the numbers, so the areas are named once */}
-      {!wide && <Small dim>{`The four areas: ${MOVE_ORDER.map((move) => MOVE_LABEL[move].toLowerCase()).join(", ")}.`}</Small>}
+      {!wide && <Small dim>{`The four areas: ${MOVE_ORDER.map((move) => AREA_LABEL[move].toLowerCase()).join(", ")}.`}</Small>}
       <View style={styles.picker}>
         <View style={styles.numbers}>
           {Array.from({ length: MAX + 1 }, (_, value) => (

@@ -10,6 +10,7 @@ import { Redirect, useRouter } from "expo-router";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ScrollView, StyleSheet, View, type ScrollViewInstance } from "react-native";
 import Animated from "react-native-reanimated";
+import { areaCopyOf } from "../area-copy.ts";
 import { Composer } from "../components/composer.tsx";
 import { ConceptMap } from "../components/concept-map.tsx";
 import { GuessScreen } from "../components/guess.tsx";
@@ -304,7 +305,7 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
       return (
         <>
           <Ask text={text} eyebrow={eyebrow} firefly={firefly} fireflyAfter={fireflyAfter} />
-          {active && turn.scaffold && <Aside text={`Already on your map: ${turn.scaffold.given.join(", ")}. ${turn.scaffold.blanks} more for you to find.`} />}
+          {active && turn.scaffold && <Aside text={`Already on your map: ${turn.scaffold.given.join(", ")}. ${turn.scaffold.blanks} more for you to find.`} verbatim />}
         </>
       );
     }
@@ -318,7 +319,7 @@ function Conversation({ show, entries, turn, held, pending, help, fireflyAfter, 
         return isReveal(entry) ? <Revealed text={message.text} /> : <HintCard message={message} n={hints.indexOf(entry.id) + 1} capNote={i === capAt} concept={turn.mentefacto.concept} />;
       case "example":
         if (message.agent === "app") return <ExampleIntro text={message.text} />;
-        if (!steps) return <Body>{message.text}</Body>;
+        if (!steps) return <Body>{areaCopyOf(message.text)}</Body>;
         return entry.id === thinking[0]?.id ? <ExampleSteps steps={steps} /> : null;
       case "fact":
       case "redirect":

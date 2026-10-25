@@ -455,7 +455,7 @@ test("the optional worked example uses its own concept and clearly labels its ca
 test("the memory line under a hint or the coach's words joins the cited facts' own sentences", () => {
   assert.equal(
     rememberedLineOf([{ text: "Last time on API you guessed 7 and proved 3." }, { text: " 'Its types' took 2 Helps on API last time. " }]),
-    "From what Lumente remembers: Last time on API you guessed 7 and proved 3. 'Its types' took 2 Helps on API last time.",
+    "From what Lumente remembers: Last time on API you guessed 7 and proved 3. 'Classification' took 2 Helps on API last time.",
   );
 });
 
@@ -464,10 +464,10 @@ test("the Memory sheet's words: each part's level now and how it got there, the 
   const cors = memoryConceptOf(view.concepts[0]!);
   assert.equal(cors.concept, "CORS");
   assert.deepEqual(cors.moves.map((m) => [m.label, m.now, m.reads]), [
-    ["Bigger group", "level 3", 5],
-    ["What it isn't", "level 2", 1],
-    ["What it needs", "level 2", 1],
-    ["Its types", "no level yet", 0],
+    ["Category", "level 3", 5],
+    ["Similar concepts & differences", "level 2", 1],
+    ["Defining features", "level 2", 1],
+    ["Classification", "no level yet", 0],
   ]);
   // the dates read in the device's time zone, so only their shape is fixed here
   assert.equal(cors.moves[0]?.history.length, 2);
