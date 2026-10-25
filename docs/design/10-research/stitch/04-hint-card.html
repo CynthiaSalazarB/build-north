@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Lumente - Recursion Map</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "surface-container-high": "#2b2a29",
+            "tertiary-fixed": "#e7e1e4",
+            "on-primary-fixed": "#1d1b17",
+            "outline-light": "rgba(23,22,26,0.22)",
+            "secondary": "#f7bd4f",
+            "secondary-fixed-dim": "#f7bd4f",
+            "on-tertiary": "#323032",
+            "on-tertiary-fixed-variant": "#494648",
+            "on-surface-variant": "#cbc6bd",
+            "firefly": "#f2b84b",
+            "surface-dark": "#16151a",
+            "surface-container": "#201f1f",
+            "on-surface-light": "#17161a",
+            "gap-light": "#9e3420",
+            "tertiary-fixed-dim": "#cac5c8",
+            "secondary-container": "#bb881c",
+            "on-primary-dark": "#111114",
+            "outline-variant": "#494740",
+            "surface-tint": "#cac6bf",
+            "on-error": "#690005",
+            "question-container-light": "rgba(242,184,75,0.18)",
+            "surface-container-highest": "#363434",
+            "surface-bright": "#3a3938",
+            "on-tertiary-container": "#676366",
+            "on-primary-container": "#67645f",
+            "on-secondary": "#422c00",
+            "on-surface-dark": "#f4efe8",
+            "question-container-dark": "rgba(40,28,14,0.85)",
+            "surface-container-low": "#1c1b1b",
+            "on-hint-container": "#3a2a0e",
+            "inverse-primary": "#605e59",
+            "secondary-fixed": "#ffdeaa",
+            "on-background": "#e6e2e0",
+            "outline": "#949088",
+            "gap-dark": "#ff9b80",
+            "lit-dark": "#fbf6ee",
+            "inverse-surface": "#e6e2e0",
+            "surface-dim": "#141313",
+            "on-error-container": "#ffdad6",
+            "outline-dark": "rgba(255,240,225,0.22)",
+            "background": "#141313",
+            "on-surface-variant-light": "#433c35",
+            "on-surface-variant-dark": "#c9c0b4",
+            "error": "#ffb4ab",
+            "on-secondary-fixed-variant": "#5f4100",
+            "on-primary": "#32302c",
+            "surface-container-lowest": "#0f0e0e",
+            "surface-container-light": "#fffaf2",
+            "surface-variant": "#363434",
+            "primary-fixed": "#e7e2db",
+            "on-primary-fixed-variant": "#494742",
+            "primary-fixed-dim": "#cac6bf",
+            "surface": "#141313",
+            "surface-light": "#fbdeb4",
+            "on-surface": "#e6e2e0",
+            "on-secondary-fixed": "#271900",
+            "surface-container-dark": "#1f1d22",
+            "on-tertiary-fixed": "#1d1b1d",
+            "primary": "#ffffff",
+            "lit-light": "#fffdf8",
+            "inverse-on-surface": "#31302f",
+            "tertiary-container": "#e7e1e4",
+            "error-container": "#93000a",
+            "primary-container": "#e7e2db",
+            "tertiary": "#ffffff",
+            "on-primary-light": "#f6f1ea",
+            "hint-container": "#f6e3a8",
+            "on-secondary-container": "#392600"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.25rem",
+            "lg": "0.5rem",
+            "xl": "0.75rem",
+            "full": "9999px"
+          },
+          "spacing": {
+            "space-sm": "16px",
+            "space-md": "24px",
+            "space-lg": "32px",
+            "space-xl": "40px",
+            "space-xs": "8px",
+            "margin": "24px",
+            "gutter": "24px"
+          },
+          "fontFamily": {
+            "label-md": ["Inter"],
+            "headline-lg": ["Inter"],
+            "body-md": ["Inter"],
+            "headline-lg-mobile": ["Inter"],
+            "body-lg": ["Inter"],
+            "label-sm": ["Inter"],
+            "headline-md": ["Inter"]
+          },
+          "fontSize": {
+            "label-md": ["14px", { "lineHeight": "1.4", "fontWeight": "500" }],
+            "headline-lg": ["32px", { "lineHeight": "1.3", "fontWeight": "600" }],
+            "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+            "headline-lg-mobile": ["28px", { "lineHeight": "1.3", "fontWeight": "600" }],
+            "body-lg": ["17px", { "lineHeight": "1.5", "fontWeight": "400" }],
+            "label-sm": ["13px", { "lineHeight": "1.4", "fontWeight": "500" }],
+            "headline-md": ["28px", { "lineHeight": "1.3", "fontWeight": "600" }]
+          }
+        }
+      }
+    }
+  </script>
+<style>
+    .bg-graph-grid {
+      background-size: 24px 24px, 96px 96px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 240, 225, 0.04) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 240, 225, 0.04) 1px, transparent 1px),
+        linear-gradient(to right, rgba(255, 240, 225, 0.08) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 240, 225, 0.08) 1px, transparent 1px);
+    }
+    .amber-soft-glow {
+      box-shadow: 0 0 16px -2px rgba(242, 184, 75, 0.28);
+    }
+    .firefly-glow {
+      box-shadow: 0 0 12px 3px rgba(242, 184, 75, 0.45);
+    }
+  /* readable labels */
+[class*="text-[10px]"],[class*="text-[11px]"]{font-size:12px!important;line-height:1.3}
+</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+<style id="lumente-air">
+/* more air between sections (Leo, Oct 24): the main column's gap and the card gaps grow one step */
+main{gap:2.25rem!important;padding-top:1.5rem!important;padding-bottom:3rem!important}
+main>section,main>div{gap:1.25rem}
+.gap-5{gap:1.5rem!important}.gap-6{gap:2rem!important}
+.space-y-4>:not([hidden])~:not([hidden]){margin-top:1.5rem!important}
+.space-y-6>:not([hidden])~:not([hidden]){margin-top:2.25rem!important}
+</style>
+</head>
+<body class="bg-surface-dark text-on-surface font-body-md antialiased min-h-screen selection:bg-firefly selection:text-surface-dark relative overflow-x-hidden">
+<!-- Ambient Light Corner: circle at 100% 0% -->
+<div class="pointer-events-none fixed inset-0 z-0 bg-graph-grid"></div>
+<div class="pointer-events-none fixed -top-24 -right-24 w-96 h-96 rounded-full bg-firefly/10 blur-3xl z-0"></div>
+<!-- Main Mobile Canvas Container -->
+<div class="relative z-10 max-w-md mx-auto flex flex-col min-h-screen pb-8">
+<!-- Top Navigation Bar (Shared Component Anchor) -->
+<header class="bg-surface/90 dark:bg-surface/90 backdrop-blur-md border-b border-outline-variant/30 dark:border-outline-dark sticky top-0 z-40">
+<div class="flex justify-between items-center w-full px-margin py-3 max-w-md mx-auto">
+<div class="flex items-center gap-2">
+<svg class="lumente-firefly" width="48" height="48" viewBox="0 0 112 112" aria-hidden="true" style="display:inline-block;vertical-align:middle;flex-shrink:0;"><defs><radialGradient id="ff104" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f2b84b" stop-opacity="0.55"/><stop offset="1" stop-color="#f2b84b" stop-opacity="0"/></radialGradient></defs><circle cx="56" cy="56" r="56" fill="url(#ff104)"/><g transform="translate(28 28)"><ellipse cx="19" cy="20" rx="8" ry="4.5" transform="rotate(-28 19 20)" fill="rgba(255, 240, 225, 0.4)"/><ellipse cx="37" cy="20" rx="8" ry="4.5" transform="rotate(28 37 20)" fill="rgba(255, 240, 225, 0.4)"/><path d="M24 18 L21 10 M32 18 L35 10" stroke="#c9c0b4" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="28" cy="30" r="10.5" fill="#f2b84b"/><circle cx="24.6" cy="28.6" r="1.7" fill="#111114"/><circle cx="31.4" cy="28.6" r="1.7" fill="#111114"/></g></svg>
+<span class="text-headline-md font-headline-md font-semibold text-primary dark:text-primary tracking-tight">Lumente</span>
+</div>
+</div>
+<!-- Context Sub-bar: Step & Points Progression -->
+<div class="flex items-center justify-between px-margin pb-3 pt-1">
+<div class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-container-high text-on-surface-variant text-label-sm font-label-sm border border-outline-variant/40">
+<span class="w-1.5 h-1.5 rounded-full bg-firefly"></span>
+<span>Step 2 of 3: Explain</span>
+</div>
+<div class="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-surface-container border border-outline-variant/30">
+<div class="flex items-center gap-1">
+<!-- 2 solid proved points -->
+<span class="w-2 h-2 rounded-[1px] bg-firefly"></span>
+<span class="w-2 h-2 rounded-[1px] bg-firefly"></span>
+<!-- 6 empty/dotted points -->
+<span class="w-2 h-2 rounded-[1px] border border-outline-variant/60 border-dashed"></span>
+<span class="w-2 h-2 rounded-[1px] border border-outline-variant/60 border-dashed"></span>
+<span class="w-2 h-2 rounded-[1px] border border-outline-variant/60 border-dashed"></span>
+<span class="w-2 h-2 rounded-[1px] border border-outline-variant/60 border-dashed"></span>
+<span class="w-2 h-2 rounded-[1px] border border-outline-variant/60 border-dashed"></span>
+<span class="w-2 h-2 rounded-[1px] border border-outline-variant/60 border-dashed"></span>
+</div>
+<span class="text-label-sm font-label-sm text-on-surface-variant">2 of 8 points</span>
+</div>
+</div>
+</header>
+<!-- Canvas Workspace -->
+<main class="flex-1 px-margin pt-4 flex flex-col gap-6">
+<!-- THE CONCEPT MAP -->
+<section class="relative w-full rounded-2xl bg-surface-container-low border border-outline-variant/40 p-4 pt-5 overflow-hidden">
+<!-- Subtle Map Header Label -->
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-1.5 text-on-surface-variant text-label-sm font-label-sm">
+<span class="material-symbols-outlined text-[16px]">account_tree</span>
+<span>Your map</span>
+</div>
+<span class="text-label-sm font-label-sm text-firefly">1 of 4 areas lit</span>
+</div>
+<!-- Relative Diagram Compass Layout (Width balanced for 380-420px viewport) -->
+<div class="relative w-full py-4 flex flex-col items-center justify-center gap-3">
+<!-- SVG Structural Connectors (Center to 4 Nodes) -->
+<svg class="absolute inset-0 w-full h-full pointer-events-none stroke-outline-variant/40" preserveaspectratio="none">
+<!-- Top vertical connector -->
+<line stroke-dasharray="3 3" stroke-width="1" x1="50%" x2="50%" y1="68" y2="100"></line>
+<!-- Bottom vertical connector -->
+<line stroke-dasharray="3 3" stroke-width="1" x1="50%" x2="50%" y1="178" y2="212"></line>
+<!-- Left horizontal connector (active amber) -->
+<line stroke="#f2b84b" stroke-dasharray="3 3" stroke-width="1" x1="116" x2="136" y1="140"></line>
+<!-- Right horizontal connector -->
+<line stroke-dasharray="3 3" stroke-width="1" x1="244" x2="264" y1="140"></line>
+</svg>
+<!-- 1. TOP PART: Lit / Proved ("bigger group") -->
+<div class="w-64 max-w-[85%] bg-lit-dark text-on-surface-light rounded-xl p-2 shadow-sm border border-secondary-fixed flex flex-col gap-0.5 z-10 transition-all">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-1 text-[11px] font-semibold tracking-wide text-on-surface-variant-light">
+<span class="material-symbols-outlined text-[14px]">folder_open</span>
+<span>bigger group</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="w-2 h-2 rounded-[1px] bg-secondary-container"></span>
+<span class="w-2 h-2 rounded-[1px] bg-secondary-container"></span>
+</div>
+</div>
+<p class="text-[12px] font-medium leading-tight text-on-surface-light">
+"A kind of loop that uses a function"
+</p>
+</div>
+<!-- MIDDLE ROW: Left node ('what it needs'), Center node ('Recursion'), Right node ('what it isn't') with 12px gaps -->
+<div class="w-full flex items-center justify-between gap-3 px-1 z-10">
+<!-- 2. LEFT PART: Active / Being Asked ("what it needs") -->
+<div class="flex-1 bg-question-container-dark border-[1.5px] border-firefly rounded-xl p-2 flex flex-col gap-1 amber-soft-glow relative"><svg class="lumente-firefly" width="80" height="80" viewBox="0 0 112 112" aria-hidden="true" style="display:inline-block;vertical-align:middle;flex-shrink:0;position:absolute;top:calc(100% + 4px);left:50%;transform:translateX(-50%);pointer-events:none"><defs><radialGradient id="ff103" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f6c662" stop-opacity="0.78"/><stop offset="1" stop-color="#f6c662" stop-opacity="0"/></radialGradient></defs><circle cx="56" cy="56" r="56" fill="url(#ff103)"/><g transform="translate(28 28)"><ellipse cx="19" cy="20" rx="8" ry="4.5" transform="rotate(-28 19 20)" fill="rgba(255, 240, 225, 0.4)"/><ellipse cx="37" cy="20" rx="8" ry="4.5" transform="rotate(28 37 20)" fill="rgba(255, 240, 225, 0.4)"/><path d="M24 18 L21 10 M32 18 L35 10" stroke="#c9c0b4" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="28" cy="30" r="10.5" fill="#f6c662"/><circle cx="24.6" cy="28.6" r="1.7" fill="#111114"/><circle cx="31.4" cy="28.6" r="1.7" fill="#111114"/></g></svg><span aria-hidden="true" style="position:absolute;top:100%;left:50%;height:6px;border-left:1.5px dashed #f2b84b;transform:translateX(-50%)"></span><div class="flex items-center justify-between"><span class="material-symbols-outlined text-firefly text-[14px]">extension</span><div class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-[1px] border border-firefly"></span><span class="w-1.5 h-1.5 rounded-[1px] border border-firefly/60 border-dashed" style="border: 1.5px dotted #f2b84b;"></span></div></div><span class="text-[10px] font-semibold text-firefly leading-tight">what it needs</span><div class="h-6 rounded bg-surface-container flex items-center justify-center border border-firefly/30"><span class="text-firefly font-headline-md text-sm font-bold">?</span></div><p class="text-[9px] text-firefly/90 font-medium leading-tight text-center pt-0.5">this area can now get 1 point at most</p></div>
+<!-- CENTER NODE: Core Concept Box with Firefly Amber Indicator -->
+<div class="relative w-[108px] h-[78px] shrink-0 rounded-xl bg-surface-container-high border border-outline-variant/80 flex flex-col items-center justify-center text-center px-1 shadow-md">
+<span class="text-label-md font-label-md font-semibold text-primary leading-tight">Recursion</span>
+<div class="flex items-center gap-1 mt-1 bg-surface-dark px-1.5 py-0.5 rounded border border-outline-variant/40">
+<span class="w-1.5 h-1.5 rounded-full bg-firefly firefly-glow"></span>
+<span class="text-[10px] text-on-surface-variant font-mono tracking-tight">countdown.js</span>
+</div>
+</div>
+<!-- 3. RIGHT PART: Unasked ("what it isn't") -->
+<div class="flex-1 bg-surface-container/60 border border-dashed border-outline-variant/40 rounded-xl p-2 flex flex-col gap-1 opacity-70">
+<div class="flex items-center justify-between text-on-surface-variant">
+<span class="material-symbols-outlined text-[14px]">block</span>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-[1px] border border-outline-variant border-dashed"></span>
+<span class="w-1.5 h-1.5 rounded-[1px] border border-outline-variant border-dashed"></span>
+</div>
+</div>
+<span class="text-[10px] font-medium text-on-surface-variant leading-tight">what it isn't</span>
+<div class="h-6 rounded bg-surface-container-low flex items-center justify-center text-outline text-xs">
+?
+</div>
+</div>
+</div>
+<!-- 4. BOTTOM PART: Unasked ("types") -->
+<div class="w-48 bg-surface-container/60 border border-dashed border-outline-variant/40 rounded-xl p-2 flex flex-col gap-1 opacity-70 z-10">
+<div class="flex items-center justify-between text-on-surface-variant">
+<div class="flex items-center gap-1 text-[11px] font-medium">
+<span class="material-symbols-outlined text-[14px]">layers</span>
+<span>types</span>
+</div>
+<div class="flex items-center gap-1">
+<span class="w-1.5 h-1.5 rounded-[1px] border border-outline-variant border-dashed"></span>
+<span class="w-1.5 h-1.5 rounded-[1px] border border-outline-variant border-dashed"></span>
+</div>
+</div>
+<div class="h-6 rounded bg-surface-container-low flex items-center justify-center text-outline text-xs">
+?
+</div>
+</div>
+</div>
+</section><section class="w-full rounded-2xl bg-hint-container text-on-hint-container p-4 shadow-sm flex flex-col gap-3 transition-all duration-200"><div class="flex items-center justify-between"><div class="inline-flex items-center gap-1.5 text-xs font-semibold tracking-wide"><span class="material-symbols-outlined text-[16px] text-on-hint-container" style="font-variation-settings: 'FILL' 1;">lightbulb</span><span>Hint 1 of 3: where to look</span></div><span class="text-[11px] font-medium bg-black/10 px-2 py-0.5 rounded-full">costs 1 point</span></div><p class="text-[16px] font-medium leading-snug text-on-hint-container">Look at the line that stops the countdown. What would happen without it?</p><div class="flex items-center justify-between pt-1 border-t border-black/10"><button class="inline-flex items-center gap-1 text-[13px] font-medium text-on-hint-container/85 hover:text-on-hint-container hover:underline transition-colors"><span class="material-symbols-outlined text-[15px]">help</span><span>More help (costs 1 point)</span></button></div></section>
+<!-- ACTIVE QUESTION & COMPASSIONATE INPUT CARD -->
+<section class="bg-surface-container rounded-2xl border border-outline-variant/40 p- space-sm flex flex-col gap-4">
+<!-- Firefly Header Prompt -->
+<div class="flex items-center gap-2 justify-between">
+<div class="w-6 h-6 rounded-full bg-question-container-dark flex items-center justify-center border border-firefly/40">
+<svg class="lumente-firefly" width="22" height="22" viewBox="0 0 56 56" aria-hidden="true" style="display:inline-block;vertical-align:middle;flex-shrink:0"><ellipse cx="19" cy="20" rx="8" ry="4.5" transform="rotate(-28 19 20)" fill="rgba(255, 240, 225, 0.4)"/><ellipse cx="37" cy="20" rx="8" ry="4.5" transform="rotate(28 37 20)" fill="rgba(255, 240, 225, 0.4)"/><path d="M24 18 L21 10 M32 18 L35 10" stroke="#c9c0b4" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="28" cy="30" r="10.5" fill="#f2b84b"/><circle cx="24.6" cy="28.6" r="1.7" fill="#111114"/><circle cx="31.4" cy="28.6" r="1.7" fill="#111114"/></svg>
+</div>
+<span class="text-label-md font-label-md text-firefly">The firefly asks:</span>
+<span class="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full border border-firefly/60 text-firefly text-[11px] font-medium">Help, costs a point</span></div>
+<!-- Plain Language Question -->
+<div class="flex flex-col gap-1">
+<h2 class="text-headline-md font-headline-md text-primary text-xl font-semibold leading-snug">
+            What does recursion need so it does not run forever?
+          </h2>
+<p class="text-[13px] text-on-surface-variant-dark" style="opacity:.85;margin-top:4px">What it needs means: what something needs to count as recursion.</p>
+</div>
+<!-- Textarea with Word Count -->
+<div class="flex flex-col gap-2">
+<textarea class="w-full bg-surface-container-low border border-outline-variant/50 focus:border-firefly focus:ring-1 focus:ring-firefly rounded-xl p-3 text-body-md font-body-md text-on-surface placeholder:text-outline/70 resize-none transition-colors" id="learner-answer" placeholder="Write it in your own words" rows="3"></textarea>
+<div class="flex justify-between items-center px-1 text-label-sm font-label-sm text-on-surface-variant">
+<span id="word-count-label">0 words</span>
+</div>
+</div>
+<!-- EXACTLY ONE PRIMARY ACTION (52px tall) -->
+<button class="w-full h-[52px] bg-primary text-on-primary-dark font-label-md text-label-md font-semibold rounded-xl flex items-center justify-center gap-2 hover:bg-lit-light active:scale-[0.99] transition-all duration-150">
+<span>Save answer</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+<!-- Secondary Quiet Actions -->
+<div class="flex items-center justify-between pt-1"><button class="text-on-surface-variant hover:text-on-surface text-label-sm font-label-sm transition-colors py-1 px-2 ml-auto">Skip for now</button></div>
+<!-- Reassurance Footer Note -->
+<div class="text-center pt-1 border-t border-outline-variant/20">
+<p class="text-[12px] text-on-surface-variant/80">Hints cost points. Your own words earn them.</p>
+</div>
+</section>
+</main>
+<!-- Bottom Navigation Bar (Shared Component Anchor) -->
+</div>
+<!-- Inline Micro-interaction Script for Real-time Word Counter -->
+<script>
+    const textarea = document.getElementById('learner-answer');
+    const wordCountLabel = document.getElementById('word-count-label');
+
+    if (textarea && wordCountLabel) {
+      textarea.addEventListener('input', (e) => {
+        const text = e.target.value.trim();
+        const words = text ? text.split(/\s+/).length : 0;
+        wordCountLabel.textContent = `${words} ${words === 1 ? 'word' : 'words'}`;
+      });
+    }
+  </script>
+</body></html>
