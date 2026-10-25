@@ -4,7 +4,7 @@ import { MOVE_LABEL, MOVE_ORDER, type Item, type Mentefacto, type MoveId, type T
 import { useRef, useState, type ReactNode } from "react";
 import { KeyboardAvoidingView, Modal, Pressable, ScrollView, StyleSheet, TextInput, View, type ScrollViewInstance } from "react-native";
 import Animated from "react-native-reanimated";
-import { chatKeyOf, deskOf, filledOf, hintNumberOf, hintPartOf, itemsOf, nextPartOf, partMeaningOf, partTextOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
+import { categoryContextOf, chatKeyOf, deskOf, filledOf, hintNumberOf, hintPartOf, itemsOf, mapQuestionOf, nextPartOf, partMeaningOf, partTextOf, waitingLineOf, wholeMapHelpOf, wholeMapPartsOf, withPart } from "../session/present.ts";
 import type { LearnerInput } from "../session/session-context.tsx";
 import type { SessionState } from "../session/transcript.ts";
 import { maxContentWidth, motion, parts as PARTS, radius, size, space, type } from "../theme.ts";
@@ -95,10 +95,10 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
         <View style={styles.firefly}><Firefly state="asks" /></View>
         <View style={styles.guideText} accessibilityLiveRegion="polite">
           {next && <Label dim>{`Area ${MOVE_ORDER.indexOf(next) + 1} of 4`}</Label>}
-          <Reply>{next ? `${filled === 0 ? "Start with" : "Next:"} ${MOVE_LABEL[next]}` : "Ready to review your map"}</Reply>
+          <Reply>{next ? mapQuestionOf(next, concept) : "Ready to review your map"}</Reply>
         </View>
       </View>
-      {next && <Button label={`${filled === 0 ? "Start:" : "Write:"} ${MOVE_LABEL[next]}`} fit={wide} disabled={pending} onPress={() => openPart(next)} />}
+      {next && <Button label={filled === 0 ? "Start writing" : "Write my answer"} hint={mapQuestionOf(next, concept)} fit={wide} disabled={pending} onPress={() => openPart(next)} />}
       <Small dim>{"You can edit any area. Following the highlight doesn't use a hint."}</Small>
     </View>
   );
@@ -146,6 +146,7 @@ export function WholeMapScreen({ turn, state, send, retry, edit, onClose }: Prop
           key={editing}
           move={editing}
           concept={concept}
+          category={categoryContextOf(map)}
           items={itemsOf(map, editing)}
           onDone={(items) => {
             edit(withPart(map, editing, items));
@@ -265,7 +266,7 @@ function AskBar({ concept, pending, asking, onAsk }: { concept: string; pending:
 
 /** One part of the map, in a sheet (a dialog in the website layout): the bigger group is one field; the other
  * parts are lists, and each thing it isn't carries how it differs. Closing it keeps what was typed. */
-function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: string; items: Item[]; onDone: (items: Item[]) => void }) {
+function PartEditor({ move, concept, category, items, onDone }: { move: MoveId; concept: string; category: string | null; items: Item[]; onDone: (items: Item[]) => void }) {
   const c = useColors();
   const wide = useWide();
   const entrance = useEntrance();
@@ -293,8 +294,10 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
           {!wide && <View style={[styles.grabber, { backgroundColor: c.outline }]} />}
           <View style={styles.sheetHead}>
             <View style={[styles.flex, styles.sheetTitle, !wide && styles.fullTitle]}>
-              <Title style={styles.title}>{`${MOVE_ORDER.indexOf(move) + 1} · ${MOVE_LABEL[move]}`}</Title>
+              <Label dim>{`Area ${MOVE_ORDER.indexOf(move) + 1} of 4`}</Label>
+              <Title style={styles.title}>{mapQuestionOf(move, concept)}</Title>
               <Small dim>{partMeaningOf(move, concept)}</Small>
+              {(move === "exclusion" || move === "isoordinate") && category && <Small>{category}</Small>}
             </View>
             <MicButton state={voice.state} onPress={voice.toggle} />
             <Button kind="secondary" label="Save answer" onPress={done} />
@@ -304,31 +307,36 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
             {rows.map((row, i) => (
               <View key={i} style={styles.row}>
                 <View style={styles.rowFields}>
+                  <Small dim>{single ? "Category" : move === "exclusion" ? "Another concept in this category" : move === "isoordinate" ? `Defining feature ${i + 1}` : i === 0 ? "Your grouping rule and types" : `Additional type ${i + 1}, using the same rule`}</Small>
                   <TextInput
                     value={row.value}
                     onChangeText={(value) => change(i, { value })}
-                    placeholder={PLACEHOLDER[move]}
+                    placeholder={move === "infraordinate" && i > 0 ? "Another type using your grouping rule" : PLACEHOLDER[move]}
                     placeholderTextColor={c.placeholder}
-                    maxLength={120}
+                    maxLength={move === "infraordinate" ? 500 : 120}
+                    multiline={move === "infraordinate"}
                     autoFocus={i === 0 && row.value === ""}
-                    accessibilityLabel={single ? MOVE_LABEL[move] : `${MOVE_LABEL[move]}, item ${i + 1}`}
+                    accessibilityLabel={single ? "Category" : move === "exclusion" ? `Comparison concept ${i + 1}` : move === "isoordinate" ? `Defining feature ${i + 1}` : i === 0 ? "Your grouping rule and types" : `Additional type ${i + 1}`}
                     style={field}
                     returnKeyType="done"
                     onSubmitEditing={done}
                     onFocus={() => setFocus({ i, part: "value" })}
                   />
                   {move === "exclusion" && (
-                    <TextInput
-                      value={row.note ?? ""}
-                      onChangeText={(note) => change(i, { note })}
-                      placeholder="How it's different"
-                      placeholderTextColor={c.placeholder}
-                      maxLength={200}
-                      multiline
-                      accessibilityLabel={`How item ${i + 1} is different`}
-                      style={[field, styles.note]}
-                      onFocus={() => setFocus({ i, part: "note" })}
-                    />
+                    <>
+                      <Small dim>What distinguishes it?</Small>
+                      <TextInput
+                        value={row.note ?? ""}
+                        onChangeText={(note) => change(i, { note })}
+                        placeholder="The key difference from this concept"
+                        placeholderTextColor={c.placeholder}
+                        maxLength={200}
+                        multiline
+                        accessibilityLabel={`Key difference ${i + 1}`}
+                        style={[field, styles.note]}
+                        onFocus={() => setFocus({ i, part: "note" })}
+                      />
+                    </>
                   )}
                 </View>
                 {!single && (rows.length > 1 || row.value !== "") && <IconButton icon="x" label={`Remove item ${i + 1}`} onPress={() => remove(i)} />}
@@ -345,10 +353,10 @@ function PartEditor({ move, concept, items, onDone }: { move: MoveId; concept: s
 }
 
 const PLACEHOLDER: Record<MoveId, string> = {
-  supraordinate: "The group it belongs to",
-  exclusion: "Something close that it isn't",
-  isoordinate: "Something it needs",
-  infraordinate: "One kind of it",
+  supraordinate: "The closest category",
+  exclusion: "Another concept from this category",
+  isoordinate: "A defining feature",
+  infraordinate: "Grouping rule: …; types: …",
 };
 
 /** The confirmation names the actual hint target; it never follows the navigation highlight. */

@@ -250,13 +250,15 @@ function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }
           </View>
         )}
       </View>
+      {view.prompt && <Text style={[type.ui, { color: look.ink }]}>{view.prompt}</Text>}
+      {view.context && <Text style={[type.partLabel, { color: look.labelInk }]}>{view.context}</Text>}
       {view.text ? (
         <Text style={[view.state === "revealed" ? type.revealedText : type.partText, { color: look.ink }, view.state === "revealed" && styles.dim]} numberOfLines={5}>
           {view.text}
         </Text>
-      ) : (
+      ) : !view.prompt ? (
         <Text style={[type.partUnknown, { color: look.ink }]}>?</Text>
-      )}
+      ) : null}
       {/* on the result, a part that moved up a level: the help fades there next time */}
       {view.badge && <Text style={[type.partLabel, styles.badge, { color: look.labelInk }]}>{`↑ ${view.badge}`}</Text>}
       {onPress && !reads && <Text style={[type.partLabel, { color: look.labelInk }]}>{view.text ? "Edit answer" : active ? "Write here →" : "Write answer"}</Text>}
@@ -269,7 +271,7 @@ function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }
       onPress={onPress}
       onLayout={onLayout}
       accessibilityRole="button"
-      accessibilityLabel={`${label}: ${said}${active ? ". Suggested next area" : ""}`}
+      accessibilityLabel={`${view.prompt ?? label}${view.context ? `. ${view.context}` : ""}: ${said}${active ? ". Suggested next area" : ""}`}
       accessibilityHint={reads ? "Opens this area to read it in full, with the feedback on it." : "Opens this area to write or edit your answer. Your map is scored when you submit it."}
       {...bind}
       style={feel()}

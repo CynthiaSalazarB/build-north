@@ -28,3 +28,21 @@ The login and start-page headlines stay as Cynthia wrote them on October 23. Onl
 - The browser checks used local mocked API replies. They didn't call production or a live AI model. Native Android keyboard and authentication behavior still require a device check.
 - Reload/resume integration: the map draft and next-area guidance survive a reload, and a resumed sixth hint is labelled for the exclusion area using the Turn's cumulative hint count.
 - EAS fingerprint comparison against installed Android build 3 (`93910cdd-2d88-4da3-8250-a3de32cc4d46`), using the preview environment: both hashes are `56eeb40fb5a207446053818ae3785913a3d4ffc5`. No build or update was published by this check.
+
+## October 24: tester-only wording trial
+
+The self-test/whole-map cards and editors show the task as a question, not just the method's short label: a kind of, a same-category comparison and its difference, defining features, and classification by one consistent rule. The comparison repeats the learner's chosen category neutrally, without confirming it or blocking answers out of order. Instructions remain visible when typing, so the optional worked example is not required to understand the task.
+
+Classification asks for the grouping rule followed by at least two types in the existing answer field (multiline, up to 500 characters). It is kept verbatim in the existing `Item.value`; no new criterion field, API schema or evaluator prompt is introduced. Comparisons still use the existing value/difference pair. The current evaluator checks a close concept plus a meaningful difference, not strict membership in the learner's proposed category. This is a usability wording trial; scores are provisional for the new instruction and must not be treated as validation of the stricter category requirement or compared across different pre-/post-test interfaces.
+
+The intended deployment target is the `testers` web alias only, from the review branch. No production alias, Android update, backend or grading change is part of this trial. Keep each tester's pre-/post-test on the same deployed wording version.
+
+Deployed October 24 at about 5:30 PM ET from `014d40b`, draft PR #177: `https://lumente--testers.expo.app`, deployment `ivjrvsdl2h`. The served common bundle matches the checked export byte-for-byte; real API and Clerk configuration, API preflight and the signed-out sign-in screen were verified. Production still serves its previous common bundle. No account or live AI session was created by these checks.
+
+### Guided-mode consistency follow-up
+
+The same task questions now appear on the guided map once its moves begin, with the chosen category on the comparison area and beside its answer field. Guided answer labels explicitly ask for a nearby concept plus its key difference, defining features every example must have, and a grouping rule plus at least two types using that rule. The adaptive AI question and follow-ups remain unchanged. The first explanation remains unprompted; the optional worked example uses its own concept and labels its context as an example category. Finished areas retain their questions/context when opened for read-only review.
+
+Verification: 80 app tests, typecheck, and lint (zero errors, eight existing warnings). Mocked browser checks passed for both modes at 1440, 1000, 390 and 320 pixels, including the first explanation, optional example, adaptive feedback, category context, all four answer tasks, read-only finished areas, unchanged text/map request shapes and no horizontal overflow. This is still the same tester-only wording trial, not an evaluator or production change.
+
+Deployed October 24 at about 5:46 PM ET from `2a737bc`, draft PR #177, to the same tester URL: deployment `jpbhehq6ou`, common bundle `fe3f9f67…`. All nine served JavaScript chunks match the checked export byte-for-byte and the real sign-in screen loads. Production still serves common bundle `53593c34…`; no production or Android deployment was made. Browser flow checks used mocks, not live AI sessions.

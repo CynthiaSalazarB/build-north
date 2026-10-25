@@ -6,7 +6,9 @@ import { MemoryView, Turn, type Mentefacto, type Result } from "@build-north/age
 import memoryView from "@build-north/agents/fixtures/memory-view.json" with { type: "json" };
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import {
+  answerLabelOf,
   cappedOf,
+  categoryContextOf,
   chatKeyOf,
   currentPartOf,
   deskOf,
@@ -28,6 +30,7 @@ import {
   justLitOf,
   leadOf,
   memoryConceptOf,
+  mapQuestionOf,
   nextPartOf,
   partMeaningOf,
   partNotesOf,
@@ -45,6 +48,7 @@ import {
   waitingLineOf,
   wholeMapHelpOf,
   wholeMapPartsOf,
+  withMapQuestions,
   withPart,
 } from "./present.ts";
 import { blankMap, initialState, received, sent, type Entry } from "./transcript.ts";
@@ -391,7 +395,61 @@ test("the whole-map evaluator's note on each part comes off its label", () => {
     { agent: "evaluator", kind: "feedback", text: "Not quite: a law is one rule." },
   ]);
   assert.deepEqual(notes, { supraordinate: "'Security' is too broad. What's the closest group?", exclusion: "A sharp exclusion." });
-  assert.equal(partMeaningOf("isoordinate", "CORS"), "What something needs to count as CORS.");
+  assert.equal(partMeaningOf("isoordinate", "CORS"), "List the features every example must have. Together, they should distinguish CORS from other things in the same category.");
+});
+
+test("self-test questions explain category, comparison, defining features and a consistent classification rule", () => {
+  assert.equal(mapQuestionOf("supraordinate", "API"), "API is a kind of…");
+  assert.equal(mapQuestionOf("exclusion", "API"), "What else belongs to the same category, but isn't API?");
+  assert.equal(mapQuestionOf("isoordinate", "API"), "What are the defining features of API?");
+  assert.equal(mapQuestionOf("infraordinate", "API"), "How would you classify API?");
+  assert.match(partMeaningOf("infraordinate", "API"), /grouping rule.*at least two types.*same rule/);
+  assert.match(partMeaningOf("exclusion", "API"), /same category.*key difference/);
+  assert.equal(mapQuestionOf("supraordinate", "hashing"), "hashing is a kind of…");
+});
+
+test("comparison context echoes the learner's ungraded category and follows edits without changing answers", () => {
+  const blank = blankMap("API");
+  assert.equal(categoryContextOf(blank), null);
+  assert.equal(categoryContextOf({ ...blank, supraordinate: { value: "  ", note: null } }), null);
+  const draft = withPart(blank, "supraordinate", [{ value: "  my proposed category  ", note: null }]);
+  const before = JSON.stringify(draft);
+  const comparison = wholeMapPartsOf(draft, blank).find(part => part.move === "exclusion")!;
+  assert.equal(comparison.context, "Your chosen category: my proposed category");
+  assert.equal(comparison.prompt, mapQuestionOf("exclusion", "API"));
+  assert.equal(JSON.stringify(draft), before);
+  const changed = withPart(draft, "supraordinate", [{ value: "a different category", note: null }]);
+  assert.equal(wholeMapPartsOf(changed, blank).find(part => part.move === "exclusion")!.context, "Your chosen category: a different category");
+  assert.equal(wholeMapPartsOf(blank, blank).find(part => part.move === "exclusion")!.context, null);
+});
+
+test("guided map orientation preserves answers, earned points, asked state and the adaptive Turn", () => {
+  const turn = turnAt(7);
+  const base = partsOf(turn, through(7).entries);
+  const before = JSON.stringify({ turn, base });
+  const guided = withMapQuestions(base, turn.mentefacto);
+  assert.equal(guided[1]!.context, "Your chosen category: form of government");
+  for (const [i, part] of guided.entries()) {
+    const { prompt, context: _context, ...unchanged } = part;
+    assert.equal(prompt, mapQuestionOf(part.move, turn.mentefacto.concept));
+    assert.deepEqual(unchanged, base[i]);
+  }
+  assert.equal(JSON.stringify({ turn, base }), before);
+});
+
+test("guided answer labels clarify each task without prompting the initial explanation", () => {
+  assert.equal(answerLabelOf(turnAt(2)), "Your first explanation");
+  assert.equal(answerLabelOf(turnAt(4)), "democracy is a kind of…");
+  assert.match(answerLabelOf(turnAt(7)), /similar concept in this category.*key difference/);
+  assert.match(answerLabelOf(turnAt(11)), /Defining features every example must have/);
+  assert.match(answerLabelOf({ ...turnAt(11), move: "infraordinate" }), /grouping rule.*at least two types.*that rule/);
+});
+
+test("the optional worked example uses its own concept and clearly labels its category as an example", () => {
+  const example = turnAt(3).example!;
+  const parts = withMapQuestions(exampleParts(example), example, true);
+  assert.equal(parts[0]!.prompt, mapQuestionOf("supraordinate", example.concept));
+  assert.equal(parts[1]!.context, categoryContextOf(example, "Example category"));
 });
 
 test("the memory line under a hint or the coach's words joins the cited facts' own sentences", () => {

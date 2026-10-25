@@ -143,7 +143,7 @@ export type PartState = "unasked" | "asked" | "lit" | "revealed";
 export type Pip = "earned" | "open" | "capped" | "claimed" | "missed";
 /** `pips` is null where nothing is scored yet: the whole map at level 5, until it's submitted. */
 /** `badge` is a short line under the part's words: on the result, a part that moved up a level. */
-export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] | null; badge?: string | null };
+export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] | null; badge?: string | null; prompt?: string; context?: string | null };
 
 const pipsFor = (points: number, capped = false): [Pip, Pip] => [points >= 1 ? "earned" : "open", points >= 2 ? "earned" : capped ? "capped" : "open"];
 
@@ -338,11 +338,31 @@ export const nextPartOf = (map: Mentefacto): MoveId | null => MOVE_ORDER.find((m
 /** The whole map while the learner builds it: their words light a part (nothing is scored until they submit),
  * an answer Help revealed stays dim, and an empty part is a "?". */
 export function wholeMapPartsOf(draft: Mentefacto, server: Mentefacto): PartView[] {
-  return MOVE_ORDER.map((move) => {
+  return withMapQuestions(MOVE_ORDER.map((move): PartView => {
     const text = partTextOf(draft, move);
     const shown = itemsOf(server, move).length > 0;
     return { move, state: text ? (shown ? "revealed" : "lit") : "unasked", text, pips: null };
-  });
+  }), draft);
+}
+
+/** Shared orientation for both modes, independent of the adaptive question, scores and hint ladder. */
+export function withMapQuestions(parts: readonly PartView[], map: Mentefacto, example = false): PartView[] {
+  return parts.map((part) => ({
+    ...part,
+    prompt: mapQuestionOf(part.move, map.concept),
+    context: part.move === "exclusion" ? categoryContextOf(map, example ? "Example category" : "Your chosen category") : null,
+  }));
+}
+
+/** Keep the guided answer field specific, without replacing an AI follow-up or scaffolding the first attempt. */
+export function answerLabelOf(turn: Turn): string {
+  if (turn.phase !== "move" || !turn.move) return "Your first explanation";
+  switch (turn.move) {
+    case "supraordinate": return mapQuestionOf(turn.move, turn.mentefacto.concept);
+    case "exclusion": return "A similar concept in this category + the key difference";
+    case "isoordinate": return "Defining features every example must have";
+    case "infraordinate": return "Your grouping rule + at least two types using that rule";
+  }
 }
 
 /** The fact desk's side of the session: the learner's questions, its answers, the hints. The opening instruction
@@ -355,17 +375,33 @@ export const deskOf = (entries: readonly Entry[]): Entry[] =>
  * which also grows the page, never pulls the learner away from it. The website layout follows its own column. */
 export const chatKeyOf = (desk: readonly Entry[], pending: boolean, failure: boolean): string => `${desk.length}:${pending ? 1 : 0}:${failure ? 1 : 0}`;
 
-/** What each part asks for, in plain words: the method's moves without its names. */
+/** The task stays visible even when the learner skips the optional worked example. */
+export function mapQuestionOf(move: MoveId, concept: string): string {
+  switch (move) {
+    case "supraordinate": return `${concept} is a kind of…`;
+    case "exclusion": return `What else belongs to the same category, but isn't ${concept}?`;
+    case "isoordinate": return `What are the defining features of ${concept}?`;
+    case "infraordinate": return `How would you classify ${concept}?`;
+  }
+}
+
+/** Echo the learner's category without judging it or blocking out-of-order answers. */
+export function categoryContextOf(map: Mentefacto, label = "Your chosen category"): string | null {
+  const category = map.supraordinate?.value.trim();
+  return category ? `${label}: ${category}` : null;
+}
+
+/** Task instructions only: no examples or answers for the learner's concept. */
 export function partMeaningOf(move: MoveId, concept: string): string {
   switch (move) {
     case "supraordinate":
-      return `The closest bigger group that ${concept} belongs to.`;
+      return `Name the closest category that ${concept} belongs to.`;
     case "exclusion":
-      return `Something close to ${concept} that it isn't, and how they differ.`;
+      return "Choose a similar concept in the same category, then explain the key difference.";
     case "isoordinate":
-      return `What something needs to count as ${concept}.`;
+      return `List the features every example must have. Together, they should distinguish ${concept} from other things in the same category.`;
     case "infraordinate":
-      return `The kinds of ${concept}.`;
+      return "Choose one way to group them. State your grouping rule, then name at least two types using that same rule.";
   }
 }
 

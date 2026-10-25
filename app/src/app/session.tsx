@@ -41,6 +41,7 @@ import {
   resultMessagesOf,
   revealHoldOf,
   waitingLineOf,
+  withMapQuestions,
 } from "../session/present.ts";
 import { useSession } from "../session/session-context.tsx";
 import type { Entry, SessionState } from "../session/transcript.ts";
@@ -136,7 +137,9 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
   const offered = turn.phase === "example" && !!turn.example && !exampleOpen;
   const shown = offered ? entries.filter((e) => !(e.from === "app" && e.phase === "example")) : entries;
   const example = turn.phase === "example" && turn.example && exampleOpen ? turn.example : null;
-  const parts = example ? exampleParts(example) : partsOf(turn, all, { held });
+  const baseParts = example ? exampleParts(example) : partsOf(turn, all, { held });
+  // The first explanation stays unprompted; opening the example or starting the guided moves adds orientation.
+  const parts = example ? withMapQuestions(baseParts, example, true) : turn.phase === "move" ? withMapQuestions(baseParts, turn.mentefacto) : baseParts;
   // a lit or revealed area opens to be read again, with what closed it (Cynthia, Oct 24); the worked example's map
   // has nothing of the learner's to open
   const [openPart, setOpenPart] = useState<MoveId | null>(null);
