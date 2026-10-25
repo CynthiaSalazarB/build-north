@@ -111,6 +111,7 @@ export default function SessionScreen() {
         againBusy={again.busy}
         againError={again.error}
         onDone={close}
+        onAnother={() => router.dismissTo("/")}
       />
     );
   } else if (turn.expects === "map") {
