@@ -150,8 +150,9 @@ TypeScript, Node 24, Express 5, Render, SurrealDB Cloud, SurrealDB Agent Memory,
 
 - Try it on the web: https://lumente.expo.app
 - Android app: https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk
-- Quick test: Sign in with Google on the web or use any address ending in
-  `+clerk_test@example.com` with code `424242`. Choose "API", then "Explore with guidance".
+- Quick test: Use Google on the web, or choose "Get started" and enter any address ending in
+  `+clerk_test@example.com` with code `424242`; no inbox is needed. Choose "API", then "Explore with
+  guidance".
 - Code: https://github.com/CynthiaSalazarB/lumente
 - Demo video: `[link: Cynthia]`
 
