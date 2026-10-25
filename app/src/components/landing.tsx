@@ -22,7 +22,7 @@ export function useClerkAppearance() {
   return {
     // Temporary: hides the "Development mode" badge (B1, Oct 24 web test) while the site runs on Clerk's development
     // instance; a production instance needs a domain of our own with DNS records, so drop this once we move to one.
-    layout: { unsafe_disableDevelopmentModeWarnings: true },
+    options: { unsafe_disableDevelopmentModeWarnings: true },
     variables: {
       colorPrimary: c.primary,
       colorPrimaryForeground: c.onPrimary,

@@ -8,7 +8,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { ClientError, type SessionClient } from "./client.ts";
 import { createSavedSessions, savedOf } from "./saved.ts";
 import { clearSaved, readSaved, writeSaved } from "./storage.ts";
-import { drafted, failed, initialState, received, resendOf, sent, startedWith, withRevealed, type SessionState } from "./transcript.ts";
+import { drafted, failed, initialState, received, replayed, resendOf, sent, startedWith, withRevealed, type SessionState } from "./transcript.ts";
 
 /** What the learner can send: a /turns body without its `turn` number, which the provider adds. */
 export type LearnerInput = Exclude<TurnInput, { action: "start" }>;
@@ -118,10 +118,13 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     refresh,
     async resume({ id, mode }) {
       try {
-        const turn = await client.resume(id);
+        // the latest Turn says whether the session is still there (a 404 when it isn't); the steps bring its whole
+        // conversation back, and without them (an older session, or an API from before they were kept) the latest
+        // Turn shows alone
+        const [turn, steps] = await Promise.all([client.resume(id), client.transcript(id).catch(() => null)]);
         const kept = await saved.current!.get(id);
         // the server's map holds what Help revealed; the learner's own words come back from the device
-        const back = startedWith(turn, mode, kept?.material ?? null);
+        const back = replayed(steps, turn, mode, kept?.material ?? null);
         setState(kept?.draft ? drafted(back, withRevealed(kept.draft, turn.mentefacto)) : back);
         return null;
       } catch (error) {

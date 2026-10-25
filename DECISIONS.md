@@ -883,3 +883,28 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   started with (the agents still have them on the server) and, at level 5, without the unsent map. The list is one
   extra request each time Start shows, capped at 200 rows.
 
+### 2026-10-25 · A session keeps its whole conversation, and picking its concept again continues it
+- **Decision:** the API appends one step per saved Turn to the session row (`Session.transcript`: the body the learner
+  sent, `null` for the start, and the Turn it got), in the same conditional write as the Turn, and
+  `GET /sessions/:id/transcript` returns them. When the app picks a session up or opens a finished map, it replays the
+  steps through the same `sent` and `received` the live screen used (`replayed` in `app/src/session/transcript.ts`), so
+  every question, answer, hint and part's closing comes back, the result's per-part notes included. On Start, a concept
+  with an unfinished session in the same mode continues it: the button says "Continue with guidance" (or "Continue
+  self-test") and opens that session instead of starting a second one beside it. Supersedes two lines of "Start lists
+  every session" (2026-10-24): "a new session on the same concept starts fresh" (now only once the earlier one is
+  finished) and "a map opened again shows its result Turn, not the whole conversation".
+- **Instead of:** the latest Turn alone on a resume (a session picked up after two parts showed only the third part's
+  question, and a reopened map showed no notes for its parts), rebuilding the conversation from `agent_log` (the agents'
+  inputs and outputs, not what the screen showed), or keeping the conversation on the device (lost on another device,
+  after Delete my data on a second phone, or with the app's storage cleared).
+- **Why:** Leo, Oct 24 and 25: picking a topic he had worked on showed none of it, and "all of the topics and progress
+  made by a user should be remembered". The server already keeps the session; the screen just couldn't rebuild it.
+  The label follows what the tap does, so "Explore with guidance" never quietly reopens a session and "Continue" never
+  starts a new one (a signifier should say what will happen: Norman, *The Design of Everyday Things*, ch. 1).
+- **Pattern / trade-off:** an append-only event log beside the state, replayed by the same reducer that built it
+  (event sourcing, light). The session row grows by a few kilobytes a Turn, and `GET /sessions` never reads it. A
+  session saved before Oct 25 has no first steps, so it comes back on its latest Turn alone, as before; the app also
+  falls back to that when the steps don't run from the first Turn to the latest without a gap, or when the API doesn't
+  have the route yet, so the app and the API can deploy in either order. A learner who wants a fresh map of a concept
+  they left unfinished finishes the old one first.
+

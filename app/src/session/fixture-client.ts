@@ -41,5 +41,8 @@ export function createFixtureClient(delayMs = 600): SessionClient {
     async resume() {
       throw new ClientError("Demo mode keeps nothing to resume.", null, false);
     },
+    async transcript() {
+      throw new ClientError("Demo mode keeps nothing to resume.", null, false);
+    },
   };
 }

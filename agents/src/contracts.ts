@@ -175,6 +175,16 @@ export const Turn = z.strictObject({
 });
 export type Turn = z.infer<typeof Turn>;
 
+/**
+ * One saved step of a session: the body the learner sent (null for the start) and the Turn that came back. The API
+ * keeps every step on the session row (`Session.transcript`), so a session picked up again, or a finished map opened
+ * from "Your maps", shows its whole conversation instead of the latest Turn alone.
+ */
+export const TranscriptStep = z.strictObject({ body: TurnBody.nullable(), turn: Turn });
+export type TranscriptStep = z.infer<typeof TranscriptStep>;
+/** What GET /sessions/:id/transcript answers: every saved step, oldest first. Empty for a session saved before Oct 25. */
+export const Transcript = z.strictObject({ steps: z.array(TranscriptStep) });
+
 export const Mastery = z.strictObject({
   moves: z.array(
     z.strictObject({ move: MoveId, level: Level, unassistedSuccesses: z.number().int().min(0) }),
@@ -468,6 +478,9 @@ export const Session = z.strictObject({
     }),
   ),
   result: Result.nullable(),
+  /** Every saved step, oldest first, written by the API (never read by the orchestrator). Sessions saved before
+   * Oct 25 have none. */
+  transcript: z.array(TranscriptStep).default([]),
   createdAt: z.string(),
 });
 export type Session = z.infer<typeof Session>;

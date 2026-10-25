@@ -49,6 +49,7 @@ function newSession(concept: string, mode: "learn" | "test" = "learn"): Session 
     questions: { asked: 0, testing: 0 },
     moveLog: [],
     result: null,
+    transcript: [],
     createdAt: "2026-10-20T00:00:00.000Z",
   };
 }

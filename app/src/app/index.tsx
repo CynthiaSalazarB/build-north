@@ -83,9 +83,22 @@ export default function StartScreen() {
   const secret = secretLine !== null;
   const name = concept.trim();
   const picked = CONCEPTS.find((chip) => chip === name) ?? null;
+  // A concept the learner already has a session going on, in the same mode, goes on from where it stopped instead of
+  // starting over beside it (Leo, Oct 24: picking a topic he had worked on showed none of it). A finished one starts
+  // fresh, and its map stays under "Your maps".
+  const ongoing = (mode: SessionMode): "on screen" | SessionSummary | null => {
+    const same = (other: string, otherMode: SessionMode) => otherMode === mode && other.trim().toLowerCase() === name.toLowerCase();
+    if (unfinished && same(unfinished.mentefacto.concept, state.mode)) return "on screen";
+    return kept.find((s) => same(s.concept, s.mode)) ?? null;
+  };
+  const going = { learn: ongoing("learn"), test: ongoing("test") };
+  const pickingUp = (session: ReturnType<typeof ongoing>) => session !== null && session !== "on screen" && resuming === session.id;
 
   const begin = async (mode: SessionMode) => {
     if (!name || busy || secret) return;
+    const session = going[mode];
+    if (session === "on screen") return router.push("/session");
+    if (session) return pickUp(session);
     setStarting(mode);
     setError(null);
     const problem = await start({ concept: name, ...(notes.trim() ? { material: notes } : {}), ...(mode === "test" ? { mode } : {}) });
@@ -103,13 +116,23 @@ export default function StartScreen() {
     else router.push("/session");
   };
 
-  const startButton = <Button label={name ? "Explore with guidance" : "Pick a concept"} hint={GUIDED} fit={wide} busy={starting === "learn"} disabled={!name || secret || busy} onPress={() => void begin("learn")} />;
+  // the label says what the tap does: a concept with a session going on continues it
+  const startButton = (
+    <Button
+      label={going.learn ? "Continue with guidance" : name ? "Explore with guidance" : "Pick a concept"}
+      hint={going.learn ? `Picks up your ${name} session where you left it` : GUIDED}
+      fit={wide}
+      busy={starting === "learn" || pickingUp(going.learn)}
+      disabled={!name || secret || busy}
+      onPress={() => void begin("learn")}
+    />
+  );
   const testButton = !offline && (
     <Button
       kind={wide ? "secondary" : "text"}
-      label="Test myself"
-      hint="Write your answers in the four map areas. The optional chat answers factual questions. Your levels don't change."
-      busy={starting === "test"}
+      label={going.test ? "Continue self-test" : "Test myself"}
+      hint={going.test ? `Picks up your ${name} self-test where you left it` : "Write your answers in the four map areas. The optional chat answers factual questions. Your levels don't change."}
+      busy={starting === "test" || pickingUp(going.test)}
       disabled={!name || secret || busy}
       onPress={() => void begin("test")}
       style={wide && styles.tall}

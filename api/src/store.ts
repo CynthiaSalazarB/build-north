@@ -86,6 +86,7 @@ export function initialSession(user: string, { concept, material, mode }: NewSes
     questions: { asked: 0, testing: 0 },
     moveLog: [],
     result: null,
+    transcript: [],
   };
 }
 

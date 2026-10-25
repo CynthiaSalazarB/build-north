@@ -50,6 +50,8 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
 
   await t.test("every field the orchestrator changes is saved, the fields it added to Session included", async () => {
     const session = await store.createSession("leo", { concept: "democracy", material: null, mode: "learn" });
+    assert.deepEqual(session.transcript, []);
+    const started = await advanceStub({ session, mastery: await store.getMastery("leo") }, { action: "start" }, callAgentStub);
     const changed: typeof session = {
       ...session,
       turn: 6,
@@ -62,6 +64,11 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
       nextQuestion: { move: "isoordinate", level: 2, question: "What other kinds of government are there?", scaffold: null },
       questions: { asked: 1, testing: 0 },
       moveLog: [{ move: "supraordinate", points: 2, hints: 1, retries: 1, from: 2, to: 3 }],
+      // the API's record of the conversation: the start (no body), then an answer and the Turn it got
+      transcript: [
+        { body: null, turn: started.turn },
+        { body: { turn: 1, prediction: 5 }, turn: { ...started.turn, turn: 2 } },
+      ],
     };
     assert.equal(await store.saveSession(changed, session.turn), true);
     assert.deepEqual(await store.getSession("leo", session.id), changed);
