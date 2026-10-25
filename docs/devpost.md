@@ -1,23 +1,4 @@
-# Devpost page: draft for Cynthia
-
-The text for every field of our Devpost project page (#30, #53), in the order Devpost shows them, plus
-one section for each sponsor prize we enter with its own evidence. Build North publishes no word limit
-for these fields. The opening stays concise enough to skim, but explaining the problem, the method and
-the value matters more than an arbitrary count. Judges skim the standard headings, so we keep them.
-
-Every number here comes from a file in this repo. A number we don't have yet is written as
-`[number: Cynthia]`; a link we don't have yet as `[link: Cynthia]`. The research figures under
-Inspiration come from the studies the README cites, not from our pilot. Paste each field as it is, or
-edit freely: this is a draft.
-
-Sources: the README, the [product thesis](../wiki/synthesis/product-thesis.md),
-the [plan to win](../wiki/synthesis/plan-to-win.md), the [Expo prize plan](../wiki/synthesis/expo-prize-plan.md),
-the [SurrealDB prize page](../wiki/context/surrealdb-sponsor-prize.md), [`DECISIONS.md`](../DECISIONS.md),
-[`docs/expo-log.md`](expo-log.md), [`docs/clerk.md`](clerk.md) and the app's own screens.
-
-## Project name
-
-Lumente
+# Lumente
 
 ## Tagline
 
@@ -167,44 +148,15 @@ TypeScript, Node 24, Express 5, Render, SurrealDB Cloud, SurrealDB Agent Memory,
 ## Links
 
 - Try it on the web: https://lumente.expo.app
-- Android app: https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk (build 3,
-  the `preview` APK; every phone takes updates on the one `preview` channel)
+- Android app: https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk
 - Code: https://github.com/CynthiaSalazarB/build-north
 - Demo video: `[link: Cynthia]`
-- Server health check: https://build-north-api.onrender.com/health
 
-## Try it (testing notes)
+## Try Lumente
 
-Open https://lumente.expo.app in any browser, or install the Android app. Sign in with an email
-code, or with Google on the web. To skip the email, use any address that ends in
-`+clerk_test@example.com` and the code `424242`. Tap "API", then "Explore with guidance". Pick a
-prediction, explain the idea in your own words, and answer the four questions. Tap the firefly once to
-see how a hint affects the score. The result shows your prediction next to your score. "Your data" says what is
-kept, and "Delete my data" removes it. The full guide is
-https://github.com/CynthiaSalazarB/build-north/blob/main/docs/testing-notes.md.
-
-## Media to upload
-
-- Hero/result screen: `docs/readme/hero.jpg`
-- Predict your score: `docs/readme/step-1-guess.jpg`
-- Build the map: `docs/readme/step-2-map.jpg`
-- Ask for help: `docs/readme/step-3-hint.jpg`
-- Compare prediction with score: `docs/readme/step-4-score.jpg`
-
-These are the app's real demo-mode screens. Demo mode replays a session recorded live with Claude.
-
-## Team
-
-| Name | Role |
-|---|---|
-| Cynthia Salazar | Team lead: the product, the design and the AI agents |
-| Leo Atienza | The server, hosting, Expo builds, sign-in and the memory layer |
-| Jhonatan Lopez | The app |
-| Kyle Argallon | The pilot, the pitch and the video |
-
-## Categories
-
-Best Overall, Best Use of Expo, Best Use of Clerk, Best Use of SurrealDB Agent Memory.
+Open https://lumente.expo.app or install the Android app. Sign in with Google on the web or use any
+address ending in `+clerk_test@example.com` with code `424242`. Choose "API", then "Explore with
+guidance".
 
 ## Disclosures
 
@@ -212,8 +164,8 @@ Best Overall, Best Use of Expo, Best Use of Clerk, Best Use of SurrealDB Agent M
   splash screen.
 - Fonts: Newsreader, and Atkinson Hyperlegible Next and Mono, under the SIL Open Font License.
 - The images in our design boards are CC0, public domain or from Unsplash.
-- Voice input uses `expo-speech-recognition`, a community module. The audio goes to the device's own
-  speech service; only the words reach us.
+- Voice input uses `expo-speech-recognition`, a community module. The device or browser's speech
+  provider processes the audio; only the editable transcript reaches Lumente.
 - AI tools: Lumente's AI runs on Claude (Anthropic), and we built it with Claude Code.
 - Apart from the template, fonts and images above, nothing was built before Build Week.
 
@@ -229,10 +181,6 @@ Because Expo is cross-platform, a native iOS build is a next distribution step, 
 - **EAS Update** with the fingerprint policy: 23 updates over the air on the `preview` channel through
   Oct 25. A merged fix reaches every phone without a new build.
 - **EAS Hosting and Workflows:** the website, deployed from `main`.
-- **Expo Observe:** launch times and crashes on the Android app.
-- **From the SDK:** Expo Router, expo-updates, expo-secure-store, expo-haptics, expo-font,
-  expo-splash-screen, expo-file-system, Reanimated, react-native-svg, and expo-speech-recognition, a
-  community module.
 
 Every build, update and deploy is in the
 [Expo log](https://github.com/CynthiaSalazarB/build-north/blob/main/docs/expo-log.md), with the bugs
@@ -255,16 +203,17 @@ every claim to its code and tests.
 
 ## Sponsor prize: Best Use of SurrealDB Agent Memory
 
-After each finished session, our server writes progress notes to SurrealDB Agent Memory: the learner's
-guidance stage on each area when they practiced that concept, the prediction next to the score, and the
-Helps an area took. The stages track independence across concepts, not mastery of the concept named in
-the note. Code writes each note from a template. The learner's words never go in.
+Agent Memory has been live in production since Oct 23. After each finished session, our server writes
+progress notes: the learner's guidance stage on each area when they practiced that concept, the
+prediction next to the score, and the Helps an area took. The stages track independence across
+concepts, not mastery of the concept named in the note. Code writes each note from a template. The
+learner's words never go in.
 
 - **Facts that replace old facts, history kept.** A new guidance-stage note supersedes the old one, and the Memory
   sheet shows the chain of guidance stages over time.
-- **Answers traced to their source.** The hint giver and the coach read up to eight notes and cite the
-  ones they use; the server keeps only ids it passed in. The learner sees "From what Lumente remembers:"
-  under the message.
+- **Agent messages cite the remembered facts they use.** The hint giver and the coach read up to eight
+  notes and cite the ones they use; the server keeps only ids it passed in. The learner sees "From what
+  Lumente remembers:" under the message.
 - **Memory shared across agents.** Three agents' work goes in; two read it.
 
 Memory never changes a score. Delete my data purges it. Pointers are on the
