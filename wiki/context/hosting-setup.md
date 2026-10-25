@@ -38,7 +38,7 @@ read-only.
 - Web service `build-north-api`, live at https://build-north-api.onrender.com. Free plan, Virginia
   region (next to the database).
 - The first deploy took 20.5 s. Render picked Node 24.22.0 from `.node-version`.
-- Source: Public Git Repository `https://github.com/CynthiaSalazarB/build-north`, branch
+- Source: Public Git Repository `https://github.com/CynthiaSalazarB/lumente`, branch
   `leo/lock-api` (#60, which includes #54 and #58) until #58 and #60 merge. Then the branch is `main`,
   deployed by hand (Manual Deploy) after each merge, so prod only runs reviewed code. No auto-deploy
   until Cynthia installs Render's GitHub app on the repo.

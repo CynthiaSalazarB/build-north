@@ -152,7 +152,7 @@ TypeScript, Node 24, Express 5, Render, SurrealDB Cloud, SurrealDB Agent Memory,
 - Android app: https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk
 - Quick test: Sign in with Google on the web or use any address ending in
   `+clerk_test@example.com` with code `424242`. Choose "API", then "Explore with guidance".
-- Code: https://github.com/CynthiaSalazarB/build-north
+- Code: https://github.com/CynthiaSalazarB/lumente
 - Demo video: `[link: Cynthia]`
 
 ## Disclosures
