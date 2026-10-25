@@ -198,7 +198,7 @@ no Apple account, we shipped iPhones the installable web app.
 
 - **EAS Build:** three Android builds on SDK 58 the week it came out: an initial development build, a
   preview APK, and build 3 after the icon and voice module changed the native fingerprint.
-- **EAS Update** with the fingerprint policy: 22 updates over the air on the `preview` channel through
+- **EAS Update** with the fingerprint policy: 23 updates over the air on the `preview` channel through
   Oct 25. A merged fix reaches every phone without a new build.
 - **EAS Hosting and Workflows:** the website, deployed from `main`.
 - **Expo Observe:** launch times and crashes on the Android app.
