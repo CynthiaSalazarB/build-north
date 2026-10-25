@@ -63,42 +63,66 @@ where Lumente moves from helping with one concept to practicing how to unravel t
 
 ## How we built it
 
-TypeScript monorepo with three npm workspaces; no server build step.
+Lumente is a TypeScript monorepo with three parts: the Expo app, an Express API and a learning engine.
 
-- **App:** Expo SDK 58 and Expo Router, one codebase for Android and the web. EAS Build makes the Android
-  app, EAS Update ships fixes over the air, EAS Hosting serves the website, which installs as a web app
-  on iPhones and laptops.
-- **API:** Express 5 on Node 24, on Render. One route moves a session forward. SurrealDB Cloud holds
-  sessions, guidance stages and AI logs; SurrealDB Agent Memory holds the progress notes. Clerk signs
-  learners in, checked without a network call.
-- **Agents:** six Claude agents: a questioner, an evaluator, a whole-map evaluator, a fact desk, a hint
-  giver and a coach, one structured call each. Zod schemas guard every boundary.
+- **One app, two platforms:** Expo SDK 58 and Expo Router power the Android and responsive web apps.
+  EAS Build creates the APK, EAS Update sends fixes to installed phones and EAS Hosting serves
+  `lumente.expo.app`, which can also be installed as a web app.
+- **A controlled agent flow:** a deterministic state machine decides what happens next. It calls six
+  Claude agents, each with one job: ask a question, evaluate one answer, evaluate the whole map, answer
+  facts, offer guidance or coach the result. Zod validates every structured input and output.
+- **Numbers in code, words in the model:** Claude writes questions, evaluates the meaning of answers and
+  words the feedback. Plain code applies the rubric and computes every score, guidance stage and how
+  guidance affects the score, so the model does not control the scoring rules or progression.
+- **Backend and memory:** Express 5 runs on Node 24 and Render. SurrealDB Cloud stores sessions, complete
+  conversation transcripts, guidance stages and agent logs. SurrealDB Agent Memory holds small progress
+  facts that the guidance and coaching agents can cite. Clerk handles sign-in.
 
-Numbers in code, words in the model: code computes every score, guidance stage and hint scoring effect. Claude writes
-the questions, judges the answers and words the hints.
+Each answer and step is saved as it happens. If a request is repeated or the learner closes the app,
+they can continue without duplicating a step or losing their conversation.
 
 ## Responsible by design
 
-The Anthropic key stays on our server, and every private API route requires a Clerk session token.
-Learner text is fenced as data in every agent prompt. SurrealDB Agent Memory stores progress notes
-written from code templates, never the learner's answers, and memory cannot change a score. Voice audio
-goes to the device's speech service; only the transcript reaches Lumente.
+Because Lumente measures learning, we separated what the model can judge from what it can control. Claude
+evaluates an answer against a rubric, but plain code assigns the points and advances the guidance. Any
+defensible answer can pass; the learner does not have to match one expected phrase. The AI asks, checks
+and responds, but the learner writes the map.
 
-"Your data" explains what we keep. "Delete my data" purges the learner's sessions, agent logs, guidance
-stages and memory notes, then signs them out. Our pilot uses adults who agreed to participate, and no
-tester names or emails appear in the repository or submission.
+The Anthropic key stays on the server, every private route requires a Clerk session token and the API
+verifies that token locally. Our database uses the Clerk user ID and stores no name or email. Learner
+text is fenced as untrusted data inside every agent prompt.
+
+Agent Memory never receives the learner's answers. It stores only progress facts written from code
+templates under a salted pseudonym, and it cannot change a score or guidance stage. Agents may cite only
+facts the server gave them. If memory is unavailable or takes more than 1.5 seconds, the session continues
+without it.
+
+Lumente never receives a voice recording: the device or browser's speech provider processes it, and only
+the editable transcript reaches us when the learner submits it. "Your data" explains what we keep, and
+"Delete my data" purges the learner's memory, sessions, agent logs and guidance stages before signing
+them out. Our pilot uses consenting adults, and no tester names or emails appear in the repository or
+submission.
 
 ## Challenges we ran into
 
-- **"A server" is related to an API, but it isn't a kind of API.** The bigger group is now tested with
-  one sentence, "An API is a kind of ___".
-- **A fact desk that gives nothing away.** During independent practice, the learner asks the questions.
-  One that fishes for the structure gets one fixed line, chosen by code: "That part is yours to
-  decide." An answer typed into the chat gets its own line; the chat never grades it.
-- **The gap read as a grade.** Shown as a signed number, "−2" read as losing points, when 0 is the best
-  calibration there is. The result now leads with the gap in words, over two rows of eight points.
-- **Agent Memory refused parallel writes on one entity.** The notes now go one after another, off the
-  request path.
+- **Related is not the same as belonging.** The evaluator initially treated "a server" as a possible
+  bigger group for API. We made the rule explainable with one sentence: "An API is a kind of ___".
+  "Software interface" passes; "server" does not.
+- **The interface was inviting the wrong action.** In independent practice, learners typed map answers
+  into the fact chat because it looked like the main task. We made the map the primary action, collapsed
+  the chat behind "Ask a fact (optional)" and added a review step before submission.
+- **The fact desk had to help without taking over.** It answers factual questions, but a question that
+  asks it to fill part of the map gets a fixed redirect. If the learner types an answer into the chat,
+  it points them back to the map without judging the answer.
+- **The confidence gap looked like a grade.** A large signed number made "−2" feel like losing points,
+  even though a gap of zero means accurate confidence. The result now names the direction in words and
+  shows two separate rows: prediction and map score.
+- **The final answer was making learners wait.** Evaluating the last answer and then generating coaching
+  took 9.2 seconds. We now return the code-computed result first and request the coach in the next turn.
+  We also prepare the next question while the current answer is being evaluated.
+- **Agent Memory rejected parallel writes on one concept record.** We changed its progress-fact writes
+  to run sequentially and off the request path. A slow or failed memory operation never blocks the
+  learning session.
 
 ## Accomplishments that we're proud of
 
