@@ -37,6 +37,10 @@ import {
   partNotesOf,
   partsOf,
   partTextOf,
+  PREDICTION_MEANING,
+  PREDICTION_TOTAL,
+  predictionStatusOf,
+  predictionTaskOf,
   pointsOf,
   provedOf,
   rememberedLineOf,
@@ -63,6 +67,18 @@ test("Start opens on the concept's line of code, or a comment for a concept type
   assert.deepEqual(editorLinesOf("API")[1], { n: 12, text: "app.get('/api/users/:id', getUser);", current: true });
   assert.equal(editorLinesOf("cors")[1]!.text, "app.use(cors({ origin: CLIENT_URL }));");
   assert.equal(editorLinesOf("monads")[1]!.text, "// explain: monads");
+});
+
+test("prediction wording uses the selected concept and separates confidence from possible points", () => {
+  assert.equal(predictionTaskOf("JWT"), "Explain JWT across four areas of a concept map. Before you begin, predict your score out of 8.");
+  assert.match(predictionTaskOf("database index"), /^Explain database index /);
+  assert.equal(PREDICTION_TOTAL, "4 areas × 2 points = 8 possible points");
+  assert.equal(PREDICTION_MEANING, "Your prediction reflects your confidence; your score reflects what you can explain.");
+});
+
+test("prediction status starts without a default and preserves zero as a deliberate choice", () => {
+  assert.equal(predictionStatusOf(null), "Choose a number first.");
+  for (let value = 0; value <= 8; value++) assert.equal(predictionStatusOf(value), `Your prediction: ${value} of 8 points`);
 });
 
 test("the democracy session lights the map part by part: asked, capped after a retry, lit with its points", () => {
