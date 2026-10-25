@@ -44,13 +44,14 @@ building the answer yourself. We see that as a foundational habit of critical th
 ## What it does
 
 A learner chooses a concept from their project, such as API or CORS, and predicts their score before
-seeing a question. The prediction is not a grade. It records how sure they feel before receiving help.
+seeing a question. The prediction is not a grade. It captures their confidence at the start.
 
 They then build a **conceptual mentefact**, a specialized visual map from Conceptual Pedagogy. It places
 one concept in four areas: the bigger group it belongs to, what it is often confused with, what must be
 true for it to count as one, and the types that exist. The firefly asks questions and checks each
-answer, while the learner builds the map in their own words. Help costs points and fades as the learner
-becomes more independent.
+answer, while the learner builds the map in their own words. Help is always available. The score shows
+how much the learner could explain independently and how much they built with guidance, which fades as
+they become more independent.
 
 At the end, Lumente shows the predicted score beside the score they proved. That gap makes confidence
 visible: how well what they felt they knew matches what they could actually explain.
@@ -58,7 +59,7 @@ visible: how well what they felt they knew matches what they could actually expl
 The guidance stages track independence in the four map areas across concepts; they are not scores for
 API, CORS or another individual concept. Once guidance has faded across all four areas, the roles flip.
 The learner builds the whole map, decides what they need to know and asks a fact desk for facts. That is
-where Lumente moves from helping with one concept to practicing how to investigate the next one.
+where Lumente moves from helping with one concept to practicing how to unravel the next one.
 
 ## How we built it
 
@@ -73,7 +74,7 @@ TypeScript monorepo with three npm workspaces; no server build step.
 - **Agents:** six Claude agents: a questioner, an evaluator, a whole-map evaluator, a fact desk, a hint
   giver and a coach, one structured call each. Zod schemas guard every boundary.
 
-Numbers in code, words in the model: code computes every score, guidance stage and hint cost. Claude writes
+Numbers in code, words in the model: code computes every score, guidance stage and hint scoring effect. Claude writes
 the questions, judges the answers and words the hints.
 
 ## Responsible by design
@@ -110,7 +111,7 @@ tester names or emails appear in the repository or submission.
 - Agent Memory has been on in production since the evening of Oct 23.
 - Learners can resume every unfinished session with its whole conversation and reopen finished maps
   from "Your maps".
-- Plain code computes every score, guidance stage and hint cost, so we can explain every number a learner sees.
+- Plain code computes every score, guidance stage and hint scoring effect, so we can explain every number a learner sees.
 - The AI never wrote a map.
 
 ## What we learned
@@ -123,7 +124,7 @@ tester names or emails appear in the repository or submission.
 - Worked examples help beginners but slow experts, so ours is optional.
 - Hiding the answer is not enough. AI tutors with guardrails stop the harm but don't beat studying alone.
   Structure, fading help and measurement are our bet, not proven yet: our pilot has no comparison group.
-- The concept map gives students something concrete to investigate while they practice forming their
+- The concept map gives students a concrete way to unravel an idea while they practice forming their
   own questions. The questioning habit is the larger goal.
 - Turn a feature on for real users before the freeze. Memory went on before the pilot, behind a kill
   switch, and sessions survive a reload because getting ready for testers demanded it.
@@ -169,7 +170,7 @@ Open https://lumente.expo.app in any browser, or install the Android app. Sign i
 code, or with Google on the web. To skip the email, use any address that ends in
 `+clerk_test@example.com` and the code `424242`. Tap "API", then "Explore with guidance". Pick a
 prediction, explain the idea in your own words, and answer the four questions. Tap the firefly once to
-see what a hint costs. The result shows your prediction next to your score. "Your data" says what is
+see how a hint affects the score. The result shows your prediction next to your score. "Your data" says what is
 kept, and "Delete my data" removes it. The full guide is
 https://github.com/CynthiaSalazarB/build-north/blob/main/docs/testing-notes.md.
 
