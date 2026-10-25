@@ -908,3 +908,17 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   have the route yet, so the app and the API can deploy in either order. A learner who wants a fresh map of a concept
   they left unfinished finishes the old one first.
 
+### 2026-10-25 · The first explanation returns in an optional result comparison
+- **Decision:** I keep the first explanation before any example, unscored, and tell the learner they will revisit
+  it. After the result's score comparison, "Compare with your first explanation" opens a reading sheet on phones
+  or a spacious dialog on desktop, with the original words and the map after this session. Hints and revealed
+  answers stay identified. If the session has no recorded first explanation, the action is absent.
+- **Instead of:** an example before the learner's own attempt, another required screen, a permanently expanded
+  block on an already busy result, or an AI-written "complete concept" presented as the learner's understanding.
+- **Why:** Cynthia: the initial answer looks as if it disappears and never matters again. Bringing it back gives
+  that step a visible purpose, without claiming mastery or independent improvement when help was used.
+- **Pattern / trade-off:** progressive disclosure. Reflection gets a separate reading space, while the result
+  stays focused on prediction versus score. It costs one deliberate tap, so the opener stays visible below the
+  summary and the beginning explains that it will return. The existing transcript is the source, not a new
+  persistence field or a model reconstruction. This is read-only UI; scoring, sequencing and API contracts stay.
+

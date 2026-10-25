@@ -6,6 +6,7 @@ import type { Turn } from "@build-north/agents";
 import { useState } from "react";
 import { StyleSheet, View, type StyleProp, type ViewStyle } from "react-native";
 import type { LearnerInput } from "../session/session-context.tsx";
+import { FIRST_EXPLANATION_NOTE } from "../session/comparison.ts";
 import { answerLabelOf, categoryContextOf, type GuidedHelpView } from "../session/present.ts";
 import { space } from "../theme.ts";
 import { Button, MicButton, PromptField, SendButton, Small, VoiceNote } from "./ui.tsx";
@@ -36,7 +37,7 @@ export function Composer({ turn, pending, placeholder, help, onHelp, onNext, onS
   }
   switch (turn.expects) {
     case "text":
-      return <AnswerBar pending={pending} placeholder={placeholder} label={answerLabelOf(turn)} context={turn.phase === "attempt" ? "This first explanation is not scored. It is your starting point." : turn.phase === "move" && turn.move === "exclusion" ? categoryContextOf(turn.mentefacto) : null} help={turn.phase === "move" ? help : null} onHelp={onHelp} onSend={onSend} style={bar} />;
+      return <AnswerBar pending={pending} placeholder={placeholder} label={answerLabelOf(turn)} context={turn.phase === "attempt" ? FIRST_EXPLANATION_NOTE : turn.phase === "move" && turn.move === "exclusion" ? categoryContextOf(turn.mentefacto) : null} help={turn.phase === "move" ? help : null} onHelp={onHelp} onSend={onSend} style={bar} />;
     case "continue":
       return (
         <View style={bar}>

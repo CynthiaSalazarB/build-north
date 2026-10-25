@@ -23,6 +23,7 @@ import { Body, Button, KeyboardSafe, Screen, Sheet, Small, Title, useEntrance, u
 import { WideStage } from "../components/work-stage.tsx";
 import { WholeMapScreen } from "../components/whole-map.tsx";
 import { tick } from "../haptics.ts";
+import { comparisonAreasOf, firstExplanationOf } from "../session/comparison.ts";
 import {
   cappedOf,
   currentPartOf,
@@ -94,6 +95,8 @@ export default function SessionScreen() {
         concept={turn.mentefacto.concept}
         result={turn.result}
         map={turn.mentefacto}
+        firstExplanation={firstExplanationOf(state.entries)}
+        comparisonAreas={comparisonAreasOf(turn.mentefacto, state.entries)}
         notes={partNotesOf(resultMessagesOf(state.entries))}
         lastPart={lastPartNoteOf(state.entries)}
         closings={partClosingsOf(state.entries)}

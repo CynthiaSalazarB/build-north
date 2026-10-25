@@ -11,9 +11,11 @@ import { useEffect, useState } from "react";
 import { Platform, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { areaCopyOf } from "../area-copy.ts";
 import { success } from "../haptics.ts";
+import type { ComparisonArea } from "../session/comparison.ts";
 import { gapOf, POINTS_RULE, resultPartsOf, resultStepsOf, shareLineOf, type Pip, type ResultStep } from "../session/present.ts";
 import { brand, page, parts as PARTS, radius, space, type } from "../theme.ts";
 import { ConceptMap, PointSquare } from "./concept-map.tsx";
+import { ExplanationComparison } from "./explanation-comparison.tsx";
 import { Firefly } from "./firefly.tsx";
 import { Failure, Remembered } from "./messages.tsx";
 import { PartSheet, type PartClosing } from "./part-sheet.tsx";
@@ -26,6 +28,8 @@ type Props = {
   concept: string;
   result: Result;
   map: Mentefacto;
+  firstExplanation: string | null;
+  comparisonAreas: readonly ComparisonArea[];
   /** The whole-map evaluator's note per part, after level 5 or a self-test. */
   notes?: Partial<Record<MoveId, string>>;
   /** Levels 1 to 4: the evaluator's words on the part answered last, which came with the result (`lastPartNoteOf`). */
@@ -56,7 +60,7 @@ export function ResultScreen(props: Props) {
 }
 
 /** Inside the Screen, so the colors follow the light the score reached. */
-function ResultBody({ concept, result, map, notes = {}, lastPart = {}, closings = {}, coachFailure, coachSources, onRetryCoach, onAgain, againBusy, againError, onDone }: Props) {
+function ResultBody({ concept, result, map, firstExplanation, comparisonAreas, notes = {}, lastPart = {}, closings = {}, coachFailure, coachSources, onRetryCoach, onAgain, againBusy, againError, onDone }: Props) {
   const c = useColors();
   const wide = useWide();
   const lit = useMode() === "day";
@@ -73,6 +77,7 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, closings 
   // a lit or revealed area opens to its full words and what closed it: the guided session's words on it, or the
   // self-test's note (Cynthia, Oct 24)
   const [openPart, setOpenPart] = useState<MoveId | null>(null);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
   const parts = resultPartsOf(result, map);
   const closingOf = (move: MoveId): PartClosing | null => {
     const closing = closings[move];
@@ -107,6 +112,9 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, closings 
           {gap.note && <Body dim>{gap.note}</Body>}
         </View>
       </Rise>
+      {firstExplanation && (
+        <Button kind="text" wrap label="Compare with your first explanation" style={styles.compare} onPress={() => setComparisonOpen(true)} />
+      )}
       {!wide && <Rise order={1}>{figure}</Rise>}
       <Rise order={2} style={styles.facts}>
         <View style={styles.legend}>
@@ -150,6 +158,7 @@ function ResultBody({ concept, result, map, notes = {}, lastPart = {}, closings 
       </View>
       {againError && <Failure message={againError} />}
       <PartSheet view={openPart ? (parts.find((p) => p.move === openPart) ?? null) : null} closing={openPart ? closingOf(openPart) : null} onClose={() => setOpenPart(null)} />
+      {firstExplanation && <ExplanationComparison open={comparisonOpen} onClose={() => setComparisonOpen(false)} concept={concept} explanation={firstExplanation} areas={comparisonAreas} />}
     </>
   );
   const again = <Button label={`Try ${concept} again`} fit={wide} busy={againBusy} onPress={onAgain} />;
@@ -279,6 +288,7 @@ function ResultSteps({ steps, dark }: { steps: ResultStep[]; dark: boolean }) {
 const styles = StyleSheet.create({
   content: { paddingHorizontal: space.margin, paddingTop: 18, paddingBottom: space.xl, gap: space.l },
   headline: { gap: space.m },
+  compare: { alignSelf: "stretch", paddingHorizontal: 0 },
   scales: { gap: space.s },
   scale: { flexDirection: "row", alignItems: "center", gap: space.m },
   scaleLabel: { width: 92 },

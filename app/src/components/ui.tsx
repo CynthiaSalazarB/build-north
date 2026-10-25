@@ -2,7 +2,7 @@
 // 8); everything inside reads its colors from that light's mode, dark ink once the light fills the screen at 7.
 // Nothing here holds a color of its own.
 import { StatusBar } from "expo-status-bar";
-import { createContext, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useRef, useState, type ReactNode } from "react";
 import {
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -23,6 +23,7 @@ import {
   type TextInputSubmitEditingEvent,
   type TextStyle,
   type ViewStyle,
+  type ViewInstance,
 } from "react-native";
 import Animated, { css, cubicBezier, useReducedMotion, type CSSAnimationProperties, type CSSTransitionProperties } from "react-native-reanimated";
 import { SafeAreaView, useSafeAreaInsets, type Edge } from "react-native-safe-area-context";
@@ -180,6 +181,8 @@ type ButtonProps = {
   fit?: boolean;
   /** An opaque secondary button, for the header, where the light's corner would wash out a see-through one. */
   solid?: boolean;
+  /** Long secondary actions may wrap without shrinking their touch target. */
+  wrap?: boolean;
   style?: StyleProp<ViewStyle>;
 };
 
@@ -187,7 +190,7 @@ type ButtonProps = {
  * Secondary and "More help" are outlines that size to their label; text buttons have no box. On the web each
  * answers hover: the main action glows, an outline firms up, a text button underlines, a hintLink (always
  * underlined, without a box, while retaining the button's touch target and confirmation action) dims a little. */
-export function Button({ label, onPress, kind = "primary", disabled, busy, hint, fit = false, solid = false, style }: ButtonProps) {
+export function Button({ label, onPress, kind = "primary", disabled, busy, hint, fit = false, solid = false, wrap = false, style }: ButtonProps) {
   const c = useColors();
   const { hovered, bind, feel } = usePress();
   const off = disabled || busy;
@@ -209,12 +212,12 @@ export function Button({ label, onPress, kind = "primary", disabled, busy, hint,
       onPress={onPress}
       hitSlop={kind === "primary" ? undefined : size.hitSlop}
       {...bind}
-      style={[styles.button, look.box, hovered && on && look.hover, feel(on, hovered && on), off && styles.disabled, style]}
+      style={[styles.button, look.box, wrap && styles.wrapButton, hovered && on && look.hover, feel(on, hovered && on), off && styles.disabled, style]}
     >
       {busy ? (
         <ActivityIndicator color={look.ink} />
       ) : (
-        <Text style={[type.button, (kind === "hint" || kind === "hintLink") && styles.hintLabel, (kind === "hintLink" || (kind === "text" && hovered && on)) && styles.underline, { color: look.ink }]} numberOfLines={1}>
+        <Text style={[type.button, wrap && styles.wrappedLabel, (kind === "hint" || kind === "hintLink") && styles.hintLabel, (kind === "hintLink" || (kind === "text" && (wrap || (hovered && on)))) && styles.underline, { color: look.ink }]} numberOfLines={wrap ? undefined : 1}>
           {label}
         </Text>
       )}
@@ -392,18 +395,23 @@ export function SendButton({ busy, disabled, onPress, label = "Send", amber = fa
 /** A sheet over the screen, with a scrim that closes it; in the website layout, a dialog in the middle. The scrim
  * fades in (the Modal's own fade) and the panel rises into place over 240 ms, like a block of the screen; with
  * Reduce Motion the panel is simply there. Escape closes either on the web. */
-export function Sheet({ open, onClose, label, children }: { open: boolean; onClose: () => void; label: string; children: ReactNode }) {
+export function Sheet({ open, onClose, label, children, reading = false }: { open: boolean; onClose: () => void; label: string; children: ReactNode; reading?: boolean }) {
   const c = useColors();
   const mode = useMode();
   const wide = useWide();
   const entrance = useEntrance();
-  const scrim = <Pressable style={[wide ? StyleSheet.absoluteFill : styles.flex, { backgroundColor: c.scrim }]} onPress={onClose} accessibilityRole="button" accessibilityLabel={`Close ${label}`} />;
-  const panel = [wide ? styles.dialog : styles.sheet, { backgroundColor: c.surfaceContainer, borderColor: c.fieldEdge }, entrance(0, "rise", motion.sheet)];
+  const still = useReducedMotion();
+  const insets = useSafeAreaInsets();
+  const panelRef = useRef<ViewInstance>(null);
+  // Reading sheets keep their own scroll region between a fixed heading and exit. The existing small sheets
+  // keep their layout; this one gets room for long answers and two columns on the website.
+  const scrim = <Pressable style={[wide || reading ? StyleSheet.absoluteFill : styles.flex, { backgroundColor: c.scrim }]} onPress={onClose} accessibilityRole="button" accessibilityLabel={`Close ${label}`} {...(reading ? { accessible: false, tabIndex: -1 as const, accessibilityElementsHidden: true, importantForAccessibility: "no-hide-descendants" as const } : {})} />;
+  const panel = [wide ? styles.dialog : styles.sheet, reading && styles.reading, reading && wide && styles.readingWide, reading && { paddingBottom: Math.max(insets.bottom, space.l) }, { backgroundColor: c.surfaceContainer, borderColor: c.fieldEdge }, entrance(0, "rise", motion.sheet)];
   return (
-    <Modal visible={open} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={[styles.flex, wide && styles.center]} {...lightData(mode)}>
+    <Modal visible={open} transparent animationType={reading && still ? "none" : "fade"} onRequestClose={onClose} accessibilityLabel={label} onShow={reading && isWeb ? () => panelRef.current?.focus() : undefined}>
+      <View style={[styles.flex, wide ? styles.center : reading && styles.bottom]} {...lightData(mode)}>
         {scrim}
-        <Animated.View style={panel} accessibilityViewIsModal>
+        <Animated.View ref={panelRef} style={panel} accessibilityViewIsModal tabIndex={reading ? -1 : undefined}>
           {!wide && <View style={[styles.grabber, { backgroundColor: c.outline }]} />}
           {children}
         </Animated.View>
@@ -420,6 +428,8 @@ const styles = StyleSheet.create({
   fit: { height: size.button, borderRadius: radius.button, paddingHorizontal: space.xxl, minWidth: 200, alignSelf: "flex-start" },
   small: { height: size.touch, borderRadius: radius.button, paddingHorizontal: 14, alignSelf: "flex-start" },
   textButton: { height: size.touch, paddingHorizontal: space.l, alignSelf: "center" },
+  wrapButton: { height: "auto", minHeight: size.touch, paddingVertical: space.s },
+  wrappedLabel: { flexShrink: 1, textAlign: "center" },
   hintLabel: { fontSize: 15 },
   underline: { textDecorationLine: "underline" },
   disabled: { opacity: 0.45 },
@@ -430,6 +440,7 @@ const styles = StyleSheet.create({
   rest: isWeb ? { transform: [{ scale: 1 }] } : { opacity: 1 },
   pressed: isWeb ? { transform: [{ scale: 0.98 }] } : { opacity: 0.85 },
   center: { alignItems: "center", justifyContent: "center", padding: space.xl },
+  bottom: { justifyContent: "flex-end" },
   iconButton: { width: size.iconButton, height: size.iconButton, borderRadius: radius.iconButton, borderWidth: 1, alignItems: "center", justifyContent: "center" },
   listening: { borderWidth: 1.5 },
   voiceNote: { paddingTop: space.s },
@@ -457,4 +468,6 @@ const styles = StyleSheet.create({
   },
   grabber: { alignSelf: "center", width: 36, height: 4, borderRadius: 2 },
   dialog: { borderRadius: radius.sheet, borderWidth: 1, padding: space.xxl, gap: space.m, width: "100%", maxWidth: 560, maxHeight: "90%" },
+  reading: { height: "90%", maxHeight: "90%" },
+  readingWide: { maxWidth: 1000 },
 });

@@ -78,3 +78,35 @@ On phones, nine choices form a consistent 3 × 3 grid with at least 44 px target
 Verification: 87 app tests and typecheck pass; lint has zero errors/eight existing warnings. Mocked browser checks at 1440, 1000, 390 and 320 pixels verify exact copy, row counts, target sizes, no default, zero/8/6 and keyboard selection, one adjacent status, save retry with the same body, no errors or horizontal overflow. Both existing session-mode regressions also pass at those widths. No real AI session was used.
 
 Deployed October 24 at about 7:57 PM ET from `3dbbb0f`, draft PR #181 stacked on #180, to the tester alias only: deployment `sqhnx6luly`, common bundle `6ec3c0df…`. All nine live JavaScript chunks match the checked export byte-for-byte; the prediction wording is present, and sign-in sentence/metadata still pass at desktop and phone widths. Production remains on common bundle `53593c34…`. No main merge, production/Android, backend or evaluator deployment was made.
+
+## October 25: revisit the first explanation
+
+Cynthia approved an optional comparison after the result, keeping the first explanation before the example.
+Its input note now says, "This first explanation is not scored. You'll revisit it at the end." The result keeps
+the prediction and map score first, followed by the underlined secondary action "Compare with your first
+explanation". Nothing opens automatically and Try again remains the primary action.
+
+The action opens a near-full-height reading sheet on phones and a wider dialog on desktop. One scrollable
+reading region shows "Your first explanation" and "Your map after this session": stacked on phones, side by
+side on desktop. A fixed heading and "Back to results" remain outside that scroll region. The original text,
+map items, classification rule and exclusion differences are not rewritten or graded. Hints and revealed
+answers are labelled from the saved conversation; a zero score is not evidence of a reveal. No AI-generated
+definition, improvement claim, new score, reflection input, nested sheet or network request is added.
+
+The comparison uses the existing transcript, including replay when a finished session is reopened. If no
+submitted first explanation is available (self-test, all-level-5 session, an older/incomplete transcript), omit
+the action rather than reconstructing text. A failed send does not become the saved explanation; if the learner
+edits and successfully resubmits it, the last submission before the attempt phase ends is the one shown.
+
+Review checks: exact original words; all four areas and differences readable; real hint/reveal provenance;
+no automatic opening or score/request changes; no comparison for a missing first explanation; long link wraps
+without clipping; long content scrolls with the exit visible; keyboard focus stays inside, Escape closes and
+focus returns to the opener; closing preserves the result's scroll position; reduced motion.
+
+Verification: 102 app unit tests, all three workspace typechecks and the static web export pass; lint has zero
+errors and eight existing warnings.
+Mocked browser checks cover the full guided flow and reopening finished results at 1440x900, 1000x700,
+390x844, 320x640 (reduced motion) and 390x480, including long text, saved differences, multiline classifications,
+help/reveal labels, keyboard focus containment and restoration, Escape, a visible exit, no horizontal overflow
+and no comparison writes. An old result with no transcript omits the action. No live AI session, real tester
+data, production deployment or Android update was used; native Android/TalkBack still needs a device check.
