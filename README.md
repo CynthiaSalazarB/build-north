@@ -44,7 +44,7 @@ Lumente starts with concepts because they give questioning a concrete structure.
 
 A session takes about ten minutes. Here is one, with the app's real buttons.
 
-1. **Pick an idea.** The start screen asks: "Can you explain the ideas behind the code your AI wrote?" Tap a concept from your project, like API, JWT or CORS, or type your own. "Add your notes" takes pasted text for the AI to draw on. "Ask your AI what to map" gives you a prompt for your coding agent, so the concepts come from your own project. Then tap "Explore with guidance".
+1. **Pick an idea.** The start screen asks: "Can you explain the ideas behind the code your AI wrote?" Tap a concept from your project, like API, JWT or CORS, or type your own. "Use your own project (optional)" gives you a prompt for your coding agent, so the concepts come from your own project, and a field for its answer or your notes. "Explore with guidance" is picked for you; tap "Start with guidance".
 2. **Predict your score.** Before any question, you pick a number from 0 to 8. This is not a grade; it captures your confidence at the start. A guide on the same screen says what each of the four map areas can earn. A clear, complete answer on the first try earns 2 points. One after a retry or a hint earns 1. A wrong, empty or revealed answer earns 0.
 3. **Explain it in your own words first.** Then the firefly asks about the four areas of the map, one at a time:
    - Bigger group: what kind of thing is it?
@@ -56,7 +56,7 @@ A session takes about ten minutes. Here is one, with the app's real buttons.
 4. **Ask for help whenever you need it.** Tap the firefly. The score keeps independent and supported understanding distinct: the first Help on an area caps it at 1 point, and the third shows the answer for 0. In the early guidance stages, a wrong answer gets a free nudge first. As you handle each area with less help, its guidance stage advances and carries into the next concept, so the support fades.
 5. **See your score next to your prediction.** The result says the gap in words, like "You felt 2 points surer than you could explain". Under it, two rows of eight points: your prediction and your map score. That gap shows how well your confidence matched what you could explain. The coach adds one note for next time. "Share" sends your prediction and your score, never your answers.
 
-The guidance stages track independence in the four map areas across concepts; they are not scores for API, CORS or another individual concept. Once guidance has faded across all four areas, the roles flip. You build the whole map yourself: tap an area, write your answer, "Save answer". The firefly's highlight points at the next empty area, for free. "Ask a fact (optional)" opens a chat that answers your questions with facts and never with a part of the map. A hint asks you to confirm and shows how using it affects the score before you choose. "Review & submit", then "Submit my map", scores all four areas together. "Test myself" runs this independent mode on any concept immediately and does not change your guidance stages.
+The guidance stages track independence in the four map areas across concepts; they are not scores for API, CORS or another individual concept. Once guidance has faded across all four areas, the roles flip. You build the whole map yourself: tap an area, write your answer, "Save answer". The firefly's highlight points at the next empty area, for free. "Ask a fact (optional)" opens a chat that answers your questions with facts and never with a part of the map. A hint asks you to confirm and shows how using it affects the score before you choose. "Review & submit", then "Submit my map", scores all four areas together. "Test myself", then "Start self-test", runs this independent mode on any concept immediately and does not change your guidance stages.
 
 Tap any lit area of the map to read your full answer and the feedback on it. If you close the app or reload the page, the session waits on the start screen behind a "Resume" button.
 
@@ -107,7 +107,7 @@ The help fades. The understanding stays.
 
 ## Try it
 
-**In two minutes.** Open [Lumente on the web](https://lumente.expo.app) in any browser. Use Google, or choose "Get started" and enter any address that ends in `+clerk_test@example.com` with code `424242`; no inbox is needed. Tap "API", then "Explore with guidance". Pick a prediction, explain the idea in your own words, and answer the four questions. Ask the firefly for help once to see how a hint affects the score. The result shows your prediction next to your score.
+**In two minutes.** Open [Lumente on the web](https://lumente.expo.app) in any browser. Use Google, or choose "Get started" and enter any address that ends in `+clerk_test@example.com` with code `424242`; no inbox is needed. Tap "API", then "Start with guidance". Pick a prediction, explain the idea in your own words, and answer the four questions. Ask the firefly for help once to see how a hint affects the score. The result shows your prediction next to your score.
 
 | On | Do this |
 |---|---|

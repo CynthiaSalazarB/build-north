@@ -33,7 +33,7 @@ in again between the two sessions costs about 15 seconds.
 - During the warm-up, open the CORS session on the laptop and fill three areas of the map with the answers
   Cynthia rehearsed: Bigger group, What it isn't, What it needs. Leave Its types empty. With CORS picked,
   Start's button says "Continue with guidance" while a CORS session is unfinished (the seeded one already
-  holds the prediction 7) and opens it; with none, it says "Explore with guidance": predict 7, "Save my
+  holds the prediction 7) and opens it; with none, it says "Start with guidance": predict 7, "Save my
   prediction". The draft survives a reload, and Start offers "Resume".
 - The video is open on the laptop at the fallback chapter (below), and on a USB stick.
 - The deck's numbers slide is ready; the testers' numbers are not in the app.
@@ -43,7 +43,7 @@ in again between the two sessions costs about 15 seconds.
 | Time | Screen (the camera shows) | We say | We do |
 |---|---|---|---|
 | 0:00 | **Phone, Start.** The code line `app.get('/api/users/:id', getUser);` lit in amber over the empty map in the dark; the firefly beside it; the chips API, JWT, hashing, database index, cache, rate limiting, environment variable, CORS | "Can you explain the code your AI wrote? Not line by line. The ideas underneath it: the API, the token, the CORS rule. That's what you defend in an interview or a code review. Everyone knows the moment: someone asks you to explain something you thought you understood, and you can't. AI makes it more common, because code that works feels understood." | Nothing yet. The headline on screen says it: "Can you explain the ideas behind the code your AI wrote?" |
-| 0:15 | **Start.** API selected; "Add your notes" and "Ask your AI what to map" under the chips | "This is Lumente. You pick a concept your project uses. 'Ask your AI what to map' gives your coding agent a prompt, so the list comes from your own code. Today: API." | Tap "Explore with guidance" |
+| 0:15 | **Start.** API selected; "Use your own project (optional)" under the chips; "Explore with guidance" picked | "This is Lumente. You pick a concept your project uses. 'Use your own project' gives your coding agent a prompt, so the list comes from your own code. Today: API." | Tap "Start with guidance" |
 | 0:25 | **Prediction.** "How much can you explain on your own?", the numbers 0 to 8, "Each area can earn:" with 2, 1 and 0 points | "Before any question, you predict your score. Four areas, two points each. AI lends confidence you didn't earn, so we put the confidence on record first." | Tap 7. The light previews the guess. Tap "Save my prediction" |
 | 0:40 | **Session.** "Your first explanation" above the field; the map dark with its four areas | "First, your own words, before any help." | Type one sentence, rehearsed, for example "A way for one program to use another without seeing inside it" `[wording: Cynthia]`. Send. The firefly offers "See an example"; tap "Continue" |
 | 0:55 | **Bigger group.** The firefly's question, its dashed line to the Bigger group area; under the firefly the tag "help −1" | "The firefly asks about the four areas of the map, one at a time. It never writes the map. It is also Help, and help costs." | Tap the firefly. "Finding a hint." |

@@ -25,8 +25,8 @@ Sign-in creates your own account with no data in it. Nothing is shared between a
 ## 3. A session
 
 1. **Pick a concept.** Start opens on a line of code your agent might have written. Tap a concept (API, JWT,
-   CORS...) or type your own. "Add your notes" takes pasted text the tutor can draw on; anything that looks
-   like a key or a password stops at the phone.
+   CORS...) or type your own. "Use your own project (optional)" takes pasted text the tutor can draw on;
+   anything that looks like a key or a password stops at the phone.
 2. **Guess** how many of the 8 points you will prove. The light on the screen previews the guess.
 3. **Build the map,** one part at a time: the bigger group, what it isn't, what it needs, its types. The
    firefly asks; you answer in your own words, typed or spoken (the mic beside the field; the words land in
