@@ -33,7 +33,7 @@ Tick it each time it happens, and quote the screen when you can.
   answer. Answers go on the map…" make them move to the map? yes / no
 - ☐ Tapped Help · how often, and on which part: __________
 - ☐ Stuck for more than a minute without tapping Help (which part, what they did)
-- ☐ Read the result screen's part-by-part notes and "for next time"? Their reaction to the gap, in their
+- ☐ Opened a map area on the result, and read "for next time"? Their reaction to the gap, in their
   words: __________
 
 ## Bug log
