@@ -135,6 +135,8 @@ function NumberChoice({ value, chosen, pending, onChoose, mobile }: { value: num
         accessibilityRole="button"
         accessibilityLabel={`Predict ${value} of 8 points`}
         accessibilityState={{ selected: chosen, disabled: pending }}
+        // React Native Web drops accessibilityState.selected, so the web gets aria-pressed, as the chips do
+        {...(Platform.OS === "web" ? ({ "aria-pressed": chosen } as object) : {})}
         disabled={pending}
         onPress={() => onChoose(value)}
         {...bind}

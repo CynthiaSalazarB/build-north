@@ -43,17 +43,31 @@ export function createApiClient({ baseUrl, devUser, devKey, getToken, fetch: sen
     // AbortController rather than AbortSignal.timeout, which React Native may not have
     const abort = new AbortController();
     const timer = setTimeout(() => abort.abort(), timeoutMs);
-    let res: Response;
     try {
-      res = await send(`${root}${path}`, { method, headers, ...(body !== undefined ? { body: JSON.stringify(body) } : {}), signal: abort.signal });
-    } catch {
-      // the timer fired, or the network did: both are worth trying again, and the words say which
-      throw new ClientError(abort.signal.aborted ? SLOW : OFFLINE, null, true);
+      let res: Response;
+      try {
+        res = await send(`${root}${path}`, { method, headers, ...(body !== undefined ? { body: JSON.stringify(body) } : {}), signal: abort.signal });
+      } catch {
+        // the timer fired, or the network did: both are worth trying again, and the words say which
+        throw new ClientError(abort.signal.aborted ? SLOW : OFFLINE, null, true);
+      }
+      if (res.status === 204) return { res, json: null };
+      // The timer covers the body too: a body that stalls after the headers ends as a slow answer, even where the
+      // abort doesn't reach a body already on its way.
+      const slow = new Promise<never>((_, reject) => {
+        const fail = () => reject(new ClientError(SLOW, null, true));
+        if (abort.signal.aborted) fail();
+        else abort.signal.addEventListener("abort", fail, { once: true });
+      });
+      const read = res.json().catch(() => {
+        if (abort.signal.aborted) throw new ClientError(SLOW, null, true);
+        return null;
+      });
+      const json: unknown = await Promise.race([read, slow]);
+      return { res, json };
     } finally {
       clearTimeout(timer);
     }
-    const json: unknown = res.status === 204 ? null : await res.json().catch(() => null);
-    return { res, json };
   }
 
   /** The server's own message when it sent one (a 429's "wait a minute", a 413's "paste a shorter excerpt"), except

@@ -29,7 +29,13 @@ function useTyped(text: string): string {
     }
     setShown(0);
     const step = Math.min(motion.typing, TYPING_MAX / Math.max(text.length, 1));
-    const timer = setInterval(() => setShown((n) => (n >= text.length ? n : n + 1)), step);
+    // the timer stops with the last character, not only when the text changes or the preview unmounts
+    let n = 0;
+    const timer = setInterval(() => {
+      n += 1;
+      setShown(n);
+      if (n >= text.length) clearInterval(timer);
+    }, step);
     return () => clearInterval(timer);
   }, [text, still]);
   return typing.slice(0, shown);

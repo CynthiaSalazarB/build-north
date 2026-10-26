@@ -62,6 +62,9 @@ export function sent(state: SessionState, body: TurnBody, retry = false): Sessio
 /** A Turn came back. Only a newer Turn adds messages: a resend, a 409 or an error Turn repeats the
  * latest one, which is already on screen. */
 export function received(state: SessionState, turn: Turn): SessionState {
+  // An older Turn is a late answer (the session was picked up again, or moved on meanwhile): it changes nothing,
+  // not the screen, the draft, the request waiting or the failure note.
+  if (state.turn && turn.turn < state.turn.turn) return state;
   const isNew = turn.turn > (state.turn?.turn ?? 0);
   // one worked example per session: its map goes in once, ahead of its messages
   const example =
