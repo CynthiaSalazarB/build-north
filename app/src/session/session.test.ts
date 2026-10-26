@@ -335,3 +335,17 @@ test("a retry sends the same body, except that a map goes as the learner has it 
   assert.equal(resendOf(failed(sent(startedWith(first), { turn: 1, text: "a rule" }), "spent", false)), null);
   assert.equal(resendOf(state.failure ? { ...state, failure: null } : state), null);
 });
+
+test("a late, older Turn changes nothing: not the screen, the draft, the request waiting or the failure note", () => {
+  const later = fixtureTurns[3]!;
+  let state = received(initialState, later);
+  state = sent(state, { turn: later.turn, text: "my answer" });
+  const before = state;
+  assert.equal(received(state, fixtureTurns[1]!), before);
+});
+
+test("a body that stalls after the headers ends as a slow answer when the timer fires", async () => {
+  const stalled = (async () => ({ status: 200, ok: true, json: () => new Promise(() => {}) })) as unknown as typeof fetch;
+  const client = createApiClient({ baseUrl: "http://api.test", fetch: stalled, timeoutMs: 30 });
+  await assert.rejects(client.start({ concept: "x" }), (error: unknown) => error instanceof ClientError && error.retryable);
+});
