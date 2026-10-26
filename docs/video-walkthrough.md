@@ -1,104 +1,85 @@
-# Walkthrough video without narration: draft notes
+# Lumente demo video: the final cut
 
-Notes on the first cut of the walkthrough from Cynthia's brief ("Lumente video brief without
-narration"), made Oct 25 for the Devpost video (#48). Kyle's talking-head opening and closing go around
-it and stay the only spoken parts. The draft MP4 (1920 x 1080, 30 fps, 2:22) is with Leo, not in the
-repo; the editable project rebuilds from one edit file with the demo-reel skill.
+The demo video for Devpost (#48), finished Oct 25: **3:14.5**, 1920 x 1080, 30 fps, under the 3:15 ceiling
+in Cynthia's brief ("Lumente video brief without narration") and Devpost's four minutes. Kyle's talking-head
+opening comes first and is the only spoken part; the walkthrough after it has no narration and reads with
+the sound off. The MP4 is with the team, not in the repo (the link goes in `docs/devpost.md`); the
+walkthrough rebuilds from one edit file with the demo-reel skill.
 
-Nothing in the app, the API or the agents was changed for it, and nothing was pushed, merged, published
-or deployed.
+Nothing in the app, the API or the agents was changed for it, and nothing was published or deployed.
+
+## What's in it
+
+| Time | Part | Footage | Text on screen |
+|---|---|---|---|
+| 0:00 | Kyle's opening | His recorded take, with his own captions | Three cards beside him: "The illusion of explanatory depth" (0:16), Anthropic's study, 50% with an AI assistant against 67% coding by hand (0:32), and the firefly, "Lumente" and "Build with AI. Understand the concepts yourself." (0:38) |
+| 0:48 | Title | | Lumente is a gym for questioning. |
+| 0:52 | Account | The live sign-in page, signed out, empty fields | Your practice stays with your account. · Clerk handles sign-in. |
+| 0:58 | Start | Start with API, newest UI | Pick a concept from your code. / Today: API. The concept is the equipment. |
+| 1:04 | The method | Start's empty map, enlarged; each area lights with its question | Conceptual Mentefact / Four places where questions start. The four questions one at a time, then "Questions to ask, not answers to memorize." and the credit line |
+| 1:20 | Prediction | 7, "Save my prediction" | How much can you explain on your own? / Four areas. Up to 2 points each. |
+| 1:28 | Explanation | "Your first explanation", Send, Continue, the first area question | You explain. The AI asks. · Claude agents ask questions and evaluate answers. |
+| 1:37 | Support | "A server?", the free nudge, the Help sheet, the hint (zoomed) | Support when you need it. / The score reflects what you can explain independently. |
+| 1:53 | Guidance fades | "A software interface.", its feedback, Category lights | As you get stronger, the guidance fades. |
+| 2:03 | Level 5 | Cynthia's recording at lumente.expo.app, laptop layout, CORS in Test myself: the whole map written, a fact asked and answered, "What is CORS a kind of?" and the redirect, the last area, Review & submit, Submit my map | Level 5: you ask the questions. Then one at a time: You write the whole map. / Ask for facts, not answers. / The map is yours to build. (· Code enforces the map-seeking redirect.) / Explain it in your own words. / Then submit the whole map. Note: Shown with Test myself, the same independent mode. |
+| 2:32 | Result | That session's result: 7 predicted, 5 of 8 proved, zoomed on the two rows | Compare your prediction with your explanation. · AI evaluation. Scoring rules in code. |
+| 2:39 | Memory | Account, then the Memory sheet ("Last time, Oct 25: you guessed 7 and proved 5.") | Every session builds on the last. · SurrealDB Agent Memory / Progress notes, not answer text. |
+| 2:48 | Web | Start in the laptop layout, the Account menu | One app on Android and the web. / Publish the web app. · Expo · EAS Hosting |
+| 2:55 | Android | The installed APK on an Android emulator: the home screen, the icon, the landing screen | Same headline / Build the Android app. · EAS Build |
+| 3:02 | Android | "Your data" on the signed-in app, zoomed on "Lumente 1.0.0 · update 01a17590 from Oct 25, 8:15 PM · preview" | Same headline / Send fixes without reinstalling. · EAS Update |
+| 3:10 | End card | | Lumente / Curiosity. Questions. Understanding. / lumente.expo.app / the music credit |
+
+## Chapters, for the video description
+
+```
+0:00 Why we built Lumente
+0:48 Sign in and pick a concept
+1:04 The four questions
+1:20 Predict, then explain
+1:37 Support when you need it
+1:53 The guidance fades
+2:03 Level 5: you ask the questions
+2:32 Result and memory
+2:48 One app on Android and the web
+```
+
+The description also needs the music credit: **Music: Sascha Ende, ende.app (CC BY 4.0)**.
 
 ## What the footage is
 
-- **The newest UI:** a demo-mode web export of `9a6259a` (PR #189's branch, not merged yet), recorded
-  in a phone-sized browser. Every app screen is labelled "Recorded app session · demo mode · web app".
-- **The sign-in screen:** the live site at lumente.expo.app, signed out, with empty fields.
-- **The website layout:** the same demo-mode export at laptop size, for the last scene.
-- The phone frame is neutral (no iPhone island), because the footage is the web app.
-- The answers typed in the session are the recorded demo session's own inputs.
+- **Every screen is real and labelled.** Phone-sized scenes: "Recorded app session · demo mode · web app"
+  (a demo-mode export of `main` at `683b46e`, the newest UI). Level 5, the result, Memory and the web
+  scene: "Recorded app session · web app" (Cynthia's recordings of the live site). Android: "Recorded on an
+  Android emulator" (the team's APK with its latest update).
+- **Level 5 is shown with Test myself**, which runs the same independent mode on any concept, so the note
+  says so instead of the brief's "Prepared level 5 account".
+- No email, code, inbox or private dashboard is on screen. The recordings' sign-in steps are cut out.
 
-## Scenes
+## Where the cut differs from the brief
 
-Times are from the export, from the start of the walkthrough (not the full video with Kyle's parts).
+- **Captions reframed** to Cynthia's final prompt: Lumente as a gym for questioning, the concept as the
+  equipment, the four parts as where questions start, level 5 as the payoff. The brief's support and
+  scoring wording stays as written.
+- **The method's name** is "Conceptual Mentefact", as the brief's wording section asks (its storyboard
+  said "Mentefacto conceptual"); a one-line change if it should switch.
+- **The area labels** in the app (Category, Similar concepts & differences, Defining features,
+  Classification) stay as they are; the overlays use the brief's four questions.
 
-| # | Time | Footage | Text on screen |
-|---|---|---|---|
-| 1 | 0:00-0:06 | Sign-in page, empty fields, zoomed on the Clerk card | Your progress stays with your account. · callout: Clerk handles sign-in. |
-| 2 | 0:06-0:10.8 | Start, API selected | Pick a concept your code uses. / Today: API. |
-| 3 | 0:10.8-0:29.5 | Start's empty map, enlarged; each area lit as its question appears; tap "Explore with guidance" | Mentefacto conceptual / A structure for understanding a concept. Then the four questions one at a time, held together; the credit line |
-| 4 | 0:29.5-0:37 | Prediction screen, 7, "Save my prediction" | How much can you explain on your own? / Four areas. Up to 2 points each. |
-| 5 | 0:37-0:48.5 | "Your first explanation", typing, Send, Continue, the first area question | Start with your own explanation. · callout: Claude agents ask questions and evaluate answers. |
-| 6 | 0:48.5-1:06 | "A server?", the free nudge, the Help sheet, the hint card (zoomed to read) | Support when you need it. / The score reflects what you can explain independently. |
-| 7 | 1:06-1:15 | "A software interface.", its feedback, the Category area lights | As you progress, the guidance fades. |
-| 8 | 1:15-1:37 | **Placeholder: footage needed** | At level 5, you ask the questions. Then, one at a time: Ask for facts. / The map is yours to build. (callout: Code enforces the map-seeking redirect.) / Explain it in your own words. Setup note: Prepared level 5 account. Three areas filled beforehand. |
-| 9 | 1:37-1:49 | Result: prediction 7 of 8, map score 5 of 8, zoomed on the two rows | Compare your prediction with your explanation. · callout: AI evaluation. Scoring rules in code. |
-| 10 | 1:49-2:03 | **Placeholder: footage needed** | Your next session can build on earlier progress. · callout: SurrealDB Agent Memory / Progress notes, not answer text. |
-| 11 | 2:03-2:12.5 | Web app in the laptop layout; "Your data" with the version line "Lumente 1.0.0 · web build" | One app on Android and the web. / Publish the web app. · callout: Expo · EAS Hosting |
-| 12 | 2:12.5-2:22 | **Placeholder: footage needed** (Android) | Same headline / Build the Android app. (EAS Build), then Send fixes without reinstalling. (EAS Update) |
+## An app quirk seen while recording
 
-A placeholder is a dashed card that says what to record, with its captions running on time, so the
-timing can be reviewed now. No missing screen is redrawn or faked.
-
-## Chapters
-
-0:06 Start · 0:29 Prediction · 1:01 Hint · 1:09 Area lighting · 1:19 Fact chat* · 1:25 Redirect* ·
-1:34 Submit my map* · 1:36 Result · 1:48 Memory*
-
-\* Placeholder times until the footage exists. Add Kyle's opening length to every time for the full video.
-
-## Footage and inputs still needed
-
-1. **Scene 8, the level 5 session:** a recording at lumente.expo.app in the laptop layout, on the
-   prepared account with three CORS areas filled: "Ask a fact (optional)", a factual question and its
-   real reply, "What is CORS a kind of?" and the real redirect, the last area's answer, "Save answer",
-   "Review & submit", "Submit my map". Still blank in the brief: `[factual question: Cynthia]` and
-   `[last-area answer: Cynthia]`.
-2. **Scene 10, Memory:** the coach's "From what Lumente remembers:" line, then the Memory sheet, on an
-   account with a finished CORS session and memory on, and `[exact Memory-sheet line: Cynthia]`. It
-   can't come from demo mode, which says "Demo mode keeps nothing, so there is nothing to remember."
-3. **Scene 12, Android and EAS:** the installed Android app, an EAS Update page or a successful
-   workflow run (private details cropped), and the installed version line under "Your data" on the
-   phone. No Android device was connected for this cut.
-4. **Optional, scene 1:** the signed-in Start screen right after the sign-in screen.
-5. **To confirm:** scene 5's typed explanation is the recorded session's own ("Something that lets two
-   apps talk to each other."), since the brief left that input blank.
-
-A screen recording of each (OBS or the phone's recorder) is enough; the cut swaps each placeholder for
-its recording with a one-line change, and the times stay close to the ones above.
-
-## Where the brief and the app differ
-
-Decided for this cut; each is a one-line change if it should go the other way.
-
-- **The area labels changed.** The brief maps Bigger group / What it isn't / What it needs / Its types.
-  The current app says Category / Similar concepts & differences / Defining features / Classification,
-  in the same places (top, right, left, bottom). The video's overlays use the brief's four questions and
-  leave the app's labels as they are.
-- **The method's name.** The storyboard's exact text says "Mentefacto conceptual"; the wording section
-  says to introduce "Conceptual Mentefact". The cut uses the storyboard text.
-- **Help opens a sheet now.** After the free nudge, Help says "This area is already limited to 1 point.
-  This hint does not reduce it further." That is the brief's route A, and the cut shows the real order:
-  answer, free nudge, Help, hint.
-- **The result is the demo API session's.** Once scene 8 is recorded, that session's own result may
-  suit scene 9 better, so the result belongs to the session just shown.
-
-## An app bug seen while recording
-
-On Start in demo mode (`9a6259a`), for about 0.3 s after "Explore with guidance", the headline
-disappears and the button reads "Continue with guidance" (greyed) before the prediction screen opens.
-The cut steps around those frames; a live demo would show them.
+After "Start with guidance" or "Continue self-test" on the web, Start paints a blank frame for about
+0.3 s while the next screen loads; in Cynthia's recording the button also greys out first. The cut steps
+around those frames; a live demo would show them.
 
 ## Sound
 
-Optional quiet music, as the brief allows: Sascha Ende, "Happy Beats / Business Moves" vol-1, under
-CC BY 4.0, kept low (about -20 LUFS) so it sits under Kyle's voice in the full video. The walkthrough
-has no end card, so **the credit "Music: Sascha Ende, ende.app (CC BY 4.0)" goes in the video
-description**. The sound effects are made in code (nothing to license): soft whooshes on cuts and the
-same neutral tick on every tap, Help included. There is no warning or point-loss sound, and the video
-reads with the sound off.
+Kyle's voice, with a quiet music bed under it; the walkthrough's music (Sascha Ende, "Happy Beats /
+Business Moves", CC BY 4.0) with sound effects made in code (soft whooshes on cuts, the same neutral tick
+on every tap, Help included; no warning or point-loss sound). Loudness -16 LUFS, peaks under -1.5 dB.
 
 ## Checked
 
-The export passed the cut's own checks: size, frame rate, duration (2:22.000), loudness, true peak,
-no silence, no black frames, picture and sound in sync. Every scene and every cut was looked at frame
-by frame. Not checked yet: a person watching the whole thing with the sound off, then on.
+The walkthrough passed every check of the build: size, frame rate, duration, loudness, true peak, no
+silence over 1.5 s, no black frames, picture and sound in sync (within a frame). The joined video was
+checked for black frames, loudness and the join itself (Kyle's last word ends before the fade).
+Not checked: a person watching the whole video with the sound on.
