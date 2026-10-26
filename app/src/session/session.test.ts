@@ -349,3 +349,13 @@ test("a body that stalls after the headers ends as a slow answer when the timer 
   const client = createApiClient({ baseUrl: "http://api.test", fetch: stalled, timeoutMs: 30 });
   await assert.rejects(client.start({ concept: "x" }), (error: unknown) => error instanceof ClientError && error.retryable);
 });
+
+test("a fetch that answers after the timer fired, with a body that fails, ends as a slow answer instead of waiting forever", async () => {
+  // a fetch that ignores the abort signal and answers late
+  const late = (async () => {
+    await new Promise((r) => setTimeout(r, 60));
+    return { status: 200, ok: true, json: async () => { throw new Error("aborted"); } };
+  }) as unknown as typeof fetch;
+  const client = createApiClient({ baseUrl: "http://api.test", fetch: late, timeoutMs: 20 });
+  await assert.rejects(client.start({ concept: "x" }), (error: unknown) => error instanceof ClientError && error.retryable);
+});
