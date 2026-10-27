@@ -18,6 +18,7 @@ import {
   type Session,
   type Turn,
 } from "@build-north/agents";
+import { createHash } from "node:crypto";
 import { pseudonymOf } from "./export-testers.ts";
 
 // SurrealDB Agent Memory on Leo's side (#112, CONTRACTS.md section 2, Memory): what the API writes after a
@@ -61,10 +62,22 @@ export const scopeOf = (pseudonym: string): string => `learner/${pseudonym}`;
 /** Lowercase letters, digits and underscores only, so memory's own name normalisation can't change it. */
 const slug = (concept: string) => concept.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "concept";
 
+/** Letters and digits in groups, with spaces, dots, dashes, slashes or underscores between them: the slug keeps every
+ * group, so two such concepts share a slug only when they differ in how they're spaced ("Node.js", "node js"). */
+const PLAIN = /^[a-z0-9]+(?:[\s._/-]+[a-z0-9]+)*$/;
+
+/** The concept's part of its entity name. The slug drops everything else, so "C++" and "C#" would both be "c" and every
+ * Japanese or Korean concept "concept": those get the start of a hash of the concept itself (trimmed, lowercase) too,
+ * and two concepts never share their history. A plain concept keeps the name it always had, and its memory with it. */
+function conceptKey(concept: string): string {
+  const name = concept.trim().toLowerCase();
+  return PLAIN.test(name) ? slug(name) : `${slug(name)}_${createHash("sha256").update(name.replace(/\s+/g, " ")).digest("hex").slice(0, 12)}`;
+}
+
 export type MemoryEntity = { type: "topic"; name: string };
 
 /** One entity per learner and concept; its attributes are the facts, one key per fact (below; underscores, since memory folds a dot in a key to one). */
-export const entityOf = (pseudonym: string, concept: string): MemoryEntity => ({ type: "topic", name: `${pseudonym}_${slug(concept)}` });
+export const entityOf = (pseudonym: string, concept: string): MemoryEntity => ({ type: "topic", name: `${pseudonym}_${conceptKey(concept)}` });
 
 type FactKind = "level" | "gap" | "help";
 

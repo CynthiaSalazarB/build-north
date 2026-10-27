@@ -282,7 +282,9 @@ type MemoryFact = {
   Memory sheet. Questions, nudges and fact desk answers never carry either: those agents never see memory.
   With memory off, or nothing cited, neither field is there, so the Turn is the one the app already knew.
 - **What the API writes, after a session reaches its result** (one scope per learner, `learner/<pseudonym>`,
-  each fact an attribute of the entity `topic/<pseudonym>_<concept>` sent as a triple with its provenance in
+  each fact an attribute of the entity `topic/<pseudonym>_<concept>` (the concept as lowercase letters, digits and
+  underscores; one with anything but letters, digits and spaces, dots, dashes or slashes between them, like C++, C# or
+  a Japanese name, adds the start of a hash of itself, so two concepts never share a history) sent as a triple with its provenance in
   labels: `session`, `turn`, `writer`, and the numbers):
   - `level_<move>`, for each part whose level changed: "You moved up to level 3 on 'What it isn't' for API on
     Oct 22." (`writtenBy: evaluator`). A finished part memory holds no level for yet gets its baseline instead,
@@ -457,7 +459,7 @@ Hint giver).
 | Session start | predict (0 to 8 points, after one line explaining the task) → short attempt ("in your own words") → worked example if any move is at level 1 → the four moves → result → the coach's words |
 | Session end | the last answer's Turn shows the result, every number from code, with `coach: null` and `expects: "continue"`; the app's `continue` gets the coach's Turn, which ends the session. If the coach fails, its Turn carries fixed text built from the numbers |
 | Level for a move | read from mastery; new learners start at 1. Watching the worked example moves every move to level 2 |
-| After an answer | evaluator. `correct` → accept, name the move, next move. `partial` / `incorrect` → the feedback only, and the learner tries again (a retry). No automatic hint |
+| After an answer | evaluator. `correct` → accept, name the move, next move. `partial` / `incorrect` → the feedback only, and the learner tries again (a retry). No automatic hint. A `correct` that leaves the move's part empty on the map is the evaluator failing (an agent call that fails, below) |
 | Hint ladder | nudge → hint → partial → reveal, one step per Help, and every Help counts. At levels 2 and 3 the feedback after a retry already nudged (free), so the first Help gives `hint`. At levels 4 and 5 there is no free nudge |
 | The next move's question | asked at the same time as the move's first evaluation (or Help), from the map as it was before that answer, and kept in `session.nextQuestion`. The turn that ends a move waits for one call, not two. If it fails, the next move asks when it starts |
 | Level 5 | **the learner asks.** They send any number of `{ question }` to the fact desk while filling the map, then submit `{ mentefacto }`. No per-move checks; whole-map evaluator at the end. Help gives a hint and caps that move at 1 point |
@@ -465,12 +467,13 @@ Hint giver).
 | Testers' pre-test and post-test | run in level 5 mode, so both measure the same thing: questions asked, how many test the concept, and the score |
 | Test sessions (`mode: "test"`) | every move at level 5 whatever the mastery says; the result is computed as usual; mastery is never updated |
 | Points per move | evaluator `quality` on the first try with no Help; capped at 1 after a retry or a Help; 0 if revealed. Max 8 |
-| Mastery | done with at most one retry or Help → level up one (max 5). Neither → `unassistedSuccesses + 1`. Never down in this version |
+| Mastery | done with at most one retry or Help → level up one (max 5). Neither → `unassistedSuccesses + 1`. Never down in this version. The API saves what a Turn changed in the session's own transaction, onto the stored row: the level never drops below it and the successes add up, so a Turn that read mastery before another session saved can't undo that session's progress |
 | Calibration | `calibrationGap = predictedScore − score` (points) |
 | Exclusion without a difference | one follow-up question from code ("What's the key difference between democracy and dictatorship?"); not a hint, not a retry |
-| Reveal | the ladder's last step reveals: the item goes on the map, the move scores 0, it's named, and the next move starts |
+| Reveal | the ladder's last step reveals: the item goes on the map, the move scores 0, it's named, and the next move starts. A reveal with no item to show is the hint giver failing: the step isn't spent |
 | Help on the whole map | works on the first move, in order, whose hints haven't run out; a revealed item goes on the map |
 | Done, on the whole map | a move counts as done (level up, unassisted success) when its quality is 2 |
+| The whole-map rubric | exactly one row per move, or the whole-map evaluator failed (an agent call that fails, below). A part left empty scores 0 whatever its row says |
 | Writing the map | a sharper item replaces the vaguer one it contains ("free elections" replaces "elections"); `note` only survives on exclusions; "a; b" becomes two items |
 | Input that doesn't fit the phase | `advance` throws `UnexpectedInput`, nothing changes; the API answers 409 with the latest Turn |
 | An agent call fails | `advance` returns the session unchanged and the last Turn with `error` set: `code` and `retryable` from callAgent's error (#10), otherwise `agent_failed`, retryable |
@@ -525,6 +528,9 @@ wrote it, the fact it superseded and who read it. It's a copy for the agents and
 tables above stay the record.
 
 `DELETE /me/data` purges the user's memory scope first (`POST /scopes/forget`, a hard delete), then removes all three tables' rows.
+Both wait for the user's writes in flight in the API process (a Turn being answered, with its `agent_log` rows; the
+memory write a result started, which stops before its next fact), and the user's writes that arrive meanwhile wait for
+the delete, so nothing comes back after the 204.
 
 ---
 
