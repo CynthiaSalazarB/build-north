@@ -2,7 +2,7 @@
 // checked here.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MemoryView, Turn, type Mentefacto, type Result } from "@build-north/agents";
+import { MemoryView, Turn, type Mentefacto, type Message, type MoveId, type Result } from "@build-north/agents";
 import memoryView from "@build-north/agents/fixtures/memory-view.json" with { type: "json" };
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import {
@@ -35,6 +35,7 @@ import {
   mapQuestionOf,
   nextPartOf,
   partMeaningOf,
+  partDetailOf,
   partNotesOf,
   partsOf,
   partTextOf,
@@ -49,6 +50,7 @@ import {
   shortDateOf,
   resultPartsOf,
   resultStepsOf,
+  revealedPartsOf,
   revealHoldOf,
   secretLineOf,
   shareLineOf,
@@ -56,6 +58,7 @@ import {
   wholeMapHelpOf,
   wholeMapPartsOf,
   withMapQuestions,
+  withFeedbackToRead,
   withPart,
 } from "./present.ts";
 import { blankMap, initialState, received, sent, type Entry } from "./transcript.ts";
@@ -124,6 +127,35 @@ test("the result map shows earned points per area without assigning the total co
   assert.deepEqual(parts.map((p) => p.badge), [null, "less help next time", null, "less help next time"]);
   const toFive = { ...last.result!, masteryChanges: [{ move: "supraordinate" as const, from: 4 as const, to: 5 as const }] };
   assert.equal(resultPartsOf(toFive, last.mentefacto)[0]!.badge, "you can do this alone now");
+});
+
+test("on the result a wrong answer scores 0 and stays the learner's; only a part Help revealed reads as shown to them (code review, Oct 26)", () => {
+  const last = turnAt(14);
+  const wrong = { ...last.result!, rubric: last.result!.rubric.map((r) => (r.move === "isoordinate" ? { ...r, points: 0 as const } : r)) };
+  assert.equal(resultPartsOf(wrong, last.mentefacto)[2]!.state, "lit");
+  assert.equal(resultPartsOf(wrong, last.mentefacto, new Set(["isoordinate"]))[2]!.state, "revealed");
+  // on the whole map Help goes through the parts in order, four steps each: hintsUsed says which were revealed
+  assert.deepEqual([...revealedPartsOf([], { hintsUsed: 3 }, "test")], []);
+  assert.deepEqual([...revealedPartsOf([], { hintsUsed: 5 }, "test")], ["supraordinate"]);
+  assert.deepEqual([...revealedPartsOf([], { hintsUsed: 8 }, "test")], ["supraordinate", "exclusion"]);
+  // in a guided session, the parts a reveal closed
+  const app = (id: string, kind: Message["kind"], move: MoveId, extra: Partial<Message> = {}): Entry => ({ id, from: "app", message: { agent: "app", kind, text: "x", ...extra }, phase: "move", move, level: 2 });
+  const guided = [app("turn-3-0", "question", "supraordinate"), app("turn-4-0", "hint", "exclusion", { agent: "hint_giver", hintStep: "reveal" }), app("turn-4-1", "named_move", "exclusion"), app("turn-4-2", "question", "exclusion")];
+  assert.deepEqual([...revealedPartsOf(guided, { hintsUsed: 3 }, "learn")], ["supraordinate"]);
+  assert.deepEqual([...revealedPartsOf(through(14).entries, last.result!, "learn")], []);
+});
+
+test("an area's reader shows an exclusion with the difference the learner gave, and an empty area with feedback opens (code review, Oct 26)", () => {
+  const map: Mentefacto = { ...blankMap("API"), supraordinate: { value: "interface", note: null }, exclusion: [{ value: "library", note: "a library is code you call" }, { value: "not SDK", note: null }] };
+  assert.equal(partDetailOf(map, "exclusion"), "not library: a library is code you call\nnot SDK");
+  assert.equal(partDetailOf(map, "supraordinate"), "interface");
+  assert.equal(partDetailOf(map, "isoordinate"), null);
+  const last = turnAt(14);
+  const parts = resultPartsOf(last.result!, map);
+  assert.equal(parts[1]!.detail, "not library: a library is code you call\nnot SDK");
+  assert.equal(parts[1]!.text, "not library, not SDK");
+  const readable = withFeedbackToRead(parts, (move) => move === "isoordinate");
+  assert.deepEqual(readable.map((p) => [p.state, p.opens ?? false]), [["lit", false], ["lit", false], ["unasked", true], ["unasked", false]]);
 });
 
 test("with the whole-map evaluator's notes, the result reads part by part: points as on the map, the words, the note", () => {

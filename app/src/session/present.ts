@@ -1,7 +1,7 @@
 // What the screens say and draw, as pure functions of the Turns and the transcript: the map's parts and their
 // points, the light (points proved so far), the hint card, Help's price, the reveal, and the gap. No React here,
 // so it's tested under Node. The rules behind the words are in CONTRACTS.md section 3.
-import { MOVE_ORDER, WORKED_EXAMPLE, type Item, type MemoryGap, type MemoryView, type Mentefacto, type Message, type MoveId, type Quality, type Result, type SessionSummary, type Turn, type TurnBody } from "@build-north/agents";
+import { MOVE_ORDER, WORKED_EXAMPLE, type Item, type MemoryGap, type MemoryView, type Mentefacto, type Message, type MoveId, type Quality, type Result, type SessionMode, type SessionSummary, type Turn, type TurnBody } from "@build-north/agents";
 import { AREA_LABEL, areaCopyOf, areaNoteOf } from "../area-copy.ts";
 import type { Entry } from "./transcript.ts";
 
@@ -142,11 +142,27 @@ export function partTextOf(map: Mentefacto, move: MoveId): string | null {
   return values.length ? values.join(", ") : null;
 }
 
+/** A part's words in full, as its reader shows them: an exclusion's items one per line, each with the difference the
+ * learner gave, which the map leaves out for room (code review, Oct 26). */
+export function partDetailOf(map: Mentefacto, move: MoveId): string | null {
+  if (move !== "exclusion") return partTextOf(map, move);
+  const lines = map.exclusion.flatMap((item) => {
+    const value = item.value.trim();
+    if (!value) return [];
+    const not = /^not\b/i.test(value) ? value : `not ${value}`;
+    const note = item.note?.trim();
+    return [note ? `${not}: ${note}` : not];
+  });
+  return lines.length ? lines.join("\n") : null;
+}
+
 export type PartState = "unasked" | "asked" | "lit" | "revealed";
 export type Pip = "earned" | "open" | "capped" | "claimed" | "missed";
 /** `pips` is null where nothing is scored yet: the whole map at level 5, until it's submitted. */
 /** `badge` is a short line under the part's words: on the result, a part that moved up a level. */
-export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] | null; badge?: string | null; prompt?: string; context?: string | null };
+/** `detail` is the part's words in full for its reader (`partDetailOf`); `opens` marks an empty part with feedback to
+ * read, which opens as a filled one does. */
+export type PartView = { move: MoveId; state: PartState; text: string | null; pips: [Pip, Pip] | null; badge?: string | null; prompt?: string; context?: string | null; detail?: string | null; opens?: boolean };
 
 const pipsFor = (points: number, capped = false): [Pip, Pip] => [points >= 1 ? "earned" : "open", points >= 2 ? "earned" : capped ? "capped" : "open"];
 
@@ -161,7 +177,7 @@ export function partsOf(turn: Turn, entries: readonly Entry[], { held = false, m
     const done = points.find((p) => p.move === move);
     // a finished part with no points was shown by Help (the reveal arrives in the Turn that names the next
     // move, so the points, not the hint's Turn, say which part it was), as on the result
-    if (done) return { move, state: done.points === 0 ? "revealed" : "lit", text: partTextOf(map, move), pips: pipsFor(done.points) };
+    if (done) return { move, state: done.points === 0 ? "revealed" : "lit", text: partTextOf(map, move), detail: partDetailOf(map, move), pips: pipsFor(done.points) };
     if (move === asked) return { move, state: "asked", text: null, pips: pipsFor(0, capped) };
     return { move, state: "unasked", text: null, pips: pipsFor(0) };
   });
@@ -203,8 +219,9 @@ export function exampleStepsOf(lines: readonly string[]): ExampleStep[] | null {
 }
 
 /** The result's map shows actual points per area. A total prediction can't assign confidence to an area;
- * its gap is shown only on the overall result scale. */
-export function resultPartsOf(result: Result, map: Mentefacto): PartView[] {
+ * its gap is shown only on the overall result scale. A part reads as shown to the learner only when Help revealed it
+ * (`revealed`): a wrong answer scores 0 too, and it is still the learner's own (code review, Oct 26). */
+export function resultPartsOf(result: Result, map: Mentefacto, revealed: ReadonlySet<MoveId> = new Set()): PartView[] {
   return MOVE_ORDER.map((move) => {
     const points = result.rubric.find((r) => r.move === move)?.points ?? 0;
     const pips = pipsFor(points);
@@ -212,8 +229,24 @@ export function resultPartsOf(result: Result, map: Mentefacto): PartView[] {
     // the part moved up a level this session (CONTRACTS.md section 3): the help on it fades next time
     const up = result.masteryChanges.find((c) => c.move === move && c.to > c.from);
     const badge = up ? (up.to === 5 ? "you can do this alone now" : "less help next time") : null;
-    return { move, state: points === 0 && text ? "revealed" : text ? "lit" : "unasked", text, pips, badge };
+    return { move, state: revealed.has(move) && text ? "revealed" : text ? "lit" : "unasked", text, detail: partDetailOf(map, move), pips, badge };
   });
+}
+
+/** On the result an area left empty opens too when there are words about it to read (a self-test's note), now that the
+ * rubric is folded away (code review, Oct 26). */
+export const withFeedbackToRead = (parts: readonly PartView[], hasWords: (move: MoveId) => boolean): PartView[] =>
+  parts.map((part) => (part.state === "unasked" && hasWords(part.move) ? { ...part, opens: true } : part));
+
+/** The parts Help revealed, from what the session recorded. On the whole map (a self-test, or level 5 everywhere) Help
+ * works through the parts in order, four steps each, so the first hintsUsed / 4 parts were revealed; in a guided session
+ * they are the parts a reveal closed (`partClosingsOf`). A guided session picked up without its conversation has no
+ * record of a reveal, so its parts read as the learner's own. */
+export function revealedPartsOf(entries: readonly Entry[], result: Pick<Result, "hintsUsed">, mode: SessionMode): Set<MoveId> {
+  const wholeMap = mode === "test" || entries.some((e) => e.from === "app" && e.phase === "move" && e.move === null);
+  if (wholeMap) return new Set(MOVE_ORDER.slice(0, Math.floor(result.hintsUsed / STEPS_PER_PART)));
+  const closings = partClosingsOf(entries);
+  return new Set(MOVE_ORDER.filter((move) => closings[move]?.revealed));
 }
 
 /** One part of the result, the way the worked example reads: its points as the map shows them, the learner's

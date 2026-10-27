@@ -42,6 +42,7 @@ import {
   partsOf,
   provedOf,
   resultMessagesOf,
+  revealedPartsOf,
   revealHoldOf,
   waitingLineOf,
   withMapQuestions,
@@ -104,6 +105,8 @@ export default function SessionScreen() {
         notes={partNotesOf(resultMessagesOf(state.entries))}
         lastPart={lastPartNoteOf(state.entries)}
         closings={partClosingsOf(state.entries)}
+        revealed={revealedPartsOf(state.entries, turn.result, state.mode)}
+        conversation={state.entries}
         coachFailure={coachDue && state.failure ? state.failure.message : null}
         coachSources={turn.messages.find((message) => message.kind === "summary")?.sources}
         onRetryCoach={retry}

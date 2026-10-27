@@ -122,8 +122,9 @@ export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom =
   const side = (width * map.side) / map.width;
   const middle = (width * map.middle) / map.width;
   const part = (move: MoveId, w: number) => {
-    // a part only opens to be read once it has something to read: lit, or shown to the learner
-    const reads = !onPartPress && !!onPartOpen && (view(move).state === "lit" || view(move).state === "revealed");
+    // a part only opens to be read once it has something to read: lit, shown to the learner, or empty with the
+    // evaluator's words on it (`opens`, the result)
+    const reads = !onPartPress && !!onPartOpen && (view(move).state === "lit" || view(move).state === "revealed" || !!view(move).opens);
     const press = onPartPress ? () => onPartPress(move) : reads ? () => onPartOpen!(move) : undefined;
     return <PartBox key={move} view={view(move)} width={w} ring={ring === move} active={move === activePart} onPress={press} reads={reads} onLayout={keep(move)} />;
   };
@@ -262,7 +263,7 @@ function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }
       ) : null}
       {/* on the result, a part that moved up a level: the help fades there next time */}
       {view.badge && <Text style={[type.partLabel, styles.badge, { color: look.labelInk }]}>{`↑ ${view.badge}`}</Text>}
-      {onPress && <Text style={[type.partLabel, { color: look.labelInk }]}>{reads ? "Read answer" : view.text ? "Edit answer" : active ? "Write here →" : "Write answer"}</Text>}
+      {onPress && <Text style={[type.partLabel, { color: look.labelInk }]}>{reads ? (view.text ? "Read answer" : "Read feedback") : view.text ? "Edit answer" : active ? "Write here →" : "Write answer"}</Text>}
       {ring && <Sparks />}
     </Animated.View>
   );

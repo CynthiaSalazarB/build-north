@@ -11,9 +11,11 @@ import { Platform, ScrollView, Share, StyleSheet, Text, View } from "react-nativ
 import { areaCopyOf } from "../area-copy.ts";
 import { success } from "../haptics.ts";
 import type { ComparisonArea } from "../session/comparison.ts";
-import { gapOf, POINTS_RULE, resultPartsOf, shareLineOf, type Pip } from "../session/present.ts";
+import { gapOf, POINTS_RULE, resultPartsOf, shareLineOf, withFeedbackToRead, type Pip } from "../session/present.ts";
+import type { Entry } from "../session/transcript.ts";
 import { brand, page, space, type } from "../theme.ts";
 import { ConceptMap, PointSquare } from "./concept-map.tsx";
+import { ConversationSheet } from "./conversation-sheet.tsx";
 import { ExplanationComparison } from "./explanation-comparison.tsx";
 import { Firefly } from "./firefly.tsx";
 import { Failure, Remembered } from "./messages.tsx";
@@ -35,6 +37,10 @@ type Props = {
   lastPart?: Partial<Record<MoveId, string>>;
   /** A guided session: what closed each part, so a lit or revealed area opens to be read again (`partClosingsOf`). */
   closings?: Partial<Record<MoveId, PartClosing>>;
+  /** The parts Help revealed (`revealedPartsOf`): only they read "Shown to you". */
+  revealed?: ReadonlySet<MoveId>;
+  /** The session's whole conversation, read again from here (`ConversationSheet`). */
+  conversation?: readonly Entry[];
   /** The coach's words come after the result (`result.coach` is null until then); this is why they didn't. */
   coachFailure?: string | null;
   /** With memory on, the facts the coach's words rely on (the summary message's `sources`, #112). */
@@ -61,7 +67,7 @@ export function ResultScreen(props: Props) {
 }
 
 /** Inside the Screen, so the colors follow the light the score reached. */
-function ResultBody({ concept, result, map, firstExplanation, comparisonAreas, notes = {}, lastPart = {}, closings = {}, coachFailure, coachSources, onRetryCoach, onAgain, againBusy, againError, onDone, onAnother }: Props) {
+function ResultBody({ concept, result, map, firstExplanation, comparisonAreas, notes = {}, lastPart = {}, closings = {}, revealed, conversation = [], coachFailure, coachSources, onRetryCoach, onAgain, againBusy, againError, onDone, onAnother }: Props) {
   const c = useColors();
   const wide = useWide();
   const lit = useMode() === "day";
@@ -79,14 +85,15 @@ function ResultBody({ concept, result, map, firstExplanation, comparisonAreas, n
   // self-test's note (Cynthia, Oct 24)
   const [openPart, setOpenPart] = useState<MoveId | null>(null);
   const [comparisonOpen, setComparisonOpen] = useState(false);
+  const [conversationOpen, setConversationOpen] = useState(false);
   const [pointsOpen, setPointsOpen] = useState(false);
-  const parts = resultPartsOf(result, map);
   const closingOf = (move: MoveId): PartClosing | null => {
     const closing = closings[move];
     if (closing) return closing;
     const note = notes[move] ?? lastPart[move];
     return note ? { text: note, revealed: false } : null;
   };
+  const parts = withFeedbackToRead(resultPartsOf(result, map, revealed), (move) => closingOf(move) !== null);
   const figure = (
     <View style={styles.map}>
       <ConceptMap concept={concept} parts={parts} onPartOpen={setOpenPart} />
@@ -124,6 +131,9 @@ function ResultBody({ concept, result, map, firstExplanation, comparisonAreas, n
       {firstExplanation && (
         <Button kind="text" wrap label="Compare with your first explanation" style={styles.compare} onPress={() => setComparisonOpen(true)} />
       )}
+      {conversation.some((entry) => entry.from === "learner") && (
+        <Button kind="text" wrap label="Read the whole conversation" style={styles.compare} onPress={() => setConversationOpen(true)} />
+      )}
       {!wide && <Rise order={1}>{figure}</Rise>}
       <Rise order={2} style={styles.facts}>
         {pointsOpen ? (
@@ -155,6 +165,7 @@ function ResultBody({ concept, result, map, firstExplanation, comparisonAreas, n
       {againError && <Failure message={againError} />}
       <PartSheet view={openPart ? (parts.find((p) => p.move === openPart) ?? null) : null} closing={openPart ? closingOf(openPart) : null} onClose={() => setOpenPart(null)} />
       {firstExplanation && <ExplanationComparison open={comparisonOpen} onClose={() => setComparisonOpen(false)} concept={concept} explanation={firstExplanation} areas={comparisonAreas} />}
+      <ConversationSheet open={conversationOpen} onClose={() => setConversationOpen(false)} concept={concept} entries={conversation} />
     </>
   );
   const again = <Button label={`Try ${concept} again`} fit={wide} busy={againBusy} onPress={onAgain} />;
