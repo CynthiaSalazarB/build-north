@@ -956,6 +956,7 @@ test("Delete my data stops the memory write a result started: the write in fligh
 
 test("a result saved while Delete my data waits for it leaves nothing for memory to write", async (t) => {
   const { memory, facts, calls } = slowMemory();
+  const remembers = t.mock.method(memory, "remember");
   const store = memoryStore();
   const claude = fakeClaude([["evaluator_full", { rubric: MOVE_ORDER.map((move) => ({ move, quality: 2, feedback: "Scripted." })) }]], store);
   const reached = Promise.withResolvers<void>();
@@ -981,6 +982,7 @@ test("a result saved while Delete my data waits for it leaves nothing for memory
   const [submitted, deleted] = await Promise.all([submitting, deleting]);
   assert.deepEqual([submitted.status, deleted.status], [200, 204]);
   await sleep(50);
+  assert.equal(remembers.mock.callCount(), 0);
   assert.deepEqual(calls, ["forget"]);
   assert.deepEqual(facts, []);
   assert.deepEqual(await store.listSessions("leo"), []);
