@@ -197,6 +197,9 @@ async function answer(s: Session, m: Mastery, move: MoveId, learnerText: string,
   const feedback = say("evaluator", "feedback", ev.feedback);
 
   if (ev.verdict === "correct") {
+    // A right answer is on the map by now; a "correct" that left this part empty is the evaluator failing, so the
+    // answer is judged again on the retry instead of a part with nothing in it earning points.
+    if (!filled(s.mentefacto, move)) throw new Error(`The evaluator took the ${move} answer as right but put nothing on the map`);
     return finishMove(s, m, move, ev.quality, [feedback, say("app", "named_move", text.named(move, false))], call);
   }
   // An exclusion without its difference gets one follow-up question: not a retry, not a hint.
@@ -238,6 +241,9 @@ async function hint(
   call: CallAgent,
 ): Promise<{ message: Message; revealed: boolean }> {
   const h = HintGiverOutput.parse(await call("hint_giver", { ...context(s, move, level), step, lastAnswer, issue }));
+  // The reveal puts its answer on the map and ends the part at 0 points; one with no answer to show is the hint giver
+  // failing, so the step isn't spent (the retry asks again) instead of a part ending with nothing shown.
+  if (step === "reveal" && !(h.revealed && hasWords(h.revealed))) throw new Error(`The hint giver revealed nothing for ${move}`);
   s.hintsPerMove[move] += 1;
   s.hintStep = step;
   s.recent.push({ from: "app", text: h.text });
@@ -283,12 +289,17 @@ async function submitMap(s: Session, m: Mastery, map: Mentefacto, call: CallAgen
   const full = WholeMapEvaluatorOutput.parse(
     await call("evaluator_full", { concept: s.concept, material: s.material, mentefacto: s.mentefacto }),
   );
+  // Every part judged exactly once: a rubric that leaves one out or judges one twice is the evaluator failing, so
+  // the map is judged again on the retry instead of a part it never looked at scoring 0.
+  if (MOVE_ORDER.some((move) => full.rubric.filter((r) => r.move === move).length !== 1)) throw new Error("The whole-map evaluator didn't judge each part once");
   const feedback: Message[] = [];
   for (const move of MOVE_ORDER) {
-    const row = full.rubric.find((r) => r.move === move);
-    // In the whole map a move counts as done (for levels and unassisted successes) when its quality is 2.
-    record(s, m, move, row?.quality ?? 0, (row?.quality ?? 0) === 2);
-    if (row) feedback.push(say("evaluator", "feedback", `${MOVE_LABEL[move]}: ${row.feedback}`));
+    const row = full.rubric.find((r) => r.move === move)!;
+    // An empty part scores 0 whatever the model said (the scoring guide's rule; code keeps every number). In the
+    // whole map a move counts as done (for levels and unassisted successes) when its quality is 2.
+    const quality = filled(s.mentefacto, move) ? row.quality : 0;
+    record(s, m, move, quality, quality === 2);
+    feedback.push(say("evaluator", "feedback", `${MOVE_LABEL[move]}: ${row.feedback}`));
   }
   return finishSession(s, feedback);
 }
@@ -389,6 +400,10 @@ function progressOf(s: Session): Turn["progress"] {
 }
 
 const words = (item: Item) => item.value.trim().toLowerCase().split(/\s+/);
+/** An item with something to write on the map, as `merge` reads it ("a; b" is two items, blank ones go). */
+const hasWords = (item: Item) => item.value.split(";").some((value) => value.trim());
+/** The part has something on the map: the bigger group, or an item of the other parts. */
+const filled = (map: Mentefacto, move: MoveId) => (move === "supraordinate" ? (map.supraordinate ? [map.supraordinate] : []) : map[move]).some(hasWords);
 const sameItem = (a: Item, b: Item) => words(a).join(" ") === words(b).join(" ");
 /** `sharper` keeps every word of `vaguer` and adds more. */
 const refines = (sharper: Item, vaguer: Item) => {

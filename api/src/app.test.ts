@@ -722,8 +722,10 @@ test("when the coach call fails, the session still ends, with fixed text built f
   const url = await start(t, { ...withStore(), advance, callAgentFor: claude.callAgentFor });
   const first = await (await post(url, { concept: "inflation", mode: "test" })).json();
   const map = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 7 })).json();
-  const blank = { concept: "inflation", supraordinate: null, exclusion: [], isoordinate: [], infraordinate: [] };
-  const shown = await (await answer(url, first.sessionId, { turn: map.turn, mentefacto: blank })).json();
+  // every part filled, so the rubric's points stand (an empty part scores 0 whatever it says)
+  const item = (value: string, note: string | null = null) => ({ value, note });
+  const filled = { concept: "inflation", supraordinate: item("money"), exclusion: [item("deflation", "prices fall")], isoordinate: [item("prices rise")], infraordinate: [item("demand-pull"), item("cost-push")] };
+  const shown = await (await answer(url, first.sessionId, { turn: map.turn, mentefacto: filled })).json();
   const done = await (await answer(url, first.sessionId, { turn: shown.turn, action: "continue" })).json();
 
   const fixed = { message: 'You scored 6 of 8 and used 0 hints. Next, work on "Bigger group".', nextFocus: "supraordinate" };

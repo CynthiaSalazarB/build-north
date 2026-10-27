@@ -104,6 +104,14 @@ const evaluation = (verdict: "correct" | "partial" | "incorrect", quality: 0 | 1
   feedback,
 });
 const hintOutput = (step: string, text: string) => ({ step, text, revealed: null });
+/** A whole map with every part filled, so the scripted rubric's points stand (an empty part scores 0). */
+const inflationMap: Mentefacto = {
+  concept: "inflation",
+  supraordinate: item("rise in prices"),
+  exclusion: [item("one product getting dearer", "only one price rises")],
+  isoordinate: [item("prices across the economy")],
+  infraordinate: [item("demand-pull"), item("cost-push")],
+};
 
 describe("session 1 from the brief (democracy)", async () => {
   const { call, calls, finished } = scripted([
@@ -221,7 +229,7 @@ describe("whole map (decision 16, level-5 decision)", () => {
       { question: "What's the bigger group?" },
       { question: "If gas goes up, is that inflation?" },
       { action: "help" },
-      { mentefacto: { ...empty("inflation"), supraordinate: item("rise in prices") } },
+      { mentefacto: inflationMap },
       { action: "continue" },
     ], call);
 
@@ -413,7 +421,7 @@ describe("failures and limits", () => {
       // no coach entry: the scripted callAgent throws when the coach is called
     ]);
     const { turns } = await play(newSession("inflation", "test"), masteryAt(1), [
-      { action: "start" }, { prediction: 8 }, { mentefacto: empty("inflation") }, { action: "continue" },
+      { action: "start" }, { prediction: 8 }, { mentefacto: inflationMap }, { action: "continue" },
     ], call);
     const result = turns.at(-1)!.result!;
     expect(result.score).toBe(6);
@@ -436,6 +444,106 @@ describe("failures and limits", () => {
       { action: "start" }, { prediction: 8 }, { mentefacto: empty("inflation") }, { action: "continue" },
     ], call);
     await expect(advance({ session, mastery }, { action: "continue" }, call)).rejects.toBeInstanceOf(UnexpectedInput);
+  });
+});
+
+describe("output that fits the schema but not the step is a failed call (code review, Oct 26)", () => {
+  const supra = ["questioner", { question: "What kind of thing is democracy?", scaffold: null }] as [AgentName, unknown];
+  const ahead = ["questioner", { question: "What is close to democracy, but isn't it?", scaffold: null }] as [AgentName, unknown];
+  const toFirstQuestion = (call: CallAgent) =>
+    play(newSession("democracy"), masteryAt(2), [{ action: "start" }, { prediction: 5 }, { text: "Rule by the people." }], call);
+
+  it("a right answer that puts nothing on the map isn't scored: the Turn fails, nothing moves on, and the answer is judged again", async () => {
+    const { call, finished } = scripted([
+      supra,
+      ["evaluator", evaluation("correct", 2, [], "Yes.")],
+      ahead,
+      ["evaluator", evaluation("correct", 2, [item("  ")], "Yes.")],
+      ahead,
+      ["evaluator", evaluation("correct", 2, [item("form of government")], "Yes: a form of government.")],
+      ahead,
+    ]);
+    const { session, mastery } = await toFirstQuestion(call);
+    for (let i = 0; i < 2; i++) {
+      const failed = await advance({ session, mastery }, { text: "a form of government" }, call);
+      expect(failed.turn.error).toEqual({ code: "agent_failed", retryable: true });
+      expect([failed.session, failed.mastery]).toEqual([session, mastery]);
+    }
+    const judged = await advance({ session, mastery }, { text: "a form of government" }, call);
+    expect(judged.turn.error).toBeNull();
+    expect(judged.turn.mentefacto.supraordinate).toEqual(item("form of government"));
+    expect(judged.turn.progress.points).toEqual([{ move: "supraordinate", points: 2 }]);
+    expect(finished()).toBe(true);
+  });
+
+  it("the exclusion's difference judged right with nothing new to add finishes the part: what is on the map already counts", async () => {
+    const { call } = scripted([
+      supra,
+      ["evaluator", evaluation("correct", 2, [item("form of government")], "Yes.")],
+      ahead,
+      ["evaluator", evaluation("partial", 1, [item("monarchy")], "Monarchy is close. What's the difference?")],
+      ["questioner", { question: "What does democracy need?", scaffold: null }],
+      ["evaluator", evaluation("correct", 2, [], "Yes: in a monarchy one family rules.")],
+    ]);
+    const { turns } = await play(newSession("democracy"), masteryAt(2), [
+      { action: "start" }, { prediction: 5 }, { text: "Rule by the people." }, { text: "a form of government" }, { text: "monarchy" }, { text: "in a monarchy the people don't choose" },
+    ], call);
+    expect(turns.at(-1)!.move).toBe("isoordinate");
+    expect(turns.at(-1)!.progress.points).toEqual([{ move: "supraordinate", points: 2 }, { move: "exclusion", points: 2 }]);
+  });
+
+  it("a reveal with nothing to show isn't spent: the Turn fails, the Helps stay as they were, and the next try reveals", async () => {
+    const { call, finished } = scripted([
+      ["questioner", { question: "What group?", scaffold: null }],
+      ["hint_giver", hintOutput("nudge", "a")],
+      ["questioner", { question: "What isn't it?", scaffold: null }],
+      ["hint_giver", hintOutput("hint", "b")],
+      ["hint_giver", hintOutput("partial", "c")],
+      ["hint_giver", { step: "reveal", text: "Here it is.", revealed: null }],
+      ["hint_giver", { step: "reveal", text: "Here it is.", revealed: item(" ; ") }],
+      ["hint_giver", { step: "reveal", text: "It's a form of government.", revealed: item("form of government") }],
+    ]);
+    const { session, mastery } = await play(newSession("democracy"), masteryAt(2), [
+      { action: "start" }, { prediction: 3 }, { text: "?" }, { action: "help" }, { action: "help" }, { action: "help" },
+    ], call);
+    for (let i = 0; i < 2; i++) {
+      const failed = await advance({ session, mastery }, { action: "help" }, call);
+      expect(failed.turn.error).toEqual({ code: "agent_failed", retryable: true });
+      expect(failed.session).toEqual(session);
+    }
+    expect(session.hintsPerMove.supraordinate).toBe(3);
+    const shown = await advance({ session, mastery }, { action: "help" }, call);
+    expect(shown.turn.error).toBeNull();
+    expect(shown.turn.mentefacto.supraordinate).toEqual(item("form of government"));
+    expect([shown.turn.move, shown.session.hintsPerMove.supraordinate]).toEqual(["exclusion", 4]);
+    expect(finished()).toBe(true);
+  });
+
+  it("a whole-map rubric that leaves a part out or judges one twice isn't a result: the Turn fails and the map is judged again", async () => {
+    const rubric = MOVE_ORDER.map((move) => ({ move, quality: 2, feedback: "ok" }));
+    const { call, finished } = scripted([
+      ["evaluator_full", { rubric: rubric.slice(0, 1) }],
+      ["evaluator_full", { rubric: [...rubric, { move: "exclusion", quality: 0, feedback: "again" }] }],
+      ["evaluator_full", { rubric }],
+    ]);
+    const { session, mastery } = await play(newSession("inflation", "test"), masteryAt(1), [{ action: "start" }, { prediction: 6 }], call);
+    for (let i = 0; i < 2; i++) {
+      const failed = await advance({ session, mastery }, { mentefacto: inflationMap }, call);
+      expect(failed.turn.error).toEqual({ code: "agent_failed", retryable: true });
+      expect(failed.session).toEqual(session);
+    }
+    const judged = await advance({ session, mastery }, { mentefacto: inflationMap }, call);
+    expect(judged.turn.result!.score).toBe(8);
+    expect(finished()).toBe(true);
+  });
+
+  it("an empty part scores 0 on the whole map, whatever the model gave it", async () => {
+    const { call } = scripted([["evaluator_full", { rubric: MOVE_ORDER.map((move) => ({ move, quality: 2, feedback: "ok" })) }]]);
+    const { turns } = await play(newSession("inflation", "test"), masteryAt(1), [
+      { action: "start" }, { prediction: 6 }, { mentefacto: { ...inflationMap, isoordinate: [], infraordinate: [item("  ")] } },
+    ], call);
+    expect(turns.at(-1)!.result!.rubric.map((r) => r.points)).toEqual([2, 2, 0, 0]);
+    expect(turns.at(-1)!.result!.score).toBe(4);
   });
 });
 
