@@ -2,13 +2,14 @@
 // and at level 5 edit their map). The rules live in transcript.ts; this file only wires them to the
 // client. Starting a session replaces the one on screen; the server keeps every session, and GET /sessions lists
 // them (`history`), so Your concepts offers unfinished sessions to resume and finished maps to review. The device
-// keeps, per session, only what the server doesn't hold (saved.ts, storage.ts): the notes and the level-5 map.
-import type { CreateSessionBody, MemoryView, Mentefacto, SessionSummary, TurnInput } from "@build-north/agents";
+// keeps, per session, only what the server doesn't hold (saved.ts, storage.ts): the notes, the level-5 map and a
+// guided answer not sent yet.
+import type { CreateSessionBody, MemoryView, Mentefacto, MoveId, SessionSummary, TurnInput } from "@build-north/agents";
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ClientError, type SessionClient } from "./client.ts";
 import { createSavedSessions, savedOf } from "./saved.ts";
-import { clearSaved, readSaved, writeSaved } from "./storage.ts";
-import { arrived, drafted, failed, initialState, replayed, resendOf, sent, startedWith, withRevealed, type SessionState } from "./transcript.ts";
+import { deviceStorage } from "./storage.ts";
+import { arrived, drafted, failed, initialState, replayed, resendOf, sent, startedWith, typed, withRevealed, type SessionState } from "./transcript.ts";
 
 /** What the learner can send: a /turns body without its `turn` number, which the provider adds. */
 export type LearnerInput = Exclude<TurnInput, { action: "start" }>;
@@ -22,10 +23,15 @@ type SessionApi = {
   retry(): void;
   /** Level 5: keeps the learner's map; `send({ mentefacto })` submits it. */
   edit(draft: Mentefacto): void;
+  /** The guided answer field's words, not sent yet, on `move` of session `sessionId` (`typed` in transcript.ts). */
+  type(sessionId: string, move: MoveId | null, text: string): void;
   /** The learner's sessions on the server, newest first (GET /sessions); null until the first read. Demo mode has none. */
   history: SessionSummary[] | null;
   /** Reads the list again (Start does when it is shown). Resolves with an error message, or null. */
   refresh(): Promise<string | null>;
+  /** The list as it is now, for a choice that depends on it (Start: go on with an unfinished session of the concept,
+   * or start one): `history`, or a read of its own while there is none yet. Demo mode has none. */
+  sessionsNow(): Promise<{ sessions: SessionSummary[] } | { error: string }>;
   /** Picks a session up from the server: unfinished, it goes on from its latest Turn, with the notes and the level-5
    * map this device kept; finished, its result shows again, read-only. Resolves with an error message to show, or
    * null when it is on screen. A session the server no longer has is forgotten. */
@@ -52,7 +58,7 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
   const epoch = useRef(0);
   const listRequest = useRef(0);
   const saved = useRef<ReturnType<typeof createSavedSessions> | null>(null);
-  if (saved.current === null) saved.current = createSavedSessions({ read: readSaved, write: writeSaved, clear: clearSaved });
+  if (saved.current === null) saved.current = createSavedSessions(deviceStorage);
 
   // the session on screen is kept as it moves (the level-5 map with it), and dropped once it is over
   useEffect(() => {
@@ -64,12 +70,11 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     if (client.offline) return null;
     const request = ++listRequest.current;
     try {
-      const before = await saved.current!.snapshot();
+      const knownIds = await saved.current!.ids();
       const list = await client.list();
       if (request !== listRequest.current) return null;
       setHistory(list);
       // Don't prune a record created while this list request was in flight; the response can predate that session.
-      const knownIds = new Set(before.map((record) => record.sessionId));
       const unfinishedIds = new Set(list.filter((session) => !session.finished).map((session) => session.id));
       await saved.current!.prune(knownIds, unfinishedIds);
       return null;
@@ -93,11 +98,11 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     if (!sessionId || state.pending) return;
     setState((s) => sent(s, body, retry));
     // a reply for a session no longer on screen (the learner started another, say before the coach's words
-    // came) changes nothing
+    // came) changes nothing, and neither does one for a body no longer waiting (`arrived`, `failed`)
     const same = (s: SessionState) => s.turn?.sessionId === sessionId;
     client.send(sessionId, body).then(
       (turn) => setState((s) => (same(s) ? arrived(s, body, turn) : s)),
-      (error: unknown) => setState((s) => (same(s) ? failed(s, messageOf(error), retryableOf(error)) : s)),
+      (error: unknown) => setState((s) => (same(s) ? failed(s, body, messageOf(error), retryableOf(error)) : s)),
     );
   };
 
@@ -126,8 +131,20 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     edit(draft) {
       setState((s) => drafted(s, draft));
     },
+    type(sessionId, move, text) {
+      setState((s) => typed(s, sessionId, move, text));
+    },
     history,
     refresh,
+    async sessionsNow() {
+      if (client.offline) return { sessions: [] };
+      if (history) return { sessions: history };
+      try {
+        return { sessions: await client.list() };
+      } catch (error) {
+        return { error: messageOf(error) };
+      }
+    },
     async resume({ id, mode }) {
       const version = ++epoch.current;
       try {
@@ -137,9 +154,10 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
         const [turn, steps] = await Promise.all([client.resume(id), client.transcript(id).catch(() => null)]);
         const kept = await saved.current!.get(id);
         if (version !== epoch.current) return CLEARED;
-        // the server's map holds what Help revealed; the learner's own words come back from the device
+        // the server's map holds what Help revealed; the learner's own words come back from the device, the level-5 map
+        // and an answer they hadn't sent yet with them
         const back = replayed(steps, turn, mode, kept?.material ?? null);
-        setState(kept?.draft ? drafted(back, withRevealed(kept.draft, turn.mentefacto)) : back);
+        setState({ ...(kept?.draft ? drafted(back, withRevealed(kept.draft, turn.mentefacto)) : back), answer: kept?.answer ?? null });
         return null;
       } catch (error) {
         if (version !== epoch.current) return CLEARED;

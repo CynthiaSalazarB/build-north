@@ -42,12 +42,13 @@ import {
   partsOf,
   provedOf,
   resultMessagesOf,
+  revealedPartsOf,
   revealHoldOf,
   waitingLineOf,
   withMapQuestions,
 } from "../session/present.ts";
 import { useSession } from "../session/session-context.tsx";
-import type { Entry, SessionState } from "../session/transcript.ts";
+import { unsentOf, type Entry, type SessionState } from "../session/transcript.ts";
 import { brand, firefly as FIREFLY, pageMetadata, size, space } from "../theme.ts";
 
 const TITLE = `${brand.name}: build the concept's map yourself`;
@@ -60,7 +61,7 @@ export function generateMetadata() {
 export default function SessionScreen() {
   usePageTitle(TITLE);
   const router = useRouter();
-  const { state, send, retry, start, edit } = useSession();
+  const { state, send, retry, start, edit, type } = useSession();
   const [again, setAgain] = useState<{ busy: boolean; error: string | null }>({ busy: false, error: null });
   const { turn } = state;
   // The result shows first (decided Oct 22); its Turn expects continue, and the app asks for the coach's words
@@ -104,6 +105,8 @@ export default function SessionScreen() {
         notes={partNotesOf(resultMessagesOf(state.entries))}
         lastPart={lastPartNoteOf(state.entries)}
         closings={partClosingsOf(state.entries)}
+        revealed={revealedPartsOf(state.entries, turn.result, state.mode)}
+        conversation={state.entries}
         coachFailure={coachDue && state.failure ? state.failure.message : null}
         coachSources={turn.messages.find((message) => message.kind === "summary")?.sources}
         onRetryCoach={retry}
@@ -117,7 +120,7 @@ export default function SessionScreen() {
   } else if (turn.expects === "map") {
     screen = <WholeMapScreen turn={turn} state={state} send={send} retry={retry} edit={edit} onClose={close} />;
   } else {
-    screen = <WorkScreen turn={turn} state={state} send={send} retry={retry} onClose={close} />;
+    screen = <WorkScreen turn={turn} state={state} send={send} retry={retry} onType={type} onClose={close} />;
   }
   return (
     <>
@@ -128,9 +131,9 @@ export default function SessionScreen() {
   );
 }
 
-type WorkProps = { turn: Turn; state: SessionState; send: ReturnType<typeof useSession>["send"]; retry: () => void; onClose: () => void };
+type WorkProps = { turn: Turn; state: SessionState; send: ReturnType<typeof useSession>["send"]; retry: () => void; onType: ReturnType<typeof useSession>["type"]; onClose: () => void };
 
-function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
+function WorkScreen({ turn, state, send, retry, onType, onClose }: WorkProps) {
   const wide = useWide();
   const scroll = useRef<ScrollViewInstance>(null);
   const [passed, setPassed] = useState<string | null>(null);
@@ -219,6 +222,8 @@ function WorkScreen({ turn, state, send, retry, onClose }: WorkProps) {
       onHelp={requestHelp}
       onNext={held && hold ? () => setPassed(hold.key) : null}
       onSend={send}
+      unsent={unsentOf(state)}
+      onType={(move, text) => onType(turn.sessionId, move, text)}
       flush={wide}
     />
   );

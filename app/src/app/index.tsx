@@ -11,7 +11,7 @@ import type { SessionMode, SessionSummary } from "@build-north/agents";
 import { useAuth } from "@clerk/expo";
 import { ObserveInteractiveMarker } from "expo-observe";
 import { useFocusEffect, useRouter } from "expo-router";
-import { useCallback, useState, type ReactNode } from "react";
+import { useCallback, useRef, useState, type ReactNode } from "react";
 import { Platform, ScrollView, Share, StyleSheet, Text, TextInput, View, type ViewStyle } from "react-native";
 import { CodePreview } from "../components/code-preview.tsx";
 import { Icon } from "../components/icons.tsx";
@@ -86,7 +86,7 @@ export default function StartScreen() {
   const router = useRouter();
   const c = useColors();
   const wide = useWide();
-  const { start, offline, state, history, refresh, resume } = useSession();
+  const { start, offline, state, history, refresh, resume, sessionsNow } = useSession();
   const [concept, setConcept] = useState<string>("API");
   const [notes, setNotes] = useState("");
   const [ownOpen, setOwnOpen] = useState(false);
@@ -102,14 +102,27 @@ export default function StartScreen() {
   // the card on screen says what the listed ones say, so a reload doesn't change it (B12); a session started since the
   // list was read isn't on it yet, and it started today
   const onScreenLine = unfinished ? resumeLineOf(history?.find((s) => s.id === unfinished.sessionId) ?? { mode: state.mode, createdAt: new Date().toISOString() }) : "";
+  // A Start or a Resume that finishes after the learner has left Start (Your concepts, a session) opens nothing: leaving
+  // moves `navigation` on, and coming back clears the busy buttons (code review, Oct 26; Your concepts does the same).
+  const focused = useRef(false);
+  const navigation = useRef(0);
+  const current = (version: number) => focused.current && version === navigation.current;
   // the server's list, read again each time Start shows (a session just finished is on it), so the sessions
   // to pick up (the one on screen has its own card) and the finished maps are the learner's whole record
   useFocusEffect(
     useCallback(() => {
+      focused.current = true;
+      setStarting(null);
+      setResuming(null);
       void refresh().then(setListError);
+      return () => {
+        focused.current = false;
+        navigation.current++;
+      };
     }, [refresh]),
   );
-  const kept = history?.filter((s) => !s.finished && s.id !== state.turn?.sessionId) ?? [];
+  const keptOf = (list: readonly SessionSummary[] | null) => list?.filter((s) => !s.finished && s.id !== state.turn?.sessionId) ?? [];
+  const kept = keptOf(history);
   const recent = kept[0];
   const busy = starting !== null || resuming !== null;
   const secretLine = secretLineOf(notes);
@@ -119,31 +132,50 @@ export default function StartScreen() {
   // A concept the learner already has a session going on, in the same mode, goes on from where it stopped instead of
   // starting over beside it (Leo, Oct 24: picking a topic he had worked on showed none of it). A finished one starts
   // fresh, and its map stays under "Your maps".
-  const ongoing = (mode: SessionMode): "on screen" | SessionSummary | null => {
+  const ongoing = (mode: SessionMode, list = kept): "on screen" | SessionSummary | null => {
     const same = (other: string, otherMode: SessionMode) => otherMode === mode && other.trim().toLowerCase() === name.toLowerCase();
     if (unfinished && same(unfinished.mentefacto.concept, state.mode)) return "on screen";
-    return kept.find((s) => same(s.concept, s.mode)) ?? null;
+    return list.find((s) => same(s.concept, s.mode)) ?? null;
   };
   const going = { learn: ongoing("learn"), test: ongoing("test") };
   const pickingUp = (session: ReturnType<typeof ongoing>) => session !== null && session !== "on screen" && resuming === session.id;
 
   const begin = async (mode: SessionMode) => {
     if (!name || busy || secret) return;
-    const session = going[mode];
-    if (session === "on screen") return router.push("/session");
-    if (session) return pickUp(session);
+    const version = ++navigation.current;
     setStarting(mode);
     setError(null);
+    // Going on with an unfinished session of this concept or starting one depends on the list, so a list Start doesn't
+    // have yet (still loading, or its read failed) is read first: starting blind would put a second unfinished
+    // session beside the first (code review, Oct 26).
+    let list = kept;
+    if (history === null && !offline) {
+      const read = await sessionsNow();
+      if (!current(version)) return;
+      if ("error" in read) {
+        setStarting(null);
+        setError(`Couldn't load saved concepts. ${read.error}`);
+        return;
+      }
+      list = keptOf(read.sessions);
+    }
+    const session = ongoing(mode, list);
+    if (session) setStarting(null);
+    if (session === "on screen") return router.push("/session");
+    if (session) return pickUp(session);
     const problem = await start({ concept: name, ...(notes.trim() ? { material: notes } : {}), ...(mode === "test" ? { mode } : {}) });
+    if (!current(version)) return;
     setStarting(null);
     if (problem) setError(problem);
     else router.push("/session");
   };
   const pickUp = async (session: SessionSummary) => {
     if (busy) return;
+    const version = ++navigation.current;
     setResuming(session.id);
     setError(null);
     const problem = await resume(session);
+    if (!current(version)) return;
     setResuming(null);
     if (problem) setError(problem);
     else router.push("/session");

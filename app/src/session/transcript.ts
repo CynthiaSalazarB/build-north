@@ -13,6 +13,9 @@ export type Entry =
 
 export type Failure = { message: string; retryable: boolean; body: TurnBody };
 
+/** A guided answer typed and not sent yet, with the part it was typed on (null before the moves: the first explanation). */
+export type Unsent = { move: MoveId | null; text: string };
+
 export type SessionState = {
   /** The latest Turn: what the screen asks for next, the map, the progress. */
   turn: Turn | null;
@@ -27,9 +30,11 @@ export type SessionState = {
   material: string | null;
   /** Level 5: the learner's map, kept on the phone until they submit it (`expects: "map"`). */
   draft: Mentefacto | null;
+  /** The guided answer field's words while they're unsent, so Save and close keeps them (`typed`). */
+  answer: Unsent | null;
 };
 
-export const initialState: SessionState = { turn: null, entries: [], pending: null, failure: null, mode: "learn", material: null, draft: null };
+export const initialState: SessionState = { turn: null, entries: [], pending: null, failure: null, mode: "learn", material: null, draft: null, answer: null };
 
 /** A session that just started, in learn or test mode, with the notes it was given. */
 export const startedWith = (turn: Turn, mode: SessionMode = "learn", material: string | null = null): SessionState => received({ ...initialState, mode, material }, turn);
@@ -52,12 +57,29 @@ export function echoFor(body: TurnBody): string | null {
   return null;
 }
 
-/** The learner sent `body`. A retry sends the same body again without echoing it twice. */
+/** The learner sent `body`. A retry sends the same body again without echoing it twice. An answer sent is no longer
+ * an unsent one. */
 export function sent(state: SessionState, body: TurnBody, retry = false): SessionState {
   const echo = retry ? null : echoFor(body);
   const entries = echo === null ? state.entries : [...state.entries, { id: `learner-${state.entries.length}`, from: "learner" as const, text: echo }];
-  return { ...state, entries, pending: body, failure: null };
+  return { ...state, entries, pending: body, failure: null, answer: "text" in body ? null : state.answer };
 }
+
+/** The part a Turn asks about, as an unsent answer records it: its move, or null before the moves. */
+export const partOf = (turn: Turn): MoveId | null => (turn.phase === "move" ? turn.move : null);
+
+/** The learner's words in the guided answer field, not sent yet, on `move` of session `sessionId`: kept so Save and close
+ * keeps them, and they come back on that part only (a reveal moves the session to the next part before the field
+ * goes). Blank words keep nothing. The same state comes back when nothing changed (code review, Oct 26). */
+export function typed(state: SessionState, sessionId: string, move: MoveId | null, text: string): SessionState {
+  if (state.turn?.sessionId !== sessionId || state.turn.expects !== "text") return state;
+  const answer = text.trim() ? { move, text } : null;
+  return answer?.text === state.answer?.text && answer?.move === state.answer?.move ? state : { ...state, answer };
+}
+
+/** The unsent words for the part the latest Turn asks about, or "" when there are none for it. */
+export const unsentOf = (state: SessionState): string =>
+  state.turn && state.answer && state.answer.move === partOf(state.turn) ? state.answer.text : "";
 
 /** A Turn came back. Only a newer Turn adds messages: a resend, a 409 or an error Turn repeats the
  * latest one, which is already on screen. */
@@ -95,15 +117,19 @@ export function received(state: SessionState, turn: Turn): SessionState {
 
 /** The Turn that answers `body` came back. If the session was picked up again while it was on its way (closed
  * mid-answer, another concept opened, then Continue), the state came from the server before this answer was saved,
- * so the learner's words go back in ahead of the reply. A reply the picked-up state already holds adds nothing. */
+ * so the learner's words go back in ahead of the reply. A reply the picked-up state already holds adds nothing, and
+ * a reply to a body that isn't the one waiting (an answer sent before the pick-up, while a newer one is on its way)
+ * changes nothing: the newer answer's own reply brings the latest Turn (code review, Oct 26). */
 export function arrived(state: SessionState, body: TurnBody, turn: Turn): SessionState {
+  if (state.pending !== null && state.pending !== body) return state;
   const echoLost = state.pending === null && turn.turn > (state.turn?.turn ?? 0);
-  return received(echoLost ? sent(state, body) : state, turn);
+  // the echo put back is an answer sent long ago: it leaves the words the learner is typing now alone
+  return received(echoLost ? { ...sent(state, body), answer: state.answer } : state, turn);
 }
 
-/** The call failed before any Turn came back. */
-export function failed(state: SessionState, message: string, retryable: boolean): SessionState {
-  return state.pending ? { ...state, pending: null, failure: { message, retryable, body: state.pending } } : state;
+/** The call that sent `body` failed before any Turn came back. A newer body on its way stays on its way. */
+export function failed(state: SessionState, body: TurnBody, message: string, retryable: boolean): SessionState {
+  return state.pending === body ? { ...state, pending: null, failure: { message, retryable, body } } : state;
 }
 
 /** The body to send again after a failure: the same one, except that a map goes as the learner has it now, since

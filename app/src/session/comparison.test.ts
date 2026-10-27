@@ -36,9 +36,10 @@ test("old/incomplete histories, whole-map answers and a missing first answer are
 test("a failed first send is not a saved explanation; a revised successful submission stays verbatim", () => {
   const attempt = steps.find(({ turn }) => turn.phase === "attempt")!.turn;
   const next = steps.find(({ turn }) => turn.turn === attempt.turn + 1)!.turn;
-  const pending = sent(startedWith(attempt), { turn: attempt.turn, text: "first unsaved send" });
+  const unsaved = { turn: attempt.turn, text: "first unsaved send" };
+  const pending = sent(startedWith(attempt), unsaved);
   assert.equal(firstExplanationOf(pending.entries), null);
-  const failure = failed(pending, "offline", true);
+  const failure = failed(pending, unsaved, "offline", true);
   const exact = "  My explanation\nwith `code` and bigger group.  ";
   const saved = received(sent(failure, { turn: attempt.turn, text: exact }), next);
   assert.equal(firstExplanationOf(saved.entries), exact);

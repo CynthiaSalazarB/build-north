@@ -21,6 +21,7 @@ import {
   type MemoryEntity,
   type MemoryRow,
 } from "./memory.ts";
+import { pseudonymOf } from "./export-testers.ts";
 import { initialSession } from "./store.ts";
 
 // A finished session on API: two parts moved (one up, one down), 7 guessed and 3 proved, Help on two parts.
@@ -98,7 +99,7 @@ test("memory is off by default; on, the endpoint, the context and the key are re
 
 test("a learner's scope and entity carry the testers' pseudonym, never the Clerk id, and a concept's name is made safe", () => {
   assert.equal(scopeOf("a1b2c3d4"), "learner/a1b2c3d4");
-  assert.deepEqual(entityOf("a1b2c3d4", "Environment Variable!"), { type: "topic", name: "a1b2c3d4_environment_variable" });
+  assert.deepEqual(entityOf("a1b2c3d4", "Environment Variable"), { type: "topic", name: "a1b2c3d4_environment_variable" });
   assert.equal(entityOf("a1b2c3d4", "API").name, "a1b2c3d4_api");
   assert.equal(dateOf("2026-10-22T23:59:00Z"), "Oct 22");
   // a fact's date follows the team's zone (TZ, else Toronto), the zone the Memory sheet's dates show in Ontario
@@ -552,11 +553,41 @@ test("the view's chain is newest first whatever order memory lists the rows, a t
   assert.deepEqual(viewOf("API", rows, counts).moves[0]?.history.map((entry) => entry.readBy), [1, 3]);
 });
 
+test("what one concept left never reaches another's agents: C# history stays out of a C++ session", async () => {
+  const csharp = entityOf(pseudonymOf("user_2leo", ""), "C#").name;
+  const read: string[] = [];
+  const api: MemoryApi = {
+    async registerScope() {},
+    async write() {},
+    async history(entity) {
+      read.push(entity.name);
+      return entity.name === csharp ? rows : [];
+    },
+    async forgetScope() {
+      return 0;
+    },
+  };
+  const memory = createLearnerMemory(api, { salt: "" });
+  assert.equal(await memory.recall("user_2leo", "C++", "s9"), undefined);
+  assert.ok(((await memory.recall("user_2leo", "C#", "s9"))?.facts.length ?? 0) > 0);
+  assert.notEqual(read[0], read[1]);
+});
+
 test("the keys memory holds are level_<move>, gap and help_<move>, under an entity name any concept can take; a row under another key is never a fact", () => {
-  // lowercase letters, digits and underscores only, so memory's own name rules (a dot folds to an underscore) change nothing
-  for (const [concept, name] of [["Node.js", "node_js"], ["  CORS  ", "cors"], ["Env-Var 1", "env_var_1"], ["¿Qué es?", "qu_es"], ["!!!", "concept"]] as const) {
+  // lowercase letters, digits and underscores only, so memory's own name rules (a dot folds to an underscore) change
+  // nothing; a plain concept keeps the name it had before Oct 27, so the memory written under it stays its own
+  for (const [concept, name] of [["Node.js", "node_js"], ["  CORS  ", "cors"], ["Env-Var 1", "env_var_1"], ["Rate  Limiting", "rate_limiting"], ["OAuth 2.0", "oauth_2_0"]] as const) {
     assert.equal(entityOf("a1b2c3d4", concept).name, `a1b2c3d4_${name}`);
   }
+  // what the slug can't keep gets a hash of the concept: two concepts never share their history (code review, Oct 26)
+  const names = ["C++", "C#", "C", "東京", "서울", "¿Qué es?", "!!!", "Environment Variable!"].map((concept) => entityOf("a1b2c3d4", concept).name);
+  assert.equal(new Set(names).size, names.length);
+  assert.ok(names.every((name) => /^a1b2c3d4_[a-z0-9_]+$/.test(name)), names.join(" "));
+  assert.match(names[0]!, /^a1b2c3d4_c_[0-9a-f]{12}$/);
+  assert.match(names[3]!, /^a1b2c3d4_concept_[0-9a-f]{12}$/);
+  // the same concept, however it is cased or spaced, is the same entity
+  assert.equal(entityOf("a1b2c3d4", " c++ ").name, names[0]);
+  assert.equal(entityOf("a1b2c3d4", "Node.JS").name, entityOf("a1b2c3d4", "node.js").name);
   assert.deepEqual(
     factsToWrite(finished, AT).map((write) => write.key),
     ["level_supraordinate", "level_exclusion", "gap", "help_supraordinate", "help_exclusion", "help_isoordinate", "help_infraordinate"],

@@ -1,19 +1,20 @@
-// What the device keeps per session so a pick-up loses nothing: the record, its text form, and what is read back
-// from it.
+// What the device keeps per session so a pick-up loses nothing: the record, its text form, what is read back from
+// it, and the cache that keeps one entry per session.
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import { Turn } from "@build-north/agents";
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
-import { createSavedSessions, parseSaved, savedOf, serializeSaved, withSaved } from "./saved.ts";
-import { blankMap, drafted, initialState, received, startedWith, type SessionState } from "./transcript.ts";
+import { createSavedSessions, parseSaved, savedOf, type SavedSession, type SavedSessionStorage } from "./saved.ts";
+import { blankMap, drafted, initialState, received, startedWith, typed, type SessionState } from "./transcript.ts";
 
 const turns = sessionOne.map((step) => Turn.parse(step.turn));
 const first = turns[0]!;
+const record = (sessionId: string, material: string | null = null, extra: Partial<SavedSession> = {}): SavedSession => ({ sessionId, material, draft: null, answer: null, ...extra });
 
 test("a session on screen is kept with its notes; one that is over, none at all, or one with nothing to keep, is not", () => {
   assert.equal(savedOf(initialState), null);
   const learning = startedWith(first, "learn", "my notes");
-  assert.deepEqual(savedOf(learning), { sessionId: first.sessionId, material: "my notes", draft: null });
+  assert.deepEqual(savedOf(learning), record(first.sessionId, "my notes"));
   // no notes and no map: the server holds everything a pick-up needs
   assert.equal(savedOf(startedWith(first, "learn", null)), null);
   // the result with the coach's words is the end: nothing is left to pick up
@@ -31,22 +32,24 @@ test("at level 5 the learner's map goes with the record, and comes back from the
   const level5 = Turn.parse({ ...first, turn: 2, phase: "move", level: 5, expects: "map", messages: [], mentefacto: blankMap("CORS") });
   const map = { ...blankMap("CORS"), supraordinate: { value: "a browser rule", note: null } };
   const state = drafted(startedWith(level5, "test"), map);
-  const record = savedOf(state)!;
-  assert.deepEqual(record, { sessionId: level5.sessionId, material: null, draft: map });
-  assert.deepEqual(parseSaved(serializeSaved([record])), [record]);
+  const kept = savedOf(state)!;
+  assert.deepEqual(kept, record(level5.sessionId, null, { draft: map }));
+  assert.deepEqual(parseSaved(JSON.stringify(kept)), [kept]);
 });
 
-test("one record per session: a new record replaces the session's old one, and null removes it", () => {
-  const a = { sessionId: "ses_a", material: "a", draft: null };
-  const b = { sessionId: "ses_b", material: "b", draft: null };
-  const list = withSaved(withSaved([], "ses_a", a), "ses_b", b);
-  assert.deepEqual(list, [a, b]);
-  assert.deepEqual(withSaved(list, "ses_a", { ...a, material: "a2" }), [b, { ...a, material: "a2" }]);
-  assert.deepEqual(withSaved(list, "ses_b", null), [a]);
-  assert.deepEqual(withSaved(list, "ses_c", null), [a, b]);
+test("a guided answer typed and not sent goes with the record, even with no notes, and comes back from the text", () => {
+  const asking = turns.find((turn) => turn.expects === "text" && turn.phase === "move")!;
+  const state = typed(startedWith(asking), asking.sessionId, asking.move, "a kind of government");
+  const kept = savedOf(state)!;
+  assert.deepEqual(kept, record(asking.sessionId, null, { answer: { move: asking.move, text: "a kind of government" } }));
+  assert.deepEqual(parseSaved(JSON.stringify(kept)), [kept]);
+  // what isn't an unsent answer reads back as none
+  for (const answer of [{ move: "bigger", text: "x" }, { move: null, text: "  " }, "text", 7]) {
+    assert.equal(parseSaved(JSON.stringify({ ...kept, answer }))[0]?.answer, null);
+  }
 });
 
-test("anything that isn't a record reads back as nothing; the one record kept before Oct 24 reads as a list of one", () => {
+test("anything that isn't a record reads back as nothing; the list kept before Oct 27 and the one record before Oct 24 read as records", () => {
   assert.deepEqual(parseSaved(null), []);
   assert.deepEqual(parseSaved(""), []);
   assert.deepEqual(parseSaved("{"), []);
@@ -54,14 +57,32 @@ test("anything that isn't a record reads back as nothing; the one record kept be
   assert.deepEqual(parseSaved(JSON.stringify({ sessionId: "" })), []);
   assert.deepEqual(parseSaved(JSON.stringify([{ sessionId: "ses_1", draft: { concept: "API" } }, 7, null])), []);
   // the older shape kept the concept, the mode and the date too; what a record didn't say takes its empty value
-  assert.deepEqual(parseSaved(JSON.stringify({ sessionId: "ses_1", concept: "API", mode: "learn", material: "notes", savedAt: "2026-10-23T18:30:00Z" })), [
-    { sessionId: "ses_1", material: "notes", draft: null },
-  ]);
-  assert.deepEqual(parseSaved(JSON.stringify([{ sessionId: "ses_1" }, { sessionId: "ses_2", material: 3 }])), [
-    { sessionId: "ses_1", material: null, draft: null },
-    { sessionId: "ses_2", material: null, draft: null },
-  ]);
+  assert.deepEqual(parseSaved(JSON.stringify({ sessionId: "ses_1", concept: "API", mode: "learn", material: "notes", savedAt: "2026-10-23T18:30:00Z" })), [record("ses_1", "notes")]);
+  assert.deepEqual(parseSaved(JSON.stringify([{ sessionId: "ses_1" }, { sessionId: "ses_2", material: 3 }])), [record("ses_1"), record("ses_2")]);
 });
+
+/** The device's storage as saved.ts sees it, in memory: one entry per session, plus the shared one from before. */
+function memoryStorage(legacy: string | null = null) {
+  const entries = new Map<string, string>();
+  const shared = { text: legacy };
+  const storage: SavedSessionStorage = {
+    ids: async () => [...entries.keys()],
+    read: async (id) => entries.get(id) ?? null,
+    write: async (id, text) => {
+      entries.set(id, text);
+    },
+    remove: async (id) => {
+      entries.delete(id);
+    },
+    legacy: {
+      read: async () => shared.text,
+      remove: async () => {
+        shared.text = null;
+      },
+    },
+  };
+  return { storage, entries, shared };
+}
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -69,44 +90,73 @@ function deferred<T>() {
   return { promise, resolve };
 }
 
-test("a cache update waits for hydration instead of replacing the other sessions", async () => {
-  const loading = deferred<string | null>();
-  const writes: string[] = [];
-  const older = { sessionId: "ses_old", material: "old notes", draft: null };
-  const newer = { sessionId: "ses_new", material: "new notes", draft: null };
-  const cache = createSavedSessions({
-    read: () => loading.promise,
-    write: async (text) => { writes.push(text); },
-    clear: async () => { writes.push("cleared"); },
-  });
+test("two tabs keeping two sessions keep both: neither writes over the other's (code review, Oct 26)", async () => {
+  const { storage } = memoryStorage();
+  // each tab has its own cache, as each provider instance does, over the one storage the browser has
+  const tabA = createSavedSessions(storage);
+  const tabB = createSavedSessions(storage);
+  const a = record("ses_a", null, { draft: { ...blankMap("API"), supraordinate: { value: "interface", note: null } } });
+  const b = record("ses_b", null, { draft: { ...blankMap("CORS"), supraordinate: { value: "browser rule", note: null } } });
+  await tabA.keep(a.sessionId, a);
+  await tabB.keep(b.sessionId, b);
+  for (const tab of [tabA, tabB]) {
+    assert.deepEqual(await tab.get("ses_a"), a);
+    assert.deepEqual(await tab.get("ses_b"), b);
+    assert.deepEqual(await tab.ids(), new Set(["ses_a", "ses_b"]));
+  }
+  // a tab dropping its session leaves the other tab's alone
+  await tabB.keep("ses_b", null);
+  assert.deepEqual(await tabA.get("ses_a"), a);
+  assert.equal(await tabA.get("ses_b"), null);
+});
 
-  const snapshot = cache.snapshot();
+test("the records the shared entry kept before Oct 27 move to entries of their own, once, and a newer entry of the same session stays", async () => {
+  const older = record("ses_old", "old notes");
+  const stale = record("ses_both", "stale notes");
+  const { storage, entries, shared } = memoryStorage(JSON.stringify([older, stale]));
+  const newer = record("ses_both", "newer notes");
+  entries.set(newer.sessionId, JSON.stringify(newer));
+  const cache = createSavedSessions(storage);
+  assert.deepEqual(await cache.get("ses_old"), older);
+  assert.deepEqual(await cache.get("ses_both"), newer);
+  assert.equal(shared.text, null);
+  // a record under another session's entry is no record of this one
+  entries.set("ses_x", JSON.stringify(record("ses_y")));
+  assert.equal(await cache.get("ses_x"), null);
+});
+
+test("an update waits for the move out of the shared entry instead of racing it", async () => {
+  const loading = deferred<string | null>();
+  const older = record("ses_old", "old notes");
+  const newer = record("ses_new", "new notes");
+  const { storage, entries } = memoryStorage();
+  const cache = createSavedSessions({ ...storage, legacy: { read: () => loading.promise, remove: storage.legacy.remove } });
+  const ids = cache.ids();
   const update = cache.keep(newer.sessionId, newer);
-  loading.resolve(serializeSaved([older]));
-  await snapshot;
+  loading.resolve(JSON.stringify([older]));
+  assert.deepEqual(await ids, new Set(["ses_old", "ses_new"]));
   await update;
-  assert.deepEqual(await cache.snapshot(), [older, newer]);
-  assert.deepEqual(JSON.parse(writes.at(-1)!), [older, newer]);
+  assert.deepEqual([...entries.keys()].sort(), ["ses_new", "ses_old"]);
 });
 
 test("a slow older write cannot overwrite a newer draft", async () => {
   const writes: { text: string; done: ReturnType<typeof deferred<void>> }[] = [];
   const firstStarted = deferred<void>();
   const secondStarted = deferred<void>();
+  const { storage, entries } = memoryStorage();
   const cache = createSavedSessions({
-    read: async () => null,
-    write: (text) => {
+    ...storage,
+    write: (id, text) => {
       const done = deferred<void>();
       writes.push({ text, done });
       if (writes.length === 1) firstStarted.resolve();
       if (writes.length === 2) secondStarted.resolve();
-      return done.promise;
+      return done.promise.then(() => storage.write(id, text));
     },
-    clear: async () => {},
   });
-  const first = { sessionId: "ses_map", material: null, draft: { ...blankMap("CORS"), supraordinate: { value: "older", note: null } } };
-  const last = { ...first, draft: { ...first.draft!, supraordinate: { value: "newer", note: null } } };
-  const oldWrite = cache.keep(first.sessionId, first);
+  const oldest = record("ses_map", null, { draft: { ...blankMap("CORS"), supraordinate: { value: "older", note: null } } });
+  const last = { ...oldest, draft: { ...oldest.draft!, supraordinate: { value: "newer", note: null } } };
+  const oldWrite = cache.keep(oldest.sessionId, oldest);
   const newWrite = cache.keep(last.sessionId, last);
 
   await firstStarted.promise;
@@ -116,14 +166,27 @@ test("a slow older write cannot overwrite a newer draft", async () => {
   assert.equal(writes.length, 2);
   writes[1]!.done.resolve();
   await Promise.all([oldWrite, newWrite]);
-  assert.deepEqual(JSON.parse(writes.at(-1)!.text), [last]);
+  assert.deepEqual(JSON.parse(entries.get("ses_map")!), last);
 });
 
-test("pruning a stale session-list response keeps sessions created after the list snapshot", async () => {
-  const cache = createSavedSessions({ read: async () => null, write: async () => {}, clear: async () => {} });
-  const atRequest = await cache.snapshot();
-  const startedWhileLoading = { sessionId: "ses_new", material: "notes", draft: null };
+test("pruning on a session list keeps the unfinished sessions and the ones created after the list was asked for", async () => {
+  const { storage } = memoryStorage();
+  const cache = createSavedSessions(storage);
+  await cache.keep("ses_done", record("ses_done", "notes"));
+  await cache.keep("ses_going", record("ses_going", "notes"));
+  const atRequest = await cache.ids();
+  const startedWhileLoading = record("ses_new", "notes");
   await cache.keep(startedWhileLoading.sessionId, startedWhileLoading);
-  await cache.prune(new Set(atRequest.map((record) => record.sessionId)), new Set());
-  assert.deepEqual(await cache.snapshot(), [startedWhileLoading]);
+  await cache.prune(atRequest, new Set(["ses_going"]));
+  assert.deepEqual(await cache.ids(), new Set(["ses_going", "ses_new"]));
+});
+
+test("clearing (sign-out, Delete my data) removes every session's entry and the shared one", async () => {
+  const { storage, entries, shared } = memoryStorage(JSON.stringify([record("ses_old")]));
+  const cache = createSavedSessions(storage);
+  await cache.keep("ses_a", record("ses_a", "notes"));
+  await cache.clear();
+  assert.equal(entries.size, 0);
+  assert.equal(shared.text, null);
+  assert.deepEqual(await cache.ids(), new Set());
 });

@@ -111,10 +111,14 @@ export function useVoice({ text, onText }: Field): { state: VoiceState; toggle: 
     })();
   }, [state, me]);
 
-  // Send while listening: what is on screen goes, and the recognizer stops without delivering more, so a phrase
-  // still being heard can't land in the field after it was emptied. The abort's own events set the state to idle.
+  // Send while listening, or typing in the field: what is on screen stands, and the recognizer stops without
+  // delivering more, so a phrase still being heard can't land in the field after it was emptied, or rebuild it from
+  // what it held when listening began over the learner's own edit (code review, Oct 26). Anything the recognizer
+  // still sends goes nowhere; the abort's own events set the state to idle.
   const cancel = useCallback(() => {
-    if (owner === me) ExpoSpeechRecognitionModule.abort();
+    if (owner !== me) return;
+    target.current = { text: "", onText: () => {} };
+    ExpoSpeechRecognitionModule.abort();
   }, [me]);
 
   return { state, toggle, cancel };

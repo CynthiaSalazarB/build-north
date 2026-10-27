@@ -249,7 +249,11 @@ function AskBar({ concept, pending, asking, onAsk }: { concept: string; pending:
         <MicButton state={voice.state} onPress={voice.toggle} disabled={pending && voice.state.kind !== "listening"} />
         <PromptField
           value={text}
-          onChangeText={setText}
+          onChangeText={(typed) => {
+            // the learner's edit stands: listening stops instead of rebuilding the field over it
+            voice.cancel();
+            setText(typed);
+          }}
           placeholder={voice.state.kind === "listening" ? "Listening" : "Ask a factual question"}
           multiline
           maxLength={500}
@@ -315,7 +319,10 @@ function PartEditor({ move, concept, category, items, onDone }: { move: MoveId; 
                   <Small dim>{single ? "Category" : move === "exclusion" ? "Another concept in this category" : move === "isoordinate" ? `Defining feature ${i + 1}` : i === 0 ? "Your grouping rule and types" : `Additional type ${i + 1}, using the same rule`}</Small>
                   <TextInput
                     value={row.value}
-                    onChangeText={(value) => change(i, { value })}
+                    onChangeText={(value) => {
+                      voice.cancel();
+                      change(i, { value });
+                    }}
                     placeholder={move === "infraordinate" && i > 0 ? "Another type using your grouping rule" : PLACEHOLDER[move]}
                     placeholderTextColor={c.placeholder}
                     maxLength={move === "infraordinate" ? 500 : 120}
@@ -332,7 +339,10 @@ function PartEditor({ move, concept, category, items, onDone }: { move: MoveId; 
                       <Small dim>What distinguishes it?</Small>
                       <TextInput
                         value={row.note ?? ""}
-                        onChangeText={(note) => change(i, { note })}
+                        onChangeText={(note) => {
+                          voice.cancel();
+                          change(i, { note });
+                        }}
                         placeholder="The key difference from this concept"
                         placeholderTextColor={c.placeholder}
                         maxLength={200}

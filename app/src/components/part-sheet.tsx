@@ -1,6 +1,7 @@
 // A finished area, read again (Cynthia, Oct 24). In a guided session and on the result, a lit or revealed area of
-// the map opens to its full words (the map cuts a long one after five lines) and to what closed it: the evaluator's
-// words on the right answer, or the answer the learner was shown. Nothing here can be edited or costs a point.
+// the map opens to its full words (the map cuts a long one after five lines, and leaves out an exclusion's
+// differences) and to what closed it: the evaluator's words on the right answer, or the answer the learner was shown.
+// On the result an empty area with the evaluator's words opens too. Nothing here can be edited or costs a point.
 import { MOVE_ORDER } from "@build-north/agents";
 import { StyleSheet, View } from "react-native";
 import { areaCopyOf } from "../area-copy.ts";
@@ -33,7 +34,7 @@ export function PartSheet({ view, closing, onClose }: { view: PartView | null; c
           {view.prompt && <Body>{view.prompt}</Body>}
           {view.context && <Small dim>{view.context}</Small>}
           <Label dim>{view.state === "revealed" ? "Shown to you · 0 points" : "Your answer"}</Label>
-          <Body>{view.text ?? "Nothing on this area yet."}</Body>
+          <Body>{view.detail ?? view.text ?? "Nothing on this area yet."}</Body>
           {closing && !closing.revealed && (
             <>
               <Label dim>What the AI said</Label>

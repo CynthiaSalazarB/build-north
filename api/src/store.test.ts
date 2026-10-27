@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { once } from "node:events";
 import type { AddressInfo } from "node:net";
 import { test } from "node:test";
-import { DemoSeed, Session as SessionSchema, advance } from "@build-north/agents";
+import { DemoSeed, Session as SessionSchema, advance, type Level } from "@build-north/agents";
 import demoSeed from "@build-north/agents/fixtures/demo-seed.json" with { type: "json" };
 import { RecordId, Surreal } from "surrealdb";
 import { advanceStub, callAgentStub } from "./advance-stub.ts";
@@ -46,6 +46,33 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     // what comes back from the database still fits Cynthia's Session schema, so `advance` can trust it
     assert.doesNotThrow(() => SessionSchema.parse(session));
     assert.doesNotThrow(() => SessionSchema.parse(saved));
+  });
+
+  await t.test("a Turn's progress lands with its session or not at all, never lowers a stored level, and adds to the stored successes", async () => {
+    const session = await store.createSession("climber", { concept: "democracy", material: null, mode: "learn" });
+    const started = await advanceStub({ session, mastery: await store.getMastery("climber") }, { action: "start" }, callAgentStub);
+    const exclusion = async () => (await store.getMastery("climber")).moves[1];
+    assert.equal(await store.saveSession(started.session, session.turn, [{ move: "exclusion", level: 3, gained: 1 }]), true);
+    assert.deepEqual(await exclusion(), { move: "exclusion", level: 3, unassistedSuccesses: 1 });
+    // a save that loses the race brings no progress with it
+    assert.equal(await store.saveSession({ ...started.session, phase: "result" }, session.turn, [{ move: "exclusion", level: 5, gained: 1 }]), false);
+    assert.deepEqual(await exclusion(), { move: "exclusion", level: 3, unassistedSuccesses: 1 });
+    // another session raised the level meanwhile: a Turn that read the older one can't take it back down
+    await store.saveMastery("climber", { moves: [{ move: "exclusion", level: 4, unassistedSuccesses: 1 }] });
+    const second = { ...started.session, turn: started.session.turn + 1 };
+    assert.equal(await store.saveSession(second, started.session.turn, [{ move: "exclusion", level: 3, gained: 1 }]), true);
+    assert.deepEqual(await exclusion(), { move: "exclusion", level: 4, unassistedSuccesses: 2 });
+    // progress the database refuses (a level past 5) fails the whole save: the session stays where it was
+    const third = { ...second, turn: second.turn + 1, phase: "result" as const };
+    await assert.rejects(store.saveSession(third, second.turn, [{ move: "isoordinate", level: 9 as unknown as Level, gained: 0 }]), /level/);
+    const kept = await store.getSession("climber", session.id);
+    assert.deepEqual([kept?.turn, kept?.phase], [second.turn, second.phase]);
+    assert.equal((await store.getMastery("climber")).moves[2]?.level, 1);
+    // two sessions saving progress on the same move at once: the conflict runs one again, and both count
+    const racing = await Promise.all(["one", "two"].map((concept) => store.createSession("racer", { concept, material: null, mode: "learn" })));
+    const saves = await Promise.all(racing.map((s) => store.saveSession({ ...s, turn: 1 }, 0, [{ move: "infraordinate", level: 2, gained: 1 }])));
+    assert.deepEqual(saves, [true, true]);
+    assert.deepEqual((await store.getMastery("racer")).moves[3], { move: "infraordinate", level: 2, unassistedSuccesses: 2 });
   });
 
   await t.test("every field the orchestrator changes is saved, the fields it added to Session included", async () => {

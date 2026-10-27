@@ -18,6 +18,7 @@ import {
   type Session,
   type Turn,
 } from "@build-north/agents";
+import { createHash } from "node:crypto";
 import { pseudonymOf } from "./export-testers.ts";
 
 // SurrealDB Agent Memory on Leo's side (#112, CONTRACTS.md section 2, Memory): what the API writes after a
@@ -61,10 +62,22 @@ export const scopeOf = (pseudonym: string): string => `learner/${pseudonym}`;
 /** Lowercase letters, digits and underscores only, so memory's own name normalisation can't change it. */
 const slug = (concept: string) => concept.toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "") || "concept";
 
+/** Letters and digits in groups, with spaces, dots, dashes, slashes or underscores between them: the slug keeps every
+ * group, so two such concepts share a slug only when they differ in how they're spaced ("Node.js", "node js"). */
+const PLAIN = /^[a-z0-9]+(?:[\s._/-]+[a-z0-9]+)*$/;
+
+/** The concept's part of its entity name. The slug drops everything else, so "C++" and "C#" would both be "c" and every
+ * Japanese or Korean concept "concept": those get the start of a hash of the concept itself (trimmed, lowercase) too,
+ * and two concepts never share their history. A plain concept keeps the name it always had, and its memory with it. */
+function conceptKey(concept: string): string {
+  const name = concept.trim().toLowerCase();
+  return PLAIN.test(name) ? slug(name) : `${slug(name)}_${createHash("sha256").update(name.replace(/\s+/g, " ")).digest("hex").slice(0, 12)}`;
+}
+
 export type MemoryEntity = { type: "topic"; name: string };
 
 /** One entity per learner and concept; its attributes are the facts, one key per fact (below; underscores, since memory folds a dot in a key to one). */
-export const entityOf = (pseudonym: string, concept: string): MemoryEntity => ({ type: "topic", name: `${pseudonym}_${slug(concept)}` });
+export const entityOf = (pseudonym: string, concept: string): MemoryEntity => ({ type: "topic", name: `${pseudonym}_${conceptKey(concept)}` });
 
 type FactKind = "level" | "gap" | "help";
 
@@ -366,8 +379,9 @@ export type LearnerMemoryStore = {
    * doesn't answer within MEMORY_READ_MS: the agent then runs without memory. Never throws. */
   recall(user: string, concept: string, sessionId: string): Promise<LearnerMemory | undefined>;
   /** Writes the facts a session with a result leaves (factsToWrite), after one read of what memory already holds
-   * so parts with no level row yet get their baseline. Throws when a write failed. */
-  remember(user: string, session: Session): Promise<void>;
+   * so parts with no level row yet get their baseline. Throws when a write failed. Once `stop` aborts (Delete my
+   * data began), it writes nothing more: the write in flight finishes, so the purge after it removes that one too. */
+  remember(user: string, session: Session, stop?: AbortSignal): Promise<void>;
   /** The Memory sheet: the concepts given, in that order, leaving out the ones memory holds nothing on. */
   view(user: string, concepts: readonly string[], reads: readonly (readonly string[])[]): Promise<MemoryView>;
   /** Delete my data: everything under the learner's scope, for good. */
@@ -398,8 +412,8 @@ export function createLearnerMemory(api: MemoryApi, { salt, readMs = MEMORY_READ
       }
     },
 
-    async remember(user, session) {
-      if (!session.result) return;
+    async remember(user, session, stop) {
+      if (!session.result || stop?.aborted) return;
       const at = new Date().toISOString();
       const pseudonym = who(user);
       const scope = scopeOf(pseudonym);
@@ -413,6 +427,7 @@ export function createLearnerMemory(api: MemoryApi, { salt, readMs = MEMORY_READ
         warn(`memory history skipped before the write, so only level changes are written: ${reason(error)}`);
       }
       const writes = factsToWrite(session, at, onRecord);
+      if (stop?.aborted) return;
       if (!registered.has(scope)) {
         await api.registerScope(scope, AbortSignal.timeout(WRITE_MS));
         registered.add(scope);
@@ -421,6 +436,8 @@ export function createLearnerMemory(api: MemoryApi, { salt, readMs = MEMORY_READ
       // context answered "unknown error" to parallel writes on the same entity (Oct 23), one transaction each.
       const failures: unknown[] = [];
       for (const write of writes) {
+        // never aborts the write in flight: memory may still apply one it stopped waiting for, after the purge
+        if (stop?.aborted) return;
         try {
           await api.write(scope, labelsOf({ session: session.id, turn: session.turn, ...write.labels }), [{ entity, key: write.key, value: write.value, occurred_at: at }], AbortSignal.timeout(WRITE_MS));
         } catch (error) {
