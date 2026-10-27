@@ -1,34 +1,37 @@
 // What the device keeps per session so picking it up loses nothing the server doesn't hold: the notes it started
-// with (the Turn doesn't carry them back) and, at level 5, the map the learner is building. Which sessions exist,
-// and which are unfinished, comes from the server (GET /sessions), so one record per session is kept here, keyed
-// by its id. Pure, so it's tested under Node; storage.ts reads and writes the text.
-import { Mentefacto } from "@build-north/agents";
-import type { SessionState } from "./transcript.ts";
+// with (the Turn doesn't carry them back), at level 5 the map the learner is building, and a guided answer typed but
+// not sent. Which sessions exist, and which are unfinished, comes from the server (GET /sessions), so one record per
+// session is kept here, each in an entry of its own keyed by the session's id: two tabs on two sessions write two
+// entries, never one over the other (code review, Oct 26). Pure, so it's tested under Node; storage.ts reads and writes
+// the text.
+import { Mentefacto, MoveId } from "@build-north/agents";
+import type { SessionState, Unsent } from "./transcript.ts";
 
 export type SavedSession = {
   sessionId: string;
   material: string | null;
   draft: Mentefacto | null;
+  answer: Unsent | null;
 };
 
 /** What to keep for the session on screen: null before one starts, once it is over (the result and the coach's
  * words are both in), and when it has nothing the server doesn't hold. */
 export function savedOf(state: SessionState): SavedSession | null {
   const { turn } = state;
-  if (!turn || turn.expects === "none" || (state.material === null && state.draft === null)) return null;
-  return { sessionId: turn.sessionId, material: state.material, draft: state.draft };
+  if (!turn || turn.expects === "none" || (state.material === null && state.draft === null && state.answer === null)) return null;
+  return { sessionId: turn.sessionId, material: state.material, draft: state.draft, answer: state.answer };
 }
 
-/** The records with `record` in the place of the one for `sessionId` (or added), or without it when `record` is null. */
-export function withSaved(records: readonly SavedSession[], sessionId: string, record: SavedSession | null): SavedSession[] {
-  const others = records.filter((r) => r.sessionId !== sessionId);
-  return record ? [...others, record] : others;
+function unsentOf(value: unknown): Unsent | null {
+  if (!value || typeof value !== "object") return null;
+  const { move, text } = value as Record<string, unknown>;
+  if (typeof text !== "string" || !text.trim() || (move !== null && !MoveId.safeParse(move).success)) return null;
+  return { move: move as MoveId | null, text };
 }
 
-export const serializeSaved = (records: readonly SavedSession[]): string => JSON.stringify(records);
-
-/** The records read back: an array, or the one record the device kept before Oct 24 (a single object); anything
- * that isn't a record is dropped (a stray file, a map that isn't one, no file). */
+/** The records an entry holds: one (an entry per session, since Oct 27), the list every session shared before (since
+ * Oct 24), or the one record kept before that; anything that isn't a record is dropped (a stray file, a map that
+ * isn't one, no file). */
 export function parseSaved(text: string | null): SavedSession[] {
   if (!text) return [];
   let raw: unknown;
@@ -43,59 +46,76 @@ export function parseSaved(text: string | null): SavedSession[] {
     const record = item as Record<string, unknown>;
     const draft = record.draft === null || record.draft === undefined ? { success: true as const, data: null } : Mentefacto.safeParse(record.draft);
     if (typeof record.sessionId !== "string" || !record.sessionId || !draft.success) return [];
-    return [{ sessionId: record.sessionId, material: typeof record.material === "string" ? record.material : null, draft: draft.data }];
+    return [{ sessionId: record.sessionId, material: typeof record.material === "string" ? record.material : null, draft: draft.data, answer: unsentOf(record.answer) }];
   });
 }
 
+/** One entry per session. */
 export type SavedSessionStorage = {
-  read: () => Promise<string | null>;
-  write: (text: string) => Promise<void>;
-  clear: () => Promise<void>;
+  /** The ids of the sessions that have an entry. */
+  ids: () => Promise<string[]>;
+  read: (sessionId: string) => Promise<string | null>;
+  write: (sessionId: string, text: string) => Promise<void>;
+  remove: (sessionId: string) => Promise<void>;
+  /** The one entry every session shared before Oct 27: read once, its records moved to entries of their own, removed. */
+  legacy: { read: () => Promise<string | null>; remove: () => Promise<void> };
 };
 
 export type SavedSessions = {
-  snapshot: () => Promise<SavedSession[]>;
+  ids: () => Promise<Set<string>>;
   get: (sessionId: string) => Promise<SavedSession | null>;
   keep: (sessionId: string, record: SavedSession | null) => Promise<void>;
   prune: (knownIds: ReadonlySet<string>, unfinishedIds: ReadonlySet<string>) => Promise<void>;
   clear: () => Promise<void>;
 };
 
-/** Serializes access to the device cache: its read, every update and every write. */
+/** Orders this tab's use of the device cache: the move out of the old shared entry first, then every update in turn,
+ * so a slow older write of a session can't land over a newer one. */
 export function createSavedSessions(storage: SavedSessionStorage): SavedSessions {
-  let records: SavedSession[] = [];
   let ready: Promise<void> | null = null;
   let writes: Promise<void> = Promise.resolve();
 
-  const load = () => (ready ??= storage.read().then((text) => { records = parseSaved(text); }));
+  // what the shared entry held moves to entries of its own, except where a session has one already (written since)
+  const migrate = async () => {
+    const legacy = await storage.legacy.read();
+    if (legacy === null) return;
+    const have = new Set(await storage.ids());
+    for (const record of parseSaved(legacy)) if (!have.has(record.sessionId)) await storage.write(record.sessionId, JSON.stringify(record));
+    await storage.legacy.remove();
+  };
+  const load = () => (ready ??= migrate().catch(() => {}));
+  const settled = async () => {
+    await load();
+    await writes;
+  };
 
-  async function persist(next: SavedSession[]) {
-    await (next.length ? storage.write(serializeSaved(next)) : storage.clear());
-  }
-
-  function update(change: (current: SavedSession[]) => SavedSession[]) {
+  function update(change: () => Promise<void>) {
     const write = writes.then(async () => {
       await load();
-      records = change(records);
-      await persist(records);
+      await change();
     });
     writes = write.catch(() => {});
     return write;
   }
 
   return {
-    async snapshot() {
-      await load();
-      await writes;
-      return [...records];
+    async ids() {
+      await settled();
+      return new Set(await storage.ids());
     },
     async get(sessionId) {
-      await load();
-      await writes;
-      return records.find((record) => record.sessionId === sessionId) ?? null;
+      await settled();
+      return parseSaved(await storage.read(sessionId)).find((record) => record.sessionId === sessionId) ?? null;
     },
-    keep: (sessionId, record) => update((current) => withSaved(current, sessionId, record)),
-    prune: (knownIds, unfinishedIds) => update((current) => current.filter((record) => !knownIds.has(record.sessionId) || unfinishedIds.has(record.sessionId))),
-    clear: () => update(() => []),
+    keep: (sessionId, record) => update(() => (record ? storage.write(sessionId, JSON.stringify(record)) : storage.remove(sessionId))),
+    prune: (knownIds, unfinishedIds) =>
+      update(async () => {
+        for (const id of await storage.ids()) if (knownIds.has(id) && !unfinishedIds.has(id)) await storage.remove(id);
+      }),
+    clear: () =>
+      update(async () => {
+        for (const id of await storage.ids()) await storage.remove(id);
+        await storage.legacy.remove();
+      }),
   };
 }

@@ -9,7 +9,7 @@ import { createApiClient } from "./api-client.ts";
 import { ClientError } from "./client.ts";
 import { createFixtureClient } from "./fixture-client.ts";
 import { lastPartNoteOf, partClosingsOf, resultMessagesOf } from "./present.ts";
-import { arrived, blankMap, drafted, echoFor, failed, initialState, received, replayed, resendOf, sent, startedWith, withRevealed } from "./transcript.ts";
+import { arrived, blankMap, drafted, echoFor, failed, initialState, partOf, received, replayed, resendOf, sent, startedWith, typed, unsentOf, withRevealed } from "./transcript.ts";
 
 const fixtureTurns = sessionOne.map((step) => Turn.parse(step.turn));
 const first = fixtureTurns[0]!;
@@ -98,7 +98,7 @@ test("an error Turn keeps the screen and offers to send the same body again, wit
   state = sent(state, body, true);
   assert.equal(state.entries.length, before);
   assert.equal(state.failure, null);
-  assert.deepEqual(failed(state, "offline", true).failure, { message: "offline", retryable: true, body });
+  assert.deepEqual(failed(state, body, "offline", true).failure, { message: "offline", retryable: true, body });
 });
 
 type Call = { url: string; init: RequestInit };
@@ -324,15 +324,17 @@ test("a retry sends the same body, except that a map goes as the learner has it 
   let state = startedWith(wholeMap());
   const before = { ...blankMap("CORS"), supraordinate: { value: "a browser rule", note: null } };
   state = drafted(state, before);
-  state = failed(sent(state, { turn: 2, mentefacto: before }), "offline", true);
+  const map = { turn: 2, mentefacto: before };
+  state = failed(sent(state, map), map, "offline", true);
   assert.deepEqual(resendOf(state), { turn: 2, mentefacto: before });
   // the failure note says the map is saved, so a part fixed before Try again is what goes
   const fixed = { ...before, supraordinate: { value: "a browser security rule", note: null } };
   assert.deepEqual(resendOf(drafted(state, fixed)), { turn: 2, mentefacto: fixed });
   // a text answer goes as it was, and nothing goes without a retryable failure
-  const text = failed(sent(startedWith(first), { turn: 1, text: "a rule" }), "down", true);
+  const answer = { turn: 1, text: "a rule" };
+  const text = failed(sent(startedWith(first), answer), answer, "down", true);
   assert.deepEqual(resendOf(text), { turn: 1, text: "a rule" });
-  assert.equal(resendOf(failed(sent(startedWith(first), { turn: 1, text: "a rule" }), "spent", false)), null);
+  assert.equal(resendOf(failed(sent(startedWith(first), answer), answer, "spent", false)), null);
   assert.equal(resendOf(state.failure ? { ...state, failure: null } : state), null);
 });
 
@@ -342,6 +344,39 @@ test("a late, older Turn changes nothing: not the screen, the draft, the request
   state = sent(state, { turn: later.turn, text: "my answer" });
   const before = state;
   assert.equal(received(state, fixtureTurns[1]!), before);
+});
+
+test("an older answer's reply landing while a newer answer waits changes nothing, and the newer one shows once with its own reply (code review, Oct 26)", () => {
+  const { body: older, turn: olderReply } = savedSteps[4]!;
+  // picked up after the server saved the older answer; the learner has sent the next one
+  const newer: TurnBody = { turn: olderReply.turn, text: "A kind of government." };
+  const waiting = sent(replayed(savedSteps.slice(0, 5), olderReply), newer);
+  // the older answer's reply, and its failure, late: the newer answer is still the one waiting
+  assert.equal(arrived(waiting, older!, olderReply), waiting);
+  assert.equal(failed(waiting, older!, "offline", true), waiting);
+  const done = arrived(waiting, newer, { ...savedSteps[6]!.turn, turn: olderReply.turn + 1 });
+  assert.equal(done.pending, null);
+  assert.equal(done.entries.filter((e) => e.from === "learner" && e.text === "A kind of government.").length, 1);
+});
+
+test("a guided answer typed and not sent stays with its part, comes back on that part only, and goes once it is sent (code review, Oct 26)", () => {
+  const asking = replayed(savedSteps.slice(0, 4), savedSteps[3]!.turn);
+  const id = asking.turn!.sessionId;
+  assert.deepEqual([asking.turn!.expects, partOf(asking.turn!)], ["text", "supraordinate"]);
+  const typing = typed(asking, id, "supraordinate", "a kind of rule");
+  assert.deepEqual(typing.answer, { move: "supraordinate", text: "a kind of rule" });
+  assert.equal(unsentOf(typing), "a kind of rule");
+  // the same words again change nothing; blank words keep nothing; another session's words don't land here
+  assert.equal(typed(typing, id, "supraordinate", "a kind of rule"), typing);
+  assert.equal(typed(typing, id, "supraordinate", "   ").answer, null);
+  assert.equal(typed(asking, "another session", "supraordinate", "x"), asking);
+  // a Turn on another part (a reveal moved on) doesn't show them
+  assert.equal(unsentOf(received(typing, { ...savedSteps[6]!.turn, turn: 9 })), "");
+  // an answer sent drops them, Help keeps them, and a reply put back after a pick-up leaves them alone
+  assert.equal(sent(typing, { turn: 4, text: "a kind of rule" }).answer, null);
+  assert.deepEqual(sent(typing, { turn: 4, action: "help" }).answer, typing.answer);
+  const { body, turn } = savedSteps[4]!;
+  assert.deepEqual(arrived(typing, body!, turn).answer, typing.answer);
 });
 
 test("a body that stalls after the headers ends as a slow answer when the timer fires", async () => {
