@@ -907,6 +907,75 @@ test("an agent_log row still being written when Delete my data comes is written 
   assert.equal(store.logs.length, 0);
 });
 
+test("a call that outlives its Turn (the next question asked ahead, when the evaluator fails fast) still lands before Delete my data, which deletes its row too", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const usage = { input_tokens: 1_000, output_tokens: 500, cache_creation_input_tokens: null, cache_read_input_tokens: null };
+  const question = JSON.stringify({ question: "What kind of thing is democracy?", scaffold: null });
+  // the evaluator fails at once; the second question of each session (the one asked ahead) waits for `held`
+  const setup = async (gateMastery: boolean) => {
+    const store = memoryStore();
+    await store.saveMastery("leo", atLevel(2));
+    const asked = Promise.withResolvers<void>();
+    const held = Promise.withResolvers<void>();
+    let questions = 0;
+    const send: SendToClaude = async ({ system }) => {
+      if (system === AGENTS.evaluator.system) throw new Error("connection reset");
+      if (system === AGENTS.questioner.system && ++questions === 2) {
+        asked.resolve();
+        await held.promise;
+      }
+      return { message: { content: [{ type: "text", text: question }], stop_reason: "end_turn", usage }, headers: new Headers() };
+    };
+    const callAgentFor = createCallAgent({ send, model: "claude-opus-5-5", budgetUsd: 10, log: (entry) => store.logAgentCall(entry) });
+    const url = await start(t, { ...noDb, store, advance, callAgentFor });
+    const first = await toFirstQuestion(url);
+    // optionally hold the Turn before its agent calls, so the delete begins before they start
+    const reading = Promise.withResolvers<void>();
+    const readHeld = Promise.withResolvers<void>();
+    if (gateMastery) {
+      const read = store.getMastery;
+      t.mock.method(store, "getMastery", async function (this: Store, user: string) {
+        reading.resolve();
+        await readHeld.promise;
+        return read.call(this, user);
+      });
+    }
+    return { store, url, first, asked, held, reading, readHeld };
+  };
+  const deleteWhile = (url: string) => {
+    const state = { answered: false };
+    const res = fetch(`${url}/me/data`, { method: "DELETE", headers: as("leo") }).then((r) => ((state.answered = true), r));
+    return { state, res };
+  };
+
+  // the Turn answers with its error while the question asked ahead is still running; the delete comes after
+  const late = await setup(false);
+  const failed = await (await answer(late.url, late.first.sessionId, { turn: late.first.turn, text: "a form of government" })).json();
+  assert.equal(failed.error?.code, "agent_failed");
+  await late.asked.promise;
+  const first = deleteWhile(late.url);
+  await sleep(50);
+  assert.equal(first.state.answered, false, "the delete waits for the call still running");
+  late.held.resolve();
+  assert.equal((await first.res).status, 204);
+  assert.equal(late.store.logs.length, 0);
+
+  // the delete begins before the Turn starts its calls: it also waits for the calls the Turn starts afterwards
+  const early = await setup(true);
+  const turn = answer(early.url, early.first.sessionId, { turn: early.first.turn, text: "a form of government" });
+  await early.reading.promise;
+  const second = deleteWhile(early.url);
+  await sleep(50);
+  early.readHeld.resolve();
+  assert.equal((await (await turn).json()).error?.code, "agent_failed");
+  await early.asked.promise;
+  await sleep(50);
+  assert.equal(second.state.answered, false, "the delete waits for the call the Turn left running");
+  early.held.resolve();
+  assert.equal((await second.res).status, 204);
+  assert.equal(early.store.logs.length, 0);
+});
+
 // Memory as the API sees it, in memory: the facts written, and every call in order. The first write waits for `held`.
 function slowMemory() {
   const facts: string[] = [];
