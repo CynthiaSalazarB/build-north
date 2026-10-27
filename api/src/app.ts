@@ -5,7 +5,7 @@ import { rateLimit } from "express-rate-limit";
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { DbCheck } from "./db.ts";
 import { fillSources, withMemory, type LearnerMemoryStore } from "./memory.ts";
-import type { NewSession, Store } from "./store.ts";
+import type { MasteryProgress, NewSession, Store } from "./store.ts";
 
 export type AppOptions = {
   corsOrigins: string[];
@@ -57,13 +57,72 @@ const describe = (issues: readonly { path: readonly PropertyKey[]; message: stri
 
 type Parsed<T> = { ok: true; value: T } | { ok: false; status: number; error: string };
 
-/** The moves whose level or count of unassisted successes `after` changed from `before`: what a Turn writes
- * back, so the moves it left alone keep whatever a parallel session saved meanwhile. */
-export function changedMoves(before: Mastery, after: Mastery): Mastery["moves"] {
-  return after.moves.filter((m) => {
+/** The moves whose level or count of unassisted successes `after` changed from `before`, with the level reached and
+ * the successes added: what a Turn writes back, onto mastery as it is stored by then (`Store.saveSession`), so the
+ * moves it left alone, and what a parallel session saved meanwhile, stay. */
+export function changedMoves(before: Mastery, after: Mastery): MasteryProgress[] {
+  return after.moves.flatMap((m) => {
     const was = before.moves.find((b) => b.move === m.move);
-    return !was || was.level !== m.level || was.unassistedSuccesses !== m.unassistedSuccesses;
+    const gained = m.unassistedSuccesses - (was?.unassistedSuccesses ?? 0);
+    return !was || was.level !== m.level || gained !== 0 ? [{ move: m.move, level: m.level, gained }] : [];
   });
+}
+
+/** What this process has in flight for each learner (Render runs the API as one), so Delete my data finishes it first:
+ * the Turns being answered, their agent_log rows included, and the memory write a result starts, which stops before
+ * its next fact once a delete begins (`stop`). The learner's writes that come during the delete wait until it's done. */
+export function learnerWrites() {
+  const inFlight = new Map<string, Set<Promise<unknown>>>();
+  const stops = new Map<string, AbortController>();
+  const erasing = new Map<string, Promise<void>>();
+
+  /** Counts `work` as one of the learner's writes until it settles. */
+  function track<T>(user: string, work: Promise<T>): Promise<T> {
+    const writes = inFlight.get(user) ?? new Set<Promise<unknown>>();
+    inFlight.set(user, writes);
+    writes.add(work);
+    const done = () => {
+      writes.delete(work);
+      if (writes.size === 0 && inFlight.get(user) === writes) {
+        inFlight.delete(user);
+        stops.delete(user);
+      }
+    };
+    work.then(done, done);
+    return work;
+  }
+
+  return {
+    track,
+    /** Runs one of the learner's writes once no delete of theirs is under way. From the check to `work` starting
+     * nothing is awaited, so a delete can't begin in between unseen. */
+    async run<T>(user: string, work: (stop: AbortSignal) => Promise<T>): Promise<T> {
+      while (erasing.has(user)) await erasing.get(user);
+      let stop = stops.get(user);
+      if (!stop) stops.set(user, (stop = new AbortController()));
+      return track(user, work(stop.signal));
+    },
+    /** Runs `work` (the delete) once the learner's writes in flight have settled. */
+    async erase(user: string, work: () => Promise<void>): Promise<void> {
+      while (erasing.has(user)) await erasing.get(user);
+      stops.get(user)?.abort();
+      stops.delete(user);
+      const deleting = (async () => {
+        await Promise.allSettled([...(inFlight.get(user) ?? [])]);
+        await work();
+      })();
+      const settled = deleting.then(
+        () => {},
+        () => {},
+      );
+      erasing.set(user, settled);
+      try {
+        await deleting;
+      } finally {
+        if (erasing.get(user) === settled) erasing.delete(user);
+      }
+    },
+  };
 }
 
 // The body schema is Cynthia's (@build-north/agents). The API adds what the schema leaves to it: 413
@@ -84,6 +143,7 @@ function parseNewSession(body: unknown): Parsed<NewSession> {
 
 export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, userFromToken, devKey, requestsPerMinute = 60, memory, commit = null }: AppOptions) {
   const app = express();
+  const writes = learnerWrites();
   app.disable("x-powered-by");
   // Render puts one proxy in front of the app; trusting it makes req.ip the caller's address.
   app.set("trust proxy", 1);
@@ -157,18 +217,17 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       return;
     }
     // CONTRACTS.md section 3: load, advance, save what comes back, return the Turn
-    const session = await who.store.createSession(who.user, parsed.value);
-    const mastery = await who.store.getMastery(who.user);
-    const next = await advance({ session, mastery }, { action: "start" }, callAgentFor(session.id));
-    // the first step of the conversation the app replays when the session is picked up again
-    if (!next.turn.error) next.session.transcript.push({ body: null, turn: next.turn });
-    // nothing else knows this session's id yet, so this save can't lose to another request
-    await who.store.saveSession(next.session, session.turn);
-    // CONTRACTS.md section 3: a test session never writes mastery, and a start changes none, so this writes
-    // nothing in practice; the rule is the same as /turns
-    const changed = changedMoves(mastery, next.mastery);
-    if (session.mode !== "test" && changed.length > 0) await who.store.saveMastery(who.user, { moves: changed });
-    res.status(201).json(next.turn);
+    await writes.run(who.user, async () => {
+      const session = await who.store.createSession(who.user, parsed.value);
+      const mastery = await who.store.getMastery(who.user);
+      const next = await advance({ session, mastery }, { action: "start" }, callAgentFor(session.id));
+      // the first step of the conversation the app replays when the session is picked up again
+      if (!next.turn.error) next.session.transcript.push({ body: null, turn: next.turn });
+      // Nothing else knows this session's id yet, so this save can't lose to another request. A test session never
+      // writes mastery and a start changes none, so the progress is empty in practice; the rule is the same as /turns.
+      await who.store.saveSession(next.session, session.turn, session.mode === "test" ? [] : changedMoves(mastery, next.mastery));
+      res.status(201).json(next.turn);
+    });
   });
 
   // Start's lists (CONTRACTS.md section 1): the sessions to pick up and "Your maps"
@@ -213,86 +272,92 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       res.status(400).json({ error: noShape ? TURN_BODY : describe(parsed.error.issues) });
       return;
     }
-    const session = SESSION_ID.test(req.params.id) ? await who.store.getSession(who.user, req.params.id) : null;
-    if (!session?.lastTurn) {
-      res.status(404).json({ error: "No such session" });
-      return;
-    }
-    const { turn, ...input } = parsed.data;
-    const latest = session.lastTurn;
-    // Decision 18: an answer to an older Turn was judged already, so it gets the latest Turn back
-    if (turn < session.turn) {
-      res.json(latest);
-      return;
-    }
-    // CONTRACTS.md section 5: a 409 answers with the latest Turn too, so the app draws whatever /turns
-    // sends back. The reason goes to the server log.
-    const conflict = (reason: string) => {
-      console.warn(`409 for session ${session.id}: ${reason}`);
-      res.status(409).json(latest);
-    };
-    if (turn > session.turn) {
-      conflict(`Turn ${turn} doesn't exist yet; the latest is ${session.turn}`);
-      return;
-    }
-    const sent = "action" in input ? input.action : (Object.keys(input)[0] ?? "");
-    const { expects } = latest;
-    const allowed = sent === "help" ? session.phase === "move" : ANSWERS[expects].includes(sent);
-    if (!allowed) {
-      conflict(expects === "none" ? "This session is over" : sent === "help" ? "Help works during the moves" : `Turn ${turn} expects ${expects}, not ${sent}`);
-      return;
-    }
-    const mastery = await who.store.getMastery(who.user);
-    // The hint giver and the coach get what this learner's earlier sessions left, read once per Turn and only
-    // when one of them runs; over 1.5 s, empty or off, they run without it (CONTRACTS.md section 2, Memory).
-    const remembered = memory ? withMemory(callAgentFor(session.id), () => memory.recall(who.user, session.concept, session.id)) : null;
-    const next = await advance({ session, mastery }, input, remembered?.callAgent ?? callAgentFor(session.id)).catch((error: unknown) => {
-      // input that doesn't fit the phase changes nothing
-      if (error instanceof UnexpectedInput) return error;
-      throw error;
-    });
-    if (next instanceof UnexpectedInput) {
-      conflict(next.message);
-      return;
-    }
-    // CONTRACTS.md section 5: an agent failed, so nothing moved on and there is nothing to save. Writing the
-    // unchanged session and mastery back here could overwrite what a parallel request saved meanwhile.
-    if (next.turn.error) {
+    // one of the learner's writes: Delete my data waits for it, and it waits for a delete under way (learnerWrites)
+    await writes.run(who.user, async (stop) => {
+      const session = SESSION_ID.test(req.params.id) ? await who.store.getSession(who.user, req.params.id) : null;
+      if (!session?.lastTurn) {
+        res.status(404).json({ error: "No such session" });
+        return;
+      }
+      const { turn, ...input } = parsed.data;
+      const latest = session.lastTurn;
+      // Decision 18: an answer to an older Turn was judged already, so it gets the latest Turn back
+      if (turn < session.turn) {
+        res.json(latest);
+        return;
+      }
+      // CONTRACTS.md section 5: a 409 answers with the latest Turn too, so the app draws whatever /turns
+      // sends back. The reason goes to the server log.
+      const conflict = (reason: string) => {
+        console.warn(`409 for session ${session.id}: ${reason}`);
+        res.status(409).json(latest);
+      };
+      if (turn > session.turn) {
+        conflict(`Turn ${turn} doesn't exist yet; the latest is ${session.turn}`);
+        return;
+      }
+      const sent = "action" in input ? input.action : (Object.keys(input)[0] ?? "");
+      const { expects } = latest;
+      const allowed = sent === "help" ? session.phase === "move" : ANSWERS[expects].includes(sent);
+      if (!allowed) {
+        conflict(expects === "none" ? "This session is over" : sent === "help" ? "Help works during the moves" : `Turn ${turn} expects ${expects}, not ${sent}`);
+        return;
+      }
+      const mastery = await who.store.getMastery(who.user);
+      // The hint giver and the coach get what this learner's earlier sessions left, read once per Turn and only
+      // when one of them runs; over 1.5 s, empty or off, they run without it (CONTRACTS.md section 2, Memory).
+      const remembered = memory ? withMemory(callAgentFor(session.id), () => memory.recall(who.user, session.concept, session.id)) : null;
+      const next = await advance({ session, mastery }, input, remembered?.callAgent ?? callAgentFor(session.id)).catch((error: unknown) => {
+        // input that doesn't fit the phase changes nothing
+        if (error instanceof UnexpectedInput) return error;
+        throw error;
+      });
+      if (next instanceof UnexpectedInput) {
+        conflict(next.message);
+        return;
+      }
+      // CONTRACTS.md section 5: an agent failed, so nothing moved on and there is nothing to save. Writing the
+      // unchanged session and mastery back here could overwrite what a parallel request saved meanwhile.
+      if (next.turn.error) {
+        res.json(next.turn);
+        return;
+      }
+      // the words of the facts a hint or the coach cited, so the app can show where they came from
+      if (remembered) fillSources(next.turn, remembered.given());
+      // The Turn is what the app draws and what the session keeps as its lastTurn, so one off the contract (an agent's
+      // output reaching a stricter Turn field, as #139 found) would be refused by the app and fail every later read of
+      // the session. It is never saved: the learner gets the latest Turn again with error set, and the retry runs
+      // the agents again (CONTRACTS.md section 5).
+      const checked = Turn.safeParse(next.turn);
+      if (!checked.success) {
+        console.error(`Turn ${next.turn.turn} of session ${session.id} is off the contract and wasn't saved: ${describe(checked.error.issues)}`);
+        res.json({ ...latest, error: { code: "agent_failed", retryable: true } });
+        return;
+      }
+      // CONTRACTS.md section 3: a test session never writes mastery. Only the moves this Turn moved on are written, in
+      // the session's own transaction and against the stored levels: the copy read before the Claude call is seconds
+      // old, and another session may have saved a level since.
+      const progress = session.mode === "test" ? [] : changedMoves(mastery, next.mastery);
+      // saved with the session, in the same conditional write, so a step lands exactly when its Turn does
+      next.session.transcript.push({ body: parsed.data, turn: next.turn });
+      if (!(await who.store.saveSession(next.session, session.turn, progress))) {
+        // another request answering the same Turn saved first, and its Turn is the one that counts
+        const saved = await who.store.getSession(who.user, session.id);
+        if (saved?.lastTurn) res.json(saved.lastTurn);
+        else res.status(404).json({ error: "No such session" });
+        return;
+      }
+      // The session has its result: what it leaves for the next one is written off the request path. The tables
+      // above stay the record, so a memory that is down costs the learner nothing but the facts; the cause is logged.
+      // A delete that began meanwhile (`stop`) leaves it unwritten, and one that begins later waits for it.
+      if (memory && next.session.result && !session.result && !stop.aborted) {
+        writes.track(
+          who.user,
+          memory.remember(who.user, next.session, stop).catch((error: unknown) => console.error(`memory write failed for session ${session.id}:`, error)),
+        );
+      }
       res.json(next.turn);
-      return;
-    }
-    // the words of the facts a hint or the coach cited, so the app can show where they came from
-    if (remembered) fillSources(next.turn, remembered.given());
-    // The Turn is what the app draws and what the session keeps as its lastTurn, so one off the contract (an agent's
-    // output reaching a stricter Turn field, as #139 found) would be refused by the app and fail every later read of
-    // the session. It is never saved: the learner gets the latest Turn again with error set, and the retry runs
-    // the agents again (CONTRACTS.md section 5).
-    const checked = Turn.safeParse(next.turn);
-    if (!checked.success) {
-      console.error(`Turn ${next.turn.turn} of session ${session.id} is off the contract and wasn't saved: ${describe(checked.error.issues)}`);
-      res.json({ ...latest, error: { code: "agent_failed", retryable: true } });
-      return;
-    }
-    // saved with the session, in the same conditional write, so a step lands exactly when its Turn does
-    next.session.transcript.push({ body: parsed.data, turn: next.turn });
-    if (!(await who.store.saveSession(next.session, session.turn))) {
-      // another request answering the same Turn saved first, and its Turn is the one that counts
-      const saved = await who.store.getSession(who.user, session.id);
-      if (saved?.lastTurn) res.json(saved.lastTurn);
-      else res.status(404).json({ error: "No such session" });
-      return;
-    }
-    // CONTRACTS.md section 3: a test session never writes mastery. Only the moves this Turn changed are written:
-    // the copy read before the Claude call is seconds old, and writing all four back could undo a level another
-    // session saved since.
-    const changed = changedMoves(mastery, next.mastery);
-    if (session.mode !== "test" && changed.length > 0) await who.store.saveMastery(who.user, { moves: changed });
-    // The session has its result: what it leaves for the next one is written off the request path. The tables
-    // above stay the record, so a memory that is down costs the learner nothing but the facts; the cause is logged.
-    if (memory && next.session.result && !session.result) {
-      memory.remember(who.user, next.session).catch((error: unknown) => console.error(`memory write failed for session ${session.id}:`, error));
-    }
-    res.json(next.turn);
+    });
   });
 
   // The Memory sheet (CONTRACTS.md section 2b). Empty with memory off, so the app says there is nothing yet.
@@ -314,12 +379,15 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
   });
 
   // The delete button: the caller's memory scope, then their sessions, their agent logs, and mastery. Memory goes
-  // first: if its purge fails, the request fails and nothing is half deleted; the learner can try again.
+  // first: if its purge fails, the request fails and nothing is half deleted; the learner can try again. Both run
+  // once the learner's writes in flight have finished, so none of them can put anything back after the 204.
   app.delete("/me/data", async (req, res) => {
     const who = await caller(req, res);
     if (!who) return;
-    if (memory) await memory.purge(who.user);
-    await who.store.deleteUserData(who.user);
+    await writes.erase(who.user, async () => {
+      if (memory) await memory.purge(who.user);
+      await who.store.deleteUserData(who.user);
+    });
     res.status(204).end();
   });
 

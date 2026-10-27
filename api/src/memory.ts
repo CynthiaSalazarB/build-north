@@ -366,8 +366,9 @@ export type LearnerMemoryStore = {
    * doesn't answer within MEMORY_READ_MS: the agent then runs without memory. Never throws. */
   recall(user: string, concept: string, sessionId: string): Promise<LearnerMemory | undefined>;
   /** Writes the facts a session with a result leaves (factsToWrite), after one read of what memory already holds
-   * so parts with no level row yet get their baseline. Throws when a write failed. */
-  remember(user: string, session: Session): Promise<void>;
+   * so parts with no level row yet get their baseline. Throws when a write failed. Once `stop` aborts (Delete my
+   * data began), it writes nothing more: the write in flight finishes, so the purge after it removes that one too. */
+  remember(user: string, session: Session, stop?: AbortSignal): Promise<void>;
   /** The Memory sheet: the concepts given, in that order, leaving out the ones memory holds nothing on. */
   view(user: string, concepts: readonly string[], reads: readonly (readonly string[])[]): Promise<MemoryView>;
   /** Delete my data: everything under the learner's scope, for good. */
@@ -398,8 +399,8 @@ export function createLearnerMemory(api: MemoryApi, { salt, readMs = MEMORY_READ
       }
     },
 
-    async remember(user, session) {
-      if (!session.result) return;
+    async remember(user, session, stop) {
+      if (!session.result || stop?.aborted) return;
       const at = new Date().toISOString();
       const pseudonym = who(user);
       const scope = scopeOf(pseudonym);
@@ -413,6 +414,7 @@ export function createLearnerMemory(api: MemoryApi, { salt, readMs = MEMORY_READ
         warn(`memory history skipped before the write, so only level changes are written: ${reason(error)}`);
       }
       const writes = factsToWrite(session, at, onRecord);
+      if (stop?.aborted) return;
       if (!registered.has(scope)) {
         await api.registerScope(scope, AbortSignal.timeout(WRITE_MS));
         registered.add(scope);
@@ -421,6 +423,8 @@ export function createLearnerMemory(api: MemoryApi, { salt, readMs = MEMORY_READ
       // context answered "unknown error" to parallel writes on the same entity (Oct 23), one transaction each.
       const failures: unknown[] = [];
       for (const write of writes) {
+        // never aborts the write in flight: memory may still apply one it stopped waiting for, after the purge
+        if (stop?.aborted) return;
         try {
           await api.write(scope, labelsOf({ session: session.id, turn: session.turn, ...write.labels }), [{ entity, key: write.key, value: write.value, occurred_at: at }], AbortSignal.timeout(WRITE_MS));
         } catch (error) {

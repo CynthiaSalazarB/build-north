@@ -16,6 +16,8 @@ import {
   UnexpectedInput,
   advance,
   type Advance,
+  type CallAgent,
+  type Level,
   type Mastery,
   type MemoryFact,
   type Session,
@@ -23,10 +25,10 @@ import {
 import memoryView from "@build-north/agents/fixtures/memory-view.json" with { type: "json" };
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import { advanceStub, callAgentStub } from "./advance-stub.ts";
-import { changedMoves, createApp, type AppOptions } from "./app.ts";
+import { changedMoves, createApp, learnerWrites, type AppOptions } from "./app.ts";
 import { clerkUserFromToken } from "./clerk.ts";
 import { createCallAgent, type SendToClaude } from "./call-agent.ts";
-import { createLearnerMemory, createMemoryApi, type LearnerMemoryStore } from "./memory.ts";
+import { createLearnerMemory, createMemoryApi, type LearnerMemoryStore, type MemoryApi } from "./memory.ts";
 import { initialSession, type AgentLogEntry, type Store } from "./store.ts";
 
 const WEB = "http://localhost:8081";
@@ -43,13 +45,14 @@ const noDb: AppOptions = {
 };
 const as = (user: string, key = KEY) => ({ "x-dev-user": user, "x-dev-key": key });
 
-// The Store contract kept in memory, so the routes can be tested without a database.
-function memoryStore(): Store {
+// The Store contract kept in memory, so the routes can be tested without a database. `logs` are its agent_log rows.
+function memoryStore(): Store & { logs: readonly AgentLogEntry[] } {
   const sessions = new Map<string, Session>();
   const mastery = new Map<string, Mastery>();
   const logs: AgentLogEntry[] = [];
   let created = 0;
   return {
+    logs,
     async createSession(user, input) {
       const session: Session = { ...initialSession(user, input), id: `s${++created}`, createdAt: new Date().toISOString() };
       sessions.set(session.id, session);
@@ -65,9 +68,16 @@ function memoryStore(): Store {
         .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
         .map(({ id, concept, mode, createdAt, result }) => ({ id, concept, mode, createdAt, finished: result !== null, score: result?.score ?? null, predictedScore: result?.predictedScore ?? null }));
     },
-    async saveSession(session, previousTurn) {
+    async saveSession(session, previousTurn, progress = []) {
       if (sessions.get(session.id)?.turn !== previousTurn) return false;
       sessions.set(session.id, structuredClone(session));
+      // in the same step, as the SurrealDB store's transaction: the level never drops, the successes add up
+      const now = await this.getMastery(session.user);
+      const moves = now.moves.map((m) => {
+        const p = progress.find((step) => step.move === m.move);
+        return p ? { move: m.move, level: Math.max(m.level, p.level) as Mastery["moves"][number]["level"], unassistedSuccesses: m.unassistedSuccesses + p.gained } : m;
+      });
+      if (progress.length > 0) mastery.set(session.user, { moves });
       return true;
     },
     async getMastery(user) {
@@ -92,6 +102,8 @@ function memoryStore(): Store {
         .map((entry) => ((entry.input as { memory?: { facts: { id: string }[] } }).memory?.facts ?? []).map((fact) => fact.id));
     },
     async deleteUserData(user) {
+      // the agent_log rows go with their sessions, as `DELETE agent_log WHERE session.user = $user` does
+      for (let i = logs.length - 1; i >= 0; i--) if (sessions.get(logs[i]!.session)?.user === user) logs.splice(i, 1);
       for (const [id, session] of sessions) if (session.user === user) sessions.delete(id);
       mastery.delete(user);
     },
@@ -726,7 +738,10 @@ test("mastery is written only for the moves a Turn changed, and an error Turn wr
   const after: Mastery = {
     moves: before.moves.map((m) => (m.move === "exclusion" ? { ...m, level: 2 } : m.move === "infraordinate" ? { ...m, unassistedSuccesses: 1 } : m)),
   };
-  assert.deepEqual(changedMoves(before, after).map((m) => m.move), ["exclusion", "infraordinate"]);
+  assert.deepEqual(changedMoves(before, after), [
+    { move: "exclusion", level: 2, gained: 0 },
+    { move: "infraordinate", level: 1, gained: 1 },
+  ]);
   assert.deepEqual(changedMoves(before, before), []);
 
   // the stub orchestrator never raises a level: a start and an answer write mastery zero times
@@ -764,6 +779,244 @@ test("mastery is written only for the moves a Turn changed, and an error Turn wr
     } else latest = turn;
   }
   assert.ok(failed, "no step called Claude");
+});
+
+const atLevel = (level: Level): Mastery => ({ moves: MOVE_ORDER.map((move) => ({ move, level, unassistedSuccesses: 0 })) });
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+// A guided session at level 2 on every move: the questioner asks for the bigger group, the evaluator takes the answer
+// as right (2 points, a level up), and the questioner asks the next part ahead
+const guidedReplies = (): [keyof typeof AGENTS, unknown][] => [
+  ["questioner", { question: "What kind of thing is democracy?", scaffold: null }],
+  ["evaluator", { verdict: "correct", quality: 2, accepted: [{ value: "form of government", note: null }], issue: "none", reason: "The closest class.", feedback: "Yes: a form of government." }],
+  ["questioner", { question: "What is close to democracy, but isn't it?", scaffold: null }],
+];
+/** The guess and the first explanation answered: the Turn that asks for the bigger group. */
+async function toFirstQuestion(url: string) {
+  const first = await (await post(url, { concept: "democracy" })).json();
+  const attempt = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 5 })).json();
+  return (await answer(url, first.sessionId, { turn: attempt.turn, text: "people vote for who governs" })).json();
+}
+
+test("a Turn's mastery goes in its session's save, so a save that fails keeps neither and the same answer sent again keeps both", async (t) => {
+  t.mock.method(console, "error", () => {});
+  const store = memoryStore();
+  await store.saveMastery("leo", atLevel(2));
+  const masterySaves = t.mock.method(store, "saveMastery");
+  // the answer is judged twice: once for the save that fails, once for the one sent again
+  const claude = fakeClaude([...guidedReplies(), ...guidedReplies().slice(1)], store);
+  const url = await start(t, { ...noDb, store, advance, callAgentFor: claude.callAgentFor });
+  const saves = t.mock.method(store, "saveSession");
+  const asked = await toFirstQuestion(url);
+  assert.equal(asked.move, "supraordinate");
+  saves.mock.mockImplementationOnce(async () => Promise.reject(new Error("SurrealDB timed out")), saves.mock.callCount());
+  const body = { turn: asked.turn, text: "a form of government" };
+  assert.equal((await answer(url, asked.sessionId, body)).status, 500);
+  // nothing moved: the session is still at its question, and the level is where it was
+  assert.equal((await (await fetch(`${url}/sessions/${asked.sessionId}`, { headers: as("leo") })).json()).turn, asked.turn);
+  assert.deepEqual(await store.getMastery("leo"), atLevel(2));
+
+  const next = await (await answer(url, asked.sessionId, body)).json();
+  assert.deepEqual([next.turn, next.error, next.move], [asked.turn + 1, null, "exclusion"]);
+  assert.deepEqual((await store.getMastery("leo")).moves[0], { move: "supraordinate", level: 3, unassistedSuccesses: 1 });
+  assert.deepEqual(saves.mock.calls.at(-1)?.arguments[2], [{ move: "supraordinate", level: 3, gained: 1 }]);
+  assert.equal(masterySaves.mock.callCount(), 0);
+});
+
+test("a Turn that read mastery before another session saved a higher level keeps that level, and adds its own success", async (t) => {
+  const store = memoryStore();
+  await store.saveMastery("leo", atLevel(2));
+  const claude = fakeClaude(guidedReplies(), store);
+  const reached = Promise.withResolvers<void>();
+  const held = Promise.withResolvers<void>();
+  const callAgentFor = (id: string): CallAgent => {
+    const call = claude.callAgentFor(id);
+    return async (agent, input) => {
+      if (agent === "evaluator") {
+        reached.resolve();
+        await held.promise;
+      }
+      return call(agent, input);
+    };
+  };
+  const url = await start(t, { ...noDb, store, advance, callAgentFor });
+  const asked = await toFirstQuestion(url);
+  const judged = answer(url, asked.sessionId, { turn: asked.turn, text: "a form of government" });
+  await reached.promise;
+  // while the evaluator thinks, another session takes the bigger group to level 4
+  await store.saveMastery("leo", { moves: [{ move: "supraordinate", level: 4, unassistedSuccesses: 3 }] });
+  held.resolve();
+  assert.equal((await judged).status, 200);
+  assert.deepEqual((await store.getMastery("leo")).moves[0], { move: "supraordinate", level: 4, unassistedSuccesses: 4 });
+});
+
+test("Delete my data waits for a Turn in flight, so nothing it saved outlives the 204: its session, its mastery, its agent_log rows", async (t) => {
+  const store = memoryStore();
+  await store.saveMastery("leo", atLevel(2));
+  const claude = fakeClaude(guidedReplies(), store);
+  const url = await start(t, { ...noDb, store, advance, callAgentFor: claude.callAgentFor });
+  const asked = await toFirstQuestion(url);
+  // the answer's save lands, then its request stalls before it answers (where mastery used to be written on its own)
+  const saved = Promise.withResolvers<void>();
+  const held = Promise.withResolvers<void>();
+  const save = store.saveSession;
+  t.mock.method(store, "saveSession", async function (this: Store, ...args: Parameters<Store["saveSession"]>) {
+    const ok = await save.apply(this, args);
+    saved.resolve();
+    await held.promise;
+    return ok;
+  });
+  const judged = answer(url, asked.sessionId, { turn: asked.turn, text: "a form of government" });
+  await saved.promise;
+  let answered = false;
+  const deleting = fetch(`${url}/me/data`, { method: "DELETE", headers: as("leo") }).then((res) => ((answered = true), res));
+  await sleep(50);
+  assert.equal(answered, false, "the delete waits for the Turn in flight");
+  held.resolve();
+  const [turn, deleted] = await Promise.all([judged, deleting]);
+  assert.deepEqual([turn.status, deleted.status], [200, 204]);
+  assert.deepEqual(await store.getMastery("leo"), atLevel(1));
+  assert.deepEqual(await store.listSessions("leo"), []);
+  assert.equal(store.logs.length, 0);
+});
+
+test("an agent_log row still being written when Delete my data comes is written first, and deleted with the rest", async (t) => {
+  const store = memoryStore();
+  const writing = Promise.withResolvers<void>();
+  const held = Promise.withResolvers<void>();
+  const log = store.logAgentCall;
+  t.mock.method(store, "logAgentCall", async function (this: Store, entry: AgentLogEntry) {
+    if (entry.agent === "fact_desk") {
+      writing.resolve();
+      await held.promise;
+    }
+    return log.call(this, entry);
+  });
+  const claude = fakeClaude([["fact_desk", { kind: "fact", answer: "Yes, a pond is one.", questionType: "fact" }]], store);
+  const url = await start(t, { ...noDb, store, advance, callAgentFor: claude.callAgentFor });
+  const first = await (await post(url, { concept: "ecosystem", mode: "test" })).json();
+  const map = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 5 })).json();
+  const asking = answer(url, first.sessionId, { turn: map.turn, question: "Is a pond an ecosystem?" });
+  await writing.promise;
+  const deleting = fetch(`${url}/me/data`, { method: "DELETE", headers: as("leo") });
+  await sleep(50);
+  held.resolve();
+  const [asked, deleted] = await Promise.all([asking, deleting]);
+  assert.deepEqual([asked.status, deleted.status], [200, 204]);
+  assert.equal(store.logs.length, 0);
+});
+
+// Memory as the API sees it, in memory: the facts written, and every call in order. The first write waits for `held`.
+function slowMemory() {
+  const facts: string[] = [];
+  const calls: string[] = [];
+  const writing = Promise.withResolvers<void>();
+  const held = Promise.withResolvers<void>();
+  const api: MemoryApi = {
+    async registerScope() {},
+    async write(_scope, _labels, triples) {
+      calls.push(`write ${triples[0]!.key}`);
+      if (calls.filter((c) => c.startsWith("write")).length === 1) {
+        writing.resolve();
+        await held.promise;
+      }
+      facts.push(triples[0]!.key);
+    },
+    async history() {
+      return [];
+    },
+    async forgetScope() {
+      calls.push("forget");
+      return facts.splice(0).length;
+    },
+  };
+  return { memory: createLearnerMemory(api, { salt: "" }), facts, calls, writing, held };
+}
+
+const wholeMap = { concept: "ecosystem", supraordinate: { value: "system", note: null }, exclusion: [{ value: "habitat", note: "only the place" }], isoordinate: [{ value: "living things", note: null }], infraordinate: [{ value: "aquatic ecosystem", note: null }] };
+
+test("Delete my data stops the memory write a result started: the write in flight lands, the purge comes after it, and memory keeps nothing", async (t) => {
+  const { memory, facts, calls, writing, held } = slowMemory();
+  const store = memoryStore();
+  const claude = fakeClaude([["evaluator_full", { rubric: MOVE_ORDER.map((move) => ({ move, quality: 2, feedback: "Scripted." })) }]], store);
+  const url = await start(t, { ...noDb, store, advance, callAgentFor: claude.callAgentFor, memory });
+  const first = await (await post(url, { concept: "ecosystem", mode: "test" })).json();
+  const map = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 5 })).json();
+  const done = await (await answer(url, first.sessionId, { turn: map.turn, mentefacto: wholeMap })).json();
+  assert.equal(done.result.score, 8);
+  await writing.promise;
+  const deleting = fetch(`${url}/me/data`, { method: "DELETE", headers: as("leo") });
+  await sleep(50);
+  assert.deepEqual(calls, ["write level_supraordinate"], "the purge waits for the write in flight");
+  held.resolve();
+  assert.equal((await deleting).status, 204);
+  await sleep(50);
+  assert.deepEqual(calls, ["write level_supraordinate", "forget"]);
+  assert.deepEqual(facts, []);
+});
+
+test("a result saved while Delete my data waits for it leaves nothing for memory to write", async (t) => {
+  const { memory, facts, calls } = slowMemory();
+  const store = memoryStore();
+  const claude = fakeClaude([["evaluator_full", { rubric: MOVE_ORDER.map((move) => ({ move, quality: 2, feedback: "Scripted." })) }]], store);
+  const reached = Promise.withResolvers<void>();
+  const held = Promise.withResolvers<void>();
+  const callAgentFor = (id: string): CallAgent => {
+    const call = claude.callAgentFor(id);
+    return async (agent, input) => {
+      if (agent === "evaluator_full") {
+        reached.resolve();
+        await held.promise;
+      }
+      return call(agent, input);
+    };
+  };
+  const url = await start(t, { ...noDb, store, advance, callAgentFor, memory });
+  const first = await (await post(url, { concept: "ecosystem", mode: "test" })).json();
+  const map = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 5 })).json();
+  const submitting = answer(url, first.sessionId, { turn: map.turn, mentefacto: wholeMap });
+  await reached.promise;
+  const deleting = fetch(`${url}/me/data`, { method: "DELETE", headers: as("leo") });
+  await sleep(20);
+  held.resolve();
+  const [submitted, deleted] = await Promise.all([submitting, deleting]);
+  assert.deepEqual([submitted.status, deleted.status], [200, 204]);
+  await sleep(50);
+  assert.deepEqual(calls, ["forget"]);
+  assert.deepEqual(facts, []);
+  assert.deepEqual(await store.listSessions("leo"), []);
+});
+
+test("learnerWrites: a delete waits for the learner's writes in flight and stops them, their next writes wait for it, other learners don't", async () => {
+  const writes = learnerWrites();
+  const order: string[] = [];
+  const held = Promise.withResolvers<void>();
+  const seen: { stop?: AbortSignal } = {};
+  const turn = writes.run("leo", async (stop) => {
+    seen.stop = stop;
+    await held.promise;
+    order.push("turn");
+  });
+  const erase = writes.erase("leo", async () => {
+    order.push("erase");
+  });
+  assert.equal(seen.stop?.aborted, true);
+  const later = writes.run("leo", async (stop) => {
+    assert.equal(stop.aborted, false);
+    order.push("later");
+  });
+  await writes.run("kim", async () => {
+    order.push("other");
+  });
+  assert.deepEqual(order, ["other"]);
+  held.resolve();
+  await Promise.all([turn, erase, later]);
+  assert.deepEqual(order, ["other", "turn", "erase", "later"]);
+  // a delete that fails says so, and the learner's writes go on afterwards
+  await assert.rejects(
+    writes.erase("leo", async () => Promise.reject(new Error("memory answered 503"))),
+    /memory answered 503/,
+  );
+  assert.equal(await writes.run("leo", async () => "written"), "written");
 });
 
 test("a Turn off the contract is never saved: the learner gets the latest Turn again with error set, and the session stays readable", async (t) => {

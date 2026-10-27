@@ -174,8 +174,9 @@ export function createCallAgent({ send, model, budgetUsd, log }: CallAgentOption
       dropped = verified.dropped;
       if (dropped.length > 0) console.warn(`The ${agent} cited ${dropped.length} fact id(s) it wasn't given (session ${sessionId}): ${dropped.join(", ")}`);
     }
-    // a lost log row shouldn't cost the learner their turn
-    log({ session: sessionId, agent, input: parsed.data, output, ms, usd, ...(dropped.length > 0 ? { dropped } : {}) }).catch((error: unknown) => {
+    // A lost log row shouldn't cost the learner their turn. It is written before the call returns, so the row is in
+    // when the Turn answers, and Delete my data, which waits for the Turns in flight, never leaves one behind.
+    await log({ session: sessionId, agent, input: parsed.data, output, ms, usd, ...(dropped.length > 0 ? { dropped } : {}) }).catch((error: unknown) => {
       console.error("agent_log write failed:", error);
     });
     if (

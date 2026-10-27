@@ -1,4 +1,4 @@
-import { MOVE_ORDER, Mastery, Session, SessionSummary, type MoveId } from "@build-north/agents";
+import { MOVE_ORDER, Mastery, Session, SessionSummary, type Level, type MoveId } from "@build-north/agents";
 import { RecordId, type Surreal } from "surrealdb";
 import { queryTimeout } from "./db.ts";
 
@@ -37,17 +37,23 @@ DEFINE INDEX OVERWRITE agent_log_session ON agent_log FIELDS session;
 /** `dropped`: on a coach or hint giver row, the fact ids its output cited that the API hadn't passed in (CONTRACTS.md, Memory). */
 export type AgentLogEntry = { session: string; agent: string; input: unknown; output: unknown; ms: number; usd: number; dropped?: string[] };
 
+/** A move a Turn moved on: the level it reached and the unassisted successes it added (`changedMoves` in app.ts). */
+export type MasteryProgress = { move: MoveId; level: Level; gained: number };
+
 export type Store = {
   createSession(user: string, input: NewSession): Promise<Session>;
   // null when the session doesn't exist or belongs to someone else
   getSession(user: string, id: string): Promise<Session | null>;
   // GET /sessions: the user's sessions that have a Turn, newest first
   listSessions(user: string): Promise<SessionSummary[]>;
-  // false when the stored session is no longer at `previousTurn`: another request answered it first
-  saveSession(session: Session, previousTurn: number): Promise<boolean>;
+  // false when the stored session is no longer at `previousTurn`: another request answered it first. In the same
+  // transaction, and only when the session is saved, `progress` goes onto the session user's mastery as it is stored
+  // then: a level never drops below the stored one and successes add to the stored count, so a Turn that read mastery
+  // before another session saved can't undo that session's progress, and no session moves on without what it earned.
+  saveSession(session: Session, previousTurn: number, progress?: readonly MasteryProgress[]): Promise<boolean>;
   // every move, in session order; a move the learner hasn't touched yet is at level 1
   getMastery(user: string): Promise<Mastery>;
-  // the moves given, one row each; moves left out keep their rows (a Turn writes only what it changed)
+  // the moves given, one row each, as they are (the demo seed); moves left out keep their rows
   saveMastery(user: string, mastery: Mastery): Promise<void>;
   logAgentCall(entry: AgentLogEntry): Promise<void>;
   // GET /me/memory: the concepts of the user's finished sessions, newest first, each once
@@ -136,14 +142,30 @@ export function createStore(db: Surreal): Store {
       return rows.map((row) => SessionSummary.parse(row));
     },
 
-    async saveSession(session, previousTurn) {
-      // The WHERE checks and writes in one statement, so two answers to the same Turn can't both move it on.
-      const saved = await one<unknown[]>(`UPDATE $id SET ${SET_SESSION} WHERE turn = $previousTurn RETURN VALUE turn`, {
-        id: sessionId(session.id),
-        previousTurn,
-        s: session,
-      });
-      return saved.length > 0;
+    async saveSession(session, previousTurn, progress = []) {
+      // The WHERE checks and writes in one statement, so two answers to the same Turn can't both move it on, and the
+      // mastery the Turn earned is written in the same transaction, so both land or neither does. A conflict with a
+      // parallel write (another session's mastery, Delete my data) runs the whole transaction again, which then sees it.
+      const [saved] = await db
+        .query(
+          `BEGIN;
+           LET $saved = (UPDATE $id SET ${SET_SESSION} WHERE turn = $previousTurn RETURN VALUE turn);
+           IF array::len($saved) > 0 {
+             FOR $m IN $progress {
+               UPSERT type::record("mastery", [$user, $m.move]) SET user = $user, move = $m.move,
+                 level = math::max([level ?? 1, $m.level]), unassistedSuccesses = (unassistedSuccesses ?? 0) + $m.gained;
+             };
+           };
+           RETURN array::len($saved) > 0;
+           COMMIT;`,
+          { id: sessionId(session.id), previousTurn, s: session, user: session.user, progress },
+        )
+        .json()
+        .retry()
+        .signal(queryTimeout())
+        // the RETURN, after BEGIN, LET and IF
+        .collect<[boolean]>(3);
+      return saved === true;
     },
 
     async getMastery(user) {
@@ -197,6 +219,8 @@ export function createStore(db: Surreal): Store {
            COMMIT;`,
           { user },
         )
+        // a Turn saved meanwhile conflicts on its session row: the delete runs again and takes it too
+        .retry()
         .signal(queryTimeout())
         .collect();
     },
