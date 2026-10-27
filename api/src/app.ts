@@ -102,13 +102,14 @@ export function learnerWrites() {
       if (!stop) stops.set(user, (stop = new AbortController()));
       return track(user, work(stop.signal));
     },
-    /** Runs `work` (the delete) once the learner's writes in flight have settled. */
+    /** Runs `work` (the delete) once the learner's writes in flight have settled, the ones they start meanwhile
+     * included: a Turn that began before the delete can still start agent calls, and one of them can outlive it. */
     async erase(user: string, work: () => Promise<void>): Promise<void> {
       while (erasing.has(user)) await erasing.get(user);
       stops.get(user)?.abort();
       stops.delete(user);
       const deleting = (async () => {
-        await Promise.allSettled([...(inFlight.get(user) ?? [])]);
+        while (inFlight.get(user)?.size) await Promise.allSettled([...inFlight.get(user)!]);
         await work();
       })();
       const settled = deleting.then(
@@ -144,6 +145,12 @@ function parseNewSession(body: unknown): Parsed<NewSession> {
 export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, userFromToken, devKey, requestsPerMinute = 60, memory, commit = null }: AppOptions) {
   const app = express();
   const writes = learnerWrites();
+  // Every agent call is one of the learner's writes too (its agent_log row): the orchestrator asks the next question
+  // beside the evaluator, and when the evaluator fails fast that call outlives the Turn (code review, Oct 27).
+  const callsFor = (user: string, sessionId: string): CallAgent => {
+    const call = callAgentFor(sessionId);
+    return (agent, input) => writes.track(user, call(agent, input));
+  };
   app.disable("x-powered-by");
   // Render puts one proxy in front of the app; trusting it makes req.ip the caller's address.
   app.set("trust proxy", 1);
@@ -220,7 +227,7 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     await writes.run(who.user, async () => {
       const session = await who.store.createSession(who.user, parsed.value);
       const mastery = await who.store.getMastery(who.user);
-      const next = await advance({ session, mastery }, { action: "start" }, callAgentFor(session.id));
+      const next = await advance({ session, mastery }, { action: "start" }, callsFor(who.user, session.id));
       // the first step of the conversation the app replays when the session is picked up again
       if (!next.turn.error) next.session.transcript.push({ body: null, turn: next.turn });
       // Nothing else knows this session's id yet, so this save can't lose to another request. A test session never
@@ -306,8 +313,8 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       const mastery = await who.store.getMastery(who.user);
       // The hint giver and the coach get what this learner's earlier sessions left, read once per Turn and only
       // when one of them runs; over 1.5 s, empty or off, they run without it (CONTRACTS.md section 2, Memory).
-      const remembered = memory ? withMemory(callAgentFor(session.id), () => memory.recall(who.user, session.concept, session.id)) : null;
-      const next = await advance({ session, mastery }, input, remembered?.callAgent ?? callAgentFor(session.id)).catch((error: unknown) => {
+      const remembered = memory ? withMemory(callsFor(who.user, session.id), () => memory.recall(who.user, session.concept, session.id)) : null;
+      const next = await advance({ session, mastery }, input, remembered?.callAgent ?? callsFor(who.user, session.id)).catch((error: unknown) => {
         // input that doesn't fit the phase changes nothing
         if (error instanceof UnexpectedInput) return error;
         throw error;
