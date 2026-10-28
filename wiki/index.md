@@ -1,8 +1,8 @@
 ---
 title: Project Wiki Index
 type: index
-updated: 2026-10-24
-total_pages: 8
+updated: 2026-10-28
+total_pages: 9
 ---
 
 # Lumente project wiki
@@ -32,6 +32,7 @@ page under a Sources heading, the way the SurrealDB prize page does.
 
 | Page | Summary | Updated |
 |------|---------|---------|
+| [Glossary](context/glossary.md) | Every idea behind Lumente and its pitch, with examples: the illusion of explanatory depth, the Conceptual Mentefact (with Bell's pulsar mapped onto it), the learning science, the Delphi critical-thinking skills, the app's own terms, the pitch story, business and expansion terms, competitors by category, and the numbers | 2026-10-28 |
 | [SurrealDB sponsor prize](context/surrealdb-sponsor-prize.md) | SurrealDB sponsors the Agent Memory prize: what judges want, how Lumente meets the three criteria with code pointers and tests, the demo walkthrough, the limits, what the live context does, the Oct 25 deadline | 2026-10-24 |
 | [Hosting setup](context/hosting-setup.md) | The SurrealDB Cloud instance and the Render service for the API: plans, regions, settings, the #8 numbers, and what changed on Render since Oct 20 | 2026-10-24 |
 | [Evidence](context/evidence.md) | The problem, the buyers and the competitors: what learners describe, the research, prices, and what it doesn't prove yet | 2026-10-21 |
