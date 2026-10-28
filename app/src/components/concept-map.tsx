@@ -224,7 +224,8 @@ function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }
   }[active ? "asked" : view.state];
   const glow = ring ? "0 0 0 3px rgba(242, 184, 75, 0.6), 0 0 22px rgba(255, 236, 205, 0.45)" : look.glow;
   const points = view.pips ? `${view.pips.filter((p) => p === "earned").length} of 2 points` : "not scored yet";
-  const said = view.text ?? (view.state === "asked" ? "being asked now" : "not answered yet");
+  const said = reads ? view.text || "left empty" : view.text ?? (view.state === "asked" ? "being asked now" : "not answered yet");
+  const readLabel = `${label}: ${said}. ${points}${view.state === "revealed" ? ", shown to you" : ""}.${view.badge ? ` ${view.badge}.` : ""}`;
   const narrow = width < 160;
   const pips = view.pips && (
     <View style={styles.pips}>
@@ -245,7 +246,7 @@ function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }
       onLayout={onPress ? undefined : onLayout}
       // a part that opens for editing is labeled by its button instead
       accessible={!onPress}
-      accessibilityLabel={onPress ? undefined : `${label}: ${said}. ${points}${view.state === "revealed" ? ", shown to you" : ""}.${view.badge ? ` ${view.badge}.` : ""}`}
+      accessibilityLabel={onPress ? undefined : readLabel}
     >
       <View style={[styles.partHead, narrow && styles.narrowHead]}>
         {narrow ? <View style={styles.partSymbols}><PartIcon d={icon} color={look.labelInk} />{pips}</View> : <PartIcon d={icon} color={look.labelInk} />}
@@ -273,7 +274,7 @@ function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }
       onPress={onPress}
       onLayout={onLayout}
       accessibilityRole="button"
-      accessibilityLabel={`${label}${view.prompt ? `. ${view.prompt}` : ""}${view.context ? `. ${view.context}` : ""}: ${said}${active ? ". Suggested next area" : ""}`}
+      accessibilityLabel={reads ? readLabel : `${label}${view.prompt ? `. ${view.prompt}` : ""}${view.context ? `. ${view.context}` : ""}: ${said}${active ? ". Suggested next area" : ""}`}
       accessibilityHint={reads ? "Opens this area to read it in full, with the feedback on it." : "Opens this area to write or edit your answer. Your map is scored when you submit it."}
       {...bind}
       style={feel()}

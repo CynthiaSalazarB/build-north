@@ -279,7 +279,6 @@ function PartEditor({ move, concept, category, items, onDone }: { move: MoveId; 
   const single = move === "supraordinate";
   const [rows, setRows] = useState<Item[]>(() => (items.length > 0 ? items.map((i) => ({ ...i })) : [{ value: "", note: null }]));
   const change = (i: number, patch: Partial<Item>) => setRows((now) => now.map((row, j) => (j === i ? { ...row, ...patch } : row)));
-  const remove = (i: number) => setRows((now) => (now.length > 1 ? now.filter((_, j) => j !== i) : [{ value: "", note: null }]));
   const done = () => onDone(rows);
   // the mic in the head dictates into the field last focused (the first item until one is)
   const [focus, setFocus] = useState<{ i: number; part: "value" | "note" }>({ i: 0, part: "value" });
@@ -287,6 +286,11 @@ function PartEditor({ move, concept, category, items, onDone }: { move: MoveId; 
     text: rows[focus.i]?.[focus.part] ?? "",
     onText: (text) => change(focus.i, focus.part === "value" ? { value: text } : { note: text }),
   });
+  const remove = (i: number) => {
+    voice.cancel();
+    setRows((now) => (now.length > 1 ? now.filter((_, j) => j !== i) : [{ value: "", note: null }]));
+    setFocus((now) => ({ ...now, i: i < now.i ? now.i - 1 : Math.min(now.i, Math.max(0, rows.length - 2)) }));
+  };
   // no custom line height on these fields: on Android a multiline one would show only its last line
   const field = [styles.input, { fontFamily: type.input.fontFamily, fontSize: type.input.fontSize, color: c.onSurface, backgroundColor: c.surface, borderColor: c.fieldEdge }];
   const scrim = <Pressable style={[wide ? StyleSheet.absoluteFill : styles.flex, { backgroundColor: c.scrim }]} onPress={done} accessibilityRole="button" accessibilityLabel="Save and close" />;
