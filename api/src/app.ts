@@ -12,9 +12,9 @@ export type AppOptions = {
   checkDb: (() => Promise<DbCheck>) | null;
   store: Store | null;
   // CONTRACTS.md section 3: the orchestrator and the only way it reaches Claude, one callAgent per
-  // session so every agent_log row names its session
+  // session so every agent_log row names its session, and its learner (Delete my data finds the row by them)
   advance: Advance;
-  callAgentFor: (sessionId: string) => CallAgent;
+  callAgentFor: (sessionId: string, user?: string) => CallAgent;
   // CONTRACTS.md section 1: the Clerk user id in a session token, or null for a token that doesn't
   // hold up (#23). null when Clerk isn't set up (no CLERK_JWT_KEY), so no token signs anyone in.
   userFromToken: ((token: string) => Promise<string | null>) | null;
@@ -151,7 +151,7 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
   // Every agent call is one of the learner's writes too (its agent_log row): the orchestrator asks the next question
   // beside the evaluator, and when the evaluator fails fast that call outlives the Turn (code review, Oct 27).
   const callsFor = (user: string, sessionId: string): CallAgent => {
-    const call = callAgentFor(sessionId);
+    const call = callAgentFor(sessionId, user);
     return (agent, input) => writes.track(user, call(agent, input));
   };
   app.disable("x-powered-by");

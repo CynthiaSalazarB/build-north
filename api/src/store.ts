@@ -34,11 +34,15 @@ DEFINE FIELD OVERWRITE agent ON agent_log TYPE string;
 DEFINE FIELD OVERWRITE ms ON agent_log TYPE int;
 DEFINE FIELD OVERWRITE usd ON agent_log TYPE number;
 DEFINE FIELD OVERWRITE at ON agent_log TYPE datetime DEFAULT time::now() READONLY;
+DEFINE FIELD OVERWRITE user ON agent_log TYPE option<string>;
 DEFINE INDEX OVERWRITE agent_log_session ON agent_log FIELDS session;
+DEFINE INDEX OVERWRITE agent_log_user ON agent_log FIELDS user;
 `;
 
-/** `dropped`: on a coach or hint giver row, the fact ids its output cited that the API hadn't passed in (CONTRACTS.md, Memory). */
-export type AgentLogEntry = { session: string; agent: string; input: unknown; output: unknown; ms: number; usd: number; dropped?: string[] };
+/** `dropped`: on a coach or hint giver row, the fact ids its output cited that the API hadn't passed in (CONTRACTS.md, Memory).
+ * `user`: the learner the call was for, so Delete my data finds the row even after its session is gone (rows from
+ * before Oct 28 have none, and go by their session). */
+export type AgentLogEntry = { session: string; user?: string; agent: string; input: unknown; output: unknown; ms: number; usd: number; dropped?: string[] };
 
 /** A move a Turn moved on: the level it reached and the unassisted successes it added (`changedMoves` in app.ts). */
 export type MasteryProgress = { move: MoveId; level: Level; gained: number };
@@ -170,8 +174,11 @@ export function createStore(db: Surreal): Store {
         .retry()
         .signal(queryTimeout())
         // the RETURN, after BEGIN, LET and IF
-        .collect<[boolean]>(3);
-      return saved === true;
+        .collect<[unknown]>(3);
+      // A server that answers the RETURN somewhere else (before 3.0, BEGIN isn't listed) would read as a lost race on
+      // every Turn while the learner gets 200s: anything but a boolean fails loudly instead (code review, Oct 28).
+      if (typeof saved !== "boolean") throw new Error(`The session save didn't answer whether it saved (got ${JSON.stringify(saved) ?? "nothing"})`);
+      return saved;
     },
 
     async getMastery(user) {
@@ -198,9 +205,9 @@ export function createStore(db: Surreal): Store {
       );
     },
 
-    async logAgentCall({ session, agent, input, output, ms, usd, dropped }) {
+    async logAgentCall({ session, user, agent, input, output, ms, usd, dropped }) {
       await one("CREATE agent_log CONTENT $entry RETURN NONE", {
-        entry: { session: sessionId(session), agent, input, output, ms: Math.round(ms), usd, ...(dropped ? { dropped } : {}) },
+        entry: { session: sessionId(session), ...(user ? { user } : {}), agent, input, output, ms: Math.round(ms), usd, ...(dropped ? { dropped } : {}) },
       });
     },
 
@@ -227,7 +234,7 @@ export function createStore(db: Surreal): Store {
       await db
         .query(
           `BEGIN;
-           DELETE agent_log WHERE session.user = $user;
+           DELETE agent_log WHERE session.user = $user OR user = $user;
            DELETE session WHERE user = $user;
            DELETE mastery WHERE user = $user;
            COMMIT;`,

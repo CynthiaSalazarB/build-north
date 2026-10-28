@@ -8,7 +8,7 @@ import { RecordId, Surreal } from "surrealdb";
 import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { createApp } from "./app.ts";
 import { loadDemoSeed } from "./demo-seed.ts";
-import { createStore, defineSchema } from "./store.ts";
+import { createStore, defineSchema, initialSession } from "./store.ts";
 
 // Needs a real SurrealDB and a root user, for example a local container:
 //   docker run --rm -p 8000:8000 surrealdb/surrealdb:latest start --user root --pass <pass> memory
@@ -181,6 +181,18 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     await store.deleteUserData("someone");
   });
 
+  await t.test("Delete my data removes the agent_log rows that name the learner, their session gone or not (code review, Oct 28)", async () => {
+    const mine = await store.createSession("orphan", { concept: "API", material: null, mode: "learn" });
+    await store.logAgentCall({ session: mine.id, user: "orphan", agent: "coach", input: {}, output: {}, ms: 1, usd: 0 });
+    // rows that landed after their session went: a write the API stopped waiting for, applied late
+    await store.logAgentCall({ session: "gone0000000000000000", user: "orphan", agent: "evaluator", input: {}, output: {}, ms: 1, usd: 0 });
+    await store.logAgentCall({ session: "gone0000000000000001", user: "stays", agent: "evaluator", input: {}, output: {}, ms: 1, usd: 0 });
+    await store.deleteUserData("orphan");
+    const [left] = await db.query("SELECT VALUE user FROM agent_log WHERE user IN ['orphan', 'stays']").collect<[string[]]>();
+    assert.deepEqual(left, ["stays"]);
+    await db.query("DELETE agent_log WHERE user = 'stays'").collect();
+  });
+
   await t.test("deleting a user's data removes their sessions, logs and mastery, and nobody else's", async () => {
     const mine = await store.createSession("delete-me", { concept: "inflation", material: "notes", mode: "test" });
     await store.logAgentCall({ session: mine.id, agent: "fact_desk", input: { q: 1 }, output: { a: 2 }, ms: 120.4, usd: 0.0123 });
@@ -222,4 +234,18 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     const next = await (await fetch(`${api}/sessions/${session.id}/turns`, { method: "POST", headers, body })).json();
     assert.deepEqual([next.turn, next.expects, next.messages], [3, "map", [{ agent: "fact_desk", kind: "fact", text: fact.answer }]]);
   });
+});
+
+test("a save whose transaction answers anything but true or false fails loudly instead of reading as a lost race (code review, Oct 28)", async () => {
+  // what saveSession's chain gets back from the RETURN, as a server that places it elsewhere would answer
+  const answering = (value: unknown) => {
+    const chain = { json: () => chain, retry: () => chain, signal: () => chain, collect: async () => [value] };
+    return { query: () => chain } as unknown as Surreal;
+  };
+  const session = { ...initialSession("leo", { concept: "API", material: null, mode: "learn" }), id: "s1", createdAt: "2026-10-28T10:00:00Z" };
+  assert.equal(await createStore(answering(true)).saveSession(session, 0), true);
+  assert.equal(await createStore(answering(false)).saveSession(session, 0), false);
+  for (const value of [undefined, null, "true", [true], 1]) {
+    await assert.rejects(createStore(answering(value)).saveSession(session, 0), /didn't answer whether it saved/);
+  }
 });

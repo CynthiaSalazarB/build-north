@@ -23,6 +23,7 @@ import {
   type MemoryEntity,
   type MemoryRow,
 } from "./memory.ts";
+import { learnerWrites } from "./app.ts";
 import { pseudonymOf } from "./export-testers.ts";
 import { initialSession } from "./store.ts";
 
@@ -707,4 +708,33 @@ test("the read before an agent keeps its budget with the session lookup in it: a
   assert.equal(await memory.recall("user_2leo", "API", "s9"), undefined);
   assert.ok(performance.now() - started < 250, "gave up at the budget");
   assert.match(warnings[0] ?? "", /memory read skipped after \d+ ms/);
+});
+
+test("a memory write that ran out of time keeps remember going one more write's time, so a delete waiting on it purges after a late apply (code review, Oct 28)", async () => {
+  const events: string[] = [];
+  const held: string[] = [];
+  const api = reading({});
+  api.write = async (_scope, _labels, triples) => {
+    if (triples[0]!.key !== "gap") return;
+    // memory stops answering in time, and applies the write a little later anyway
+    setTimeout(() => {
+      held.push("gap");
+      events.push("applied late");
+    }, 20);
+    throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+  };
+  api.forgetScope = async () => {
+    events.push(`purge, ${held.length} held`);
+    return held.splice(0).length;
+  };
+  const memory = createLearnerMemory(api, { salt: "", conceptsOf: allOn("API"), writeMs: 80 });
+  const writes = learnerWrites();
+  const remembering = writes.track("user_2leo", memory.remember("user_2leo", finished).catch((error: Error) => void events.push(`remember failed: ${error.message}`)));
+  await writes.erase("user_2leo", async () => {
+    await memory.purge("user_2leo");
+    events.push("erased");
+  });
+  await remembering;
+  assert.deepEqual(events, ["applied late", "remember failed: 1 of 7 memory writes failed: The operation was aborted due to timeout", "purge, 1 held", "erased"]);
+  assert.deepEqual(held, []);
 });

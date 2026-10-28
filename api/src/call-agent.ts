@@ -110,9 +110,10 @@ function failure(agent: AgentName, error: unknown): AgentCallError {
   return new AgentCallError("agent_failed", false, message, { cause: error });
 }
 
-// One callAgent per session, so every agent_log row names its session. The spend and the rate-limit
-// windows are shared by all sessions.
-export function createCallAgent({ send, model, budgetUsd, log }: CallAgentOptions): (sessionId: string) => CallAgent {
+// One callAgent per session, so every agent_log row names its session, and the learner it was for when the caller says
+// (Delete my data finds a row by them once the session is gone). The spend and the rate-limit windows are shared by
+// all sessions.
+export function createCallAgent({ send, model, budgetUsd, log }: CallAgentOptions): (sessionId: string, user?: string) => CallAgent {
   const price = PRICES[model];
   if (!price) throw new Error(`There's no price for ${model}, so the budget can't be counted`);
   // Counted in memory, so it starts again at $0 after a restart; the account's own balance, with
@@ -120,7 +121,7 @@ export function createCallAgent({ send, model, budgetUsd, log }: CallAgentOption
   let spentUsd = 0;
   let windows: Window[] = [];
 
-  const call = async (sessionId: string, agent: AgentName, input: unknown): Promise<unknown> => {
+  const call = async (sessionId: string, user: string | undefined, agent: AgentName, input: unknown): Promise<unknown> => {
     const spec = REGISTRY[agent];
     if (!spec) throw new AgentCallError("agent_failed", false, `There's no ${agent} agent in @build-north/agents yet`);
     const parsed = spec.input.safeParse(input);
@@ -176,7 +177,7 @@ export function createCallAgent({ send, model, budgetUsd, log }: CallAgentOption
     }
     // A lost log row shouldn't cost the learner their turn. It is written before the call returns, so the row is in
     // when the Turn answers, and Delete my data, which waits for the Turns in flight, never leaves one behind.
-    await log({ session: sessionId, agent, input: parsed.data, output, ms, usd, ...(dropped.length > 0 ? { dropped } : {}) }).catch((error: unknown) => {
+    await log({ session: sessionId, ...(user ? { user } : {}), agent, input: parsed.data, output, ms, usd, ...(dropped.length > 0 ? { dropped } : {}) }).catch((error: unknown) => {
       console.error("agent_log write failed:", error);
     });
     if (
@@ -189,9 +190,9 @@ export function createCallAgent({ send, model, budgetUsd, log }: CallAgentOption
     return output;
   };
 
-  return (sessionId) => async (agent, input) => {
+  return (sessionId, user) => async (agent, input) => {
     try {
-      return await call(sessionId, agent, input);
+      return await call(sessionId, user, agent, input);
     } catch (error) {
       console.error(`callAgent (${agent}, session ${sessionId}):`, error);
       throw error;

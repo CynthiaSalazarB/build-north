@@ -1311,3 +1311,13 @@ test("with memory off but set up, Delete my data still purges what the learner l
   assert.equal((await fetch(`${url}/me/data`, { method: "DELETE", headers: as("leo") })).status, 204);
   assert.deepEqual(order, ["purge leo", "tables leo"]);
 });
+
+test("every agent_log row names the learner it was for, so Delete my data finds it even once its session is gone (code review, Oct 28)", async (t) => {
+  const store = memoryStore();
+  const claude = fakeClaude([["hint_giver", { step: "nudge", text: "What kind of thing is an ecosystem?", revealed: null }]], store);
+  const url = await start(t, { ...noDb, store, advance, callAgentFor: claude.callAgentFor });
+  const first = await (await post(url, { concept: "ecosystem", mode: "test" })).json();
+  const map = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 5 })).json();
+  assert.equal((await (await answer(url, first.sessionId, { turn: map.turn, action: "help" })).json()).error, null);
+  assert.deepEqual(store.logs.map((row) => [row.agent, row.session, row.user]), [["hint_giver", first.sessionId, "leo"]]);
+});
