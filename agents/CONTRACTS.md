@@ -82,7 +82,7 @@ asks for: `prediction` → `{ prediction }`, `text` → `{ text }`, `continue` �
 `map` → `{ question }` while the learner asks and `{ mentefacto }` to submit. `{ action: "help" }`
 works during the moves, the whole map included.
 
-`text` allows up to 2,000 characters; `question` allows up to 500. Saved transcripts keep older, longer answers and questions readable.
+`text` allows up to 2,000 characters; `question` allows up to 500. Saved transcripts keep older, longer answers and questions readable. The limits stop only a body the Turn would judge: a resend of a Turn already judged still gets the latest Turn, and a missing session its 404. An answer refused for its length goes back to the app's answer field, out of the conversation, to shorten and send again.
 
 The session ends in two Turns, so the result never waits for the coach. The last answer's Turn shows the
 result with `result.coach: null` and `expects: "continue"`; the app shows the result and sends

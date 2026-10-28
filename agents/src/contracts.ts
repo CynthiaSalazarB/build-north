@@ -175,8 +175,9 @@ export const Turn = z.strictObject({
 });
 export type Turn = z.infer<typeof Turn>;
 
-// Saved answers and questions may predate the request limits.
-const savedTurnBody = z.union([
+/** A Turn body of any length: saved answers and questions may predate the request limits, and the API checks a new
+ * body's shape with it first, so a resend of a Turn already judged gets the latest Turn back however long it is. */
+export const SavedTurnBody = z.union([
   ...TurnBody.options,
   z.strictObject({ ...answering, text: z.string().min(1) }),
   z.strictObject({ ...answering, question: z.string().min(1) }),
@@ -186,7 +187,7 @@ const savedTurnBody = z.union([
  * keeps every step on the session row (`Session.transcript`), so a session picked up again, or a finished map opened
  * from "Your maps", shows its whole conversation instead of the latest Turn alone.
  */
-export const TranscriptStep = z.strictObject({ body: savedTurnBody.nullable(), turn: Turn });
+export const TranscriptStep = z.strictObject({ body: SavedTurnBody.nullable(), turn: Turn });
 export type TranscriptStep = z.infer<typeof TranscriptStep>;
 /** What GET /sessions/:id/transcript answers: every saved step, oldest first. Empty for a session saved before Oct 25. */
 export const Transcript = z.strictObject({ steps: z.array(TranscriptStep) });

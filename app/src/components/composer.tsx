@@ -27,11 +27,14 @@ type Props = {
   unsent: string;
   /** The answer field's words as they settle, with the part they're on, so Save and close keeps them (`typed`). */
   onType: (move: MoveId | null, text: string) => void;
+  /** An answer the server refused for good (over the length limit), back in the field to change: a new object for each
+   * refusal, so the field takes it once (`failed` in transcript.ts). */
+  restore: { text: string } | null;
   /** In the website layout's column, which sets its own edges. */
   flush?: boolean;
 };
 
-export function Composer({ turn, pending, placeholder, help, onHelp, onNext, onSend, unsent, onType, flush = false }: Props) {
+export function Composer({ turn, pending, placeholder, help, onHelp, onNext, onSend, unsent, onType, restore, flush = false }: Props) {
   const bar = [styles.bar, flush && styles.flush];
   if (onNext) {
     return (
@@ -42,7 +45,7 @@ export function Composer({ turn, pending, placeholder, help, onHelp, onNext, onS
   }
   switch (turn.expects) {
     case "text":
-      return <AnswerBar pending={pending} placeholder={placeholder} label={answerLabelOf(turn)} context={turn.phase === "attempt" ? FIRST_EXPLANATION_NOTE : turn.phase === "move" && turn.move === "exclusion" ? categoryContextOf(turn.mentefacto) : null} help={turn.phase === "move" ? help : null} onHelp={onHelp} onSend={onSend} initial={unsent} part={partOf(turn)} onType={onType} style={bar} />;
+      return <AnswerBar pending={pending} placeholder={placeholder} label={answerLabelOf(turn)} context={turn.phase === "attempt" ? FIRST_EXPLANATION_NOTE : turn.phase === "move" && turn.move === "exclusion" ? categoryContextOf(turn.mentefacto) : null} help={turn.phase === "move" ? help : null} onHelp={onHelp} onSend={onSend} initial={unsent} restore={restore} part={partOf(turn)} onType={onType} style={bar} />;
     case "continue":
       return (
         <View style={bar}>
@@ -66,6 +69,7 @@ type AnswerProps = {
   onHelp: () => void;
   onSend: (input: LearnerInput) => void;
   initial: string;
+  restore: { text: string } | null;
   part: MoveId | null;
   onType: (move: MoveId | null, text: string) => void;
   style: StyleProp<ViewStyle>;
@@ -74,11 +78,15 @@ type AnswerProps = {
 /** How long the field waits after the last keystroke before its words go to the session (and from there the device). */
 const KEEP_AFTER_MS = 400;
 
-function AnswerBar({ pending, placeholder, label, context, help, onHelp, onSend, initial, part, onType, style }: AnswerProps) {
+function AnswerBar({ pending, placeholder, label, context, help, onHelp, onSend, initial, restore, part, onType, style }: AnswerProps) {
   const [text, setText] = useState(initial);
   const answer = text.trim();
   // speech lands in the same field, editable, and still needs Send
   const voice = useVoice({ text, onText: setText });
+  // an answer the server refused for good comes back to change, once per refusal (code review, Oct 28)
+  useEffect(() => {
+    if (restore) setText(restore.text);
+  }, [restore]);
   // The words go to the session once typing settles, and at once when the bar goes (Save and close, or a reveal moving
   // on), with the part they were typed on, so the device keeps them and they come back on that part (code review, Oct 26).
   const kept = useRef({ text, part, onType });

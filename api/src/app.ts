@@ -1,4 +1,4 @@
-import { CreateSessionBody, Turn, TurnBody, UnexpectedInput, type Advance, type CallAgent, type Expects, type Mastery } from "@build-north/agents";
+import { CreateSessionBody, SavedTurnBody, Turn, TurnBody, UnexpectedInput, type Advance, type CallAgent, type Expects, type Mastery } from "@build-north/agents";
 import cors from "cors";
 import express, { type ErrorRequestHandler, type Request, type Response } from "express";
 import { rateLimit } from "express-rate-limit";
@@ -275,13 +275,10 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
   app.post("/sessions/:id/turns", async (req, res) => {
     const who = await caller(req, res);
     if (!who) return;
-    const parsed = TurnBody.safeParse(req.body);
+    // The shape first, at any length: the limits only stop a body that would be judged, so a resend of a Turn already
+    // judged still gets the latest Turn, and a missing session its 404 (code review, Oct 28)
+    const parsed = SavedTurnBody.safeParse(req.body);
     if (!parsed.success) {
-      const tooLong = parsed.error.issues.find((issue) => issue.code === "too_big" && (issue.path[0] === "text" || issue.path[0] === "question"));
-      if (tooLong) {
-        res.status(400).json({ error: tooLong.path[0] === "text" ? "Your answer is over 2,000 characters. Shorten it and send it again." : "Your question is over 500 characters. Shorten it and send it again." });
-        return;
-      }
       // a body that matches none of the shapes gets the list instead of Zod's "Invalid input"
       const noShape = parsed.error.issues[0]?.code === "invalid_union";
       res.status(400).json({ error: noShape ? TURN_BODY : describe(parsed.error.issues) });
@@ -316,6 +313,10 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
       const allowed = sent === "help" ? session.phase === "move" : ANSWERS[expects].includes(sent);
       if (!allowed) {
         conflict(expects === "none" ? "This session is over" : sent === "help" ? "Help works during the moves" : `Turn ${turn} expects ${expects}, not ${sent}`);
+        return;
+      }
+      if (!TurnBody.safeParse(parsed.data).success) {
+        res.status(400).json({ error: "text" in input ? "Your answer is over 2,000 characters. Shorten it and send it again." : "Your question is over 500 characters. Shorten it and send it again." });
         return;
       }
       const mastery = await who.store.getMastery(who.user);
