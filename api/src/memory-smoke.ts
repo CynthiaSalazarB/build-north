@@ -28,12 +28,13 @@ async function check(name: string, run: () => Promise<{ ok: boolean; detail: str
   }
 }
 
-const api = createMemoryApi(config);
-const memory = createLearnerMemory(api, config);
 // a learner nobody is: a fresh id each run, so a run that stops halfway leaves nothing a later run reads
 const user = `smoke-${Date.now().toString(36)}`;
 const pseudonym = pseudonymOf(user, config.salt);
 const concept = "API";
+const api = createMemoryApi(config);
+// the smoke learner has no sessions in a database: every session its rows name is one of its own, on API
+const memory = createLearnerMemory(api, { ...config, conceptsOf: async (_user, ids) => new Map(ids.map((id) => [id, concept])) });
 
 /** A finished session on API, the shape the API hands `remember`. */
 function finished(id: string, turn: number, predicted: number, score: number, changes: Session["result"] extends infer R ? (R extends { masteryChanges: infer C } ? C : never) : never, helps: number[]): Session {

@@ -41,6 +41,8 @@ const QUESTION = "Can you explain the ideas behind the code your AI wrote?";
 const SUBTITLE = "Choose a concept and start figuring it out.";
 const GUIDED = "Answer questions. Your map fills as you go.";
 const ALONE = "Write on the map. Ask facts if you need them.";
+// Your concepts says the same while an answer is on its way
+const STILL_SAVING = "Your current answer is still being saved. Wait for it before starting another session.";
 const ALONE_HINT = "Write your answers in the four map areas. The optional chat answers factual questions. Your levels don't change.";
 
 /** One way to start, picked before the one Start button, with what it means under its name. The picked one is amber,
@@ -107,6 +109,10 @@ export default function StartScreen() {
   const focused = useRef(false);
   const navigation = useRef(0);
   const current = (version: number) => focused.current && version === navigation.current;
+  // a read a newer one replaced answers undefined: the newer one's answer is the one to show
+  const listRead = useCallback((problem: string | null | undefined) => {
+    if (problem !== undefined) setListError(problem);
+  }, []);
   // the server's list, read again each time Start shows (a session just finished is on it), so the sessions
   // to pick up (the one on screen has its own card) and the finished maps are the learner's whole record
   useFocusEffect(
@@ -114,12 +120,12 @@ export default function StartScreen() {
       focused.current = true;
       setStarting(null);
       setResuming(null);
-      void refresh().then(setListError);
+      void refresh().then(listRead);
       return () => {
         focused.current = false;
         navigation.current++;
       };
-    }, [refresh]),
+    }, [refresh, listRead]),
   );
   const keptOf = (list: readonly SessionSummary[] | null) => list?.filter((s) => !s.finished && s.id !== state.turn?.sessionId) ?? [];
   const kept = keptOf(history);
@@ -142,22 +148,25 @@ export default function StartScreen() {
 
   const begin = async (mode: SessionMode) => {
     if (!name || busy || secret) return;
+    // the session on screen goes on, its answer on its way or not
+    if (ongoing(mode) === "on screen") return router.push("/session");
+    // another one would take its place, and an answer still on its way would have nowhere to come back to (code review, Oct 28)
+    if (state.pending) {
+      setError(STILL_SAVING);
+      return;
+    }
     const version = ++navigation.current;
     setStarting(mode);
     setError(null);
     // Going on with an unfinished session of this concept or starting one depends on the list, so a list Start doesn't
     // have yet (still loading, or its read failed) is read first: starting blind would put a second unfinished
-    // session beside the first (code review, Oct 26).
+    // session beside the first (code review, Oct 26). A read that fails starts one anyway: a second session beats
+    // none at all (code review, Oct 28).
     let list = kept;
     if (history === null && !offline) {
       const read = await sessionsNow();
       if (!current(version)) return;
-      if ("error" in read) {
-        setStarting(null);
-        setError(`Couldn't load saved concepts. ${read.error}`);
-        return;
-      }
-      list = keptOf(read.sessions);
+      if ("sessions" in read) list = keptOf(read.sessions);
     }
     const session = ongoing(mode, list);
     if (session) setStarting(null);
@@ -171,6 +180,10 @@ export default function StartScreen() {
   };
   const pickUp = async (session: SessionSummary) => {
     if (busy) return;
+    if (state.pending) {
+      setError(STILL_SAVING);
+      return;
+    }
     const version = ++navigation.current;
     setResuming(session.id);
     setError(null);
@@ -223,7 +236,7 @@ export default function StartScreen() {
       {listError && (
         <View style={styles.resume}>
           <Small dim>{`Couldn't load saved concepts. ${listError}`}</Small>
-          <Button kind="text" label="Try again" onPress={() => void refresh().then(setListError)} style={styles.left} />
+          <Button kind="text" label="Try again" onPress={() => void refresh().then(listRead)} style={styles.left} />
         </View>
       )}
       {unfinished && (

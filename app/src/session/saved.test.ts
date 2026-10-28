@@ -5,7 +5,7 @@ import { test } from "node:test";
 import { Turn } from "@build-north/agents";
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import { createSavedSessions, parseSaved, savedOf, type SavedSession, type SavedSessionStorage } from "./saved.ts";
-import { blankMap, drafted, initialState, received, startedWith, typed, type SessionState } from "./transcript.ts";
+import { blankMap, drafted, failed, initialState, received, sent, startedWith, typed, type SessionState } from "./transcript.ts";
 
 const turns = sessionOne.map((step) => Turn.parse(step.turn));
 const first = turns[0]!;
@@ -47,6 +47,25 @@ test("a guided answer typed and not sent goes with the record, even with no note
   for (const answer of [{ move: "bigger", text: "x" }, { move: null, text: "  " }, "text", 7]) {
     assert.equal(parseSaved(JSON.stringify({ ...kept, answer }))[0]?.answer, null);
   }
+});
+
+test("an answer that was sent and failed stays with the record until it goes again, so a pick-up brings it back (code review, Oct 28)", () => {
+  const asking = turns.find((turn) => turn.expects === "text" && turn.phase === "move")!;
+  const body = { turn: asking.turn, text: "a kind of government" };
+  const kept = { move: asking.move, text: "a kind of government" };
+  const sending = sent(startedWith(asking), body);
+  // on its way, the server may have it already: nothing is kept for it
+  assert.equal(savedOf(sending), null);
+  // failed before a Turn came back: the server never got it, so it is kept as the part's unsent answer
+  const lost = failed(sending, body, "No connection.", true);
+  assert.deepEqual(savedOf(lost), record(asking.sessionId, null, { answer: kept }));
+  // an agent's failure (an error Turn) keeps it the same way
+  assert.deepEqual(savedOf(received(sending, { ...asking, error: { code: "agent_failed", retryable: true } }))?.answer, kept);
+  // the answer field, emptied by Send, can't drop it; words typed since are what the field shows, so they win
+  assert.deepEqual(savedOf(typed(lost, asking.sessionId, asking.move, ""))?.answer, kept);
+  assert.deepEqual(savedOf(typed(lost, asking.sessionId, asking.move, "a newer answer"))?.answer, { move: asking.move, text: "a newer answer" });
+  // sent again, it is on its way once more
+  assert.equal(savedOf(sent(lost, body, true)), null);
 });
 
 test("anything that isn't a record reads back as nothing; the list kept before Oct 27 and the one record before Oct 24 read as records", () => {

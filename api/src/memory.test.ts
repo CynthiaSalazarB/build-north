@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MemoryView as MemoryViewSchema, type CallAgent, type MemoryFact, type Session, type Turn } from "@build-north/agents";
+import { MemoryView as MemoryViewSchema, type CallAgent, type Level, type MemoryFact, type Session, type Turn } from "@build-north/agents";
 import {
   MEMORY_READ_MS,
   createLearnerMemory,
@@ -13,6 +13,8 @@ import {
   factsToWrite,
   fillSources,
   memoryConfigFromEnv,
+  memoryPurgeConfigFromEnv,
+  memoryPurgeOf,
   readCountsOf,
   scopeOf,
   viewOf,
@@ -21,6 +23,7 @@ import {
   type MemoryEntity,
   type MemoryRow,
 } from "./memory.ts";
+import { learnerWrites } from "./app.ts";
 import { pseudonymOf } from "./export-testers.ts";
 import { initialSession } from "./store.ts";
 
@@ -83,6 +86,21 @@ const rows: MemoryRow[] = [
   row("attr_other", "level_exclusion", "Level 4", { writer: "evaluator", move: "exclusion", level: 4 }),
   row("attr_stray", "favourite_colour", "amber", { ...s1 }),
 ];
+
+/** The store's answer when every session the rows name is one of the learner's on `concept`. */
+const allOn = (concept: string) => async (_user: string, ids: readonly string[]) => new Map(ids.map((id) => [id, concept] as const));
+const reading = (stored: Record<string, MemoryRow[]>, written: string[] = []): MemoryApi => ({
+  async registerScope() {},
+  async write(_scope, _labels, triples) {
+    written.push(triples[0]!.key);
+  },
+  async history(entity) {
+    return stored[entity.name] ?? [];
+  },
+  async forgetScope() {
+    return 0;
+  },
+});
 
 test("memory is off by default; on, the endpoint, the context and the key are required and the endpoint must be a URL", () => {
   assert.equal(memoryConfigFromEnv({}), null);
@@ -148,7 +166,7 @@ test("remembering reads memory first: baselines for the parts it has no level fo
       return 0;
     },
   };
-  const memory = createLearnerMemory(api, { salt: "pepper", warn: (message) => warnings.push(message) });
+  const memory = createLearnerMemory(api, { salt: "pepper", conceptsOf: allOn("API"), warn: (message) => warnings.push(message) });
   const played: Session = {
     ...finished,
     moveLog: [
@@ -320,23 +338,23 @@ test(`a read gives up after ${MEMORY_READ_MS} ms, and the agent runs without mem
         reject(init.signal?.reason);
       });
     });
-  const late = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, slow), { salt: "", readMs: 30, warn: (m) => warnings.push(m) });
+  const late = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, slow), { salt: "", conceptsOf: allOn("API"), readMs: 30, warn: (m) => warnings.push(m) });
   assert.equal(await late.recall("user_2leo", "API", "s9"), undefined);
   assert.match(warnings[0] ?? "", /memory read skipped after \d+ ms: .*(abort|timeout)/i);
 
   const down: typeof fetch = async () => {
     throw new TypeError("fetch failed");
   };
-  const failing = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, down), { salt: "", warn: (m) => warnings.push(m) });
+  const failing = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, down), { salt: "", conceptsOf: allOn("API"), warn: (m) => warnings.push(m) });
   assert.equal(await failing.recall("user_2leo", "API", "s9"), undefined);
   assert.match(warnings[1] ?? "", /fetch failed/);
 
   // in time: the facts, from earlier sessions than the one asking
-  const quick = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, async () => new Response(JSON.stringify({ history: rows }), { status: 200 })), { salt: "" });
+  const quick = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, async () => new Response(JSON.stringify({ history: rows }), { status: 200 })), { salt: "", conceptsOf: allOn("API") });
   const memory = await quick.recall("user_2leo", "API", "s2");
   assert.deepEqual(memory?.facts.map((f) => f.id), ["attr_sup1", "attr_exc1", "attr_gap1", "attr_help_iso1", "attr_help_exc1", "attr_help_sup1"]);
   // nothing on this concept: no memory, not an empty one, so the user message stays as before memory existed
-  const empty = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, async () => new Response(JSON.stringify({ history: [] }), { status: 200 })), { salt: "" });
+  const empty = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, async () => new Response(JSON.stringify({ history: [] }), { status: 200 })), { salt: "", conceptsOf: allOn("API") });
   assert.equal(await empty.recall("user_2leo", "API", "s2"), undefined);
 });
 
@@ -359,7 +377,7 @@ test("remembering a session registers its learner's scope once, writes one tripl
       return 7;
     },
   };
-  const memory = createLearnerMemory(api, { salt: "pepper" });
+  const memory = createLearnerMemory(api, { salt: "pepper", conceptsOf: allOn("API") });
   await memory.remember("user_2leo", finished);
   await memory.remember("user_2leo", { ...finished, id: "s3", turn: 16 });
   const writes = calls.filter((c) => c.method === "write");
@@ -398,7 +416,7 @@ test("the Memory sheet reads each concept's history and leaves out the ones memo
       return 0;
     },
   };
-  const memory = createLearnerMemory(api, { salt: "" });
+  const memory = createLearnerMemory(api, { salt: "", conceptsOf: allOn("API") });
   const view = await memory.view("user_2leo", ["JWT", "API"], [["attr_sup1"]]);
   assert.deepEqual(view.concepts.map((c) => c.concept), ["API"]);
   assert.equal(view.concepts[0]?.moves[0]?.history[1]?.readBy, 1);
@@ -486,7 +504,7 @@ test("a later session's write of the same key supersedes the earlier one: the vi
   // the API stamps each write with its clock, so the clock is set per session
   t.mock.timers.enable({ apis: ["Date"], now: new Date(EARLIER) });
   const { api, stored } = supersedingMemory();
-  const memory = createLearnerMemory(api, { salt: "pepper" });
+  const memory = createLearnerMemory(api, { salt: "pepper", conceptsOf: allOn("API") });
   // session 1 on API: 'Bigger group' to level 2, 7 guessed and 4 proved; then session 2 (above): to level 3, 'What it isn't' down to 1, 7 and 3
   await memory.remember("user_2leo", { ...finished, id: "s1", turn: 14, result: { ...finished.result!, score: 4, calibrationGap: 3, masteryChanges: [{ move: "supraordinate", from: 1, to: 2 }] } });
   t.mock.timers.setTime(new Date(AT).getTime());
@@ -567,10 +585,12 @@ test("what one concept left never reaches another's agents: C# history stays out
       return 0;
     },
   };
-  const memory = createLearnerMemory(api, { salt: "" });
+  const memory = createLearnerMemory(api, { salt: "", conceptsOf: allOn("C#") });
   assert.equal(await memory.recall("user_2leo", "C++", "s9"), undefined);
   assert.ok(((await memory.recall("user_2leo", "C#", "s9"))?.facts.length ?? 0) > 0);
-  assert.notEqual(read[0], read[1]);
+  // each read takes the concept's own name first, then the name before Oct 27 they shared
+  assert.notEqual(read[0], read[2]);
+  assert.deepEqual([read[1], read[3]], [`${pseudonymOf("user_2leo", "")}_c`, `${pseudonymOf("user_2leo", "")}_c`]);
 });
 
 test("the keys memory holds are level_<move>, gap and help_<move>, under an entity name any concept can take; a row under another key is never a fact", () => {
@@ -601,4 +621,120 @@ test("the keys memory holds are level_<move>, gap and help_<move>, under an enti
   // a gap fact has no part and no level, and names the gap it replaced
   const gap = factOf(rows[4]!, "API");
   assert.deepEqual([gap?.move, gap?.level, gap?.supersedes, gap?.writtenBy], [undefined, undefined, "attr_gap1", "coach"]);
+});
+
+test("with the flag off, memory that is set up still purges: what a learner left there while it was on goes with Delete my data (code review, Oct 28)", async () => {
+  const vars = { AGENT_MEMORY_ENDPOINT: "https://m.example/", AGENT_MEMORY_CONTEXT: "c", AGENT_MEMORY_API_KEY: "k", LEARNER_ID_SALT: "pepper" };
+  const config = { endpoint: "https://m.example", context: "c", apiKey: "k", salt: "pepper" };
+  assert.deepEqual(memoryPurgeConfigFromEnv(vars), config);
+  assert.deepEqual(memoryPurgeConfigFromEnv({ ...vars, AGENT_MEMORY_ENABLED: "false" }), config);
+  // never set up, set up halfway, or an endpoint that isn't one: nothing to purge from
+  assert.equal(memoryPurgeConfigFromEnv({}), null);
+  assert.equal(memoryPurgeConfigFromEnv({ ...vars, AGENT_MEMORY_API_KEY: " " }), null);
+  assert.equal(memoryPurgeConfigFromEnv({ ...vars, AGENT_MEMORY_ENDPOINT: "not a url" }), null);
+  // the purge is the learner's scope under their pseudonym, as the full client's
+  const forgotten: string[] = [];
+  const api: MemoryApi = {
+    async registerScope() {},
+    async write() {},
+    async history() {
+      return [];
+    },
+    async forgetScope(path) {
+      forgotten.push(path);
+      return 3;
+    },
+  };
+  await memoryPurgeOf(api, { salt: "pepper" })("user_2leo");
+  assert.deepEqual(forgotten, [scopeOf(pseudonymOf("user_2leo", "pepper"))]);
+});
+
+test("a concept's history is the rows its own sessions wrote: C++'s rows from before Oct 27, under the name C still reads, stay out of C and still reach C++ (code review, Oct 28)", async () => {
+  const p = pseudonymOf("user_2leo", "");
+  const gap = (id: string, session: string, text: string) => row(id, "gap", text, { session, turn: 9, writer: "coach", predicted: 7, score: 2 });
+  const stored = {
+    // the name C++ and C# wrote under before Oct 27, and the one C writes under still
+    [`${p}_c`]: [gap("attr_old_cpp", "old_cpp", "Last time on C++ pointers you guessed 7 and proved 2."), gap("attr_c", "c1", "Last time on C you guessed 7 and proved 2."), gap("attr_ghost", "gone", "Last time on ? you guessed 7 and proved 2.")],
+    [entityOf(p, "C++").name]: [row("attr_new_cpp", "level_supraordinate", "You moved up to level 2 on 'Bigger group' for C++ on Oct 27.", { session: "new_cpp", turn: 9, writer: "evaluator", move: "supraordinate", level: 2 })],
+  };
+  const sessions = new Map([["old_cpp", "C++"], ["new_cpp", "c++"], ["c1", "C"]]);
+  const asked: string[][] = [];
+  const memory = createLearnerMemory(reading(stored), {
+    salt: "",
+    conceptsOf: async (_user, ids) => {
+      asked.push([...ids].sort());
+      return new Map(ids.flatMap((id) => (sessions.has(id) ? [[id, sessions.get(id)!] as const] : [])));
+    },
+  });
+  assert.deepEqual((await memory.recall("user_2leo", "C", "s9"))?.facts.map((f) => f.id), ["attr_c"]);
+  // the lookup is asked about the sessions the rows name, and a session the learner doesn't have counts for nothing
+  assert.deepEqual(asked[0], ["c1", "gone", "old_cpp"]);
+  assert.deepEqual((await memory.recall("user_2leo", "C++", "s9"))?.facts.map((f) => f.id), ["attr_new_cpp", "attr_old_cpp"]);
+});
+
+test("memory left on a concept the old name couldn't keep is still found: recalled, on the sheet, and on record before a write (code review, Oct 28)", async () => {
+  const p = pseudonymOf("user_2leo", "");
+  const old = `${p}_dijkstra_s_algorithm`;
+  assert.notEqual(entityOf(p, "Dijkstra's algorithm").name, old);
+  const stored = { [old]: [row("attr_lvl", "level_isoordinate", "You moved up to level 3 on 'What it needs' for Dijkstra's algorithm on Oct 24.", { session: "d1", turn: 12, writer: "evaluator", move: "isoordinate", level: 3 }, { since: EARLIER })] };
+  const written: string[] = [];
+  const memory = createLearnerMemory(reading(stored, written), { salt: "", conceptsOf: allOn("Dijkstra's algorithm") });
+  assert.deepEqual((await memory.recall("user_2leo", "Dijkstra's algorithm", "d2"))?.facts.map((f) => f.id), ["attr_lvl"]);
+  assert.equal((await memory.view("user_2leo", ["Dijkstra's algorithm"], [])).concepts[0]?.moves[2]?.level, 3);
+  // 'What it needs' has its level on record already, so only 'Bigger group' gets a baseline
+  const steady = (move: "supraordinate" | "isoordinate", level: Level) => ({ move, points: 1 as const, hints: 0, retries: 0, from: level, to: level });
+  await memory.remember("user_2leo", { ...finished, id: "d2", concept: "Dijkstra's algorithm", result: { ...finished.result!, masteryChanges: [] }, moveLog: [steady("supraordinate", 1), steady("isoordinate", 3)] });
+  assert.deepEqual(written.filter((key) => key.startsWith("level_")), ["level_supraordinate"]);
+});
+
+test("the Memory sheet shows a concept once however it was typed: CORS and cors are one history (code review, Oct 28)", async () => {
+  const read: string[] = [];
+  const api = reading({});
+  api.history = async (entity) => {
+    read.push(entity.name);
+    return entity.name.endsWith("_cors") ? rows : [];
+  };
+  const memory = createLearnerMemory(api, { salt: "", conceptsOf: allOn("CORS") });
+  const view = await memory.view("user_2leo", ["CORS", "cors", "JWT"], []);
+  assert.deepEqual(view.concepts.map((c) => c.concept), ["CORS"]);
+  assert.equal(read.filter((name) => name.endsWith("_cors")).length, 1);
+});
+
+test("the read before an agent keeps its budget with the session lookup in it: a lookup too slow leaves the agent without memory (code review, Oct 28)", async () => {
+  const warnings: string[] = [];
+  const slowLookup = () => new Promise<Map<string, string>>((resolve) => setTimeout(() => resolve(new Map([["s1", "API"], ["s2", "API"]])), 300));
+  const memory = createLearnerMemory(reading({ [entityOf(pseudonymOf("user_2leo", ""), "API").name]: rows }), { salt: "", readMs: 30, warn: (m) => warnings.push(m), conceptsOf: slowLookup });
+  const started = performance.now();
+  assert.equal(await memory.recall("user_2leo", "API", "s9"), undefined);
+  assert.ok(performance.now() - started < 250, "gave up at the budget");
+  assert.match(warnings[0] ?? "", /memory read skipped after \d+ ms/);
+});
+
+test("a memory write that ran out of time keeps remember going one more write's time, so a delete waiting on it purges after a late apply (code review, Oct 28)", async () => {
+  const events: string[] = [];
+  const held: string[] = [];
+  const api = reading({});
+  api.write = async (_scope, _labels, triples) => {
+    if (triples[0]!.key !== "gap") return;
+    // memory stops answering in time, and applies the write a little later anyway
+    setTimeout(() => {
+      held.push("gap");
+      events.push("applied late");
+    }, 20);
+    throw new DOMException("The operation was aborted due to timeout", "TimeoutError");
+  };
+  api.forgetScope = async () => {
+    events.push(`purge, ${held.length} held`);
+    return held.splice(0).length;
+  };
+  const memory = createLearnerMemory(api, { salt: "", conceptsOf: allOn("API"), writeMs: 80 });
+  const writes = learnerWrites();
+  const remembering = writes.track("user_2leo", memory.remember("user_2leo", finished).catch((error: Error) => void events.push(`remember failed: ${error.message}`)));
+  await writes.erase("user_2leo", async () => {
+    await memory.purge("user_2leo");
+    events.push("erased");
+  });
+  await remembering;
+  assert.deepEqual(events, ["applied late", "remember failed: 1 of 7 memory writes failed: The operation was aborted due to timeout", "purge, 1 held", "erased"]);
+  assert.deepEqual(held, []);
 });

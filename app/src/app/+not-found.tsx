@@ -4,12 +4,16 @@
 import { Redirect, useRouter } from "expo-router";
 import { Platform, StyleSheet, View } from "react-native";
 import { SiteHeader } from "../components/site-header.tsx";
-import { Button, Label, Screen, Title, useWide } from "../components/ui.tsx";
+import { Button, Label, Screen, Title, usePageTitle, useWide } from "../components/ui.tsx";
 import { brand, space } from "../theme.ts";
+
+// The tab's title comes from here alone: the export doesn't run generateMetadata for +not-found
+const TITLE = `This page doesn't exist · ${brand.name}`;
 
 export default function NotFoundScreen() {
   const router = useRouter();
   const wide = useWide();
+  usePageTitle(TITLE);
   if (Platform.OS !== "web") return <Redirect href="/" />;
   return (
     <Screen>

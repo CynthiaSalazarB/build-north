@@ -28,7 +28,7 @@ import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { changedMoves, createApp, learnerWrites, type AppOptions } from "./app.ts";
 import { clerkUserFromToken } from "./clerk.ts";
 import { createCallAgent, type SendToClaude } from "./call-agent.ts";
-import { createLearnerMemory, createMemoryApi, type LearnerMemoryStore, type MemoryApi } from "./memory.ts";
+import { MemoryError, createLearnerMemory, createMemoryApi, type LearnerMemoryStore, type MemoryApi } from "./memory.ts";
 import { initialSession, type AgentLogEntry, type Store } from "./store.ts";
 
 const WEB = "http://localhost:8081";
@@ -100,6 +100,9 @@ function memoryStore(): Store & { logs: readonly AgentLogEntry[] } {
       return logs
         .filter((entry) => sessions.get(entry.session)?.user === user && (entry.agent === "hint_giver" || entry.agent === "coach"))
         .map((entry) => ((entry.input as { memory?: { facts: { id: string }[] } }).memory?.facts ?? []).map((fact) => fact.id));
+    },
+    async sessionConcepts(user, ids) {
+      return new Map(ids.flatMap((id) => (sessions.get(id)?.user === user ? [[id, sessions.get(id)!.concept] as const] : [])));
     },
     async deleteUserData(user) {
       // the agent_log rows go with their sessions, as `DELETE agent_log WHERE session.user = $user` does
@@ -1000,7 +1003,7 @@ function slowMemory() {
       return facts.splice(0).length;
     },
   };
-  return { memory: createLearnerMemory(api, { salt: "" }), facts, calls, writing, held };
+  return { memory: createLearnerMemory(api, { salt: "", conceptsOf: async () => new Map() }), facts, calls, writing, held };
 }
 
 const wholeMap = { concept: "ecosystem", supraordinate: { value: "system", note: null }, exclusion: [{ value: "habitat", note: "only the place" }], isoordinate: [{ value: "living things", note: null }], infraordinate: [{ value: "aquatic ecosystem", note: null }] };
@@ -1238,7 +1241,7 @@ test("a memory read slower than its budget leaves the hint giver without memory,
     new Promise((_resolve, reject) => {
       init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
     });
-  const memory = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, late), { salt: "", readMs: 20, warn: (message) => warnings.push(message) });
+  const memory = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, late), { salt: "", conceptsOf: async () => new Map(), readMs: 20, warn: (message) => warnings.push(message) });
   const store = memoryStore();
   // the hint giver cites a fact anyway; with none given, the id is dropped
   const claude = fakeClaude([["hint_giver", { step: "nudge", text: "What kind of thing is an ecosystem?", revealed: null, cites: ["attr_sup1"] }]], store);
@@ -1257,4 +1260,64 @@ test("a memory read slower than its budget leaves the hint giver without memory,
   assert.deepEqual(hintRow.dropped, ["attr_sup1"]);
   // the Turn was saved as it went out
   assert.deepEqual(await (await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") })).json(), hinted);
+});
+
+test("memory failing is a 502 in the API's words, never memory's status or text; body-parser's 400 still says what was wrong (code review, Oct 28)", async (t) => {
+  const errors = t.mock.method(console, "error", () => {});
+  const memory: LearnerMemoryStore = {
+    async recall() {
+      return undefined;
+    },
+    async remember() {},
+    async view() {
+      throw new MemoryError(401, "memory answered 401: invalid api key for context ctx");
+    },
+    async purge() {
+      throw new MemoryError(403, "memory answered 403: scope learner/1a2b3c4d is not writable by this key");
+    },
+  };
+  const store = memoryStore();
+  const deletes = t.mock.method(store, "deleteUserData");
+  const url = await start(t, { ...noDb, store, memory });
+  // a key memory refuses is the API's problem, not the learner's sign-in (the app reads a 401 as "sign in again")
+  const sheet = await fetch(`${url}/me/memory`, { headers: as("leo") });
+  assert.equal(sheet.status, 502);
+  const sheetBody = JSON.stringify(await sheet.json());
+  assert.doesNotMatch(sheetBody, /memory answered|api key|401/);
+  // a purge memory refuses fails the delete as one worth trying again, and the tables stay
+  const deleted = await fetch(`${url}/me/data`, { method: "DELETE", headers: as("leo") });
+  assert.equal(deleted.status, 502);
+  assert.doesNotMatch(JSON.stringify(await deleted.json()), /memory answered|scope|403/);
+  assert.equal(deletes.mock.callCount(), 0);
+  // the cause goes to the server log
+  assert.match(errors.mock.calls.map((call) => String(call.arguments[0])).join("\n"), /memory answered 401/);
+  // body-parser's own errors still tell the caller what was wrong
+  const broken = await post(url, "{not json");
+  assert.equal(broken.status, 400);
+  assert.notEqual((await broken.json()).error, undefined);
+});
+
+test("with memory off but set up, Delete my data still purges what the learner left there, and nothing else touches memory (code review, Oct 28)", async (t) => {
+  const order: string[] = [];
+  const store = memoryStore();
+  const deleteUserData = store.deleteUserData;
+  t.mock.method(store, "deleteUserData", async (user: string) => {
+    order.push(`tables ${user}`);
+    await deleteUserData(user);
+  });
+  const url = await start(t, { ...noDb, store, memory: null, purgeMemory: async (user) => void order.push(`purge ${user}`) });
+  assert.deepEqual(await (await fetch(`${url}/health`)).json(), { ok: true, commit: null, memory: "off" });
+  assert.deepEqual(await (await fetch(`${url}/me/memory`, { headers: as("leo") })).json(), { concepts: [] });
+  assert.equal((await fetch(`${url}/me/data`, { method: "DELETE", headers: as("leo") })).status, 204);
+  assert.deepEqual(order, ["purge leo", "tables leo"]);
+});
+
+test("every agent_log row names the learner it was for, so Delete my data finds it even once its session is gone (code review, Oct 28)", async (t) => {
+  const store = memoryStore();
+  const claude = fakeClaude([["hint_giver", { step: "nudge", text: "What kind of thing is an ecosystem?", revealed: null }]], store);
+  const url = await start(t, { ...noDb, store, advance, callAgentFor: claude.callAgentFor });
+  const first = await (await post(url, { concept: "ecosystem", mode: "test" })).json();
+  const map = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 5 })).json();
+  assert.equal((await (await answer(url, first.sessionId, { turn: map.turn, action: "help" })).json()).error, null);
+  assert.deepEqual(store.logs.map((row) => [row.agent, row.session, row.user]), [["hint_giver", first.sessionId, "leo"]]);
 });
