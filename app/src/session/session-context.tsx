@@ -27,8 +27,9 @@ type SessionApi = {
   type(sessionId: string, move: MoveId | null, text: string): void;
   /** The learner's sessions on the server, newest first (GET /sessions); null until the first read. Demo mode has none. */
   history: SessionSummary[] | null;
-  /** Reads the list again (Start does when it is shown). Resolves with an error message, or null. */
-  refresh(): Promise<string | null>;
+  /** Reads the list again (Start does when it is shown). Resolves with an error message, or null; undefined when a newer
+   * read replaced this one, whose own answer is the one to show (code review, Oct 28). */
+  refresh(): Promise<string | null | undefined>;
   /** The list as it is now, for a choice that depends on it (Start: go on with an unfinished session of the concept,
    * or start one): `history`, or a read of its own while there is none yet. Demo mode has none. */
   sessionsNow(): Promise<{ sessions: SessionSummary[] } | { error: string }>;
@@ -72,14 +73,14 @@ export function SessionProvider({ client, children }: { client: SessionClient; c
     try {
       const knownIds = await saved.current!.ids();
       const list = await client.list();
-      if (request !== listRequest.current) return null;
+      if (request !== listRequest.current) return undefined;
       setHistory(list);
       // Don't prune a record created while this list request was in flight; the response can predate that session.
       const unfinishedIds = new Set(list.filter((session) => !session.finished).map((session) => session.id));
       await saved.current!.prune(knownIds, unfinishedIds);
       return null;
     } catch (error) {
-      if (request !== listRequest.current) return null;
+      if (request !== listRequest.current) return undefined;
       return messageOf(error);
     }
   }, [client]);

@@ -2,7 +2,7 @@
 // checked here.
 import assert from "node:assert/strict";
 import { test } from "node:test";
-import { MemoryView, Turn, type Mentefacto, type Message, type MoveId, type Result } from "@build-north/agents";
+import { MemoryView, MOVE_LABEL, MOVE_ORDER, Turn, type Mentefacto, type Message, type MoveId, type Result } from "@build-north/agents";
 import memoryView from "@build-north/agents/fixtures/memory-view.json" with { type: "json" };
 import sessionOne from "@build-north/agents/fixtures/session-1.json" with { type: "json" };
 import {
@@ -61,7 +61,7 @@ import {
   withFeedbackToRead,
   withPart,
 } from "./present.ts";
-import { blankMap, initialState, received, sent, type Entry } from "./transcript.ts";
+import { blankMap, initialState, received, sent, startedWith, type Entry } from "./transcript.ts";
 
 const turns = sessionOne.map((step) => Turn.parse(step.turn));
 const turnAt = (n: number) => turns.find((t) => t.turn === n)!;
@@ -135,14 +135,29 @@ test("on the result a wrong answer scores 0 and stays the learner's; only a part
   assert.equal(resultPartsOf(wrong, last.mentefacto)[2]!.state, "lit");
   assert.equal(resultPartsOf(wrong, last.mentefacto, new Set(["isoordinate"]))[2]!.state, "revealed");
   // on the whole map Help goes through the parts in order, four steps each: hintsUsed says which were revealed
-  assert.deepEqual([...revealedPartsOf([], { hintsUsed: 3 }, "test")], []);
-  assert.deepEqual([...revealedPartsOf([], { hintsUsed: 5 }, "test")], ["supraordinate"]);
-  assert.deepEqual([...revealedPartsOf([], { hintsUsed: 8 }, "test")], ["supraordinate", "exclusion"]);
+  assert.deepEqual([...revealedPartsOf([], { hintsUsed: 3, rubric: [] }, "test")], []);
+  assert.deepEqual([...revealedPartsOf([], { hintsUsed: 5, rubric: [] }, "test")], ["supraordinate"]);
+  assert.deepEqual([...revealedPartsOf([], { hintsUsed: 8, rubric: [] }, "test")], ["supraordinate", "exclusion"]);
   // in a guided session, the parts a reveal closed
   const app = (id: string, kind: Message["kind"], move: MoveId, extra: Partial<Message> = {}): Entry => ({ id, from: "app", message: { agent: "app", kind, text: "x", ...extra }, phase: "move", move, level: 2 });
   const guided = [app("turn-3-0", "question", "supraordinate"), app("turn-4-0", "hint", "exclusion", { agent: "hint_giver", hintStep: "reveal" }), app("turn-4-1", "named_move", "exclusion"), app("turn-4-2", "question", "exclusion")];
-  assert.deepEqual([...revealedPartsOf(guided, { hintsUsed: 3 }, "learn")], ["supraordinate"]);
+  assert.deepEqual([...revealedPartsOf(guided, { hintsUsed: 3, rubric: last.result!.rubric }, "learn")], ["supraordinate"]);
   assert.deepEqual([...revealedPartsOf(through(14).entries, last.result!, "learn")], []);
+});
+
+test("a session reviewed without its conversation still reads Help's reveals as shown to the learner (code review, Oct 28)", () => {
+  const last = turnAt(14);
+  const zeroOn = (move: MoveId) => last.result!.rubric.map((r) => (r.move === move ? { ...r, points: 0 as const } : r));
+  // guided: a part closes on a right answer or a reveal, so with no record of how it closed, 0 points means revealed
+  const latestOnly = startedWith(last).entries;
+  assert.deepEqual([...revealedPartsOf(latestOnly, { hintsUsed: 4, rubric: zeroOn("exclusion") }, "learn")], ["exclusion"]);
+  assert.deepEqual([...revealedPartsOf(latestOnly, last.result!, "learn")], []);
+  // the whole conversation says how each part closed, and that wins over the points
+  assert.deepEqual([...revealedPartsOf(through(14).entries, { hintsUsed: 0, rubric: zeroOn("exclusion") }, "learn")], []);
+  // level 5 everywhere: a guided session on the whole map is known by the area notes its result carries
+  const noted = (move: MoveId): Entry => ({ id: `n-${move}`, from: "app", message: { agent: "evaluator", kind: "feedback", text: `${MOVE_LABEL[move]}: works.` }, phase: "result", move: null, level: 5 });
+  const wholeMap = MOVE_ORDER.map(noted);
+  assert.deepEqual([...revealedPartsOf(wholeMap, { hintsUsed: 4, rubric: zeroOn("isoordinate") }, "learn")], ["supraordinate"]);
 });
 
 test("an area's reader shows an exclusion with the difference the learner gave, and an empty area with feedback opens (code review, Oct 26)", () => {

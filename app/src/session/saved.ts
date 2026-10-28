@@ -5,7 +5,7 @@
 // entries, never one over the other (code review, Oct 26). Pure, so it's tested under Node; storage.ts reads and writes
 // the text.
 import { Mentefacto, MoveId } from "@build-north/agents";
-import type { SessionState, Unsent } from "./transcript.ts";
+import { partOf, type SessionState, type Unsent } from "./transcript.ts";
 
 export type SavedSession = {
   sessionId: string;
@@ -18,8 +18,16 @@ export type SavedSession = {
  * words are both in), and when it has nothing the server doesn't hold. */
 export function savedOf(state: SessionState): SavedSession | null {
   const { turn } = state;
-  if (!turn || turn.expects === "none" || (state.material === null && state.draft === null && state.answer === null)) return null;
-  return { sessionId: turn.sessionId, material: state.material, draft: state.draft, answer: state.answer };
+  const answer = unsentAnswerOf(state);
+  if (!turn || turn.expects === "none" || (state.material === null && state.draft === null && answer === null)) return null;
+  return { sessionId: turn.sessionId, material: state.material, draft: state.draft, answer };
+}
+
+/** The guided answer to keep: the words typed and not sent, or else an answer that was sent and failed. The server never
+ * got that one and the failure note says it's saved, so a pick-up puts it back in the field (code review, Oct 28). */
+function unsentAnswerOf({ answer, failure, turn }: SessionState): Unsent | null {
+  if (answer) return answer;
+  return failure && turn && "text" in failure.body ? { move: partOf(turn), text: failure.body.text } : null;
 }
 
 function unsentOf(value: unknown): Unsent | null {
