@@ -96,7 +96,7 @@ function ResultBody({ concept, result, map, firstExplanation, comparisonAreas, n
   const parts = withFeedbackToRead(resultPartsOf(result, map, revealed), (move) => closingOf(move) !== null);
   const figure = (
     <View style={styles.map}>
-      <ConceptMap concept={concept} parts={parts} onPartOpen={setOpenPart} />
+      <ConceptMap concept={concept} parts={parts} finished onPartOpen={setOpenPart} />
       <View style={styles.firefly}>
         <Firefly state="fades" />
       </View>
