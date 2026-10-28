@@ -456,10 +456,10 @@ Hint giver).
 
 | When | Rule |
 |---|---|
-| Session start | predict (0 to 8 points, after one line explaining the task) → short attempt ("in your own words") → worked example if any move is at level 1 → the four moves → result → the coach's words |
+| Session start | predict (0 to 8 points, after one line explaining the task) → short attempt ("in your own words") → worked example if any move is at level 1 → the four moves → result → the coach's words. On the whole map (below) the prediction goes straight to the map: no attempt, no example |
 | Session end | the last answer's Turn shows the result, every number from code, with `coach: null` and `expects: "continue"`; the app's `continue` gets the coach's Turn, which ends the session. If the coach fails, its Turn carries fixed text built from the numbers |
 | Level for a move | read from mastery; new learners start at 1. Watching the worked example moves every move to level 2 |
-| After an answer | evaluator. `correct` → accept, name the move, next move. `partial` / `incorrect` → the feedback only, and the learner tries again (a retry). No automatic hint. A `correct` that leaves the move's part empty on the map is the evaluator failing (an agent call that fails, below) |
+| After an answer | evaluator. `correct` → accept, name the move, next move. `partial` / `incorrect` → the feedback only, and the learner tries again (a retry). No automatic hint. A `correct` that leaves the move's part empty on the map, one with `quality` 0, or a `correct` bigger group that accepts none (the map would keep the earlier one) is the evaluator failing (an agent call that fails, below) |
 | Hint ladder | nudge → hint → partial → reveal, one step per Help, and every Help counts. At levels 2 and 3 the feedback after a retry already nudged (free), so the first Help gives `hint`. At levels 4 and 5 there is no free nudge |
 | The next move's question | asked at the same time as the move's first evaluation (or Help), from the map as it was before that answer, and kept in `session.nextQuestion`. The turn that ends a move waits for one call, not two. If it fails, the next move asks when it starts |
 | Level 5 | **the learner asks.** They send any number of `{ question }` to the fact desk while filling the map, then submit `{ mentefacto }`. No per-move checks; whole-map evaluator at the end. Help gives a hint and caps that move at 1 point |
@@ -469,9 +469,9 @@ Hint giver).
 | Points per move | evaluator `quality` on the first try with no Help; capped at 1 after a retry or a Help; 0 if revealed. Max 8 |
 | Mastery | done with at most one retry or Help → level up one (max 5). Neither → `unassistedSuccesses + 1`. Never down in this version. The API saves what a Turn changed in the session's own transaction, onto the stored row: the level never drops below it and the successes add up, so a Turn that read mastery before another session saved can't undo that session's progress |
 | Calibration | `calibrationGap = predictedScore − score` (points) |
-| Exclusion without a difference | one follow-up question from code ("What's the key difference between democracy and dictatorship?"); not a hint, not a retry |
+| Exclusion without a difference | one follow-up question from code ("What's the key difference between democracy and dictatorship?"), at most once a move; not a hint, not a retry. An answer to it that still has no difference is a retry. When the answer to it is `correct` and the item still has no difference, the learner's own words become it |
 | Reveal | the ladder's last step reveals: the item goes on the map, the move scores 0, it's named, and the next move starts. A reveal with no item to show is the hint giver failing: the step isn't spent |
-| Help on the whole map | works on the first move, in order, whose hints haven't run out; a revealed item goes on the map |
+| Help on the whole map | works on the first move, in order, whose hints haven't run out; a revealed item goes on the map. The hints already given on that move go to the hint giver with the next Help, so none comes twice |
 | Done, on the whole map | a move counts as done (level up, unassisted success) when its quality is 2 |
 | The whole-map rubric | exactly one row per move, or the whole-map evaluator failed (an agent call that fails, below). A part left empty scores 0 whatever its row says |
 | Writing the map | a sharper item replaces the vaguer one it contains ("free elections" replaces "elections"); `note` only survives on exclusions; "a; b" becomes two items |
