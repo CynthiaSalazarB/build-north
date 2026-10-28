@@ -277,16 +277,27 @@ function PartEditor({ move, concept, category, items, onDone }: { move: MoveId; 
   const wide = useWide();
   const entrance = useEntrance();
   const single = move === "supraordinate";
-  const [rows, setRows] = useState<Item[]>(() => (items.length > 0 ? items.map((i) => ({ ...i })) : [{ value: "", note: null }]));
+  const nextRow = useRef(Math.max(items.length, 1));
+  const blank = () => ({ id: nextRow.current++, value: "", note: null });
+  const [rows, setRows] = useState<(Item & { id: number })[]>(() => (items.length > 0 ? items : [{ value: "", note: null }]).map((row, id) => ({ ...row, id })));
   const change = (i: number, patch: Partial<Item>) => setRows((now) => now.map((row, j) => (j === i ? { ...row, ...patch } : row)));
-  const remove = (i: number) => setRows((now) => (now.length > 1 ? now.filter((_, j) => j !== i) : [{ value: "", note: null }]));
-  const done = () => onDone(rows);
+  const done = () => onDone(rows.map(({ value, note }) => ({ value, note })));
   // the mic in the head dictates into the field last focused (the first item until one is)
   const [focus, setFocus] = useState<{ i: number; part: "value" | "note" }>({ i: 0, part: "value" });
   const voice = useVoice({
     text: rows[focus.i]?.[focus.part] ?? "",
     onText: (text) => change(focus.i, focus.part === "value" ? { value: text } : { note: text }),
   });
+  const remove = (i: number) => {
+    voice.cancel();
+    const empty = blank();
+    setRows((now) => (now.length > 1 ? now.filter((_, j) => j !== i) : [empty]));
+    setFocus((now) => ({ ...now, i: i < now.i ? now.i - 1 : Math.min(now.i, Math.max(0, rows.length - 2)) }));
+  };
+  const add = () => {
+    const row = blank();
+    setRows((now) => [...now, row]);
+  };
   // no custom line height on these fields: on Android a multiline one would show only its last line
   const field = [styles.input, { fontFamily: type.input.fontFamily, fontSize: type.input.fontSize, color: c.onSurface, backgroundColor: c.surface, borderColor: c.fieldEdge }];
   const scrim = <Pressable style={[wide ? StyleSheet.absoluteFill : styles.flex, { backgroundColor: c.scrim }]} onPress={done} accessibilityRole="button" accessibilityLabel="Save and close" />;
@@ -314,7 +325,7 @@ function PartEditor({ move, concept, category, items, onDone }: { move: MoveId; 
           <VoiceNote state={voice.state} />
           <ScrollView contentContainerStyle={styles.rows} keyboardShouldPersistTaps="handled">
             {rows.map((row, i) => (
-              <View key={i} style={styles.row}>
+              <View key={row.id} style={styles.row}>
                 <View style={styles.rowFields}>
                   <Small dim>{single ? "Category" : move === "exclusion" ? "Another concept in this category" : move === "isoordinate" ? `Defining feature ${i + 1}` : i === 0 ? "Your grouping rule and types" : `Additional type ${i + 1}, using the same rule`}</Small>
                   <TextInput
@@ -358,7 +369,7 @@ function PartEditor({ move, concept, category, items, onDone }: { move: MoveId; 
               </View>
             ))}
             {!single && rows.length < MAX_ITEMS && (
-              <Button kind="text" label="+ Add another" onPress={() => setRows((now) => [...now, { value: "", note: null }])} style={styles.start} />
+              <Button kind="text" label="+ Add another" onPress={add} style={styles.start} />
             )}
           </ScrollView>
         </Animated.View>

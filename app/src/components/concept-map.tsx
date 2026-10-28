@@ -25,6 +25,7 @@ export type MapGeometry = { parts: Record<MoveId, Box>; width: number; height: n
 type Props = {
   concept: string;
   parts: PartView[];
+  finished?: boolean;
   /** The part that just lit: a ring and sparks for 700 ms, again whenever `pulse` changes. */
   justLit?: MoveId | null;
   pulse?: string | number;
@@ -40,7 +41,7 @@ type Props = {
   onGeometry?: (geometry: MapGeometry) => void;
 };
 
-export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom = null, onPartPress, onPartOpen, activePart = null, onGeometry }: Props) {
+export function ConceptMap({ concept, parts, finished = false, justLit = null, pulse, leaderFrom = null, onPartPress, onPartOpen, activePart = null, onGeometry }: Props) {
   const c = useColors();
   const entrance = useEntrance();
   const [width, setWidth] = useState(0);
@@ -126,7 +127,7 @@ export function ConceptMap({ concept, parts, justLit = null, pulse, leaderFrom =
     // evaluator's words on it (`opens`, the result)
     const reads = !onPartPress && !!onPartOpen && (view(move).state === "lit" || view(move).state === "revealed" || !!view(move).opens);
     const press = onPartPress ? () => onPartPress(move) : reads ? () => onPartOpen!(move) : undefined;
-    return <PartBox key={move} view={view(move)} width={w} ring={ring === move} active={move === activePart} onPress={press} reads={reads} onLayout={keep(move)} />;
+    return <PartBox key={move} view={view(move)} width={w} ring={ring === move} active={move === activePart} onPress={press} reads={reads} finished={finished} onLayout={keep(move)} />;
   };
 
   return (
@@ -205,9 +206,9 @@ export function Trace({ d, length, end, drawKey, color }: { d: string; length: n
   );
 }
 
-type PartProps = { view: PartView; width: number; ring: boolean; active: boolean; onPress?: () => void; reads?: boolean; onLayout: (e: LayoutChangeEvent) => void };
+type PartProps = { view: PartView; width: number; ring: boolean; active: boolean; onPress?: () => void; reads?: boolean; finished?: boolean; onLayout: (e: LayoutChangeEvent) => void };
 
-function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }: PartProps) {
+function PartBox({ view, width, ring, active, onPress, reads = false, finished = false, onLayout }: PartProps) {
   const c = useColors();
   const night = useMode() === "night";
   const ease = useStateEase();
@@ -224,7 +225,8 @@ function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }
   }[active ? "asked" : view.state];
   const glow = ring ? "0 0 0 3px rgba(242, 184, 75, 0.6), 0 0 22px rgba(255, 236, 205, 0.45)" : look.glow;
   const points = view.pips ? `${view.pips.filter((p) => p === "earned").length} of 2 points` : "not scored yet";
-  const said = view.text ?? (view.state === "asked" ? "being asked now" : "not answered yet");
+  const said = view.text || (finished ? "left empty" : view.state === "asked" ? "being asked now" : "not answered yet");
+  const readLabel = `${label}${view.prompt ? `. ${view.prompt}` : ""}${view.context ? `. ${view.context}` : ""}: ${said}. ${points}${view.state === "revealed" ? ", shown to you" : ""}.${view.badge ? ` ${view.badge}.` : ""}`;
   const narrow = width < 160;
   const pips = view.pips && (
     <View style={styles.pips}>
@@ -245,7 +247,7 @@ function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }
       onLayout={onPress ? undefined : onLayout}
       // a part that opens for editing is labeled by its button instead
       accessible={!onPress}
-      accessibilityLabel={onPress ? undefined : `${label}: ${said}. ${points}${view.state === "revealed" ? ", shown to you" : ""}.${view.badge ? ` ${view.badge}.` : ""}`}
+      accessibilityLabel={onPress ? undefined : readLabel}
     >
       <View style={[styles.partHead, narrow && styles.narrowHead]}>
         {narrow ? <View style={styles.partSymbols}><PartIcon d={icon} color={look.labelInk} />{pips}</View> : <PartIcon d={icon} color={look.labelInk} />}
@@ -273,7 +275,7 @@ function PartBox({ view, width, ring, active, onPress, reads = false, onLayout }
       onPress={onPress}
       onLayout={onLayout}
       accessibilityRole="button"
-      accessibilityLabel={`${label}${view.prompt ? `. ${view.prompt}` : ""}${view.context ? `. ${view.context}` : ""}: ${said}${active ? ". Suggested next area" : ""}`}
+      accessibilityLabel={reads ? readLabel : `${label}${view.prompt ? `. ${view.prompt}` : ""}${view.context ? `. ${view.context}` : ""}: ${said}${active ? ". Suggested next area" : ""}`}
       accessibilityHint={reads ? "Opens this area to read it in full, with the feedback on it." : "Opens this area to write or edit your answer. Your map is scored when you submit it."}
       {...bind}
       style={feel()}
