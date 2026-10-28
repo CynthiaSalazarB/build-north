@@ -73,7 +73,7 @@ rejects both when `NODE_ENV=production` or when no `DEV_KEY` is set. Every route
 | `GET` | `/sessions/:id/transcript` | | `{ steps: TranscriptStep[] }`: every saved step, oldest first, each the body the learner sent (`null` for the start) and the `Turn` it got. The app replays them so a session picked up again, or a map opened again, shows its whole conversation. Empty for a session saved before Oct 25 (the app then shows the latest `Turn` alone). `404` for a session that isn't the caller's |
 | `GET` | `/me/mastery` | | `Mastery` |
 | `GET` | `/me/memory` | | `MemoryView` (the Memory sheet; see [Memory](#memory-what-earlier-sessions-left)) |
-| `DELETE` | `/me/data` | | `204`, deletes sessions, logs and mastery, and purges the learner's memory (the delete button) |
+| `DELETE` | `/me/data` | | `204`, deletes sessions, logs (by their session or their learner) and mastery, and purges the learner's memory, with the memory flag off too when memory is set up (the delete button); `502` when memory refuses the purge, and nothing is deleted |
 | `GET` | `/health` | | `{ ok: true, commit, memory }`: the running commit (7 characters, `null` locally) and `"on"` or `"off"` for Agent Memory (#143). Never touches the database, and the rate limit skips it |
 | `GET` | `/health/db` | | `{ ok: true, ... }` with SurrealDB's clock and the milliseconds it took (read-only); `503` when the database is not configured or does not answer. An ops check, not part of the app contract |
 
@@ -271,7 +271,8 @@ type MemoryFact = {
 - **Memory never changes a number.** Levels, hint steps and points still come from code (section 3);
   memory only remembers them, so if it's wrong, stale or deleted, no score changes.
 - **Optional end to end.** Off by default behind a flag. When it's off, empty, or slower than 1.5 s, the
-  API calls the agent without it, and the user message is the same as before memory existed.
+  API calls the agent without it, and the user message is the same as before memory existed. With the flag off but
+  memory set up (endpoint, context, key), only Delete my data still talks to memory: it purges the learner's scope.
 - **`cites`:** the hint giver's and the coach's outputs carry the ids of the facts their text relies on.
   The API keeps only ids it passed in and logs the rest, with `verifyCites(output, memory)` from
   `@build-north/agents` (it returns the cleaned output and the dropped ids; they go to the `agent_log` row
@@ -285,7 +286,10 @@ type MemoryFact = {
   each fact an attribute of the entity `topic/<pseudonym>_<concept>` (the concept as lowercase letters, digits and
   underscores; one with anything but letters, digits and spaces, dots, dashes or slashes between them, like C++, C# or
   a Japanese name, adds the start of a hash of itself, so two concepts never share a history) sent as a triple with its provenance in
-  labels: `session`, `turn`, `writer`, and the numbers):
+  labels: `session`, `turn`, `writer`, and the numbers). Memory written before Oct 27 on a concept the slug alone
+  couldn't keep sits under the slug alone, so the API reads that name too, and a row counts for a concept only when
+  its `session` label is one of the learner's sessions on a concept with the same entity name: C++'s old rows under
+  `…_c` stay out of C, and a row from a session the learner doesn't have counts for nothing:
   - `level_<move>`, for each part whose level changed: "You moved up to level 3 on 'What it isn't' for API on
     Oct 22." (`writtenBy: evaluator`). A finished part memory holds no level for yet gets its baseline instead,
     the level the session ended at: "You were at level 5 on 'Its types' for API on Oct 23." (same key and
@@ -298,7 +302,8 @@ type MemoryFact = {
 
 `GET /me/memory` returns `MemoryView`, what the app's Memory sheet shows: per concept and move, the
 level now and its history (level, since, until, source, which agent wrote it, how many times other
-agents read it), and the latest whole-map gap beside the one before. The shapes are in
+agents read it), and the latest whole-map gap beside the one before; one card per concept however it was typed
+("CORS" and "cors" are one history). The shapes are in
 `agents/src/contracts.ts` (section 2b) and `agents/fixtures/memory-view.json`.
 
 ### Questioner: asks the plain question for the learner's level
@@ -520,16 +525,18 @@ with `error` set. What `callAgent` throws carries `code` and `retryable`, the tw
 |---|---|---|
 | `mastery` | user, move, level, unassistedSuccesses, updatedAt | one row per user per move; read every turn |
 | `session` | id, user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, recent, retries, lastIssue, nextQuestion, questions, moveLog, result, transcript, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat; `hintsPerMove` starts with all four moves at 0, `retries` at 0, `lastIssue` at `"none"`, `nextQuestion` at null. `transcript` is the API's, not the orchestrator's: one `{ body, turn }` per saved Turn, appended in the same conditional write as the Turn, never for an error Turn, a resend or a 409; `[]` on sessions saved before Oct 25 |
-| `agent_log` | session, agent, input, output, ms, usd, at, dropped? | append-only; debugging, the testers' numbers (fact desk rows are the questions metric) and what a session costs. `dropped` is on a coach or hint giver row whose output cited a fact id the API hadn't passed in (CONTRACTS.md, Memory) |
+| `agent_log` | session, user?, agent, input, output, ms, usd, at, dropped? | append-only; debugging, the testers' numbers (fact desk rows are the questions metric) and what a session costs. `user` (since Oct 28) names the learner the call was for, so Delete my data finds a row whose session is gone; older rows go by their session. `dropped` is on a coach or hint giver row whose output cited a fact id the API hadn't passed in (CONTRACTS.md, Memory) |
 
 With the memory flag on, SurrealDB Agent Memory keeps one scope per learner (a salted hash of the Clerk
 id) holding the facts in [Memory](#memory-what-earlier-sessions-left): each with its source, the agent that
 wrote it, the fact it superseded and who read it. It's a copy for the agents and the Memory sheet; the
 tables above stay the record.
 
-`DELETE /me/data` purges the user's memory scope first (`POST /scopes/forget`, a hard delete), then removes all three tables' rows.
+`DELETE /me/data` purges the user's memory scope first (`POST /scopes/forget`, a hard delete), then removes all three tables' rows
+(`agent_log` by `session.user` or `user`).
 Both wait for the user's writes in flight in the API process (a Turn being answered, with its `agent_log` rows; the
-memory write a result started, which stops before its next fact), and the user's writes that arrive meanwhile wait for
+memory write a result started, which stops before its next fact, and after a write memory stopped answering in time
+waits one more write's time, since memory may still apply it), and the user's writes that arrive meanwhile wait for
 the delete, so nothing comes back after the 204.
 
 ---
@@ -555,6 +562,8 @@ the delete, so nothing comes back after the 204.
   compiled, then cached 24 h), so warm up every agent before the demo.
 - If a call fails or Claude refuses, return the same `Turn` with `error` set. Never fill the gap
   with a made-up answer.
+- Errors answer in JSON. body-parser's 400 and 413 carry their words; memory failing (`GET /me/memory`,
+  `DELETE /me/data`) is `502` with the API's words, never memory's status or text, which go to the log.
 
 ---
 
