@@ -4,7 +4,7 @@ import express, { type ErrorRequestHandler, type Request, type Response } from "
 import { rateLimit } from "express-rate-limit";
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { DbCheck } from "./db.ts";
-import { fillSources, withMemory, type LearnerMemoryStore } from "./memory.ts";
+import { MemoryError, fillSources, withMemory, type LearnerMemoryStore } from "./memory.ts";
 import type { MasteryProgress, NewSession, Store } from "./store.ts";
 
 export type AppOptions = {
@@ -27,6 +27,9 @@ export type AppOptions = {
   // written when a session has its result, shown by GET /me/memory and purged by DELETE /me/data. null with the
   // flag off: every route then runs as before memory existed.
   memory: LearnerMemoryStore | null;
+  // With memory null (the flag off) but memory set up, Delete my data's purge of what the learner left there while the
+  // flag was on: it is still theirs to delete. null when memory was never set up (code review, Oct 28).
+  purgeMemory?: ((user: string) => Promise<void>) | null;
   // The commit this process runs (Render's RENDER_GIT_COMMIT, shortened), so /health says what is live
   // without a dashboard visit. null when unknown (local runs, tests).
   commit?: string | null;
@@ -142,7 +145,7 @@ function parseNewSession(body: unknown): Parsed<NewSession> {
   return { ok: true, value: { concept: concept.trim(), material: material?.trim() ? material : null, mode } };
 }
 
-export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, userFromToken, devKey, requestsPerMinute = 60, memory, commit = null }: AppOptions) {
+export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, userFromToken, devKey, requestsPerMinute = 60, memory, purgeMemory = null, commit = null }: AppOptions) {
   const app = express();
   const writes = learnerWrites();
   // Every agent call is one of the learner's writes too (its agent_log row): the orchestrator asks the next question
@@ -393,6 +396,7 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     if (!who) return;
     await writes.erase(who.user, async () => {
       if (memory) await memory.purge(who.user);
+      else if (purgeMemory) await purgeMemory(who.user);
       await who.store.deleteUserData(who.user);
     });
     res.status(204).end();
@@ -402,12 +406,14 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     res.status(404).json({ error: "Not found" });
   });
 
-  // Every error answers in JSON, never with a stack trace. body-parser marks its own errors with a
-  // status: 400 for broken JSON, 413 for a body over the limit.
+  // Every error answers in JSON, never with a stack trace. body-parser marks its own errors with a status and `expose`:
+  // 400 for broken JSON, 413 for a body over the limit, with words meant for the caller. Memory failing (MemoryError,
+  // whose status and words are memory's) is a service behind the API: a 502 the app offers to retry, and memory's words
+  // go to the log only (code review, Oct 28: a key memory refused read as the learner's sign-in failing).
   const onError: ErrorRequestHandler = (error, _req, res, _next) => {
-    const status = typeof error?.status === "number" && error.status < 500 ? error.status : 500;
-    if (status === 500) console.error(error);
-    res.status(status).json({ error: status === 500 ? "Something went wrong; the cause is in the server logs" : String(error.message) });
+    const status = error?.expose === true && typeof error.status === "number" && error.status < 500 ? error.status : error instanceof MemoryError ? 502 : 500;
+    if (status >= 500) console.error(error);
+    res.status(status).json({ error: status === 502 ? "Memory didn't answer; the cause is in the server logs" : status === 500 ? "Something went wrong; the cause is in the server logs" : String(error.message) });
   };
   app.use(onError);
 

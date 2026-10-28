@@ -4,7 +4,7 @@ import { createApp } from "./app.ts";
 import { agentConfigFromEnv, createCallAgent, sendWith } from "./call-agent.ts";
 import { clerkConfigFromEnv, clerkUserFromToken } from "./clerk.ts";
 import { connectSurreal, surrealCheck, surrealConfigFromEnv } from "./db.ts";
-import { createLearnerMemory, createMemoryApi, memoryConfigFromEnv } from "./memory.ts";
+import { createLearnerMemory, createMemoryApi, memoryConfigFromEnv, memoryPurgeConfigFromEnv, memoryPurgeOf } from "./memory.ts";
 import { createStore, defineSchema } from "./store.ts";
 
 const port = Number(process.env.PORT || 3000);
@@ -38,6 +38,9 @@ const callAgentFor =
 // sheet counts who read each fact from agent_log, and the facts come from sessions with a result.
 const memoryConfig = memoryConfigFromEnv();
 const memory = memoryConfig && store ? createLearnerMemory(createMemoryApi(memoryConfig), memoryConfig) : null;
+// With the flag off, what learners left in memory while it was on still goes with Delete my data
+const purgeConfig = memory ? null : memoryPurgeConfigFromEnv();
+const purgeMemory = purgeConfig ? memoryPurgeOf(createMemoryApi(purgeConfig), purgeConfig) : null;
 
 createApp({
   corsOrigins,
@@ -50,13 +53,14 @@ createApp({
   // per IP: a room of testers on one Wi-Fi shares one, so the limit can be raised for the day
   requestsPerMinute: Number(process.env.REQUESTS_PER_MINUTE) || undefined,
   memory,
+  purgeMemory,
   // Render sets RENDER_GIT_COMMIT on every deploy (render.com/docs/environment-variables)
   commit: process.env.RENDER_GIT_COMMIT?.trim().slice(0, 7) || null,
 }).listen(port, (error) => {
   if (error) throw error;
   const dbInfo = surreal ? `${new URL(surreal.url).host} (${surreal.namespace}/${surreal.database})` : "not configured";
   const claude = agents && store ? `${agents.model}, $${agents.budgetUsd} budget` : "off, sessions replay the session-1 fixture";
-  const memoryInfo = memory ? `on (${new URL(memoryConfig!.endpoint).host})` : memoryConfig ? "off, no database" : "off";
+  const memoryInfo = memory ? `on (${new URL(memoryConfig!.endpoint).host})` : memoryConfig ? "off, no database" : purgeMemory ? "off; Delete my data still purges it" : "off";
   console.log(
     `api listening on :${port} · CORS: ${corsOrigins.join(", ") || "none"} · SurrealDB: ${dbInfo} · Clerk: ${clerk ? "on" : "off"} · x-dev-user: ${devKey ? "on, with x-dev-key" : "off"} · Claude: ${claude} · Agent Memory: ${memoryInfo}`,
   );

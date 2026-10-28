@@ -54,6 +54,16 @@ export function memoryConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Memor
   return { endpoint: endpoint.replace(/\/+$/, ""), context, apiKey, salt: env.LEARNER_ID_SALT ?? "" };
 }
 
+// With the flag off, Delete my data still needs memory when it is set up: what a learner left there while the flag was
+// on is still theirs to delete (code review, Oct 28). Null when memory was never set up, or its endpoint isn't a URL.
+export function memoryPurgeConfigFromEnv(env: NodeJS.ProcessEnv = process.env): MemoryConfig | null {
+  const endpoint = env.AGENT_MEMORY_ENDPOINT?.trim();
+  const context = env.AGENT_MEMORY_CONTEXT?.trim();
+  const apiKey = env.AGENT_MEMORY_API_KEY?.trim();
+  if (!endpoint || !context || !apiKey || !URL.canParse(endpoint)) return null;
+  return { endpoint: endpoint.replace(/\/+$/, ""), context, apiKey, salt: env.LEARNER_ID_SALT ?? "" };
+}
+
 // ---------- Names: the scope, the entity and the keys ----------
 
 /** What memory knows a learner as: the testers' pseudonym (export-testers.ts), never the Clerk id. */
@@ -393,10 +403,19 @@ export type LearnerMemoryOptions = Pick<MemoryConfig, "salt"> & {
   warn?: (message: string) => void;
 };
 
+/** Delete my data's purge: everything under the learner's scope, for good. Alone, it is what the API keeps of memory
+ * with the flag off (`memoryPurgeConfigFromEnv`). */
+export const memoryPurgeOf =
+  (api: MemoryApi, { salt }: Pick<MemoryConfig, "salt">) =>
+  async (user: string): Promise<void> => {
+    await api.forgetScope(scopeOf(pseudonymOf(user, salt)), AbortSignal.timeout(WRITE_MS));
+  };
+
 export function createLearnerMemory(api: MemoryApi, { salt, readMs = MEMORY_READ_MS, warn = (message) => console.warn(message) }: LearnerMemoryOptions): LearnerMemoryStore {
   // scopes registered by this process, so a learner's second session doesn't ask again
   const registered = new Set<string>();
   const who = (user: string) => pseudonymOf(user, salt);
+  const forget = memoryPurgeOf(api, { salt });
   const reason = (error: unknown) => (error instanceof Error ? error.message : String(error));
 
   return {
@@ -459,9 +478,8 @@ export function createLearnerMemory(api: MemoryApi, { salt, readMs = MEMORY_READ
     },
 
     async purge(user) {
-      const scope = scopeOf(who(user));
-      await api.forgetScope(scope, AbortSignal.timeout(WRITE_MS));
-      registered.delete(scope);
+      await forget(user);
+      registered.delete(scopeOf(who(user)));
     },
   };
 }

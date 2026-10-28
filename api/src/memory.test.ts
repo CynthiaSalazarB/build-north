@@ -13,6 +13,8 @@ import {
   factsToWrite,
   fillSources,
   memoryConfigFromEnv,
+  memoryPurgeConfigFromEnv,
+  memoryPurgeOf,
   readCountsOf,
   scopeOf,
   viewOf,
@@ -601,4 +603,30 @@ test("the keys memory holds are level_<move>, gap and help_<move>, under an enti
   // a gap fact has no part and no level, and names the gap it replaced
   const gap = factOf(rows[4]!, "API");
   assert.deepEqual([gap?.move, gap?.level, gap?.supersedes, gap?.writtenBy], [undefined, undefined, "attr_gap1", "coach"]);
+});
+
+test("with the flag off, memory that is set up still purges: what a learner left there while it was on goes with Delete my data (code review, Oct 28)", async () => {
+  const vars = { AGENT_MEMORY_ENDPOINT: "https://m.example/", AGENT_MEMORY_CONTEXT: "c", AGENT_MEMORY_API_KEY: "k", LEARNER_ID_SALT: "pepper" };
+  const config = { endpoint: "https://m.example", context: "c", apiKey: "k", salt: "pepper" };
+  assert.deepEqual(memoryPurgeConfigFromEnv(vars), config);
+  assert.deepEqual(memoryPurgeConfigFromEnv({ ...vars, AGENT_MEMORY_ENABLED: "false" }), config);
+  // never set up, set up halfway, or an endpoint that isn't one: nothing to purge from
+  assert.equal(memoryPurgeConfigFromEnv({}), null);
+  assert.equal(memoryPurgeConfigFromEnv({ ...vars, AGENT_MEMORY_API_KEY: " " }), null);
+  assert.equal(memoryPurgeConfigFromEnv({ ...vars, AGENT_MEMORY_ENDPOINT: "not a url" }), null);
+  // the purge is the learner's scope under their pseudonym, as the full client's
+  const forgotten: string[] = [];
+  const api: MemoryApi = {
+    async registerScope() {},
+    async write() {},
+    async history() {
+      return [];
+    },
+    async forgetScope(path) {
+      forgotten.push(path);
+      return 3;
+    },
+  };
+  await memoryPurgeOf(api, { salt: "pepper" })("user_2leo");
+  assert.deepEqual(forgotten, [scopeOf(pseudonymOf("user_2leo", "pepper"))]);
 });

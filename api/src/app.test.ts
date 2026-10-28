@@ -28,7 +28,7 @@ import { advanceStub, callAgentStub } from "./advance-stub.ts";
 import { changedMoves, createApp, learnerWrites, type AppOptions } from "./app.ts";
 import { clerkUserFromToken } from "./clerk.ts";
 import { createCallAgent, type SendToClaude } from "./call-agent.ts";
-import { createLearnerMemory, createMemoryApi, type LearnerMemoryStore, type MemoryApi } from "./memory.ts";
+import { MemoryError, createLearnerMemory, createMemoryApi, type LearnerMemoryStore, type MemoryApi } from "./memory.ts";
 import { initialSession, type AgentLogEntry, type Store } from "./store.ts";
 
 const WEB = "http://localhost:8081";
@@ -1257,4 +1257,54 @@ test("a memory read slower than its budget leaves the hint giver without memory,
   assert.deepEqual(hintRow.dropped, ["attr_sup1"]);
   // the Turn was saved as it went out
   assert.deepEqual(await (await fetch(`${url}/sessions/${first.sessionId}`, { headers: as("leo") })).json(), hinted);
+});
+
+test("memory failing is a 502 in the API's words, never memory's status or text; body-parser's 400 still says what was wrong (code review, Oct 28)", async (t) => {
+  const errors = t.mock.method(console, "error", () => {});
+  const memory: LearnerMemoryStore = {
+    async recall() {
+      return undefined;
+    },
+    async remember() {},
+    async view() {
+      throw new MemoryError(401, "memory answered 401: invalid api key for context ctx");
+    },
+    async purge() {
+      throw new MemoryError(403, "memory answered 403: scope learner/1a2b3c4d is not writable by this key");
+    },
+  };
+  const store = memoryStore();
+  const deletes = t.mock.method(store, "deleteUserData");
+  const url = await start(t, { ...noDb, store, memory });
+  // a key memory refuses is the API's problem, not the learner's sign-in (the app reads a 401 as "sign in again")
+  const sheet = await fetch(`${url}/me/memory`, { headers: as("leo") });
+  assert.equal(sheet.status, 502);
+  const sheetBody = JSON.stringify(await sheet.json());
+  assert.doesNotMatch(sheetBody, /memory answered|api key|401/);
+  // a purge memory refuses fails the delete as one worth trying again, and the tables stay
+  const deleted = await fetch(`${url}/me/data`, { method: "DELETE", headers: as("leo") });
+  assert.equal(deleted.status, 502);
+  assert.doesNotMatch(JSON.stringify(await deleted.json()), /memory answered|scope|403/);
+  assert.equal(deletes.mock.callCount(), 0);
+  // the cause goes to the server log
+  assert.match(errors.mock.calls.map((call) => String(call.arguments[0])).join("\n"), /memory answered 401/);
+  // body-parser's own errors still tell the caller what was wrong
+  const broken = await post(url, "{not json");
+  assert.equal(broken.status, 400);
+  assert.notEqual((await broken.json()).error, undefined);
+});
+
+test("with memory off but set up, Delete my data still purges what the learner left there, and nothing else touches memory (code review, Oct 28)", async (t) => {
+  const order: string[] = [];
+  const store = memoryStore();
+  const deleteUserData = store.deleteUserData;
+  t.mock.method(store, "deleteUserData", async (user: string) => {
+    order.push(`tables ${user}`);
+    await deleteUserData(user);
+  });
+  const url = await start(t, { ...noDb, store, memory: null, purgeMemory: async (user) => void order.push(`purge ${user}`) });
+  assert.deepEqual(await (await fetch(`${url}/health`)).json(), { ok: true, commit: null, memory: "off" });
+  assert.deepEqual(await (await fetch(`${url}/me/memory`, { headers: as("leo") })).json(), { concepts: [] });
+  assert.equal((await fetch(`${url}/me/data`, { method: "DELETE", headers: as("leo") })).status, 204);
+  assert.deepEqual(order, ["purge leo", "tables leo"]);
 });
