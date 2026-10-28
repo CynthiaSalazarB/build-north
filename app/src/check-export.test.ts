@@ -7,7 +7,8 @@ import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { test, type TestContext } from "node:test";
-import { fileURLToPath } from "node:url";
+// Node's URL, not the DOM one the app's types also declare, so fileURLToPath accepts it
+import { fileURLToPath, URL } from "node:url";
 
 const SCRIPT = fileURLToPath(new URL("../scripts/check-export.mjs", import.meta.url));
 const API = "https://api.example.test";
