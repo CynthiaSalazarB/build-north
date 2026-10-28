@@ -277,6 +277,11 @@ export function createApp({ corsOrigins, checkDb, store, advance, callAgentFor, 
     if (!who) return;
     const parsed = TurnBody.safeParse(req.body);
     if (!parsed.success) {
+      const tooLong = parsed.error.issues.find((issue) => issue.code === "too_big" && (issue.path[0] === "text" || issue.path[0] === "question"));
+      if (tooLong) {
+        res.status(400).json({ error: tooLong.path[0] === "text" ? "Your answer is over 2,000 characters. Shorten it and send it again." : "Your question is over 500 characters. Shorten it and send it again." });
+        return;
+      }
       // a body that matches none of the shapes gets the list instead of Zod's "Invalid input"
       const noShape = parsed.error.issues[0]?.code === "invalid_union";
       res.status(400).json({ error: noShape ? TURN_BODY : describe(parsed.error.issues) });

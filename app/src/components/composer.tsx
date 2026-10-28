@@ -113,6 +113,7 @@ function AnswerBar({ pending, placeholder, label, context, help, onHelp, onSend,
           }}
           placeholder={voice.state.kind === "listening" ? "Listening" : placeholder}
           multiline
+          maxLength={2000}
           editable={!pending}
           accessibilityLabel={label}
           onSubmitEditing={submit}

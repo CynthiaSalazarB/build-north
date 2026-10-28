@@ -84,8 +84,8 @@ export const SessionList = z.strictObject({ sessions: z.array(SessionSummary) })
 const answering = { turn: z.number().int() };
 export const TurnBody = z.union([
   z.strictObject({ ...answering, prediction: z.number().int().min(0).max(8) }),
-  z.strictObject({ ...answering, text: z.string().min(1) }),
-  z.strictObject({ ...answering, question: z.string().min(1) }),
+  z.strictObject({ ...answering, text: z.string().min(1).max(2000) }),
+  z.strictObject({ ...answering, question: z.string().min(1).max(500) }),
   z.strictObject({ ...answering, mentefacto: Mentefacto }),
   z.strictObject({ ...answering, action: z.enum(["help", "continue"]) }),
 ]);
@@ -175,12 +175,18 @@ export const Turn = z.strictObject({
 });
 export type Turn = z.infer<typeof Turn>;
 
+// Saved answers and questions may predate the request limits.
+const savedTurnBody = z.union([
+  ...TurnBody.options,
+  z.strictObject({ ...answering, text: z.string().min(1) }),
+  z.strictObject({ ...answering, question: z.string().min(1) }),
+]);
 /**
  * One saved step of a session: the body the learner sent (null for the start) and the Turn that came back. The API
  * keeps every step on the session row (`Session.transcript`), so a session picked up again, or a finished map opened
  * from "Your maps", shows its whole conversation instead of the latest Turn alone.
  */
-export const TranscriptStep = z.strictObject({ body: TurnBody.nullable(), turn: Turn });
+export const TranscriptStep = z.strictObject({ body: savedTurnBody.nullable(), turn: Turn });
 export type TranscriptStep = z.infer<typeof TranscriptStep>;
 /** What GET /sessions/:id/transcript answers: every saved step, oldest first. Empty for a session saved before Oct 25. */
 export const Transcript = z.strictObject({ steps: z.array(TranscriptStep) });

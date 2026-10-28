@@ -82,6 +82,8 @@ asks for: `prediction` → `{ prediction }`, `text` → `{ text }`, `continue` �
 `map` → `{ question }` while the learner asks and `{ mentefacto }` to submit. `{ action: "help" }`
 works during the moves, the whole map included.
 
+`text` allows up to 2,000 characters; `question` allows up to 500. Saved transcripts keep older, longer answers and questions readable.
+
 The session ends in two Turns, so the result never waits for the coach. The last answer's Turn shows the
 result with `result.coach: null` and `expects: "continue"`; the app shows the result and sends
 `{ action: "continue" }` at once, with no button. The next Turn brings the coach's words (`result.coach`
