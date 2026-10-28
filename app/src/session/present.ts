@@ -239,14 +239,17 @@ export const withFeedbackToRead = (parts: readonly PartView[], hasWords: (move: 
   parts.map((part) => (part.state === "unasked" && hasWords(part.move) ? { ...part, opens: true } : part));
 
 /** The parts Help revealed, from what the session recorded. On the whole map (a self-test, or level 5 everywhere) Help
- * works through the parts in order, four steps each, so the first hintsUsed / 4 parts were revealed; in a guided session
- * they are the parts a reveal closed (`partClosingsOf`). A guided session picked up without its conversation has no
- * record of a reveal, so its parts read as the learner's own. */
-export function revealedPartsOf(entries: readonly Entry[], result: Pick<Result, "hintsUsed">, mode: SessionMode): Set<MoveId> {
-  const wholeMap = mode === "test" || entries.some((e) => e.from === "app" && e.phase === "move" && e.move === null);
+ * works through the parts in order, four steps each, so the first hintsUsed / 4 parts were revealed; a session is on the
+ * whole map when it asked for one, or, picked up without its conversation, when its result carries area notes. In a
+ * guided session they are the parts a reveal closed (`partClosingsOf`); a part closes on a right answer or a reveal, so
+ * one with no record of how it closed (picked up without its conversation) was revealed when it scored 0 (code review,
+ * Oct 28). */
+export function revealedPartsOf(entries: readonly Entry[], result: Pick<Result, "hintsUsed" | "rubric">, mode: SessionMode): Set<MoveId> {
+  const wholeMap =
+    mode === "test" || entries.some((e) => e.from === "app" && e.phase === "move" && e.move === null) || Object.keys(partNotesOf(resultMessagesOf(entries))).length > 0;
   if (wholeMap) return new Set(MOVE_ORDER.slice(0, Math.floor(result.hintsUsed / STEPS_PER_PART)));
   const closings = partClosingsOf(entries);
-  return new Set(MOVE_ORDER.filter((move) => closings[move]?.revealed));
+  return new Set(MOVE_ORDER.filter((move) => closings[move]?.revealed ?? result.rubric.find((r) => r.move === move)?.points === 0));
 }
 
 /** One part of the result, the way the worked example reads: its points as the map shows them, the learner's

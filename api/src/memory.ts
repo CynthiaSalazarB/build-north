@@ -54,6 +54,16 @@ export function memoryConfigFromEnv(env: NodeJS.ProcessEnv = process.env): Memor
   return { endpoint: endpoint.replace(/\/+$/, ""), context, apiKey, salt: env.LEARNER_ID_SALT ?? "" };
 }
 
+// With the flag off, Delete my data still needs memory when it is set up: what a learner left there while the flag was
+// on is still theirs to delete (code review, Oct 28). Null when memory was never set up, or its endpoint isn't a URL.
+export function memoryPurgeConfigFromEnv(env: NodeJS.ProcessEnv = process.env): MemoryConfig | null {
+  const endpoint = env.AGENT_MEMORY_ENDPOINT?.trim();
+  const context = env.AGENT_MEMORY_CONTEXT?.trim();
+  const apiKey = env.AGENT_MEMORY_API_KEY?.trim();
+  if (!endpoint || !context || !apiKey || !URL.canParse(endpoint)) return null;
+  return { endpoint: endpoint.replace(/\/+$/, ""), context, apiKey, salt: env.LEARNER_ID_SALT ?? "" };
+}
+
 // ---------- Names: the scope, the entity and the keys ----------
 
 /** What memory knows a learner as: the testers' pseudonym (export-testers.ts), never the Clerk id. */
@@ -78,6 +88,10 @@ export type MemoryEntity = { type: "topic"; name: string };
 
 /** One entity per learner and concept; its attributes are the facts, one key per fact (below; underscores, since memory folds a dot in a key to one). */
 export const entityOf = (pseudonym: string, concept: string): MemoryEntity => ({ type: "topic", name: `${pseudonym}_${conceptKey(concept)}` });
+
+/** The name every concept had before Oct 27, the slug alone: what memory holds from then on a concept the slug couldn't
+ * keep ("C++", "Dijkstra's algorithm") is under it, beside what other concepts with the same slug wrote ("C"). */
+const legacyEntityOf = (pseudonym: string, concept: string): MemoryEntity => ({ type: "topic", name: `${pseudonym}_${slug(concept)}` });
 
 type FactKind = "level" | "gap" | "help";
 
@@ -389,21 +403,72 @@ export type LearnerMemoryStore = {
 };
 
 export type LearnerMemoryOptions = Pick<MemoryConfig, "salt"> & {
+  /** The concept of each of the learner's sessions among `sessionIds` (`Store.sessionConcepts`): a row counts for a
+   * concept only when the session that wrote it is the learner's, on a concept with the same entity name. */
+  conceptsOf: (user: string, sessionIds: readonly string[]) => Promise<ReadonlyMap<string, string>>;
   readMs?: number;
+  /** How long a write, the sheet's reads and the purge wait for memory (WRITE_MS). */
+  writeMs?: number;
   warn?: (message: string) => void;
 };
 
-export function createLearnerMemory(api: MemoryApi, { salt, readMs = MEMORY_READ_MS, warn = (message) => console.warn(message) }: LearnerMemoryOptions): LearnerMemoryStore {
+/** The reason AbortSignal.timeout gives: memory stopped answering in time, and may still apply what it was sent. */
+const timedOut = (error: unknown) => (error as { name?: unknown } | null)?.name === "TimeoutError";
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+/** `work`, unless `signal` aborts first: then its reason. The read before an agent gives up at its budget, whatever it
+ * is waiting on (memory, or the database's answer about the sessions). */
+function within<T>(work: Promise<T>, signal: AbortSignal): Promise<T> {
+  return new Promise((resolve, reject) => {
+    const stop = () => reject(signal.reason);
+    if (signal.aborted) return stop();
+    signal.addEventListener("abort", stop, { once: true });
+    work.then(resolve, reject).finally(() => signal.removeEventListener("abort", stop));
+  });
+}
+
+/** Delete my data's purge: everything under the learner's scope, for good. Alone, it is what the API keeps of memory
+ * with the flag off (`memoryPurgeConfigFromEnv`). */
+export const memoryPurgeOf =
+  (api: MemoryApi, { salt, writeMs = WRITE_MS }: Pick<MemoryConfig, "salt"> & { writeMs?: number }) =>
+  async (user: string): Promise<void> => {
+    await api.forgetScope(scopeOf(pseudonymOf(user, salt)), AbortSignal.timeout(writeMs));
+  };
+
+export function createLearnerMemory(
+  api: MemoryApi,
+  { salt, conceptsOf, readMs = MEMORY_READ_MS, writeMs = WRITE_MS, warn = (message) => console.warn(message) }: LearnerMemoryOptions,
+): LearnerMemoryStore {
   // scopes registered by this process, so a learner's second session doesn't ask again
   const registered = new Set<string>();
   const who = (user: string) => pseudonymOf(user, salt);
+  const forget = memoryPurgeOf(api, { salt, writeMs });
   const reason = (error: unknown) => (error instanceof Error ? error.message : String(error));
+
+  // A concept's rows: from the entity its name maps to and, for a name the slug alone couldn't keep, from the one it had
+  // before Oct 27. Each counts only when the session that wrote it is one of this learner's, on a concept with the same
+  // entity name: C++'s rows from before then sit under the name C still reads, and they stay out of C and still reach
+  // C++ (code review, Oct 28). A row from a session the learner doesn't have counts for nothing.
+  async function rowsOf(user: string, concept: string, signal: AbortSignal): Promise<MemoryRow[]> {
+    const pseudonym = who(user);
+    const names = [...new Set([entityOf(pseudonym, concept).name, legacyEntityOf(pseudonym, concept).name])];
+    const rows = (await Promise.all(names.map((name) => api.history({ type: "topic", name }, signal)))).flat();
+    const ids = [...new Set(rows.flatMap((row) => labelOf(row, "session") ?? []))];
+    if (ids.length === 0) return [];
+    const concepts = await conceptsOf(user, ids);
+    const key = conceptKey(concept);
+    return rows.filter((row) => {
+      const written = concepts.get(labelOf(row, "session") ?? "");
+      return written !== undefined && conceptKey(written) === key;
+    });
+  }
 
   return {
     async recall(user, concept, sessionId) {
       const started = performance.now();
       try {
-        const rows = await api.history(entityOf(who(user), concept), AbortSignal.timeout(readMs));
+        const budget = AbortSignal.timeout(readMs);
+        const rows = await within(rowsOf(user, concept, budget), budget);
         const facts = factsOf(rows, concept, sessionId);
         return facts.length ? { facts } : undefined;
       } catch (error) {
@@ -422,46 +487,55 @@ export function createLearnerMemory(api: MemoryApi, { salt, readMs = MEMORY_READ
       // read gets the write budget; when it fails, the session's level changes are still written.
       let onRecord: ReadonlySet<MoveId> | undefined;
       try {
-        onRecord = levelsOnRecord(await api.history(entity, AbortSignal.timeout(WRITE_MS)));
+        onRecord = levelsOnRecord(await rowsOf(user, session.concept, AbortSignal.timeout(writeMs)));
       } catch (error) {
         warn(`memory history skipped before the write, so only level changes are written: ${reason(error)}`);
       }
       const writes = factsToWrite(session, at, onRecord);
       if (stop?.aborted) return;
       if (!registered.has(scope)) {
-        await api.registerScope(scope, AbortSignal.timeout(WRITE_MS));
+        await api.registerScope(scope, AbortSignal.timeout(writeMs));
         registered.add(scope);
       }
       // One write per fact, so each row carries its own numbers in its labels, and one after another: the live
       // context answered "unknown error" to parallel writes on the same entity (Oct 23), one transaction each.
       const failures: unknown[] = [];
+      let late = false;
       for (const write of writes) {
         // never aborts the write in flight: memory may still apply one it stopped waiting for, after the purge
-        if (stop?.aborted) return;
+        if (stop?.aborted) break;
         try {
-          await api.write(scope, labelsOf({ session: session.id, turn: session.turn, ...write.labels }), [{ entity, key: write.key, value: write.value, occurred_at: at }], AbortSignal.timeout(WRITE_MS));
+          await api.write(scope, labelsOf({ session: session.id, turn: session.turn, ...write.labels }), [{ entity, key: write.key, value: write.value, occurred_at: at }], AbortSignal.timeout(writeMs));
         } catch (error) {
           failures.push(error);
+          if (timedOut(error)) late = true;
         }
       }
+      // A write memory stopped answering in time may still be applied. Waiting one more write's time before returning
+      // keeps a delete that waits for this (learnerWrites) from purging before memory applies it (code review, Oct 28).
+      if (late) await sleep(writeMs);
+      if (stop?.aborted) return;
       if (failures.length > 0) throw new Error(`${failures.length} of ${writes.length} memory writes failed: ${reason(failures[0])}`);
     },
 
     async view(user, concepts, reads) {
-      const pseudonym = who(user);
       const readBy = readCountsOf(reads);
       const out: MemoryView["concepts"] = [];
+      // one card per history: "CORS" and "cors" are the same entity, so the first spelling (the newest) shows it once
+      const shown = new Set<string>();
       for (const concept of concepts) {
-        const rows = await api.history(entityOf(pseudonym, concept), AbortSignal.timeout(WRITE_MS));
+        const key = conceptKey(concept);
+        if (shown.has(key)) continue;
+        shown.add(key);
+        const rows = await rowsOf(user, concept, AbortSignal.timeout(writeMs));
         if (rows.length > 0) out.push(viewOf(concept, rows, readBy));
       }
       return MemoryViewSchema.parse({ concepts: out });
     },
 
     async purge(user) {
-      const scope = scopeOf(who(user));
-      await api.forgetScope(scope, AbortSignal.timeout(WRITE_MS));
-      registered.delete(scope);
+      await forget(user);
+      registered.delete(scopeOf(who(user)));
     },
   };
 }

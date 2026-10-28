@@ -73,7 +73,7 @@ rejects both when `NODE_ENV=production` or when no `DEV_KEY` is set. Every route
 | `GET` | `/sessions/:id/transcript` | | `{ steps: TranscriptStep[] }`: every saved step, oldest first, each the body the learner sent (`null` for the start) and the `Turn` it got. The app replays them so a session picked up again, or a map opened again, shows its whole conversation. Empty for a session saved before Oct 25 (the app then shows the latest `Turn` alone). `404` for a session that isn't the caller's |
 | `GET` | `/me/mastery` | | `Mastery` |
 | `GET` | `/me/memory` | | `MemoryView` (the Memory sheet; see [Memory](#memory-what-earlier-sessions-left)) |
-| `DELETE` | `/me/data` | | `204`, deletes sessions, logs and mastery, and purges the learner's memory (the delete button) |
+| `DELETE` | `/me/data` | | `204`, deletes sessions, logs (by their session or their learner) and mastery, and purges the learner's memory, with the memory flag off too when memory is set up (the delete button); `502` when memory refuses the purge, and nothing is deleted |
 | `GET` | `/health` | | `{ ok: true, commit, memory }`: the running commit (7 characters, `null` locally) and `"on"` or `"off"` for Agent Memory (#143). Never touches the database, and the rate limit skips it |
 | `GET` | `/health/db` | | `{ ok: true, ... }` with SurrealDB's clock and the milliseconds it took (read-only); `503` when the database is not configured or does not answer. An ops check, not part of the app contract |
 
@@ -271,7 +271,8 @@ type MemoryFact = {
 - **Memory never changes a number.** Levels, hint steps and points still come from code (section 3);
   memory only remembers them, so if it's wrong, stale or deleted, no score changes.
 - **Optional end to end.** Off by default behind a flag. When it's off, empty, or slower than 1.5 s, the
-  API calls the agent without it, and the user message is the same as before memory existed.
+  API calls the agent without it, and the user message is the same as before memory existed. With the flag off but
+  memory set up (endpoint, context, key), only Delete my data still talks to memory: it purges the learner's scope.
 - **`cites`:** the hint giver's and the coach's outputs carry the ids of the facts their text relies on.
   The API keeps only ids it passed in and logs the rest, with `verifyCites(output, memory)` from
   `@build-north/agents` (it returns the cleaned output and the dropped ids; they go to the `agent_log` row
@@ -285,7 +286,10 @@ type MemoryFact = {
   each fact an attribute of the entity `topic/<pseudonym>_<concept>` (the concept as lowercase letters, digits and
   underscores; one with anything but letters, digits and spaces, dots, dashes or slashes between them, like C++, C# or
   a Japanese name, adds the start of a hash of itself, so two concepts never share a history) sent as a triple with its provenance in
-  labels: `session`, `turn`, `writer`, and the numbers):
+  labels: `session`, `turn`, `writer`, and the numbers). Memory written before Oct 27 on a concept the slug alone
+  couldn't keep sits under the slug alone, so the API reads that name too, and a row counts for a concept only when
+  its `session` label is one of the learner's sessions on a concept with the same entity name: C++'s old rows under
+  `…_c` stay out of C, and a row from a session the learner doesn't have counts for nothing:
   - `level_<move>`, for each part whose level changed: "You moved up to level 3 on 'What it isn't' for API on
     Oct 22." (`writtenBy: evaluator`). A finished part memory holds no level for yet gets its baseline instead,
     the level the session ended at: "You were at level 5 on 'Its types' for API on Oct 23." (same key and
@@ -298,7 +302,8 @@ type MemoryFact = {
 
 `GET /me/memory` returns `MemoryView`, what the app's Memory sheet shows: per concept and move, the
 level now and its history (level, since, until, source, which agent wrote it, how many times other
-agents read it), and the latest whole-map gap beside the one before. The shapes are in
+agents read it), and the latest whole-map gap beside the one before; one card per concept however it was typed
+("CORS" and "cors" are one history). The shapes are in
 `agents/src/contracts.ts` (section 2b) and `agents/fixtures/memory-view.json`.
 
 ### Questioner: asks the plain question for the learner's level
@@ -456,10 +461,10 @@ Hint giver).
 
 | When | Rule |
 |---|---|
-| Session start | predict (0 to 8 points, after one line explaining the task) → short attempt ("in your own words") → worked example if any move is at level 1 → the four moves → result → the coach's words |
+| Session start | predict (0 to 8 points, after one line explaining the task) → short attempt ("in your own words") → worked example if any move is at level 1 → the four moves → result → the coach's words. On the whole map (below) the prediction goes straight to the map: no attempt, no example |
 | Session end | the last answer's Turn shows the result, every number from code, with `coach: null` and `expects: "continue"`; the app's `continue` gets the coach's Turn, which ends the session. If the coach fails, its Turn carries fixed text built from the numbers |
 | Level for a move | read from mastery; new learners start at 1. Watching the worked example moves every move to level 2 |
-| After an answer | evaluator. `correct` → accept, name the move, next move. `partial` / `incorrect` → the feedback only, and the learner tries again (a retry). No automatic hint. A `correct` that leaves the move's part empty on the map is the evaluator failing (an agent call that fails, below) |
+| After an answer | evaluator. `correct` → accept, name the move, next move. `partial` / `incorrect` → the feedback only, and the learner tries again (a retry). No automatic hint. A `correct` that leaves the move's part empty on the map, one with `quality` 0, or a `correct` bigger group that accepts none (the map would keep the earlier one) is the evaluator failing (an agent call that fails, below) |
 | Hint ladder | nudge → hint → partial → reveal, one step per Help, and every Help counts. At levels 2 and 3 the feedback after a retry already nudged (free), so the first Help gives `hint`. At levels 4 and 5 there is no free nudge |
 | The next move's question | asked at the same time as the move's first evaluation (or Help), from the map as it was before that answer, and kept in `session.nextQuestion`. The turn that ends a move waits for one call, not two. If it fails, the next move asks when it starts |
 | Level 5 | **the learner asks.** They send any number of `{ question }` to the fact desk while filling the map, then submit `{ mentefacto }`. No per-move checks; whole-map evaluator at the end. Help gives a hint and caps that move at 1 point |
@@ -469,9 +474,9 @@ Hint giver).
 | Points per move | evaluator `quality` on the first try with no Help; capped at 1 after a retry or a Help; 0 if revealed. Max 8 |
 | Mastery | done with at most one retry or Help → level up one (max 5). Neither → `unassistedSuccesses + 1`. Never down in this version. The API saves what a Turn changed in the session's own transaction, onto the stored row: the level never drops below it and the successes add up, so a Turn that read mastery before another session saved can't undo that session's progress |
 | Calibration | `calibrationGap = predictedScore − score` (points) |
-| Exclusion without a difference | one follow-up question from code ("What's the key difference between democracy and dictatorship?"); not a hint, not a retry |
+| Exclusion without a difference | one follow-up question from code ("What's the key difference between democracy and dictatorship?"), at most once a move; not a hint, not a retry. An answer to it that still has no difference is a retry. When the answer to it is `correct` and the item still has no difference, the learner's own words become it |
 | Reveal | the ladder's last step reveals: the item goes on the map, the move scores 0, it's named, and the next move starts. A reveal with no item to show is the hint giver failing: the step isn't spent |
-| Help on the whole map | works on the first move, in order, whose hints haven't run out; a revealed item goes on the map |
+| Help on the whole map | works on the first move, in order, whose hints haven't run out; a revealed item goes on the map. The hints already given on that move go to the hint giver with the next Help, so none comes twice |
 | Done, on the whole map | a move counts as done (level up, unassisted success) when its quality is 2 |
 | The whole-map rubric | exactly one row per move, or the whole-map evaluator failed (an agent call that fails, below). A part left empty scores 0 whatever its row says |
 | Writing the map | a sharper item replaces the vaguer one it contains ("free elections" replaces "elections"); `note` only survives on exclusions; "a; b" becomes two items |
@@ -520,16 +525,18 @@ with `error` set. What `callAgent` throws carries `code` and `retryable`, the tw
 |---|---|---|
 | `mastery` | user, move, level, unassistedSuccesses, updatedAt | one row per user per move; read every turn |
 | `session` | id, user, concept, material, mode, turn, lastTurn, predictedScore, firstAttempt, phase, move, hintStep, hintsPerMove, mentefacto, recent, retries, lastIssue, nextQuestion, questions, moveLog, result, transcript, createdAt | the orchestrator's state; `lastTurn` is returned again on a repeat; `hintsPerMove` starts with all four moves at 0, `retries` at 0, `lastIssue` at `"none"`, `nextQuestion` at null. `transcript` is the API's, not the orchestrator's: one `{ body, turn }` per saved Turn, appended in the same conditional write as the Turn, never for an error Turn, a resend or a 409; `[]` on sessions saved before Oct 25 |
-| `agent_log` | session, agent, input, output, ms, usd, at, dropped? | append-only; debugging, the testers' numbers (fact desk rows are the questions metric) and what a session costs. `dropped` is on a coach or hint giver row whose output cited a fact id the API hadn't passed in (CONTRACTS.md, Memory) |
+| `agent_log` | session, user?, agent, input, output, ms, usd, at, dropped? | append-only; debugging, the testers' numbers (fact desk rows are the questions metric) and what a session costs. `user` (since Oct 28) names the learner the call was for, so Delete my data finds a row whose session is gone; older rows go by their session. `dropped` is on a coach or hint giver row whose output cited a fact id the API hadn't passed in (CONTRACTS.md, Memory) |
 
 With the memory flag on, SurrealDB Agent Memory keeps one scope per learner (a salted hash of the Clerk
 id) holding the facts in [Memory](#memory-what-earlier-sessions-left): each with its source, the agent that
 wrote it, the fact it superseded and who read it. It's a copy for the agents and the Memory sheet; the
 tables above stay the record.
 
-`DELETE /me/data` purges the user's memory scope first (`POST /scopes/forget`, a hard delete), then removes all three tables' rows.
+`DELETE /me/data` purges the user's memory scope first (`POST /scopes/forget`, a hard delete), then removes all three tables' rows
+(`agent_log` by `session.user` or `user`).
 Both wait for the user's writes in flight in the API process (a Turn being answered, with its `agent_log` rows; the
-memory write a result started, which stops before its next fact), and the user's writes that arrive meanwhile wait for
+memory write a result started, which stops before its next fact, and after a write memory stopped answering in time
+waits one more write's time, since memory may still apply it), and the user's writes that arrive meanwhile wait for
 the delete, so nothing comes back after the 204.
 
 ---
@@ -555,6 +562,8 @@ the delete, so nothing comes back after the 204.
   compiled, then cached 24 h), so warm up every agent before the demo.
 - If a call fails or Claude refuses, return the same `Turn` with `error` set. Never fill the gap
   with a made-up answer.
+- Errors answer in JSON. body-parser's 400 and 413 carry their words; memory failing (`GET /me/memory`,
+  `DELETE /me/data`) is `502` with the API's words, never memory's status or text, which go to the log.
 
 ---
 

@@ -36,7 +36,8 @@ export default function ConceptsScreen() {
     setLoading(true);
     setLoadError(null);
     const problem = await refresh();
-    if (!focused.current) return;
+    // a newer read replaced this one: its answer, not this one, decides what shows
+    if (!focused.current || problem === undefined) return;
     setLoadError(problem);
     setLoading(false);
   }, [refresh]);

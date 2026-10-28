@@ -186,6 +186,9 @@ async function askNextQuestionAhead(s: Session, m: Mastery, move: MoveId, call: 
 
 async function answer(s: Session, m: Mastery, move: MoveId, learnerText: string, call: CallAgent): Promise<Step> {
   const level = effectiveLevel(levelOf(m, move));
+  // The exclusion's follow-up, asked at most once a move: the item it asked about, and whether this answer replies to it
+  const followedUp = move === "exclusion" ? followUpItemOf(s) : undefined;
+  const replying = followedUp !== undefined && s.recent.at(-1)?.text === text.exclusionDifference(s.concept, followedUp.value);
   const [output] = await Promise.all([
     call("evaluator", { ...context(s, move, level), answer: learnerText }),
     askNextQuestionAhead(s, m, move, call),
@@ -200,10 +203,18 @@ async function answer(s: Session, m: Mastery, move: MoveId, learnerText: string,
     // A right answer is on the map by now; a "correct" that left this part empty is the evaluator failing, so the
     // answer is judged again on the retry instead of a part with nothing in it earning points.
     if (!filled(s.mentefacto, move)) throw new Error(`The evaluator took the ${move} answer as right but put nothing on the map`);
+    // So is a right answer worth no points, and a right bigger group that names none: the map would keep the one
+    // before it, judged too broad (code review, Oct 28).
+    if (ev.quality === 0) throw new Error(`The evaluator took the ${move} answer as right but gave it no points`);
+    if (move === "supraordinate" && !ev.accepted.some(hasWords)) throw new Error("The evaluator took the bigger group as right but named none");
+    // The difference the follow-up asked for, in the learner's own words when the evaluator kept none on the item
+    const asked = replying ? s.mentefacto.exclusion.find((i) => sameItem(i, followedUp)) : undefined;
+    if (asked && asked.note === null) asked.note = learnerText.trim();
     return finishMove(s, m, move, ev.quality, [feedback, say("app", "named_move", text.named(move, false))], call);
   }
-  // An exclusion without its difference gets one follow-up question: not a retry, not a hint.
-  const undifferentiated = move === "exclusion" && ev.verdict === "partial" ? ev.accepted.find((i) => i.note === null) : undefined;
+  // An exclusion without its difference gets one follow-up question a move: not a retry, not a hint. An answer to it
+  // that still has no difference is a retry, like any other (code review, Oct 28).
+  const undifferentiated = move === "exclusion" && ev.verdict === "partial" && !followedUp ? ev.accepted.find((i) => i.note === null) : undefined;
   if (undifferentiated) {
     const followUp = say("app", "question", text.exclusionDifference(s.concept, undifferentiated.value));
     s.recent.push({ from: "app", text: followUp.text });
@@ -279,7 +290,8 @@ async function askFactDesk(s: Session, question: string, call: CallAgent): Promi
 async function wholeMapHelp(s: Session, call: CallAgent): Promise<Step> {
   const move = MOVE_ORDER.find((mv) => s.hintsPerMove[mv] < REVEALED);
   if (!move) return { messages: [say("app", "feedback", text.noMoreHelp)], expects: "map", level: 5 };
-  s.recent = [];
+  // the hints already given on this part go with the next one, so none is given twice; a new part starts afresh
+  if (s.hintsPerMove[move] === 0) s.recent = [];
   const { message } = await hint(s, move, 5, hintStepFor(s.hintsPerMove[move]), "", "none", call);
   return { messages: [message], expects: "map", level: 5 };
 }
@@ -405,6 +417,9 @@ const hasWords = (item: Item) => item.value.split(";").some((value) => value.tri
 /** The part has something on the map: the bigger group, or an item of the other parts. */
 const filled = (map: Mentefacto, move: MoveId) => (move === "supraordinate" ? (map.supraordinate ? [map.supraordinate] : []) : map[move]).some(hasWords);
 const sameItem = (a: Item, b: Item) => words(a).join(" ") === words(b).join(" ");
+/** The exclusion item this move's follow-up question asked about, if it asked one (`recent` starts afresh with each move). */
+const followUpItemOf = (s: Session): Item | undefined =>
+  s.mentefacto.exclusion.find((i) => s.recent.some((e) => e.from === "app" && e.text === text.exclusionDifference(s.concept, i.value)));
 /** `sharper` keeps every word of `vaguer` and adds more. */
 const refines = (sharper: Item, vaguer: Item) => {
   const w = words(sharper);
