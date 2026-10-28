@@ -101,6 +101,9 @@ function memoryStore(): Store & { logs: readonly AgentLogEntry[] } {
         .filter((entry) => sessions.get(entry.session)?.user === user && (entry.agent === "hint_giver" || entry.agent === "coach"))
         .map((entry) => ((entry.input as { memory?: { facts: { id: string }[] } }).memory?.facts ?? []).map((fact) => fact.id));
     },
+    async sessionConcepts(user, ids) {
+      return new Map(ids.flatMap((id) => (sessions.get(id)?.user === user ? [[id, sessions.get(id)!.concept] as const] : [])));
+    },
     async deleteUserData(user) {
       // the agent_log rows go with their sessions, as `DELETE agent_log WHERE session.user = $user` does
       for (let i = logs.length - 1; i >= 0; i--) if (sessions.get(logs[i]!.session)?.user === user) logs.splice(i, 1);
@@ -1000,7 +1003,7 @@ function slowMemory() {
       return facts.splice(0).length;
     },
   };
-  return { memory: createLearnerMemory(api, { salt: "" }), facts, calls, writing, held };
+  return { memory: createLearnerMemory(api, { salt: "", conceptsOf: async () => new Map() }), facts, calls, writing, held };
 }
 
 const wholeMap = { concept: "ecosystem", supraordinate: { value: "system", note: null }, exclusion: [{ value: "habitat", note: "only the place" }], isoordinate: [{ value: "living things", note: null }], infraordinate: [{ value: "aquatic ecosystem", note: null }] };
@@ -1238,7 +1241,7 @@ test("a memory read slower than its budget leaves the hint giver without memory,
     new Promise((_resolve, reject) => {
       init?.signal?.addEventListener("abort", () => reject(init.signal?.reason));
     });
-  const memory = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, late), { salt: "", readMs: 20, warn: (message) => warnings.push(message) });
+  const memory = createLearnerMemory(createMemoryApi({ endpoint: "https://memory.example", context: "c", apiKey: "k" }, late), { salt: "", conceptsOf: async () => new Map(), readMs: 20, warn: (message) => warnings.push(message) });
   const store = memoryStore();
   // the hint giver cites a fact anyway; with none given, the id is dropped
   const claude = fakeClaude([["hint_giver", { step: "nudge", text: "What kind of thing is an ecosystem?", revealed: null, cites: ["attr_sup1"] }]], store);

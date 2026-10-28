@@ -4,6 +4,9 @@ import { queryTimeout } from "./db.ts";
 
 export type NewSession = Pick<Session, "concept" | "material" | "mode">;
 
+/** The ids SurrealDB generates for a session (app.ts checks the ones in a URL the same way). */
+const SESSION_ID = /^[a-z0-9]{1,40}$/;
+
 // All of the API's database code (CONTRACTS.md section 4). The orchestrator never comes here: the
 // API loads a session and mastery, calls `advance`, and saves what it returns.
 
@@ -60,6 +63,9 @@ export type Store = {
   finishedConcepts(user: string): Promise<string[]>;
   // GET /me/memory: the memory fact ids each hint giver or coach call received, one list per agent_log row
   memoryReads(user: string): Promise<string[][]>;
+  // Memory: the concept of each of the user's sessions among `ids` (the sessions memory rows name), so a row counts for
+  // the concept its session was on; another user's session, or an id that isn't one, is left out
+  sessionConcepts(user: string, ids: readonly string[]): Promise<Map<string, string>>;
   // DELETE /me/data: sessions, their agent logs, and mastery
   deleteUserData(user: string): Promise<void>;
 };
@@ -207,6 +213,14 @@ export function createStore(db: Surreal): Store {
       // a path through the facts array gives the ids as one array; NONE on a call that got no memory
       const rows = await one<{ ids: unknown }[]>('SELECT input.memory.facts.id AS ids FROM agent_log WHERE session.user = $user AND agent IN ["hint_giver", "coach"]', { user });
       return rows.map((row) => (Array.isArray(row.ids) ? row.ids.filter((id): id is string => typeof id === "string") : []));
+    },
+
+    async sessionConcepts(user, ids) {
+      // the labels on memory rows are text: only an id SurrealDB makes becomes a record to look up
+      const wanted = [...new Set(ids)].filter((id) => SESSION_ID.test(id));
+      if (wanted.length === 0) return new Map();
+      const rows = await one<{ id: string; concept: string }[]>("SELECT record::id(id) AS id, concept FROM $ids WHERE user = $user", { ids: wanted.map(sessionId), user });
+      return new Map(rows.map((row) => [row.id, row.concept]));
     },
 
     async deleteUserData(user) {

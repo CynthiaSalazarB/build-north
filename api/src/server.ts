@@ -37,7 +37,7 @@ const callAgentFor =
 // SurrealDB Agent Memory (#112): off unless AGENT_MEMORY_ENABLED is on. It needs the database too: the Memory
 // sheet counts who read each fact from agent_log, and the facts come from sessions with a result.
 const memoryConfig = memoryConfigFromEnv();
-const memory = memoryConfig && store ? createLearnerMemory(createMemoryApi(memoryConfig), memoryConfig) : null;
+const memory = memoryConfig && store ? createLearnerMemory(createMemoryApi(memoryConfig), { ...memoryConfig, conceptsOf: (user, ids) => store.sessionConcepts(user, ids) }) : null;
 // With the flag off, what learners left in memory while it was on still goes with Delete my data
 const purgeConfig = memory ? null : memoryPurgeConfigFromEnv();
 const purgeMemory = purgeConfig ? memoryPurgeOf(createMemoryApi(purgeConfig), purgeConfig) : null;

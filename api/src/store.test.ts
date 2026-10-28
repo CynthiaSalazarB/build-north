@@ -170,6 +170,17 @@ test("the store against a real SurrealDB", { skip: url ? false : "set SURREAL_TE
     await store.deleteUserData("other");
   });
 
+  await t.test("the sessions memory rows name: the concept of each that is the learner's own, and nothing for the rest (code review, Oct 28)", async () => {
+    const mine = await store.createSession("namer", { concept: "C++", material: null, mode: "learn" });
+    const also = await store.createSession("namer", { concept: "C", material: null, mode: "test" });
+    const theirs = await store.createSession("someone", { concept: "C", material: null, mode: "learn" });
+    const concepts = await store.sessionConcepts("namer", [mine.id, theirs.id, "doesnotexist000", "Not an id!", mine.id, also.id]);
+    assert.deepEqual([...concepts].sort(), [[mine.id, "C++"], [also.id, "C"]].sort());
+    assert.equal((await store.sessionConcepts("namer", [])).size, 0);
+    await store.deleteUserData("namer");
+    await store.deleteUserData("someone");
+  });
+
   await t.test("deleting a user's data removes their sessions, logs and mastery, and nobody else's", async () => {
     const mine = await store.createSession("delete-me", { concept: "inflation", material: "notes", mode: "test" });
     await store.logAgentCall({ session: mine.id, agent: "fact_desk", input: { q: 1 }, output: { a: 2 }, ms: 120.4, usd: 0.0123 });
