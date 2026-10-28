@@ -127,9 +127,17 @@ export function arrived(state: SessionState, body: TurnBody, turn: Turn): Sessio
   return received(echoLost ? { ...sent(state, body), answer: state.answer } : state, turn);
 }
 
-/** The call that sent `body` failed before any Turn came back. A newer body on its way stays on its way. */
+/** The call that sent `body` failed before any Turn came back. A newer body on its way stays on its way. An answer the
+ * server refused for good (over the length limit, say) was never judged: it leaves the conversation and goes back to the
+ * field as the part's unsent answer, so the learner can change it and send it again (code review, Oct 28). */
 export function failed(state: SessionState, body: TurnBody, message: string, retryable: boolean): SessionState {
-  return state.pending === body ? { ...state, pending: null, failure: { message, retryable, body } } : state;
+  if (state.pending !== body) return state;
+  const next = { ...state, pending: null, failure: { message, retryable, body } };
+  if (retryable || !("text" in body) || !state.turn) return next;
+  // its echo is the last entry: nothing else joins the conversation while an answer is on its way
+  const last = state.entries.at(-1);
+  const entries = last?.from === "learner" && last.text === body.text ? state.entries.slice(0, -1) : state.entries;
+  return { ...next, entries, answer: { move: partOf(state.turn), text: body.text } };
 }
 
 /** The body to send again after a failure: the same one, except that a map goes as the learner has it now, since

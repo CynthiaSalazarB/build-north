@@ -503,6 +503,60 @@ test("/turns checks its body, and answers only the session's owner", async (t) =
   assert.equal((await answer(url, "s999", { turn: 1, prediction: 7 })).status, 404);
 });
 
+for (const { field, length, error, expects } of [
+  { field: "text", length: 2001, error: "Your answer is over 2,000 characters. Shorten it and send it again.", expects: "text" },
+  { field: "question", length: 501, error: "Your question is over 500 characters. Shorten it and send it again.", expects: "map" },
+]) {
+  test(`/turns rejects an overlong ${field} without changing the session or its transcript`, async (t) => {
+    // a question goes to the whole map, so that case is a self-test on the real orchestrator: its prediction opens the
+    // map with no agent call; the cap stops only a body the Turn would take (code review, Oct 28)
+    const url = await start(t, expects === "map" ? { ...withStore(), advance, callAgentFor: fakeClaude([]).callAgentFor } : withStore());
+    const headers = as("length-test");
+    const first = await (await post(url, { concept: "API", ...(expects === "map" ? { mode: "test" } : {}) }, headers)).json();
+    const ready = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 5 }, headers)).json();
+    assert.equal(ready.expects, expects);
+    const read = async (path: string) => (await fetch(`${url}/sessions/${first.sessionId}${path}`, { headers })).json();
+    const transcript = await read("/transcript");
+
+    const res = await answer(url, first.sessionId, { turn: ready.turn, [field]: "x".repeat(length) }, headers);
+    assert.equal(res.status, 400);
+    assert.deepEqual(await res.json(), { error });
+    assert.deepEqual(await read(""), ready);
+    assert.deepEqual(await read("/transcript"), transcript);
+  });
+}
+
+test("the length cap stops only a body that would be judged: a resend of a judged Turn gets the latest Turn, and a missing session a 404 (code review, Oct 28)", async (t) => {
+  const url = await start(t, withStore());
+  const headers = as("length-order");
+  const first = await (await post(url, { concept: "API" }, headers)).json();
+  const ready = await (await answer(url, first.sessionId, { turn: first.turn, prediction: 5 }, headers)).json();
+  // the first Turn was judged already (decision 18): its resend, however long, gets the latest Turn back
+  const resent = await answer(url, first.sessionId, { turn: first.turn, text: "x".repeat(2001) }, headers);
+  assert.equal(resent.status, 200);
+  assert.deepEqual(await resent.json(), ready);
+  assert.equal((await answer(url, "s999", { turn: 1, text: "x".repeat(2001) }, headers)).status, 404);
+});
+
+test("sessions with older long answers or fact questions can still be reopened with their transcript", async (t) => {
+  const store = parsingStore();
+  const url = await start(t, { ...noDb, store });
+  const headers = as("history-test");
+  for (const body of [{ turn: 2, text: "x".repeat(2001) }, { turn: 2, question: "x".repeat(501) }]) {
+    const session = await store.createSession("history-test", { concept: "democracy", material: null, mode: "learn" });
+    const turn = TurnSchema.parse({ ...sessionOne[2]!.turn, sessionId: session.id });
+    const transcript = [{ body, turn }];
+    await store.saveSession({ ...session, turn: turn.turn, lastTurn: turn, phase: turn.phase, move: turn.move, transcript }, session.turn);
+
+    const latest = await fetch(`${url}/sessions/${session.id}`, { headers });
+    assert.equal(latest.status, 200);
+    assert.deepEqual(await latest.json(), turn);
+    const history = await fetch(`${url}/sessions/${session.id}/transcript`, { headers });
+    assert.equal(history.status, 200);
+    assert.deepEqual(TranscriptSchema.parse(await history.json()), { steps: transcript });
+  }
+});
+
 test("GET /me/mastery lists the four moves, and DELETE /me/data removes only the caller's data", async (t) => {
   const store = memoryStore();
   const url = await start(t, { ...noDb, store });

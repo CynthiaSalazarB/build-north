@@ -224,6 +224,7 @@ function WorkScreen({ turn, state, send, retry, onType, onClose }: WorkProps) {
       onSend={send}
       unsent={unsentOf(state)}
       onType={(move, text) => onType(turn.sessionId, move, text)}
+      restore={failure && !failure.retryable && "text" in failure.body ? failure.body : null}
       flush={wide}
     />
   );

@@ -13,6 +13,7 @@ import {
   Mastery,
   QuestionerOutput,
   Result,
+  Transcript,
   Turn,
   TurnBody,
   WholeMapEvaluatorOutput,
@@ -100,6 +101,27 @@ describe("fixtures", () => {
   it("the worked example parses and fills every move", () => {
     const example = WorkedExample.parse(JSON.parse(read("../fixtures/worked-example.json")));
     expect(new Set(example.steps.map((s) => s.move))).toEqual(new Set(MOVE_ORDER));
+  });
+});
+
+describe("Turn body length limits", () => {
+  it.each([
+    ["text", 2000, true],
+    ["text", 2001, false],
+    ["question", 500, true],
+    ["question", 501, false],
+  ] as const)("%s with %i characters parses: %s", (field, length, valid) => {
+    expect(TurnBody.safeParse({ turn: 1, [field]: "x".repeat(length) }).success).toBe(valid);
+  });
+});
+
+describe("saved transcripts", () => {
+  it.each([
+    ["text", 2001],
+    ["question", 501],
+  ] as const)("keeps an older %s with %i characters readable", (field, length) => {
+    const turn = JSON.parse(read("../fixtures/session-1.json"))[2].turn;
+    expect(() => Transcript.parse({ steps: [{ body: { turn: 2, [field]: "x".repeat(length) }, turn }] })).not.toThrow();
   });
 });
 

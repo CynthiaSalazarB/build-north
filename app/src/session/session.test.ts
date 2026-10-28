@@ -394,3 +394,19 @@ test("a fetch that answers after the timer fired, with a body that fails, ends a
   const client = createApiClient({ baseUrl: "http://api.test", fetch: late, timeoutMs: 20 });
   await assert.rejects(client.start({ concept: "x" }), (error: unknown) => error instanceof ClientError && error.retryable);
 });
+
+test("an answer the server refused for good goes back to the field and leaves the conversation; one to try again stays sent (code review, Oct 28)", () => {
+  const asking = fixtureTurns.find((t) => t.expects === "text" && t.phase === "move")!;
+  const body = { turn: asking.turn, text: "x".repeat(2001) };
+  const sending = sent(startedWith(asking), body);
+  const refused = failed(sending, body, "Your answer is over 2,000 characters. Shorten it and send it again.", false);
+  assert.deepEqual(refused.answer, { move: partOf(asking), text: body.text });
+  assert.equal(unsentOf(refused), body.text);
+  assert.equal(refused.entries.some((e) => e.from === "learner" && e.text === body.text), false);
+  assert.equal(refused.failure?.retryable, false);
+  // a failure Try again can fix keeps the answer as it went: the retry sends that body again
+  const dropped = failed(sending, body, "No connection.", true);
+  assert.equal(dropped.answer, null);
+  const echo = dropped.entries.at(-1);
+  assert.equal(echo?.from === "learner" ? echo.text : null, body.text);
+});

@@ -957,3 +957,14 @@ Format: **Decision** · **Instead of** · **Why** · **Pattern / trade-off**
   palette, session flow or native dependency set. Timings in the verification record are local browser measurements,
   not production performance claims.
 
+### 2026-10-28 · Answer limits apply to new requests, while saved history stays readable
+- **Decision:** new Turn bodies allow at most 2,000 characters in `text` and 500 in `question`. The guided answer
+  field has the same 2,000-character limit, and the API returns a plain-language 400 before saving an overlong body.
+  Saved transcript bodies still accept longer answers and questions from before these limits.
+- **Instead of:** using the capped request schema for old transcripts too, which would make those sessions fail
+  `Session.parse` when reopened.
+- **Why:** later agent calls resend the part's answers; a single long paste should not fill that context. The
+  request limit must not make an earlier session unreadable.
+- **Pattern / trade-off:** validate new requests strictly while retaining the stored format. Old long answers
+  remain in their sessions; agent input and output schemas keep their existing bounds.
+
