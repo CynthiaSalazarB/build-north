@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lumente - Baseline Explanation: API</title>
+  <!-- Google Fonts: Inter and Newsreader -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;1,6..72,400&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+            serif: ['Newsreader', 'Georgia', 'serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            surface: '#16151a',
+            'surface-dark': '#111114',
+            surfaceContainer: '#1f1d22',
+            onSurface: '#f4efe8',
+            onSurfaceVariant: '#c9c0b4',
+            primary: '#f6f1ea',
+            onPrimary: '#111114',
+            firefly: '#f2b84b',
+            outlineToken: 'rgba(255,240,225,0.22)',
+            outlineFaint: 'rgba(255,240,225,0.12)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Atmospheric dark canvas with faint warm light in top-right corner & graph-paper grid */
+    body {
+      background-color: #111114;
+      background-image: 
+        radial-gradient(circle at 100% 0%, rgba(242, 184, 75, 0.12) 0%, rgba(242, 184, 75, 0.03) 45%, transparent 70%),
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+      background-size: 100% 100%, 24px 24px, 24px 24px;
+      color: #f4efe8;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Concept map connectors */
+    .cross-grid {
+      display: grid;
+      grid-template-columns: 1fr 108px 1fr;
+      grid-template-rows: auto auto auto;
+      gap: 16px 14px;
+      align-items: center;
+      justify-items: center;
+      position: relative;
+    }
+
+    .firefly-glow {
+      box-shadow: 0 0 10px 2px rgba(242, 184, 75, 0.65), 0 0 20px 6px rgba(242, 184, 75, 0.25);
+    }
+  </style>
+<style id="lumente-air">
+main{gap:2.25rem!important;padding-top:1.5rem!important;padding-bottom:3rem!important}
+main>section,main>div{gap:1.25rem}
+.gap-5{gap:1.5rem!important}.gap-6{gap:2rem!important}
+.space-y-4>:not([hidden])~:not([hidden]){margin-top:1.5rem!important}
+.space-y-6>:not([hidden])~:not([hidden]){margin-top:2.25rem!important}
+/* readable labels */
+[class*="text-[10px]"],[class*="text-[11px]"]{font-size:12px!important;line-height:1.3}
+</style>
+</head>
+<body class="flex justify-center p-0 m-0 select-none">
+  <!-- Mobile Container (max-w-[420px]) -->
+  <main class="w-full max-w-[420px] min-h-screen flex flex-col justify-between px-6 pt-5 pb-6 relative">
+
+    <!-- Top Bar: [X Save] left | [API] pill center | empty right -->
+    <header class="w-full flex items-center justify-between h-11 mb-3">
+      <!-- Left: X with 'Save' -->
+      <button type="button" class="flex items-center gap-2 text-onSurfaceVariant hover:text-onSurface transition-colors py-1.5 focus:outline-none">
+        <svg class="w-4 h-4 text-onSurfaceVariant" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+        <span class="text-sm font-medium tracking-tight">Save</span>
+      </button>
+
+      <!-- Centre: Concept Pill 'API' -->
+      <div class="px-3.5 py-1 rounded-full bg-surfaceContainer/90 border border-outlineToken/40 text-onSurface text-xs font-mono font-medium tracking-wider shadow-sm">
+        API
+      </div>
+
+      <!-- Right: empty spacer to balance -->
+      <div class="w-12" aria-hidden="true"></div>
+    </header>
+
+    <!-- Center Flow Content -->
+    <div class="flex-1 flex flex-col justify-start">
+
+      <!-- Map Container Card -->
+      <section class="w-full rounded-2xl bg-surfaceContainer/55 border border-outlineToken/30 p-4 pt-5 pb-5 relative my-2 backdrop-blur-sm">
+        
+        <!-- Header row of the map container -->
+        <div class="flex items-center justify-between mb-4 px-1">
+          <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-onSurfaceVariant/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.75">
+              <rect x="3" y="3" width="7" height="7" rx="1.5" />
+              <rect x="14" y="3" width="7" height="7" rx="1.5" />
+              <rect x="8.5" y="14" width="7" height="7" rx="1.5" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M6.5 10v2a2 2 0 002 2h2m4-4v2a2 2 0 01-2 2" />
+            </svg>
+            <span class="text-xs font-medium text-onSurfaceVariant/80 tracking-wide">Concept map</span>
+          </div>
+          <span class="text-xs text-onSurfaceVariant/60 font-mono">0 of 4 lit</span>
+        </div>
+
+        <!-- Cross Concept Map: clean layout with generous spacing -->
+        <div class="relative w-full max-w-[340px] mx-auto py-1">
+
+          <!-- Subtle connecting guide lines (neutral dashed, no amber leader line) -->
+          <svg class="absolute inset-0 w-full h-full pointer-events-none z-0" xmlns="http://www.w3.org/2000/svg">
+            <!-- Vertical line: top to center, center to bottom -->
+            <line x1="50%" y1="26%" x2="50%" y2="76%" stroke="rgba(255,240,225,0.12)" stroke-width="1.5" stroke-dasharray="3 3" />
+            <!-- Horizontal line: left to center, center to right -->
+            <line x1="22%" y1="50%" x2="78%" y2="50%" stroke="rgba(255,240,225,0.12)" stroke-width="1.5" stroke-dasharray="3 3" />
+          </svg>
+
+          <!-- Top: bigger group -->
+          <div class="flex justify-center mb-3 relative z-10">
+            <div class="w-[170px] rounded-xl border border-dashed border-outlineToken/50 bg-[#16151a]/85 p-2.5 text-center">
+              <div class="flex items-center justify-between mb-1 px-0.5">
+                <span class="text-[12px] text-onSurfaceVariant font-medium">bigger group</span>
+                <!-- Two empty point squares -->
+                <div class="flex gap-1">
+                  <span class="w-2 h-2 rounded-[2px] border border-onSurfaceVariant/50"></span>
+                  <span class="w-2 h-2 rounded-[2px] border border-onSurfaceVariant/50"></span>
+                </div>
+              </div>
+              <div class="text-base text-onSurfaceVariant/70 font-normal">?</div>
+            </div>
+          </div>
+
+          <!-- Middle row: left (what it needs) | center (API) | right (what it isn't) -->
+          <div class="grid grid-cols-3 gap-2 items-center mb-3 relative z-10">
+            
+            <!-- Left: what it needs -->
+            <div class="rounded-xl border border-dashed border-outlineToken/50 bg-[#16151a]/85 p-2 text-center h-[76px] flex flex-col justify-between">
+              <div class="flex items-center justify-between px-0.5">
+                <span class="text-[11px] text-onSurfaceVariant font-medium leading-tight text-left">what it needs</span>
+                <!-- Two empty point squares -->
+                <div class="flex flex-col gap-0.5 shrink-0 ml-1">
+                  <span class="w-2 h-2 rounded-[2px] border border-onSurfaceVariant/50"></span>
+                  <span class="w-2 h-2 rounded-[2px] border border-onSurfaceVariant/50"></span>
+                </div>
+              </div>
+              <div class="text-base text-onSurfaceVariant/70 font-normal pb-0.5">?</div>
+            </div>
+
+            <!-- Center: API -->
+            <div class="rounded-xl bg-[#232027] border border-outlineToken/60 py-3 px-2 text-center shadow-md flex flex-col items-center justify-center h-[76px]">
+              <span class="text-base font-bold text-onSurface tracking-wide font-mono">API</span>
+            </div>
+
+            <!-- Right: what it isn't -->
+            <div class="rounded-xl border border-dashed border-outlineToken/50 bg-[#16151a]/85 p-2 text-center h-[76px] flex flex-col justify-between">
+              <div class="flex items-center justify-between px-0.5">
+                <span class="text-[11px] text-onSurfaceVariant font-medium leading-tight text-left">what it isn't</span>
+                <!-- Two empty point squares -->
+                <div class="flex flex-col gap-0.5 shrink-0 ml-1">
+                  <span class="w-2 h-2 rounded-[2px] border border-onSurfaceVariant/50"></span>
+                  <span class="w-2 h-2 rounded-[2px] border border-onSurfaceVariant/50"></span>
+                </div>
+              </div>
+              <div class="text-base text-onSurfaceVariant/70 font-normal pb-0.5">?</div>
+            </div>
+
+          </div>
+
+          <!-- Bottom: types -->
+          <div class="flex justify-center relative z-10">
+            <div class="w-[170px] rounded-xl border border-dashed border-outlineToken/50 bg-[#16151a]/85 p-2.5 text-center">
+              <div class="flex items-center justify-between mb-1 px-0.5">
+                <span class="text-[12px] text-onSurfaceVariant font-medium">types</span>
+                <!-- Two empty point squares -->
+                <div class="flex gap-1">
+                  <span class="w-2 h-2 rounded-[2px] border border-onSurfaceVariant/50"></span>
+                  <span class="w-2 h-2 rounded-[2px] border border-onSurfaceVariant/50"></span>
+                </div>
+              </div>
+              <div class="text-base text-onSurfaceVariant/70 font-normal">?</div>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- Question & Tutor Prompt Section -->
+      <section class="mt-4 mb-2">
+        <!-- Eyebrow: steady amber firefly dot + 'before any help' -->
+        <div class="flex items-center gap-2 mb-2.5">
+          <!-- Small steady amber firefly dot with soft halo, no bulb, no wings -->
+          <svg class="lumente-firefly" width="60" height="60" viewBox="0 0 112 112" aria-hidden="true" style="display:inline-block;vertical-align:middle;flex-shrink:0;margin:-15px 0"><defs><radialGradient id="ff201" cx="50%" cy="50%" r="50%"><stop offset="0" stop-color="#f2b84b" stop-opacity="0.55"/><stop offset="1" stop-color="#f2b84b" stop-opacity="0"/></radialGradient></defs><circle cx="56" cy="56" r="56" fill="url(#ff201)"/><g transform="translate(28 28)"><ellipse cx="19" cy="20" rx="8" ry="4.5" transform="rotate(-28 19 20)" fill="rgba(255, 240, 225, 0.4)"/><ellipse cx="37" cy="20" rx="8" ry="4.5" transform="rotate(28 37 20)" fill="rgba(255, 240, 225, 0.4)"/><path d="M24 18 L21 10 M32 18 L35 10" stroke="#c9c0b4" stroke-width="1.6" stroke-linecap="round" fill="none"/><circle cx="28" cy="30" r="10.5" fill="#f2b84b"/><circle cx="24.6" cy="28.6" r="1.7" fill="#111114"/><circle cx="31.4" cy="28.6" r="1.7" fill="#111114"/></g></svg>
+          <span class="text-xs font-medium text-firefly tracking-wide">before any help</span>
+        </div>
+
+        <!-- Question in serif face (Newsreader-like), 22px -->
+        <h1 class="font-serif text-[22px] leading-[1.3] text-onSurface font-normal mb-2">
+          In your own words, what is API?
+        </h1>
+
+        <!-- One dim line: reassuring framing for first-year slow learners -->
+        <p class="text-sm text-onSurfaceVariant/75 leading-relaxed">
+          No points for this one. It is your starting point; the map is where you earn them.
+        </p>
+      </section>
+
+    </div>
+
+    <!-- Bottom Input & Primary Action: Single focused interaction -->
+    <footer class="w-full mt-4 pt-2">
+      <div class="flex flex-col gap-2">
+        <!-- Accessible label above or integrated -->
+        <label for="baseline-answer" class="text-xs font-medium text-onSurfaceVariant/90">
+          Your first explanation
+        </label>
+
+        <!-- Input Box with integrated Speak and Send actions -->
+        <div class="w-full rounded-2xl bg-surfaceContainer/90 border border-outlineToken/40 focus-within:border-firefly/70 transition-all p-3.5 shadow-sm">
+          <textarea
+            id="baseline-answer"
+            rows="3"
+            placeholder="Write it in your own words"
+            class="w-full bg-transparent border-none text-[15px] text-onSurface placeholder:text-onSurfaceVariant/50 resize-none focus:outline-none leading-relaxed"
+          ></textarea>
+
+          <!-- Input Action Bar: Speak & Send -->
+          <div class="flex items-center justify-between pt-2 mt-1 border-t border-outlineToken/20">
+            <!-- Speak Action -->
+            <button
+              type="button"
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium text-onSurfaceVariant hover:text-onSurface hover:bg-white/5 active:scale-95 transition-all focus:outline-none"
+            >
+              <!-- Microphone icon -->
+              <svg class="w-4 h-4 text-onSurfaceVariant" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
+              </svg>
+              <span>Speak</span>
+            </button>
+
+            <!-- Send Action (Primary Action) -->
+            <button
+              type="button"
+              class="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-onPrimary text-sm font-semibold hover:opacity-95 active:scale-95 transition-all shadow focus:outline-none"
+            >
+              <span>Send</span>
+              <!-- Send arrow -->
+              <svg class="w-4 h-4 text-onPrimary" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14m-7-7l7 7-7 7" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </footer>
+
+  </main>
+</body>
+</html>

@@ -45,3 +45,8 @@ page under a Sources heading, the way the SurrealDB prize page does.
 | [Product thesis](synthesis/product-thesis.md) | What Lumente solves now, why it should work, what we claim and don't yet, the hard questions, and where it goes | 2026-10-22 |
 | [Plan to win](synthesis/plan-to-win.md) | The plan, adopted Oct 22 with Cynthia's decisions: our user (CS students who build with coding agents), the story and its sources, each judging criterion, the prizes we enter, the changes for the new user, the days to Oct 29, owners, the cut list, the decisions, and the free tools and credits; done items carry their PR numbers | 2026-10-24 |
 | [Expo prize plan](synthesis/expo-prize-plan.md) | Best Use of Expo in full: what Expo rewards, the EAS setup with config, every judge's path (APK, the web; no TestFlight), native feel, SDK 58 features, the evidence, owners and risks | 2026-10-24 |
+
+The design research lives with the design boards, not here: rounds 1 to 9 in
+[`docs/design/README.md`](../docs/design/README.md), and round 10 (the UI/UX best-practice guide with its
+sources, the audit of every screen for first-time users and slow learners, the copy pass and the Stitch
+mockups, all for after the freeze) in [`docs/design/10-research/README.md`](../docs/design/10-research/README.md).
