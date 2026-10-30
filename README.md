@@ -10,6 +10,7 @@ Lumente helps programming students who code with AI explain the ideas behind the
 
 <a href="https://lumente.expo.app"><img alt="Try it on the web" src="https://img.shields.io/badge/Try_it_on_the_web-f2b84b?style=for-the-badge" /></a>
 <a href="https://expo.dev/artifacts/eas/LVkBl_worJBs2ro5p6z9vFa1XtYyA992vF3QrkSzG_A.apk"><img alt="Get the Android app" src="https://img.shields.io/badge/Get_the_Android_app-16151a?style=for-the-badge&amp;logo=android&amp;logoColor=f2b84b" /></a>
+<a href="https://devpost.com/software/lumente"><img alt="See it on Devpost" src="https://img.shields.io/badge/See_it_on_Devpost-16151a?style=for-the-badge&amp;logo=devpost&amp;logoColor=f2b84b" /></a>
 
 <sub>Made for <a href="https://build-north.devpost.com/">Build North</a> (Georgian AI Lab + TapNet), October 2026</sub>
 
